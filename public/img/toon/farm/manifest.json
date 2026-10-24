@@ -1923,6 +1923,39 @@
     "https://poly.pizza/m/qyGtRmhgzl"
    ],
    "license": "CC0"
+  },
+  {
+   "file": "tree_xoai.png",
+   "w": 320,
+   "h": 350,
+   "use": "Cây xoài: tán xanh đậm, lá dài, chùm quả xanh-vàng",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "item_mango.png",
+   "w": 20,
+   "h": 24,
+   "use": "Quả xoài rụng (hiệu ứng)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "hedge_flower.png",
+   "w": 128,
+   "h": 60,
+   "use": "Hàng rào hoa kiểu quê (rào tre thấp + hoa giấy, dâm bụt, mười giờ), lặp ngang",
+   "anchor": "bottom-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ bằng PIL)"
+   ]
   }
  ]
 }

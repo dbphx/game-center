@@ -213,9 +213,24 @@
     return { owned, max, buy: owned < max && !!farm.nextPlotPrice, left: max - owned };
   }
 
+  // Hàng rào hoa (rào tre thấp có dây hoa leo, ~0.7H): [x1, x2, y chân]. Chừa lối ở cổng, giữa lô cỏ.
+  let HEDGES = [];
+  function hedgeList(X) {
+    const b = POND_BOX;
+    return [
+      [PEN.x2 + 24, X(528), 598], // mặt trước, trái cổng
+      [X(646), BX[0] - 14, 598], // mặt trước, phải cổng
+      [BX[1] + BLOCK_W + 14, W - 16, 598], // mặt trước, góc phải
+      [X(462), X(524), 504], // viền hai góc dưới lô cỏ giữa (chừa lối rộng ở giữa)
+      [X(654), X(708), 504],
+      [b.x + 6, b.x + b.w - 6, b.y + b.h + 8], // viền dưới ao
+    ];
+  }
+
   function computeLayout() {
     sizeLayout();
     const X = (n) => n + OX;
+    HEDGES = hedgeList(X);
     obstacles = [
       // Chuồng: hàng rào 4 phía, chừa cổng ở hông phải (y 410–488) để đi vào trong.
       [PEN.x1 - 4, PEN.y1, PEN.x1 + 12, PEN.y2], // rào trái
@@ -234,6 +249,7 @@
       [X(520), 592, X(544), 608], // cột cổng trái
       [X(628), 592, X(652), 608], // cột cổng phải
       [POND_BOX.x + 14, POND_BOX.y + 22, POND_BOX.x + POND_BOX.w - 14, POND_BOX.y + POND_BOX.h - 12], // ao
+      ...HEDGES.map(([x1, x2, y]) => [x1, y - 12, x2, y]), // hàng rào hoa
     ];
   }
 
@@ -467,6 +483,25 @@
   }
   setInterval(dropPetal, 700);
 
+  // Thỉnh thoảng một quả xoài chín rụng xuống gốc, nảy nhẹ rồi biến mất.
+  function dropMango() {
+    const trees = document.querySelectorAll('.obj.decor.mango');
+    if (!trees.length || document.hidden) return;
+    const t = trees[Math.floor(Math.random() * trees.length)];
+    const img = t.querySelector('img');
+    const el = document.createElement('img');
+    el.className = 'mango-fall';
+    el.src = `${IMG}item_mango.png`;
+    el.alt = '';
+    el.style.left = `${Math.round(t.offsetLeft + (Math.random() - 0.5) * img.width * 0.6)}px`;
+    el.style.top = `${Math.round(t.offsetTop - img.height * 0.45)}px`;
+    el.style.setProperty('--fall', `${Math.round(img.height * 0.45)}px`);
+    el.style.zIndex = Math.round(t.offsetTop + 2);
+    $('pets').appendChild(el);
+    setTimeout(() => el.remove(), 4200);
+  }
+  setInterval(dropMango, 6500);
+
   function renderWorld() {
     computeLayout();
     const X = (n) => n + OX;
@@ -541,19 +576,25 @@
     // Cây đa to sau ao (tán vươn lên trời, không che ruộng / lối).
     parts.push(deco('tree_da', POND_BOX.x + POND_BOX.w / 2 + 10, POND_BOX.y + 4, 400, false, 'sway slow big'));
     parts.push(deco('well', POND_BOX.x + 42, POND_BOX.y - 4, 76));
-    parts.push(deco('tree_mai', W - 34, 606, 190, true, 'sway blossom'));
+    parts.push(deco('tree_xoai', W - 70, 606, 260, true, 'sway slow mango'));
     // Dừa cạnh ao + góc phải; luỹ tre dọc hàng rào sau.
     parts.push(deco('tree_dua', POND_BOX.x + POND_BOX.w - 6, Math.min(590, POND_BOX.y + POND_BOX.h + 60), 330, true, 'sway slow'));
     parts.push(deco('tree_dua', W - 8, 262, 300, true, 'sway slow'));
-    for (const [x, h] of [[44, 300], [BX[1] + BLOCK_W + 22, 300]]) parts.push(deco('tree_tre', x, SKY + 34, h, x % 2 === 1, 'sway slow'));
-    // Luỹ tre rậm sau hai nhà kho: nhiều bụi chồng nhau, cao hơn mái, đung đưa lệch pha (z thấp hơn kho).
-    for (let i = 0; i < 13; i++) {
-      const x = X(400) + i * 30 + (i % 2) * 8;
-      const y = SKY + 40 + (i % 3) * 14;
-      const h = 290 + ((i * 37) % 5) * 14;
-      parts.push(deco('tree_tre', x, y, h, i % 2 === 1, 'sway slow').replace('style="', `style="--sway-delay:-${(i * 0.73) % 6}s;`));
-    }
+    // Dọc hàng rào sau: tre thưa xen mai, đào (thấy được hàng rào + đồng ruộng xa phía sau).
+    parts.push(deco('tree_tre', 44, SKY + 34, 300, false, 'sway slow'));
+    parts.push(deco('tree_xoai', BX[0] + BLOCK_W + 24, SKY + 30, 250, false, 'sway slow mango'));
+    parts.push(deco('tree_tre', BX[1] + BLOCK_W + 20, SKY + 34, 290, true, 'sway slow'));
+    // Sau hai nhà kho: luân phiên mai – tre – đào – tre… (z thấp hơn kho, cánh hoa vẫn rơi).
+    const ROW = ['tree_mai', 'tree_tre', 'tree_dao', 'tree_xoai', 'tree_mai', 'tree_tre'];
+    ROW.forEach((name, i) => {
+      const x = X(396) + i * 72;
+      const tre = name === 'tree_tre';
+      const xoai = name === 'tree_xoai';
+      const el = deco(name, x, SKY + 40 + (i % 2) * 10, tre ? 300 + (i % 3) * 14 : xoai ? 260 : 190, i % 2 === 1, tre ? 'sway slow' : xoai ? 'sway slow mango' : 'sway blossom');
+      parts.push(el.replace('style="', `style="--sway-delay:-${(i * 0.73) % 6}s;`));
+    });
     parts.push(flowersHTML());
+    for (const [x1, x2, y] of HEDGES) parts.push(`<span class="hedge" style="left:${x1}px;top:${y - 60}px;width:${x2 - x1}px;z-index:${y}"></span>`);
 
     $('objects').innerHTML = parts.join('');
     fitText(document.querySelector('.gate-sign b'), 16, 8);

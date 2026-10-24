@@ -709,3 +709,17 @@ button.danger { background: linear-gradient(180deg, #ff8a7a, #e03131); border-co
 .quick-menu .chip.quick:disabled { opacity: .5; }
 @media (max-width: 600px) { .tool .ic { width: 38px; height: 38px; } .tool b { font-size: 9px; } }
 .quick-menu { width: min(660px, calc(100% - 20px)); }
+
+/* Quả xoài rụng */
+.mango-fall { position: absolute; width: 14px; height: auto; pointer-events: none; animation: mango-fall 4s ease-in forwards; }
+@keyframes mango-fall {
+  0% { transform: translate(-50%, 0); opacity: 1; }
+  22% { transform: translate(-50%, var(--fall)); }
+  30% { transform: translate(-50%, calc(var(--fall) - 8px)); }
+  38% { transform: translate(-50%, var(--fall)) rotate(30deg); }
+  85% { opacity: 1; }
+  100% { transform: translate(-50%, var(--fall)) rotate(30deg); opacity: 0; }
+}
+
+/* Hàng rào hoa (ảnh lặp ngang hedge_flower.png) */
+.hedge { position: absolute; height: 60px; pointer-events: none; background: url('/img/toon/farm/hedge_flower.png') left bottom / 128px 60px repeat-x; filter: drop-shadow(0 3px 2px rgba(60, 40, 10, .2)); }
