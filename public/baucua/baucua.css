@@ -1,0 +1,198 @@
+/* Bầu Cua Tôm Cá — sòng hoạt hình kiểu game "Avatar": thảm đỏ casino, bàn nhà cái, chiếu 6 ô, thanh chip. */
+
+body { background: #5b1f2b url('/img/toon/casino/floor_carpet.png') repeat; background-size: 96px 96px; }
+
+/* ---------- Máu trên topbar (giống nông trại) ---------- */
+.hp-pill {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-weight: 900;
+  background: linear-gradient(180deg, #fff6f6, #ffe0e0); border: 2px solid #f19a9a; box-shadow: inset 0 2px 0 #fff, 0 2px 0 #c86464;
+}
+.hp-pill:empty { display: none; }
+.hp-pill .icon { width: 17px; height: 17px; fill: #ff4d4d; color: #c92a2a; }
+.hp-pill b { color: #7a1d1d; font-variant-numeric: tabular-nums; }
+.hp-pill .hp-bar { display: inline-block; width: 56px; height: 8px; border-radius: 999px; background: #f6d0d0; overflow: hidden; }
+.hp-pill .hp-bar > span { display: block; height: 100%; background: linear-gradient(180deg, #8ee08a, #3aa94a); }
+.hp-pill.low .hp-bar > span { background: linear-gradient(180deg, #ffb3b3, #e03131); }
+
+/* ---------- Bố cục ---------- */
+.room { flex: 1; display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 1280px; margin: 0 auto; padding: 12px 16px 16px; }
+
+.room-head {
+  display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 14px; padding: 8px 14px;
+  background: linear-gradient(180deg, #fff8e8, #ffe7b8); border: 3px solid #c98a2e; border-radius: 18px;
+  box-shadow: inset 0 2px 0 #fff, 0 4px 0 #8a5422, 0 10px 22px rgba(0, 0, 0, .3);
+}
+.room-head .title { display: flex; flex-direction: column; line-height: 1; }
+.room-head h1 { margin: 0; font-size: 26px; color: #b3261e; text-shadow: 0 2px 0 #ffd36b; }
+.room-head .round { font-size: 13px; font-weight: 800; color: var(--muted); }
+
+.phase {
+  display: inline-flex; align-items: center; gap: 10px; padding: 6px 8px 6px 16px; border-radius: 999px; font-weight: 900;
+  background: #fff; border: 2px solid #e2b874; color: var(--text); white-space: nowrap;
+}
+.phase .clock {
+  min-width: 46px; text-align: center; padding: 3px 10px; border-radius: 999px; color: #fff; font-family: var(--font-title); font-size: 20px;
+  background: linear-gradient(180deg, #5cc46a, #2f9a40); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5);
+}
+.phase.rolling .clock { background: linear-gradient(180deg, #ffb340, #e07a10); }
+.phase.result .clock { background: linear-gradient(180deg, #5cb3ff, #2f7fd6); }
+.phase.hurry .clock { background: linear-gradient(180deg, #ff7070, #d62828); animation: beat .5s ease-in-out infinite; }
+@keyframes beat { 50% { transform: scale(1.12); } }
+
+.history { display: flex; gap: 6px; overflow-x: auto; justify-content: flex-end; scrollbar-width: none; }
+.history::-webkit-scrollbar { display: none; }
+.h-round { display: inline-flex; gap: 1px; padding: 3px 5px; border-radius: 10px; background: rgba(255, 255, 255, .75); border: 1.5px solid #ecc98a; flex-shrink: 0; }
+.h-round.last { background: #fff; border-color: #f0a020; box-shadow: 0 0 0 2px #ffd36b; }
+.h-round .face { display: block; }
+
+.arena { display: grid; grid-template-columns: 150px 1fr 150px; gap: 10px; align-items: start; }
+.center { display: flex; flex-direction: column; align-items: center; gap: 10px; min-width: 0; }
+
+/* ---------- Người chơi ---------- */
+.crowd { display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 8px; }
+.crowd.mobile { display: none; }
+.person { position: relative; display: flex; flex-direction: column; align-items: center; width: 140px; }
+.person .char-sprite { position: relative; z-index: 1; }
+.person .shadow { width: 46px; height: 10px; margin-top: -8px; border-radius: 50%; background: rgba(0, 0, 0, .35); }
+.person .p-tag {
+  display: inline-flex; align-items: center; gap: 4px; max-width: 136px; margin-top: 2px; padding: 2px 8px 2px 3px; border-radius: 999px;
+  background: rgba(255, 255, 255, .92); border: 1.5px solid #e2b874; font-size: 12px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.person .p-tag .lv { padding: 0 5px; border-radius: 999px; background: #ffb21e; color: #5a2800; font-size: 10px; }
+.person .p-bet { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 900; color: #ffe08a; text-shadow: 0 1px 0 #000; }
+.person .p-bet .icon { width: 13px; height: 13px; }
+.person.me .p-tag { border-color: #2f86d6; box-shadow: 0 0 0 2px #9fd2ff; }
+
+/* ---------- Nhà cái ---------- */
+.dealer { position: relative; width: 360px; height: 190px; flex-shrink: 0; }
+.dealer > img, .dealer .dice { position: absolute; left: 50%; transform: translateX(-50%); }
+.dealer-table { bottom: 0; width: 360px; height: 170px; }
+.plate { bottom: 52px; width: 250px; height: 100px; }
+.dice { bottom: 74px; width: 220px; height: 70px; display: flex; justify-content: center; align-items: flex-end; gap: 4px; }
+.die { animation: die-in .45s cubic-bezier(.3, 1.6, .5, 1) both; animation-delay: calc(var(--i) * .12s + .25s); }
+.die:nth-child(2) { margin-bottom: 8px; }
+@keyframes die-in { from { opacity: 0; transform: translateY(-14px) rotate(-20deg) scale(.6); } }
+.bowl { bottom: 66px; width: 200px; height: 142px; transition: transform .55s cubic-bezier(.4, -0.3, .4, 1.3), opacity .5s; transform-origin: 50% 90%; z-index: 2; }
+.dealer.rolling .bowl { animation: shake .32s ease-in-out infinite; }
+@keyframes shake {
+  0%, 100% { transform: translateX(-50%) rotate(0); }
+  25% { transform: translateX(calc(-50% - 10px)) translateY(-6px) rotate(-6deg); }
+  75% { transform: translateX(calc(-50% + 10px)) translateY(-4px) rotate(6deg); }
+}
+.dealer.opened .bowl { transform: translateX(10%) translateY(-60px) rotate(18deg); opacity: 0; }
+
+.banner {
+  position: absolute; left: 50%; top: 2px; z-index: 5; transform: translate(-50%, -10px) scale(.8); opacity: 0; pointer-events: none;
+  padding: 6px 16px; border-radius: 999px; white-space: nowrap; font-family: var(--font-title); font-weight: 800; font-size: 18px;
+  background: #fff; border: 3px solid #e2b874; color: var(--text); box-shadow: 0 4px 0 rgba(0, 0, 0, .25);
+  transition: opacity .25s, transform .3s cubic-bezier(.3, 1.6, .5, 1);
+}
+.banner.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.banner.win { background: linear-gradient(180deg, #fff59a, #ffc93c); border-color: #d97706; color: #6a3500; }
+.banner.lose { background: #ffe9e9; border-color: #e58c8c; color: #8a1f1f; }
+.banner.go { background: #e7ffe9; border-color: #6cc47a; color: #1f6a2c; }
+
+/* ---------- Chiếu cược ---------- */
+.board {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: 100%; max-width: 720px; padding: 14px;
+  background: #b0202a url('/img/toon/baucua/mat_tile.png') repeat; background-size: 96px 96px;
+  border: 5px solid #e8b43c; border-radius: 22px; box-shadow: inset 0 0 0 3px #8a1418, 0 6px 0 #6b1015, 0 14px 30px rgba(0, 0, 0, .4);
+}
+.cell {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 0; padding: 12px 8px 10px; min-height: 196px;
+  border: none; border-radius: 20px; background: url('/img/toon/baucua/cell.png') center / 100% 100% no-repeat; box-shadow: 0 4px 0 rgba(80, 10, 10, .45);
+  color: var(--text); cursor: pointer; transition: transform .12s, filter .12s;
+}
+.cell:hover:not([aria-disabled]) { transform: translateY(-3px); filter: brightness(1.05); }
+.cell:active:not([aria-disabled]) { transform: translateY(1px); box-shadow: 0 2px 0 rgba(80, 10, 10, .45); }
+.cell[aria-disabled] { cursor: default; }
+.cell .face { width: 104px; height: 104px; margin-top: -2px; filter: drop-shadow(0 3px 2px rgba(0, 0, 0, .2)); }
+.cell-name { font-family: var(--font-title); font-weight: 800; font-size: 20px; line-height: 1; color: #8a1f1f; }
+.pot { display: inline-flex; align-items: center; gap: 3px; margin-top: 4px; font-size: 12px; font-weight: 800; color: var(--muted); }
+.pot .icon { width: 13px; height: 13px; }
+.my-bet { position: absolute; right: 22px; top: 20px; display: flex; flex-direction: column; align-items: center; }
+.my-bet.empty { display: none; }
+.my-bet .stack { position: relative; width: 30px; height: 46px; }
+.stack-chip { position: absolute; left: 0; bottom: calc(var(--i) * 4px); }
+.my-bet b {
+  padding: 0 6px; border-radius: 999px; background: #2f7fd6; color: #fff; font-size: 12px; font-weight: 900; box-shadow: 0 2px 0 #1d5aa0;
+}
+.cell.bump { animation: bump .3s ease-out; }
+@keyframes bump { 40% { transform: scale(1.05); } }
+.cell.win { animation: win-glow .7s ease-in-out infinite alternate; }
+@keyframes win-glow {
+  from { filter: drop-shadow(0 0 4px #fff3a0) brightness(1.05); }
+  to { filter: drop-shadow(0 0 16px #ffd23c) brightness(1.18); }
+}
+.hit-badge {
+  position: absolute; left: 10px; top: 10px; z-index: 1; padding: 2px 8px; border-radius: 999px; font-family: var(--font-title); font-weight: 800; font-size: 18px;
+  background: linear-gradient(180deg, #fff59a, #ffb21e); border: 2px solid #d97706; color: #6a3500;
+}
+
+/* ---------- Thanh chip ---------- */
+.dock {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; max-width: 900px; margin: 0 auto; padding: 8px 14px;
+  background: linear-gradient(180deg, #a86a32, #7d4a1e); border: 3px solid #5a3212; border-radius: 22px;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, .3), 0 5px 0 #3d200a, 0 12px 24px rgba(0, 0, 0, .35);
+}
+.chips { display: flex; gap: 8px; }
+.chip-btn {
+  position: relative; padding: 2px; border: none; border-radius: 50%; background: none; box-shadow: none; transition: transform .15s;
+}
+.chip-btn .chip-img { display: block; }
+.chip-btn .chip-val {
+  position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); font-family: var(--font-title); font-weight: 800; font-size: 15px;
+  color: #3a2410; text-shadow: 0 1px 0 #fff;
+}
+.chip-btn:hover:not(:disabled) { transform: translateY(-3px); }
+.chip-btn.active { transform: translateY(-7px); filter: drop-shadow(0 0 6px #ffe36b) drop-shadow(0 0 2px #fff); }
+body:not(.betting) .chip-btn { opacity: .55; }
+.dock-info { display: flex; align-items: center; gap: 12px; color: #fff; }
+.dock-info > div { display: flex; align-items: baseline; gap: 6px; }
+.dock-info .muted { color: #ffe3b8; }
+.dock-info b { font-family: var(--font-title); font-size: 22px; color: #ffe08a; text-shadow: 0 2px 0 #3d200a; }
+
+/* ---------- Hiệu ứng bay ---------- */
+.fly-chip { position: fixed; z-index: 50; pointer-events: none; }
+.float-text {
+  position: fixed; z-index: 60; transform: translateX(-50%); pointer-events: none; font-family: var(--font-title); font-weight: 800; font-size: 22px;
+  animation: float-up 1.6s ease-out forwards; text-shadow: 0 2px 0 #fff, 0 0 6px rgba(255, 255, 255, .8);
+}
+.float-text.plus { color: #1f8a32; }
+.float-text.minus { color: #c62828; }
+.float-text.xp { color: #2f7fd6; font-size: 18px; }
+@keyframes float-up { from { opacity: 0; margin-top: 10px; } 15% { opacity: 1; } to { opacity: 0; margin-top: -60px; } }
+
+/* ---------- Màn hẹp ---------- */
+@media (max-width: 1100px) {
+  .arena { grid-template-columns: 1fr; }
+  .crowd.left, .crowd.right { display: none; }
+  .crowd.mobile { display: flex; flex-direction: row; overflow-x: auto; gap: 2px; padding: 6px 4px 2px; min-height: 140px;
+    background: rgba(0, 0, 0, .18); border-radius: 18px; }
+  .crowd.mobile .person { width: 92px; flex-shrink: 0; }
+  .crowd.mobile .p-tag { max-width: 90px; }
+  .crowd.mobile .muted { color: #ffe3b8; margin: auto; }
+}
+@media (max-width: 720px) {
+  .room { padding: 8px 10px 12px; gap: 8px; }
+  .room-head { grid-template-columns: 1fr auto; gap: 8px; padding: 6px 10px; }
+  .room-head h1 { font-size: 20px; }
+  .history { grid-column: 1 / -1; justify-content: flex-start; }
+  .dealer { transform: scale(.8); margin: -18px 0 -20px; }
+  .board { gap: 8px; padding: 8px; border-width: 4px; }
+  .cell { min-height: 146px; padding: 8px 4px; border-radius: 16px; }
+  .cell .face { width: 72px; height: 72px; }
+  .cell-name { font-size: 16px; }
+  .my-bet { right: 12px; top: 12px; }
+  .my-bet .stack { transform: scale(.8); transform-origin: bottom; }
+  .hit-badge { left: 5px; top: 5px; font-size: 14px; }
+  .dock { position: sticky; bottom: 6px; z-index: 10; flex-direction: column; gap: 6px; padding: 8px 10px; }
+  .chips { gap: 4px; }
+  .chip-btn .chip-img { width: 46px; height: 48px; }
+  .chip-btn .chip-val { font-size: 13px; }
+  .phase { padding-left: 10px; font-size: 13px; }
+  .phase .clock { font-size: 17px; }
+}
+@media (max-width: 860px) {
+  .topbar .hp-bar, .topbar .level-badge .xp-bar, .topbar .user-chip-name, .topbar .brand-text { display: none; }
+}

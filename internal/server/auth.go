@@ -31,7 +31,7 @@ func (s *Server) authError(w http.ResponseWriter, err error) {
 		errors.Is(err, wallet.ErrFullHP):
 		writeError(w, http.StatusConflict, err.Error())
 	case errors.Is(err, wallet.ErrInvalidUsername), errors.Is(err, wallet.ErrWeakPassword), errors.Is(err, wallet.ErrLongPassword),
-		errors.Is(err, wallet.ErrInvalidCharacter), errors.Is(err, wallet.ErrBadSource):
+		errors.Is(err, wallet.ErrInvalidCharacter), errors.Is(err, wallet.ErrInvalidItem), errors.Is(err, wallet.ErrBadSource):
 		writeError(w, http.StatusBadRequest, err.Error())
 	default:
 		s.internal(w, err)
@@ -147,6 +147,31 @@ func (s *Server) buyOutfit(w http.ResponseWriter, r *http.Request, u wallet.User
 		return
 	}
 	writeJSON(w, http.StatusOK, u)
+}
+
+// shopItem mua (buy = true) hoặc mặc / đeo một món ở shop thời trang: {kind: outfit|hair|wings, id}.
+func (s *Server) shopItem(buy bool) func(http.ResponseWriter, *http.Request, wallet.User) {
+	return func(w http.ResponseWriter, r *http.Request, u wallet.User) {
+		if err := wallet.CheckZone(u, "shop"); err != nil {
+			s.authError(w, err)
+			return
+		}
+		var body struct {
+			Kind string `json:"kind"`
+			ID   string `json:"id"`
+		}
+		readJSON(w, r, &body)
+		op := s.wallet.WearItem
+		if buy {
+			op = s.wallet.BuyItem
+		}
+		u, err := op(r.Context(), u.ID, body.Kind, body.ID)
+		if err != nil {
+			s.authError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, u)
+	}
 }
 
 // hit trừ máu khi nhân vật bị xe đụng trên bản đồ.

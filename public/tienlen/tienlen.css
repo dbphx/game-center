@@ -491,6 +491,7 @@ button.tseat.empty:hover .seat-join { transform: translate(-50%, -50%) scale(1.0
 #result-transfers:empty { display: none; }
 .dialog .row { justify-content: center; }
 .delta-plus { color: var(--green); font-weight: 800; }
+.delta-xp { margin-left: auto; margin-right: 10px; padding: 1px 8px; border-radius: 999px; background: #dff0ff; color: #2f6fae; font-size: 12px; font-weight: 800; white-space: nowrap; }
 .delta-minus { color: var(--red); font-weight: 800; }
 
 @media (max-width: 800px) {

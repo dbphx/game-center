@@ -1,0 +1,225 @@
+{
+ "style": "Hoạt hình 2D tươi sáng (định hướng giống game Avatar), không pixel",
+ "images": [
+  {
+   "file": "face_bau.png",
+   "w": 192,
+   "h": 192,
+   "use": "Mặt Bầu (ô cược, xúc xắc, lịch sử)",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "face_cua.png",
+   "w": 192,
+   "h": 192,
+   "use": "Mặt Cua (ô cược, xúc xắc, lịch sử)",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "face_tom.png",
+   "w": 192,
+   "h": 192,
+   "use": "Mặt Tôm (ô cược, xúc xắc, lịch sử)",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "face_ca.png",
+   "w": 192,
+   "h": 192,
+   "use": "Mặt Cá (ô cược, xúc xắc, lịch sử)",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "face_ga.png",
+   "w": 192,
+   "h": 192,
+   "use": "Mặt Gà (ô cược, xúc xắc, lịch sử)",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "face_nai.png",
+   "w": 192,
+   "h": 192,
+   "use": "Mặt Nai (ô cược, xúc xắc, lịch sử)",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "dice_bau.png",
+   "w": 120,
+   "h": 120,
+   "use": "Xúc xắc mặt Bầu",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "dice_cua.png",
+   "w": 120,
+   "h": 120,
+   "use": "Xúc xắc mặt Cua",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "dice_tom.png",
+   "w": 120,
+   "h": 120,
+   "use": "Xúc xắc mặt Tôm",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "dice_ca.png",
+   "w": 120,
+   "h": 120,
+   "use": "Xúc xắc mặt Cá",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "dice_ga.png",
+   "w": 120,
+   "h": 120,
+   "use": "Xúc xắc mặt Gà",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "dice_nai.png",
+   "w": 120,
+   "h": 120,
+   "use": "Xúc xắc mặt Nai",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "plate.png",
+   "w": 300,
+   "h": 120,
+   "use": "Đĩa sứ trắng viền xanh (nhìn chéo)",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "bowl.png",
+   "w": 240,
+   "h": 170,
+   "use": "Bát sứ úp (lắc xúc xắc)",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "chip_10.png",
+   "w": 80,
+   "h": 84,
+   "use": "Chip 10 xu (chữ số do HTML ghi đè)",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "chip_50.png",
+   "w": 80,
+   "h": 84,
+   "use": "Chip 50 xu (chữ số do HTML ghi đè)",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "chip_100.png",
+   "w": 80,
+   "h": 84,
+   "use": "Chip 100 xu (chữ số do HTML ghi đè)",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "chip_500.png",
+   "w": 80,
+   "h": 84,
+   "use": "Chip 500 xu (chữ số do HTML ghi đè)",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "chip_1000.png",
+   "w": 80,
+   "h": 84,
+   "use": "Chip 1000 xu (chữ số do HTML ghi đè)",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "cell.png",
+   "w": 200,
+   "h": 200,
+   "use": "Khung ô cược (kem viền vàng, co giãn bằng border-image)",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "mat_tile.png",
+   "w": 96,
+   "h": 96,
+   "use": "Nền chiếu cược đỏ hoa văn vàng (lặp)",
+   "tile": true,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "dealer_table.png",
+   "w": 360,
+   "h": 170,
+   "use": "Bàn gỗ tròn của nhà cái",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  }
+ ]
+}

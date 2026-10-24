@@ -43,6 +43,8 @@ type User struct {
 	Name          string
 	Gender        string
 	Outfit        string
+	Hair          string // kiểu tóc, "default" là tóc mặc định
+	Wings         string // cánh, rỗng là không cánh
 	Level         int
 	HP            int   // máu hiện tại
 	HospitalUntil int64 // > 0 khi đang nằm viện
@@ -95,6 +97,8 @@ type Player struct {
 	Name   string
 	Gender string
 	Outfit string
+	Hair   string
+	Wings  string
 	Level  int
 	Bot    bool
 	Online bool
@@ -121,8 +125,9 @@ type Room struct {
 	deadline time.Time
 	botSeq   int
 	closed   bool
-	bet      int // xu mỗi mức cược, chủ phòng chỉnh giữa các ván
-	gameBet  int // mức cược của ván đang chơi / vừa xong
+	bet      int             // xu mỗi mức cược, chủ phòng chỉnh giữa các ván
+	gameBet  int             // mức cược của ván đang chơi / vừa xong
+	gameXP   map[int64]int64 // XP từng người nhận được ở ván vừa xong
 }
 
 func randomID() string {
@@ -171,7 +176,7 @@ func (r *Room) join(u User, conn Conn) (*Player, error) {
 	}
 	for _, p := range r.players {
 		if p.UserID == u.ID && !p.Left {
-			p.Name, p.Gender, p.Outfit, p.Level = u.Name, u.Gender, u.Outfit, u.Level // có thể vừa đổi ở shop
+			p.Name, p.Gender, p.Outfit, p.Hair, p.Wings, p.Level = u.Name, u.Gender, u.Outfit, u.Hair, u.Wings, u.Level // có thể vừa đổi ở shop
 			r.resume(p, conn)
 			return p, nil
 		}
@@ -186,7 +191,7 @@ func (r *Room) join(u User, conn Conn) (*Player, error) {
 	if err := r.opts.gate(u); err != nil {
 		return nil, err
 	}
-	p := &Player{ID: randomID(), UserID: u.ID, Name: u.Name, Gender: u.Gender, Outfit: u.Outfit, Level: u.Level, Online: true, conn: conn}
+	p := &Player{ID: randomID(), UserID: u.ID, Name: u.Name, Gender: u.Gender, Outfit: u.Outfit, Hair: u.Hair, Wings: u.Wings, Level: u.Level, Online: true, conn: conn}
 	if err := r.refreshCoins(p); err != nil {
 		return nil, err
 	}
@@ -451,6 +456,7 @@ func (r *Room) startGame() error {
 	}
 	r.game.Start()
 	r.gameBet = r.bet
+	r.gameXP = nil
 	r.phase = PhasePlaying
 	r.afterMove()
 	return nil
@@ -470,7 +476,8 @@ func (r *Room) afterMove() {
 // settle ghi kết quả ván vào ví. Máy đóng vai nhà cái nên phần của máy không ghi vào đâu cả.
 func (r *Room) settle() {
 	if r.gameBet == 0 {
-		return // bàn chơi vui
+		r.awardXP() // bàn chơi vui: không thắng thua xu nhưng vẫn có kinh nghiệm
+		return
 	}
 	deltas := map[int64]int64{}
 	for i, units := range r.game.Money() {
@@ -505,6 +512,7 @@ func (r *Room) awardXP() {
 		}
 		xp[p.UserID] += int64(minXP + bonusXP*(n-1-place)/(n-1))
 	}
+	r.gameXP = xp
 	levels, err := r.hub.bank.AwardXP(context.Background(), xp)
 	if err != nil {
 		log.Printf("tienlen: cộng XP phòng %s: %v", r.Code, err)

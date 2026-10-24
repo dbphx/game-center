@@ -39,7 +39,11 @@ type User struct {
 	CanDaily      bool     `json:"canDaily"` // hôm nay còn nhận thưởng được không
 	Gender        string   `json:"gender"`
 	Outfit        string   `json:"outfit"`
-	Owned         []string `json:"owned"` // trang phục đã có (starter + đã mua)
+	Owned         []string `json:"owned"`      // trang phục đã có (starter + đã mua)
+	Hair          string   `json:"hair"`       // kiểu tóc đang để, "default" là tóc mặc định
+	Wings         string   `json:"wings"`      // cánh đang đeo, rỗng là không cánh
+	OwnedHair     []string `json:"ownedHair"`  // kiểu tóc đã có ("default" + đã mua)
+	OwnedWings    []string `json:"ownedWings"` // cánh đã mua
 	XP            int64    `json:"xp"`
 	Level         int      `json:"level"`
 	LevelXP       int64    `json:"levelXP"` // XP lúc bắt đầu level hiện tại
@@ -104,12 +108,12 @@ func addEntry(ctx context.Context, tx *sql.Tx, userID, delta, after int64, game,
 	return err
 }
 
-const userColumns = `id, coalesce(username, ''), name, balance, last_daily, gender, outfit, xp, hp, coalesce(hp_at, 0), hospital_until`
+const userColumns = `id, coalesce(username, ''), name, balance, last_daily, gender, outfit, xp, hp, coalesce(hp_at, 0), hospital_until, hair, wings`
 
 func (w *Wallet) scanUser(row *sql.Row) (User, error) {
 	var u User
 	var s hpState
-	err := row.Scan(&u.ID, &u.Username, &u.Name, &u.Balance, &u.lastDaily, &u.Gender, &u.Outfit, &u.XP, &s.hp, &s.hpAt, &s.hospitalUntil)
+	err := row.Scan(&u.ID, &u.Username, &u.Name, &u.Balance, &u.lastDaily, &u.Gender, &u.Outfit, &u.XP, &s.hp, &s.hpAt, &s.hospitalUntil, &u.Hair, &u.Wings)
 	if errors.Is(err, sql.ErrNoRows) {
 		return User{}, ErrNotFound
 	}
@@ -126,13 +130,19 @@ func (w *Wallet) User(ctx context.Context, id int64) (User, error) {
 	return w.withOwned(ctx)(w.scanUser(w.db.QueryRowContext(ctx, `SELECT `+userColumns+` FROM users WHERE id = ?`, id)))
 }
 
-// withOwned nạp danh sách trang phục đã có cho người dùng vừa đọc.
+// withOwned nạp danh sách trang phục, tóc, cánh đã có cho người dùng vừa đọc.
 func (w *Wallet) withOwned(ctx context.Context) func(User, error) (User, error) {
 	return func(u User, err error) (User, error) {
 		if err != nil {
 			return u, err
 		}
-		u.Owned, err = owned(ctx, w.db, u.ID)
+		if u.Owned, err = owned(ctx, w.db, u.ID); err != nil {
+			return u, err
+		}
+		if u.OwnedHair, err = ownedItems(ctx, w.db, u.ID, KindHair); err != nil {
+			return u, err
+		}
+		u.OwnedWings, err = ownedItems(ctx, w.db, u.ID, KindWings)
 		return u, err
 	}
 }

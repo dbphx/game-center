@@ -6,7 +6,7 @@
   const I = window.Icons;
   const C = window.Character;
   // Avatar là mặt nhân vật của người chơi; máy dùng icon robot.
-  const face = (p) => (p.bot ? I.avatar('', { bot: true }) : C.head({ gender: p.gender, outfit: p.outfit }));
+  const face = (p) => (p.bot ? I.avatar('', { bot: true }) : C.head({ gender: p.gender, outfit: p.outfit, hair: p.hair, wings: p.wings }));
   const lv = (p) => (p.bot || !p.level ? '' : `<span class="lv-chip">Lv ${p.level}</span>`);
   const PLACES = ['Nhất', 'Nhì', 'Ba', 'Bét'];
   // Vị trí ghế theo số người, tính từ mình (luôn ở dưới) theo chiều đánh.
@@ -111,6 +111,8 @@
       pendingBet = null;
     }
     showBalance(me().coins);
+    // Hết ván: server vừa cộng XP, tải lại level cho thanh trên cùng.
+    if (s.phase === 'over' && prevPhase === 'playing') A.me().then((u) => u && showLevel(u), () => {});
     render();
   }
 
@@ -127,6 +129,16 @@
 
   function showBalance(coins) {
     $('balance').textContent = xu(coins);
+  }
+
+  // Huy hiệu level + thanh XP, giống các trang khác.
+  function showLevel(user) {
+    const el = $('level-badge');
+    const span = Math.max(1, user.nextXP - user.levelXP);
+    const pct = Math.min(100, Math.round(((user.xp - user.levelXP) / span) * 100));
+    el.innerHTML = `<span class="lv">Lv ${user.level}</span><span class="xp-bar"><span style="width:${pct}%"></span></span>`;
+    el.title = `${user.xp - user.levelXP} / ${span} XP để lên level ${user.level + 1}`;
+    el.classList.remove('hidden');
   }
 
   function status(msg) {
@@ -203,7 +215,7 @@
   function seatHtml(p, pos, room, open) {
     const chair = img(CHAIR[pos], 'art-chair');
     if (p) {
-      const look = p.bot ? BOT_LOOK : { gender: p.gender, outfit: p.outfit };
+      const look = p.bot ? BOT_LOOK : { gender: p.gender, outfit: p.outfit, hair: p.hair, wings: p.wings };
       const body = C.sprite(look, { dir: FACE[pos], size: 88, cls: 'seat-char' });
       const crown = p.host ? `<span class="seat-crown" title="Chủ bàn">${I.svg('crown')}</span>` : '';
       const lvl = p.bot || !p.level ? '<span class="lv-chip bot-chip">Máy</span>' : `<span class="lv-chip">Lv ${p.level}</span>`;
@@ -443,7 +455,8 @@
       .map(({ i, p, place, money }) => {
         const label = p.cong ? 'Cóng' : place < 4 && !state.instant ? PLACES[place] : '';
         const cls = money > 0 ? 'delta-plus' : money < 0 ? 'delta-minus' : '';
-        return `<li><span class="place">${label}</span><span class="who">${face(p)}${escapeHtml(playerName(i))}</span><span class="${cls}">${signed(money)} xu</span></li>`;
+        const xp = state.xp && state.xp[i] ? `<span class="delta-xp">+${state.xp[i]} XP</span>` : '';
+        return `<li><span class="place">${label}</span><span class="who">${face(p)}${escapeHtml(playerName(i))}</span>${xp}<span class="${cls}">${signed(money)} xu</span></li>`;
       })
       .join('');
 
@@ -543,8 +556,9 @@
     (user) => {
       if (!user) return A.requireLogin();
       $('user-name').textContent = user.name;
-      $('user-avatar').innerHTML = C.head({ gender: user.gender, outfit: user.outfit });
+      $('user-avatar').innerHTML = C.head({ gender: user.gender, outfit: user.outfit, hair: user.hair, wings: user.wings });
       showBalance(user.balance);
+      showLevel(user);
       render();
       connect();
     },

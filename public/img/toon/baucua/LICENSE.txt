@@ -1,0 +1,6 @@
+Hình trong thư mục này đều dùng giấy phép CC0 1.0 (public domain):
+
+- DCity (vẽ bằng PIL cho dự án) — DCity — CC0
+
+Toàn bộ hình Bầu Cua Tôm Cá (6 mặt, xúc xắc, đĩa, bát, chip, ô cược, chiếu, bàn) do DCity vẽ bằng PIL, phát hành CC0.
+Chi tiết từng file: CREDITS.csv.

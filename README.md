@@ -9,7 +9,7 @@ mỗi khu là một game hoặc tiện ích, tất cả **dùng chung một ví 
 | Casino | **Tiến Lên Miền Nam** (2–4 người, thiếu người thì thêm máy) — sảnh có bàn ghế để chọn bàn / tạo bàn |
 | Bệnh viện | hồi máu, nằm viện khi hết HP |
 | Ngân hàng | số dư, thưởng hằng ngày, lịch sử xu |
-| Shop thời trang | mua trang phục theo level, mặc lại đồ đã mua |
+| Shop thời trang | mua quần áo, tóc, cánh theo level; mặc lại đồ đã mua |
 | Quảng trường | thông tin nhân vật, level, XP |
 | Nông trại | trồng trọt (6 ô miễn phí, mua thêm tới 48 ô), chuồng gia súc và ao cá theo đơn vị sức chứa, kho giống và kho sản phẩm |
 | Công viên ven sông, bến thuyền | trang trí; đi qua cầu để sang bờ Nam |
@@ -71,6 +71,16 @@ Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè c
 | Áo dài | 4 | 2.500 xu |
 | Hoàng gia (có vương miện) | 6 | 5.000 xu |
 
+- Shop còn bán **tóc** và **cánh** (dùng chung cả hai giới). Ai cũng có sẵn tóc mặc định; cánh có thể tháo ra bất cứ lúc nào.
+
+| Tóc | Level | Giá | | Cánh | Level | Giá |
+|---|---|---|---|---|---|---|
+| Tóc mặc định | 1 | có sẵn | | Cánh thiên thần | 3 | 2.500 xu |
+| Tóc dựng, Đuôi ngựa | 1 | 300 xu | | Cánh tiên | 4 | 3.500 xu |
+| Tóc dài xoăn, Tóc búi | 2 | 700 xu | | Cánh bướm | 5 | 4.500 xu |
+| Mohican | 3 | 1.200 xu | | Cánh dơi | 6 | 6.000 xu |
+| Hai bím hồng | 4 | 2.000 xu | | Cánh rồng | 8 | 10.000 xu |
+
 - Trong game, avatar của mỗi người là mặt nhân vật của họ kèm level.
 
 ## Nông trại
@@ -96,6 +106,26 @@ Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè c
 | `POST /api/farm/storage/{seeds,products}/expand` | |
 
 Mã lỗi: 400 dữ liệu sai, 402 không đủ xu, 403 thiếu level / HP, 404 không tìm thấy, 409 trùng / đầy / chưa chín, 423 đang nằm viện.
+
+## Bầu Cua Tôm Cá
+
+Một sòng chung trong khu Casino, máy làm nhà cái. Mỗi vòng 30 giây: **đặt cược 20 s → lắc 4 s → mở bát 6 s**.
+
+- 6 mặt `bau, cua, tom, ca, ga, nai`; 3 xúc xắc. Chip 10 / 50 / 100 / 500 / 1.000 xu, tổng tối đa 20.000 xu
+  một người một vòng; đặt nhiều lần, nhiều mặt được. Xu trừ ngay lúc đặt; huỷ cược (trong giờ cược) thì hoàn.
+- Mặt đã đặt ra k lần (k ≥ 1) → nhận lại vốn + k × cược; không ra thì mất cược. Mỗi vòng có đặt +2 XP, có lời thêm +3.
+- Kết quả quay và trả thưởng đúng một lần ở request đầu tiên sau giờ cược. Cược còn treo khi server tắt được hoàn
+  lúc khởi động lại. Đặt / huỷ cần đủ 30 HP và không nằm viện (như Casino).
+
+| API | Body |
+|---|---|
+| `GET /api/baucua/state` (token tuỳ chọn) | |
+| `POST /api/baucua/bet` | `{face, amount}` |
+| `POST /api/baucua/clear` | |
+
+`state` trả `{round, phase: betting|rolling|result, endsAt, now (ms), dice (chỉ khi result), totals, players,
+mine: {bets, total, won?, net?}, history (10 vòng, mới nhất trước), chips, maxTotal, faces, balance?}`.
+POST trả cùng dạng. Mã lỗi: 400 mặt / chip sai, 402 không đủ xu, 409 hết giờ cược / vượt tối đa, 403 / 423 HP.
 
 ## Tiến Lên Miền Nam
 
@@ -142,6 +172,8 @@ internal/wallet/         tài khoản khách, ví xu, sổ cái (SQLite)
 internal/server/         API hub (/api/...), WebSocket từng game (/ws/<game>), file tĩnh
 games/tienlen/           luật, luồng ván, tiền cược, bot
 games/tienlen/online/    phòng chơi online: người vào/ra, máy, hẹn giờ, trả thưởng vào ví
+games/farm/              nông trại: ô đất, chuồng, ao, kho
+games/baucua/            bầu cua: sòng chung, vòng theo đồng hồ, trả thưởng vào ví
 public/                  bản đồ thành phố (index.html, hub.js, city.js), nhân vật (character.js),
                          phần dùng chung (account.js, icons.js, common.css)
 public/tienlen/          giao diện Tiến Lên
@@ -168,12 +200,14 @@ public/tienlen/          giao diện Tiến Lên
 | `POST /api/credentials {username, password}` | tài khoản khách cũ đặt tên đăng nhập |
 | `POST /api/character {outfit}` | mặc trang phục đã có |
 | `POST /api/outfits/buy {outfit}` | mua trang phục (403 thiếu level, 402 thiếu xu, 409 đã có) |
-| `GET /api/me` | thông tin + số dư (header `Authorization: Bearer <token>`) |
+| `POST /api/me/items/buy {kind, id}` | mua quần áo / tóc / cánh (`kind`: `outfit`, `hair`, `wings`) và mặc luôn; lỗi như trên, 400 món lạ |
+| `POST /api/me/items/wear {kind, id}` | mặc / đeo món đã có (403 chưa có); tóc `default` luôn được, cánh `""` là tháo cánh |
+| `GET /api/me` | thông tin + số dư, nhân vật (`outfit`, `owned`, `hair`, `ownedHair`, `wings`, `ownedWings`) (header `Authorization: Bearer <token>`) |
 | `POST /api/me {name}` | đổi tên |
 | `POST /api/daily` | nhận thưởng ngày (409 nếu đã nhận) |
 | `GET /api/history` | 30 giao dịch gần nhất |
 | `GET /api/games` | danh sách game và số người đang chơi |
-| `GET /api/config` | số xu tặng ban đầu, thưởng ngày, danh mục trang phục |
+| `GET /api/config` | số xu tặng ban đầu, thưởng ngày, danh mục trang phục (`catalog`), tóc (`hair`), cánh (`wings`) |
 
 WebSocket Tiến Lên (`/ws/tienlen`, JSON): client gửi `create {token}`, `join {code, token}`, `addBot`, `kick`, `setBet`, `start`, `play`, `pass`, `hint`, `leave`;
 server gửi `session`, `state` (riêng từng người, chỉ có bài của chính họ), `hint`, `error`, `left`, `auth`.

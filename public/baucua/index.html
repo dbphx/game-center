@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bầu Cua Tôm Cá · DCity</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/common.css">
+  <link rel="stylesheet" href="/baucua/baucua.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"><i data-icon="arrowLeft"></i><span id="logo"></span><span class="brand-text">DCity</span></a>
+    <span class="spacer"></span>
+    <div class="user">
+      <span class="hp-pill" id="hp-pill" title="Máu"></span>
+      <span class="level-badge" id="level-badge" title="Kinh nghiệm"></span>
+      <span class="wallet-pill" id="wallet"><i data-icon="coins"></i><span id="balance"></span></span>
+      <span class="user-chip"><span id="user-avatar"></span><span class="user-chip-name" id="user-name"></span></span>
+    </div>
+  </header>
+
+  <main class="room hidden" id="room">
+    <!-- Đầu sòng: tên game, vòng, pha + đồng hồ, lịch sử 10 vòng -->
+    <div class="room-head">
+      <div class="title">
+        <h1>Bầu Cua Tôm Cá</h1>
+        <span class="round" id="round"></span>
+      </div>
+      <div class="phase" id="phase"><span class="phase-text" id="phase-text"></span><b class="clock" id="clock"></b></div>
+      <div class="history" id="history" title="Kết quả 10 vòng gần nhất (mới nhất bên trái)"></div>
+    </div>
+
+    <div class="arena">
+      <!-- Người chơi đứng hai bên sòng -->
+      <div class="crowd left" id="crowd-left"></div>
+
+      <div class="center">
+        <!-- Nhà cái: bàn gỗ, đĩa, bát úp, 3 xúc xắc -->
+        <div class="dealer" id="dealer">
+          <img class="dealer-table" src="/img/toon/baucua/dealer_table.png" alt="" draggable="false">
+          <img class="plate" src="/img/toon/baucua/plate.png" alt="" draggable="false">
+          <div class="dice" id="dice"></div>
+          <img class="bowl" id="bowl" src="/img/toon/baucua/bowl.png" alt="" draggable="false">
+          <div class="banner" id="banner"></div>
+        </div>
+
+        <!-- Chiếu cược 6 ô -->
+        <div class="board" id="board"></div>
+      </div>
+
+      <div class="crowd right" id="crowd-right"></div>
+    </div>
+
+    <!-- Thanh chip: chọn mức rồi bấm ô để đặt -->
+    <div class="dock">
+      <div class="chips" id="chips" role="radiogroup" aria-label="Mức chip"></div>
+      <div class="dock-info">
+        <div><span class="muted">Đã cược</span><b id="my-total">0</b><span class="muted" id="max-total"></span></div>
+        <button id="btn-clear"><i data-icon="undo"></i>Huỷ cược</button>
+      </div>
+    </div>
+    <div class="crowd mobile" id="crowd-mobile"></div>
+  </main>
+
+  <script src="/icons.js"></script>
+  <script src="/character.js"></script>
+  <script src="/account.js"></script>
+  <script src="/baucua/baucua.js"></script>
+</body>
+</html>

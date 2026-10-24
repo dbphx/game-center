@@ -12,6 +12,8 @@ type PlayerView struct {
 	Name   string `json:"name"`
 	Gender string `json:"gender,omitempty"`
 	Outfit string `json:"outfit,omitempty"`
+	Hair   string `json:"hair,omitempty"`
+	Wings  string `json:"wings,omitempty"`
 	Level  int    `json:"level,omitempty"`
 	Bot    bool   `json:"bot"`
 	Online bool   `json:"online"`
@@ -42,6 +44,7 @@ type State struct {
 	Delta       []int              `json:"delta"`     // tiền thứ hạng (mức cược)
 	Transfers   []tienlen.Transfer `json:"transfers"` // tiền chặt / thối (mức cược)
 	Money       []int              `json:"money"`     // tổng xu từng người được/mất trong ván, khi hết ván
+	XP          []int              `json:"xp"`        // XP từng người nhận được, khi hết ván (máy: 0)
 	Bet         int                `json:"bet"`       // mức cược cho ván tới
 	GameBet     int                `json:"gameBet"`   // mức cược của ván đang hiển thị
 	BetOptions  []int              `json:"betOptions"`
@@ -62,13 +65,20 @@ func (r *Room) stateFor(viewer *Player) State {
 			for _, units := range g.Money() {
 				s.Money = append(s.Money, units*r.gameBet)
 			}
+			for _, p := range r.players {
+				xp := 0
+				if !p.Bot {
+					xp = int(r.gameXP[p.UserID])
+				}
+				s.XP = append(s.XP, xp)
+			}
 		}
 		if !r.deadline.IsZero() {
 			s.TurnMs = max(0, int(time.Until(r.deadline).Milliseconds()))
 		}
 	}
 	for i, p := range r.players {
-		v := PlayerView{ID: p.ID, Name: p.Name, Gender: p.Gender, Outfit: p.Outfit, Level: p.Level, Bot: p.Bot, Online: p.Online, Left: p.Left, Host: p.ID == r.hostID, Coins: p.Coins, Place: -1}
+		v := PlayerView{ID: p.ID, Name: p.Name, Gender: p.Gender, Outfit: p.Outfit, Hair: p.Hair, Wings: p.Wings, Level: p.Level, Bot: p.Bot, Online: p.Online, Left: p.Left, Host: p.ID == r.hostID, Coins: p.Coins, Place: -1}
 		if inGame {
 			v.Cards = len(g.Hands[i])
 			v.Passed = g.Passed[i] && g.LastPlay != nil

@@ -178,6 +178,61 @@ func TestOutfitShopAPI(t *testing.T) {
 	}
 }
 
+// Shop thời trang: mua / mặc tóc, cánh (và quần áo) qua /api/me/items/{buy,wear}.
+func TestHairWingsShopAPI(t *testing.T) {
+	srv, w := newTestServer(t)
+	a := newAccount(t, srv, "lan")
+	if a.User.Hair != wallet.DefaultHair || a.User.Wings != "" || len(a.User.OwnedHair) != 1 {
+		t.Fatalf("người mới: %+v", a.User)
+	}
+	item := func(op, kind, id string, out any) int {
+		return call(t, srv, "POST", "/api/me/items/"+op, a.Token, map[string]string{"kind": kind, "id": id}, out)
+	}
+	var e map[string]string
+	if code := item("buy", "wings", "angel", &e); code != 403 || e["error"] != "cần level 3 để mua" {
+		t.Fatalf("thiếu level: %d %v", code, e)
+	}
+	if code := item("buy", "hat", "x", nil); code != 400 {
+		t.Fatalf("nhóm lạ phải 400, được %d", code)
+	}
+	if code := item("wear", "hair", "bun", nil); code != 403 {
+		t.Fatalf("để tóc chưa mua phải 403, được %d", code)
+	}
+	var u wallet.User
+	if code := item("buy", "hair", "short_spiky", &u); code != 200 || u.Hair != "short_spiky" || u.Balance != wallet.StartBalance-300 {
+		t.Fatalf("mua tóc: %d %+v", code, u)
+	}
+	if code := item("buy", "hair", "short_spiky", nil); code != 409 {
+		t.Fatalf("mua lại phải 409, được %d", code)
+	}
+	w.AwardXP(context.Background(), map[int64]int64{a.User.ID: wallet.LevelStart(8)})
+	if code := item("buy", "wings", "dragon", nil); code != 402 {
+		t.Fatalf("thiếu xu phải 402, được %d", code)
+	}
+	w.Settle(context.Background(), "hub", "nạp thử", map[int64]int64{a.User.ID: 5000})
+	if code := item("buy", "wings", "fairy", &u); code != 200 || u.Wings != "fairy" || !slices.Equal(u.OwnedWings, []string{"fairy"}) {
+		t.Fatalf("mua cánh: %d %+v", code, u)
+	}
+	if code := item("wear", "wings", "", &u); code != 200 || u.Wings != "" {
+		t.Fatalf("tháo cánh: %d %+v", code, u)
+	}
+	if code := item("wear", "hair", "default", &u); code != 200 || u.Hair != "default" {
+		t.Fatalf("để tóc mặc định: %d %+v", code, u)
+	}
+	if code := item("wear", "outfit", "sport", &u); code != 200 || u.Outfit != "sport" {
+		t.Fatalf("mặc quần áo qua items: %d %+v", code, u)
+	}
+
+	var cfg struct {
+		Hair  []wallet.ItemInfo `json:"hair"`
+		Wings []wallet.ItemInfo `json:"wings"`
+	}
+	call(t, srv, "GET", "/api/config", "", nil, &cfg)
+	if len(cfg.Hair) != 7 || !cfg.Hair[0].Starter || len(cfg.Wings) != 5 || cfg.Wings[4].ID != "dragon" || cfg.Wings[4].Price != 10000 {
+		t.Fatalf("catalog tóc / cánh: %+v", cfg)
+	}
+}
+
 func TestLoginLockoutAfterFailures(t *testing.T) {
 	srv, _ := newTestServer(t)
 	newAccount(t, srv, "binh")

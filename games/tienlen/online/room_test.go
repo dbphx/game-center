@@ -430,7 +430,7 @@ func TestHPGate(t *testing.T) {
 	}
 }
 
-// Bàn 0 xu là chơi vui: chơi hết ván không đổi ví, không ghi sổ, không cộng XP.
+// Bàn 0 xu là chơi vui: chơi hết ván không đổi ví, không ghi sổ, nhưng vẫn cộng XP và báo XP trong state.
 func TestZeroBetIsFreePlay(t *testing.T) {
 	bank := richBank()
 	h := NewHub(bank, fastOptions)
@@ -445,11 +445,27 @@ func TestZeroBetIsFreePlay(t *testing.T) {
 		t.Fatal(err)
 	}
 	waitFor(t, "hết ván", func() bool { return c.lastState().Phase == PhaseOver })
-	if st := c.lastState(); st.GameBet != 0 || bank.get(an.ID) != 1000 || bank.settled != 0 || bank.getXP(an.ID) != 0 {
-		t.Fatalf("bàn 0 xu: cược %d, ví %d, chốt %d lần, XP %d", st.GameBet, bank.get(an.ID), bank.settled, bank.getXP(an.ID))
+	st := c.lastState()
+	if st.GameBet != 0 || bank.get(an.ID) != 1000 || bank.settled != 0 {
+		t.Fatalf("bàn 0 xu: cược %d, ví %d, chốt %d lần", st.GameBet, bank.get(an.ID), bank.settled)
+	}
+	if xp := bank.getXP(an.ID); xp < 10 || len(st.XP) != 4 || int64(st.XP[0]) != xp || st.XP[1] != 0 {
+		t.Fatalf("bàn 0 xu vẫn phải có XP: ví XP %d, state %v", xp, st.XP)
 	}
 	s2, _ := h.Create(binh, &fakeConn{}, 0)
 	if s2.Room.bet != 0 {
 		t.Fatalf("tạo bàn 0 xu phải giữ mức 0, được %d", s2.Room.bet)
+	}
+}
+
+// Tóc và cánh của người chơi gửi ra bàn chơi và danh sách bàn ở sảnh để người khác thấy.
+func TestHairAndWingsVisible(t *testing.T) {
+	h := NewHub(richBank(), slowOptions)
+	_, c := mustCreate(t, h, User{ID: 1, Name: "An", Hair: "bun", Wings: "angel"})
+	if p := c.lastState().Players[0]; p.Hair != "bun" || p.Wings != "angel" {
+		t.Fatalf("bàn chơi: %+v", p)
+	}
+	if s := h.Rooms()[0].Players[0]; s.Hair != "bun" || s.Wings != "angel" {
+		t.Fatalf("sảnh: %+v", s)
 	}
 }

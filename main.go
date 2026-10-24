@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/dbphx/game-center/games/baucua"
 	"github.com/dbphx/game-center/games/farm"
 	"github.com/dbphx/game-center/games/tienlen/online"
 	"github.com/dbphx/game-center/internal/server"
@@ -42,7 +43,7 @@ func main() {
 func games(w *wallet.Wallet) []server.Game {
 	auth := func(ctx context.Context, token string) (online.User, error) {
 		u, err := w.UserByToken(ctx, token)
-		return online.User{ID: u.ID, Name: u.Name, Gender: u.Gender, Outfit: u.Outfit, Level: u.Level,
+		return online.User{ID: u.ID, Name: u.Name, Gender: u.Gender, Outfit: u.Outfit, Hair: u.Hair, Wings: u.Wings, Level: u.Level,
 			HP: u.HP, HospitalUntil: u.HospitalUntil}, err
 	}
 	opts := online.DefaultOptions
@@ -51,6 +52,10 @@ func games(w *wallet.Wallet) []server.Game {
 	farmGame, err := farm.New(context.Background(), w)
 	if err != nil {
 		log.Fatalf("nông trại: %v", err)
+	}
+	bauCua, err := baucua.New(context.Background(), w)
+	if err != nil {
+		log.Fatalf("bầu cua: %v", err)
 	}
 
 	return []server.Game{
@@ -71,6 +76,14 @@ func games(w *wallet.Wallet) []server.Game {
 			Players:     "1 người",
 			Path:        "/farm/",
 			API:         farmGame.Handler(),
+		},
+		{
+			ID:          baucua.GameID,
+			Name:        "Bầu Cua Tôm Cá",
+			Description: "Đặt cược vào Bầu, Cua, Tôm, Cá, Gà, Nai; nhà cái lắc 3 xúc xắc mỗi vòng 30 giây.",
+			Players:     "Sòng chung",
+			Path:        "/baucua/",
+			API:         bauCua.Handler(),
 		},
 	}
 }
