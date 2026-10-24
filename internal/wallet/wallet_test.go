@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 )
@@ -32,12 +33,13 @@ func register(t *testing.T, w *Wallet, username string) (User, string) {
 
 func TestRegisterAndLogin(t *testing.T) {
 	w := open(t)
-	u, token, err := w.Register(ctx, "  An.Nguyen ", "matkhau123", Profile{Name: "  An   Nguyễn  ", Gender: "female", Outfit: "aodai"})
+	u, token, err := w.Register(ctx, "  An.Nguyen ", "matkhau123", Profile{Name: "  An   Nguyễn  ", Gender: "female", Outfit: "sport"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if u.Username != "an.nguyen" || u.Name != "An Nguyễn" || u.Balance != StartBalance || !u.CanDaily ||
-		u.Gender != "female" || u.Outfit != "aodai" || u.Level != 1 || u.NextXP != 100 {
+		u.Gender != "female" || u.Outfit != "sport" || u.Level != 1 || u.NextXP != 100 ||
+		!slices.Equal(u.Owned, []string{"casual", "sport"}) {
 		t.Fatalf("tài khoản mới sai: %+v", u)
 	}
 	if got, err := w.UserByToken(ctx, token); err != nil || got.ID != u.ID {
@@ -210,14 +212,20 @@ func TestCharacterAndXP(t *testing.T) {
 	if _, _, err := w.Register(ctx, "binh", "matkhau123", Profile{Gender: "alien"}); !errors.Is(err, ErrInvalidCharacter) {
 		t.Fatalf("giới tính lạ phải lỗi, được %v", err)
 	}
+	if _, _, err := w.Register(ctx, "binh", "matkhau123", Profile{Outfit: "aodai"}); !errors.Is(err, ErrInvalidCharacter) {
+		t.Fatalf("tạo nhân vật chỉ được chọn trang phục starter, được %v", err)
+	}
 	u, _ := register(t, w, "binh")
 	if u.Gender != "male" || u.Outfit != "casual" {
 		t.Fatalf("nhân vật mặc định sai: %+v", u)
 	}
-	if u, _ = w.SetCharacter(ctx, u.ID, "female", "sport"); u.Gender != "female" || u.Outfit != "sport" {
-		t.Fatalf("đổi trang phục: %+v", u)
+	if u, _ = w.WearOutfit(ctx, u.ID, "sport"); u.Outfit != "sport" || u.Gender != "male" {
+		t.Fatalf("mặc trang phục starter: %+v", u)
 	}
-	if _, err := w.SetCharacter(ctx, u.ID, "female", "bikini"); !errors.Is(err, ErrInvalidCharacter) {
+	if _, err := w.WearOutfit(ctx, u.ID, "aodai"); !errors.Is(err, ErrNotOwned) {
+		t.Fatalf("mặc trang phục chưa có phải lỗi, được %v", err)
+	}
+	if _, err := w.WearOutfit(ctx, u.ID, "bikini"); !errors.Is(err, ErrInvalidCharacter) {
 		t.Fatalf("trang phục lạ phải lỗi, được %v", err)
 	}
 	levels, err := w.AwardXP(ctx, map[int64]int64{u.ID: 120})
@@ -226,5 +234,90 @@ func TestCharacterAndXP(t *testing.T) {
 	}
 	if u, _ = w.User(ctx, u.ID); u.XP != 120 || u.Level != 2 || u.LevelXP != 100 || u.NextXP != 300 {
 		t.Fatalf("level sau khi cộng XP: %+v", u)
+	}
+}
+
+func TestBuyOutfit(t *testing.T) {
+	w := open(t)
+	u, _ := register(t, w, "binh")
+
+	// Level 1 chưa mua được hoodie (cần level 2).
+	_, err := w.BuyOutfit(ctx, u.ID, "hoodie")
+	var lv *LevelError
+	if !errors.Is(err, ErrLevelTooLow) || !errors.As(err, &lv) || lv.Need != 2 || err.Error() != "cần level 2 để mua" {
+		t.Fatalf("thiếu level: %v", err)
+	}
+	if _, err := w.BuyOutfit(ctx, u.ID, "bikini"); !errors.Is(err, ErrInvalidCharacter) {
+		t.Fatalf("trang phục lạ phải lỗi, được %v", err)
+	}
+	if _, err := w.BuyOutfit(ctx, u.ID, "sport"); !errors.Is(err, ErrAlreadyOwned) {
+		t.Fatalf("starter đã có sẵn, được %v", err)
+	}
+
+	// Đủ level (level 6) nhưng thiếu xu cho royal (5000).
+	w.AwardXP(ctx, map[int64]int64{u.ID: LevelStart(6)})
+	if _, err := w.BuyOutfit(ctx, u.ID, "royal"); !errors.Is(err, ErrNotEnoughCoins) {
+		t.Fatalf("thiếu xu phải lỗi, được %v", err)
+	}
+	if got, _ := w.User(ctx, u.ID); got.Balance != StartBalance || slices.Contains(got.Owned, "royal") {
+		t.Fatalf("mua thất bại không được trừ xu: %+v", got)
+	}
+
+	// Mua thành công: trừ xu, ghi sổ cái, có trong owned, mặc luôn.
+	u, err = w.BuyOutfit(ctx, u.ID, "hoodie")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if u.Balance != StartBalance-800 || u.Outfit != "hoodie" || !slices.Equal(u.Owned, []string{"casual", "sport", "hoodie"}) {
+		t.Fatalf("sau khi mua: %+v", u)
+	}
+	h, _ := w.History(ctx, u.ID, 1)
+	if len(h) != 1 || h[0].Delta != -800 || h[0].Game != "shop" || h[0].Note != "Mua trang phục Áo hoodie" || h[0].BalanceAfter != u.Balance {
+		t.Fatalf("sổ cái sau khi mua: %+v", h)
+	}
+	if _, err := w.BuyOutfit(ctx, u.ID, "hoodie"); !errors.Is(err, ErrAlreadyOwned) {
+		t.Fatalf("mua lại phải báo đã có, được %v", err)
+	}
+	// Đổi qua lại giữa các món đã có thì miễn phí; giới tính giữ nguyên.
+	if u, _ = w.WearOutfit(ctx, u.ID, "casual"); u.Outfit != "casual" || u.Balance != StartBalance-800 || u.Gender != "male" {
+		t.Fatalf("mặc lại starter: %+v", u)
+	}
+	if u, _ = w.WearOutfit(ctx, u.ID, "hoodie"); u.Outfit != "hoodie" {
+		t.Fatalf("mặc lại món đã mua: %+v", u)
+	}
+}
+
+// Database v3 (trước khi có shop): người chơi giữ trang phục đang mặc dù trước đây chọn miễn phí.
+func TestMigrateFromV3KeepsWornOutfit(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "v3.db")
+	w, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, _ := register(t, w, "binh")
+	w.Close()
+
+	// Đưa database về dạng v3: bỏ bảng user_outfits, đang mặc áo dài.
+	db, err := sql.Open("sqlite", "file:"+path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = db.Exec(`DROP TABLE user_outfits; UPDATE users SET outfit = 'aodai'; PRAGMA user_version = 3;`)
+	db.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	w, err = Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer w.Close()
+	got, err := w.User(ctx, u.ID)
+	if err != nil || got.Outfit != "aodai" || !slices.Equal(got.Owned, []string{"casual", "sport", "aodai"}) {
+		t.Fatalf("sau nâng cấp v4: %+v %v", got, err)
+	}
+	if _, err := w.WearOutfit(ctx, u.ID, "aodai"); err != nil {
+		t.Fatalf("vẫn mặc được áo dài: %v", err)
 	}
 }

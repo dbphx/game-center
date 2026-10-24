@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -113,11 +114,16 @@ func TestRegisterLoginLogout(t *testing.T) {
 	}
 
 	var u wallet.User
-	if code := call(t, srv, "POST", "/api/character", a.Token, map[string]string{"gender": "female", "outfit": "suit"}, &u); code != 200 || u.Outfit != "suit" {
-		t.Fatalf("đổi trang phục: %d %+v", code, u)
+	// Giới tính gửi kèm bị bỏ qua: không đổi được sau khi tạo.
+	if code := call(t, srv, "POST", "/api/character", a.Token, map[string]string{"gender": "female", "outfit": "sport"}, &u); code != 200 ||
+		u.Outfit != "sport" || u.Gender != a.User.Gender {
+		t.Fatalf("mặc trang phục: %d %+v", code, u)
 	}
-	if code := call(t, srv, "POST", "/api/character", a.Token, map[string]string{"gender": "x", "outfit": "suit"}, nil); code != 400 {
-		t.Fatalf("giới tính lạ phải 400, được %d", code)
+	if code := call(t, srv, "POST", "/api/character", a.Token, map[string]string{"outfit": "suit"}, nil); code != 403 {
+		t.Fatalf("mặc trang phục chưa có phải 403, được %d", code)
+	}
+	if code := call(t, srv, "POST", "/api/character", a.Token, map[string]string{"outfit": "bikini"}, nil); code != 400 {
+		t.Fatalf("trang phục lạ phải 400, được %d", code)
 	}
 
 	if code := call(t, srv, "POST", "/api/password", a.Token, map[string]string{"old": "sai", "new": "moi123456"}, nil); code != 401 {
@@ -128,6 +134,47 @@ func TestRegisterLoginLogout(t *testing.T) {
 	}
 	if code := call(t, srv, "POST", "/api/login", "", creds("binh", "moi123456"), nil); code != 200 {
 		t.Fatalf("đăng nhập bằng mật khẩu mới: %d", code)
+	}
+}
+
+func TestOutfitShopAPI(t *testing.T) {
+	srv, w := newTestServer(t)
+	if code := call(t, srv, "POST", "/api/register", "", map[string]string{"username": "binh", "password": "matkhau123", "outfit": "aodai"}, nil); code != 400 {
+		t.Fatalf("đăng ký với trang phục phải mua phải 400, được %d", code)
+	}
+	a := newAccount(t, srv, "binh")
+	buy := func(outfit string, out any) int {
+		return call(t, srv, "POST", "/api/outfits/buy", a.Token, map[string]string{"outfit": outfit}, out)
+	}
+	var e map[string]string
+	if code := buy("hoodie", &e); code != 403 || e["error"] != "cần level 2 để mua" {
+		t.Fatalf("thiếu level: %d %v", code, e)
+	}
+	if code := buy("bikini", nil); code != 400 {
+		t.Fatalf("trang phục lạ phải 400, được %d", code)
+	}
+	w.AwardXP(context.Background(), map[int64]int64{a.User.ID: wallet.LevelStart(6)})
+	if code := buy("royal", nil); code != 402 {
+		t.Fatalf("thiếu xu phải 402, được %d", code)
+	}
+	var u wallet.User
+	if code := buy("suit", nil); code != 402 { // 1.500 xu > 1.000 xu ban đầu
+		t.Fatalf("suit khi chỉ có 1.000 xu phải 402, được %d", code)
+	}
+	if code := buy("hoodie", &u); code != 200 || u.Outfit != "hoodie" || u.Balance != wallet.StartBalance-800 || !slices.Contains(u.Owned, "hoodie") {
+		t.Fatalf("mua hoodie: %d %+v", code, u)
+	}
+	if code := buy("hoodie", nil); code != 409 {
+		t.Fatalf("mua lại phải 409, được %d", code)
+	}
+
+	var cfg struct {
+		Catalog []wallet.OutfitInfo `json:"catalog"`
+		Outfits []string            `json:"outfits"`
+	}
+	call(t, srv, "GET", "/api/config", "", nil, &cfg)
+	if len(cfg.Catalog) != 6 || cfg.Catalog[5].ID != "royal" || cfg.Catalog[5].Level != 6 || cfg.Catalog[5].Price != 5000 || !cfg.Catalog[0].Starter || len(cfg.Outfits) != 6 {
+		t.Fatalf("catalog trong config: %+v", cfg)
 	}
 }
 

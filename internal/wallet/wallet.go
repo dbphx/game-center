@@ -32,17 +32,18 @@ var (
 var vietnam = time.FixedZone("ICT", 7*60*60)
 
 type User struct {
-	ID        int64  `json:"id"`
-	Username  string `json:"username"` // rỗng với tài khoản khách cũ chưa đặt tên đăng nhập
-	Name      string `json:"name"`
-	Balance   int64  `json:"balance"`
-	CanDaily  bool   `json:"canDaily"` // hôm nay còn nhận thưởng được không
-	Gender    string `json:"gender"`
-	Outfit    string `json:"outfit"`
-	XP        int64  `json:"xp"`
-	Level     int    `json:"level"`
-	LevelXP   int64  `json:"levelXP"` // XP lúc bắt đầu level hiện tại
-	NextXP    int64  `json:"nextXP"`  // XP cần để lên level tiếp
+	ID        int64    `json:"id"`
+	Username  string   `json:"username"` // rỗng với tài khoản khách cũ chưa đặt tên đăng nhập
+	Name      string   `json:"name"`
+	Balance   int64    `json:"balance"`
+	CanDaily  bool     `json:"canDaily"` // hôm nay còn nhận thưởng được không
+	Gender    string   `json:"gender"`
+	Outfit    string   `json:"outfit"`
+	Owned     []string `json:"owned"` // trang phục đã có (starter + đã mua)
+	XP        int64    `json:"xp"`
+	Level     int      `json:"level"`
+	LevelXP   int64    `json:"levelXP"` // XP lúc bắt đầu level hiện tại
+	NextXP    int64    `json:"nextXP"`  // XP cần để lên level tiếp
 	lastDaily string
 }
 
@@ -114,7 +115,18 @@ func (w *Wallet) scanUser(row *sql.Row) (User, error) {
 }
 
 func (w *Wallet) User(ctx context.Context, id int64) (User, error) {
-	return w.scanUser(w.db.QueryRowContext(ctx, `SELECT `+userColumns+` FROM users WHERE id = ?`, id))
+	return w.withOwned(ctx)(w.scanUser(w.db.QueryRowContext(ctx, `SELECT `+userColumns+` FROM users WHERE id = ?`, id)))
+}
+
+// withOwned nạp danh sách trang phục đã có cho người dùng vừa đọc.
+func (w *Wallet) withOwned(ctx context.Context) func(User, error) (User, error) {
+	return func(u User, err error) (User, error) {
+		if err != nil {
+			return u, err
+		}
+		u.Owned, err = owned(ctx, w.db, u.ID)
+		return u, err
+	}
 }
 
 func (w *Wallet) Rename(ctx context.Context, id int64, name string) (User, error) {

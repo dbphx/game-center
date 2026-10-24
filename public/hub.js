@@ -11,7 +11,16 @@
   const GAME_PATH = { tienlen: '/tienlen/' };
 
   let user = null;
-  let config = { startBalance: 1000, dailyBonus: 500 }; // ghi đè bằng /api/config
+  // Ghi đè bằng /api/config; catalog là danh mục trang phục (level, giá) của shop.
+  let config = {
+    startBalance: 1000,
+    dailyBonus: 500,
+    catalog: [
+      { id: 'casual', name: 'Thường ngày', level: 1, price: 0, starter: true },
+      { id: 'sport', name: 'Thể thao', level: 1, price: 0, starter: true },
+    ],
+  };
+  const outfitName = (id) => (config.catalog.find((o) => o.id === id) || C.OUTFITS[id] || { name: id }).name;
   let games = [];
   let current = null; // khu đang mở bảng
   let cityMounted = false;
@@ -30,30 +39,35 @@
     $('topbar').classList.toggle('hidden', id !== 'city');
   }
 
-  // ---------- Chọn nhân vật (dùng ở đăng ký và shop) ----------
+  // ---------- Tạo nhân vật (lúc đăng ký) ----------
 
+  // Giới tính chỉ chọn một lần ở đây; trang phục chỉ được chọn trong các bộ khởi đầu,
+  // các bộ khác mua ở Shop thời trang khi đủ level.
   function creator(el, initial, onChange) {
     const state = { gender: initial.gender || 'male', outfit: initial.outfit || 'casual' };
     const draw = () => {
+      const starters = config.catalog.filter((o) => o.starter);
+      if (!starters.some((o) => o.id === state.outfit)) state.outfit = starters[0].id;
       el.innerHTML = `
         <div class="creator-preview">${C.svg(state)}</div>
         <div class="creator-controls">
-          <span class="creator-label">Giới tính</span>
+          <span class="creator-label">Giới tính <span class="creator-note">· không đổi được về sau</span></span>
           <div class="segmented">${Object.entries(C.GENDERS)
             .map(([id, name]) => `<button type="button" data-gender="${id}" class="${state.gender === id ? 'active' : ''}">${name}</button>`)
             .join('')}</div>
-          <span class="creator-label">Trang phục</span>
-          <div class="outfits">${Object.entries(C.OUTFITS)
-            .map(([id, o]) => `<button type="button" class="outfit ${state.outfit === id ? 'active' : ''}" data-outfit="${id}" title="${o.name}">
-              ${C.svg({ gender: state.gender, outfit: id })}<span>${o.name.split(' ')[0]}</span></button>`)
+          <span class="creator-label">Trang phục khởi đầu</span>
+          <div class="outfits">${starters
+            .map((o) => `<button type="button" class="outfit ${state.outfit === o.id ? 'active' : ''}" data-outfit="${o.id}" title="${o.name}">
+              ${C.svg({ gender: state.gender, outfit: o.id })}<span>${o.name}</span></button>`)
             .join('')}</div>
+          <span class="hint">Lên level để mua thêm trang phục ở Shop thời trang.</span>
         </div>`;
       el.querySelectorAll('[data-gender]').forEach((b) => (b.onclick = () => { state.gender = b.dataset.gender; draw(); }));
       el.querySelectorAll('[data-outfit]').forEach((b) => (b.onclick = () => { state.outfit = b.dataset.outfit; draw(); }));
       if (onChange) onChange({ ...state });
     };
     draw();
-    return state;
+    return { state, redraw: draw };
   }
 
   // ---------- Đăng nhập / đăng ký ----------
@@ -125,7 +139,7 @@
           </div>
           <div class="stats">
             <div class="stat"><div class="muted">Số dư</div><b class="gold">${I.svg('coins')}${A.xu(user.balance)}</b></div>
-            <div class="stat"><div class="muted">Trang phục</div><b>${I.svg('shirt')}${C.OUTFITS[user.outfit].name}</b></div>
+            <div class="stat"><div class="muted">Trang phục</div><b>${I.svg('shirt')}${outfitName(user.outfit)}</b></div>
           </div>
         </div>
         <div class="panel-section"><h3>${I.svg('mapPin')}Đi đâu tiếp?</h3>
@@ -162,10 +176,31 @@
     },
 
     shop() {
-      return `${panelHead('shop', 'Shop thời trang', 'Đổi giới tính và trang phục miễn phí')}
+      const items = config.catalog.map((o) => {
+        const have = (user.owned || []).includes(o.id);
+        const wearing = user.outfit === o.id;
+        const locked = !have && user.level < o.level;
+        const poor = !have && !locked && user.balance < o.price;
+        let action;
+        if (wearing) action = `<button class="wear" disabled>${I.svg('check')}Đang mặc</button>`;
+        else if (have) action = `<button class="wear" data-wear="${o.id}">${I.svg('shirt')}Mặc</button>`;
+        else if (locked) action = `<button class="wear" disabled>${I.svg('lock')}Cần Lv ${o.level}</button>`;
+        else action = `<button class="primary wear" data-buy="${o.id}" ${poor ? 'disabled title="Không đủ xu"' : ''}>${I.svg('coins')}${A.xu(o.price)}</button>`;
+        const tag = have ? '<span class="tag me">Đã có</span>' : `<span class="tag lv-tag">Lv ${o.level}+</span>`;
+        return `<div class="shop-item${locked ? ' locked' : ''}${wearing ? ' wearing' : ''}" data-try="${o.id}">
+            <div class="shop-preview">${C.svg({ gender: user.gender, outfit: o.id })}${locked ? `<span class="lock">${I.svg('lock')}</span>` : ''}</div>
+            <div class="shop-name">${A.escapeHtml(o.name)}</div>${tag}
+            ${action}
+          </div>`;
+      });
+      return `${panelHead('shop', 'Shop thời trang', 'Đủ level thì mua bằng xu, đồ đã mua mặc lúc nào cũng được')}
         <div class="panel-section">
-          <div class="creator" id="shop-creator"></div>
-          <button class="primary" id="btn-save-look">${I.svg('check')}Mặc bộ này</button>
+          <div class="stats">
+            <div class="stat"><div class="muted">Level</div><b>${I.svg('trophy')}Lv ${user.level}</b></div>
+            <div class="stat"><div class="muted">Số dư</div><b class="gold">${I.svg('coins')}${A.xu(user.balance)}</b></div>
+          </div>
+          <p class="muted" style="margin:0">Bấm vào một bộ để mặc thử trên bản đồ.</p>
+          <div class="shop-grid">${items.join('')}</div>
         </div>`;
     },
 
@@ -196,6 +231,7 @@
 
   function entryIcon(e) {
     if (e.game === 'hub') return e.note.includes('ngày') ? 'gift' : 'sparkles';
+    if (e.game === 'shop') return 'shirt';
     return e.game === 'tienlen' ? 'layers' : e.delta > 0 ? 'trendingUp' : 'trendingDown';
   }
 
@@ -228,20 +264,32 @@
   }
 
   function bindShop() {
-    let picked = look(user);
-    creator($('shop-creator'), picked, (l) => {
-      picked = l;
-      City.setLook(l); // thử đồ ngay trên bản đồ
-    });
-    $('btn-save-look').onclick = async () => {
+    const body = $('panel-body');
+    // Mặc thử trên bản đồ (chưa lưu); đóng bảng hoặc đi chỗ khác thì trở lại đồ đang mặc.
+    body.querySelectorAll('[data-try]').forEach((el) =>
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('button')) return;
+        City.setLook({ gender: user.gender, outfit: el.dataset.try });
+        body.querySelectorAll('.shop-item').forEach((x) => x.classList.toggle('trying', x === el));
+      }),
+    );
+    const act = async (path, outfit, done) => {
       try {
-        user = await A.api('/api/character', { method: 'POST', body: picked });
+        user = await A.api(path, { method: 'POST', body: { outfit } });
         renderHUD();
-        A.toast('Đã thay trang phục');
+        City.setLook(look(user));
+        openPanel('shop');
+        A.toast(done);
       } catch (e) {
         A.toast(e.message);
       }
     };
+    body.querySelectorAll('[data-wear]').forEach((b) => (b.onclick = () => act('/api/character', b.dataset.wear, 'Đã thay trang phục')));
+    body.querySelectorAll('[data-buy]').forEach((b) => (b.onclick = () => {
+      const o = config.catalog.find((x) => x.id === b.dataset.buy);
+      if (!confirm(`Mua "${o.name}" với giá ${A.xu(o.price)} xu?`)) return;
+      act('/api/outfits/buy', o.id, `Đã mua ${o.name}`);
+    }));
   }
 
   function closePanel() {
@@ -382,7 +430,7 @@
   $('logo').innerHTML = I.logo(32);
   $('auth-logo').innerHTML = I.logo(36);
   $('hero-art').innerHTML = C.svg({ gender: 'male', outfit: 'suit' }) + C.svg({ gender: 'female', outfit: 'aodai' });
-  creator($('register-creator'), { gender: 'male', outfit: 'casual' }, (l) => (registerLook = l));
+  const registerCreator = creator($('register-creator'), { gender: 'male', outfit: 'casual' }, (l) => (registerLook = l));
 
   const showConfig = () => {
     $('start-coins').textContent = A.xu(config.startBalance);
@@ -391,8 +439,10 @@
   showConfig();
   A.api('/api/config')
     .then((c) => {
-      config = c;
+      config = { ...config, ...c };
       showConfig();
+      registerCreator.redraw();
+      refreshPanel();
     })
     .catch(() => {});
 

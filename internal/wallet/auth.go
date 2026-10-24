@@ -201,6 +201,6 @@ func (w *Wallet) UserByToken(ctx context.Context, token string) (User, error) {
 	if token == "" {
 		return User{}, ErrNotFound
 	}
-	return w.scanUser(w.db.QueryRowContext(ctx, `SELECT `+userColumns+` FROM users
-		WHERE id = (SELECT user_id FROM sessions WHERE token_hash = ?)`, hashToken(token)))
+	return w.withOwned(ctx)(w.scanUser(w.db.QueryRowContext(ctx, `SELECT `+userColumns+` FROM users
+		WHERE id = (SELECT user_id FROM sessions WHERE token_hash = ?)`, hashToken(token))))
 }

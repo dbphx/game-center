@@ -48,7 +48,7 @@ func New(w *wallet.Wallet, static fs.FS, games []Game) *Server {
 	s.mux.HandleFunc("GET /api/config", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{
 			"startBalance": wallet.StartBalance, "dailyBonus": wallet.DailyBonus,
-			"genders": wallet.Genders, "outfits": wallet.Outfits,
+			"genders": wallet.Genders, "outfits": wallet.Outfits, "catalog": wallet.Catalog,
 		})
 	})
 	s.mux.HandleFunc("POST /api/register", s.register)
@@ -56,7 +56,8 @@ func New(w *wallet.Wallet, static fs.FS, games []Game) *Server {
 	s.mux.HandleFunc("POST /api/logout", s.authed(s.logout))
 	s.mux.HandleFunc("POST /api/credentials", s.authed(s.setCredentials))
 	s.mux.HandleFunc("POST /api/password", s.authed(s.changePassword))
-	s.mux.HandleFunc("POST /api/character", s.authed(s.setCharacter))
+	s.mux.HandleFunc("POST /api/character", s.authed(s.wearOutfit))
+	s.mux.HandleFunc("POST /api/outfits/buy", s.authed(s.buyOutfit))
 	s.mux.HandleFunc("GET /api/me", s.authed(s.me))
 	s.mux.HandleFunc("POST /api/me", s.authed(s.rename))
 	s.mux.HandleFunc("POST /api/daily", s.authed(s.daily))

@@ -21,7 +21,11 @@ func (s *Server) authError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, wallet.ErrBadCredentials), errors.Is(err, wallet.ErrWrongPassword):
 		writeError(w, http.StatusUnauthorized, err.Error())
-	case errors.Is(err, wallet.ErrUsernameTaken), errors.Is(err, wallet.ErrHasCredentials):
+	case errors.Is(err, wallet.ErrNotOwned), errors.Is(err, wallet.ErrLevelTooLow):
+		writeError(w, http.StatusForbidden, err.Error())
+	case errors.Is(err, wallet.ErrNotEnoughCoins):
+		writeError(w, http.StatusPaymentRequired, err.Error())
+	case errors.Is(err, wallet.ErrUsernameTaken), errors.Is(err, wallet.ErrHasCredentials), errors.Is(err, wallet.ErrAlreadyOwned):
 		writeError(w, http.StatusConflict, err.Error())
 	case errors.Is(err, wallet.ErrInvalidUsername), errors.Is(err, wallet.ErrWeakPassword), errors.Is(err, wallet.ErrLongPassword),
 		errors.Is(err, wallet.ErrInvalidCharacter):
@@ -110,11 +114,23 @@ func (s *Server) changePassword(w http.ResponseWriter, r *http.Request, u wallet
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
-// setCharacter đổi giới tính / trang phục nhân vật (shop thời trang).
-func (s *Server) setCharacter(w http.ResponseWriter, r *http.Request, u wallet.User) {
+// wearOutfit mặc một trang phục đã có. Giới tính không đổi được nên trường gender (nếu gửi) bị bỏ qua.
+func (s *Server) wearOutfit(w http.ResponseWriter, r *http.Request, u wallet.User) {
 	var c credentials
 	readJSON(w, r, &c)
-	u, err := s.wallet.SetCharacter(r.Context(), u.ID, c.Gender, c.Outfit)
+	u, err := s.wallet.WearOutfit(r.Context(), u.ID, c.Outfit)
+	if err != nil {
+		s.authError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, u)
+}
+
+// buyOutfit mua trang phục ở shop thời trang (đủ level, trừ xu).
+func (s *Server) buyOutfit(w http.ResponseWriter, r *http.Request, u wallet.User) {
+	var c credentials
+	readJSON(w, r, &c)
+	u, err := s.wallet.BuyOutfit(r.Context(), u.ID, c.Outfit)
 	if err != nil {
 		s.authError(w, err)
 		return

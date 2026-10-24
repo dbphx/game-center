@@ -8,7 +8,7 @@ mỗi khu là một game hoặc tiện ích, tất cả **dùng chung một ví 
 |---|---|
 | Casino | **Tiến Lên Miền Nam** (2–4 người, thiếu người thì thêm máy) |
 | Ngân hàng | số dư, thưởng hằng ngày, lịch sử xu |
-| Shop thời trang | đổi giới tính / trang phục |
+| Shop thời trang | mua trang phục theo level, mặc lại đồ đã mua |
 | Quảng trường | thông tin nhân vật, level, XP |
 | Nông trại, Công trường | sắp mở — chỗ cho các game tiếp theo |
 | Công viên ven sông, bến thuyền | trang trí; đi qua cầu để sang bờ Nam |
@@ -45,14 +45,23 @@ Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè c
 - Chơi với máy thì máy đóng vai nhà cái: thắng máy được xu thật vào ví, thua thì mất.
 - Ngân hàng có lịch sử xu (sổ cái) để xem xu đến / đi từ đâu.
 
-## Nhân vật và level
+## Nhân vật, level và trang phục
 
-- Lúc đăng ký chọn **giới tính** (Nam / Nữ) và **trang phục mặc định**: thường ngày, vest, thể thao, áo dài. Đổi lại miễn phí ở Shop thời trang.
+- Lúc đăng ký chọn **giới tính** (Nam / Nữ, **không đổi được về sau**) và một bộ **trang phục khởi đầu** (Thường ngày hoặc Thể thao).
 - Mỗi tài khoản là một nhân vật có **level riêng**, lên level bằng XP kiếm được khi chơi.
   Tiến Lên: hết mỗi ván người về nhất +30 XP, người bét +10 XP (ở giữa chia đều).
 - Level n cần tổng 50·n·(n−1) XP: level 2 ở 100 XP, level 3 ở 300, level 4 ở 600...
+- **Shop thời trang**: trang phục khác phải **đủ level mới mua được, trả bằng xu**; đồ đã mua mặc lại lúc nào cũng được.
+
+| Trang phục | Level | Giá |
+|---|---|---|
+| Thường ngày, Thể thao | 1 | miễn phí (khởi đầu) |
+| Áo hoodie | 2 | 800 xu |
+| Vest lịch lãm | 3 | 1.500 xu |
+| Áo dài | 4 | 2.500 xu |
+| Hoàng gia (có vương miện) | 6 | 5.000 xu |
+
 - Trong game, avatar của mỗi người là mặt nhân vật của họ kèm level.
-- Xu chỉ để chơi cho vui, không nạp / rút tiền thật.
 
 ## Tiến Lên Miền Nam
 
@@ -123,13 +132,14 @@ public/tienlen/          giao diện Tiến Lên
 | `POST /api/logout` | đăng xuất phiên hiện tại |
 | `POST /api/password {old, new}` | đổi mật khẩu |
 | `POST /api/credentials {username, password}` | tài khoản khách cũ đặt tên đăng nhập |
-| `POST /api/character {gender, outfit}` | đổi nhân vật |
+| `POST /api/character {outfit}` | mặc trang phục đã có |
+| `POST /api/outfits/buy {outfit}` | mua trang phục (403 thiếu level, 402 thiếu xu, 409 đã có) |
 | `GET /api/me` | thông tin + số dư (header `Authorization: Bearer <token>`) |
 | `POST /api/me {name}` | đổi tên |
 | `POST /api/daily` | nhận thưởng ngày (409 nếu đã nhận) |
 | `GET /api/history` | 30 giao dịch gần nhất |
 | `GET /api/games` | danh sách game và số người đang chơi |
-| `GET /api/config` | số xu tặng ban đầu, thưởng ngày |
+| `GET /api/config` | số xu tặng ban đầu, thưởng ngày, danh mục trang phục |
 
 WebSocket Tiến Lên (`/ws/tienlen`, JSON): client gửi `create {token}`, `join {code, token}`, `addBot`, `kick`, `setBet`, `start`, `play`, `pass`, `hint`, `leave`;
 server gửi `session`, `state` (riêng từng người, chỉ có bài của chính họ), `hint`, `error`, `left`, `auth`.
