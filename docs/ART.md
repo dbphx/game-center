@@ -5,8 +5,9 @@
 1. **Chỉ dùng ảnh raster vẽ sẵn**, không vẽ hình minh hoạ bằng SVG/CSS. Người dùng muốn hình sinh động như game,
    không phải khối hình phẳng / 3D.
 2. **Một phong cách thống nhất** cho cả thành phố — không trộn pixel art với tranh vector trong cùng một cảnh.
-   Định hướng nâng cấp (người dùng chọn): cảnh vật + nhân vật đi trên bản đồ theo phong cách **LPC** (pixel chi tiết,
-   tile 32px, nhân vật 64px, 4 hướng); avatar / màn tạo nhân vật dùng **ảnh hoạt hình cỡ lớn** (Kenney Toon, CC0).
+   **Định hướng hiện tại (người dùng chốt): toàn bộ game theo phong cách HOẠT HÌNH giống game "Avatar" (TeaMobi)** —
+   tranh 2D tô màu mềm, tươi sáng, cây tán tròn, hàng rào gỗ, ruộng ô vuông, trời xanh mây trắng, góc nhìn 3/4 từ phía
+   trước, nhân vật **chibi đầu to**. Bộ pixel Kenney hiện có là tạm thời, sẽ được thay. Không dùng pixel art cho phần mới.
 3. **Nguồn mở**: ưu tiên CC0 (Kenney: https://kenney.nl/assets). Được dùng thêm **LPC / OpenGameArt CC-BY / CC-BY-SA / GPL**
    (người dùng đã đồng ý) với điều kiện **ghi công đầy đủ**: mỗi thư mục có `CREDITS.csv` / `LICENSE.txt` liệt kê tác giả,
    giấy phép, link gốc cho từng file, và trang `/credits.html` tổng hợp. Hình chỉnh sửa từ CC-BY-SA giữ cùng giấy phép.
