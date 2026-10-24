@@ -34,7 +34,13 @@ func withFeed(list []Stock) []stockJSON {
 	return out
 }
 
-// migrate thêm cột mới vào bảng đã có từ bản cũ (CREATE TABLE IF NOT EXISTS không thêm cột).
+// columns là các cột thêm sau vào farm_stock; database từ bản cũ được ALTER TABLE thêm vào khi khởi động.
+var columns = []struct{ name, def string }{
+	{"fed_at", "INTEGER NOT NULL DEFAULT 0"},
+	{"produced_at", "INTEGER NOT NULL DEFAULT 0"},
+}
+
+// migrate nâng cấp bảng từ bản cũ: thêm cột mới (CREATE TABLE IF NOT EXISTS không thêm cột), chuyển gà vịt ra sân.
 func migrate(ctx context.Context, w *wallet.Wallet) error {
 	tx, err := w.Begin(ctx)
 	if err != nil {
@@ -45,23 +51,37 @@ func migrate(ctx context.Context, w *wallet.Wallet) error {
 	if err != nil {
 		return err
 	}
-	has := false
+	has := map[string]bool{}
 	for rows.Next() {
 		var name string
 		if err := rows.Scan(&name); err != nil {
 			rows.Close()
 			return err
 		}
-		has = has || name == "fed_at"
+		has[name] = true
 	}
 	rows.Close()
 	if err := rows.Err(); err != nil {
 		return err
 	}
-	if !has {
-		if _, err := tx.ExecContext(ctx, `ALTER TABLE farm_stock ADD COLUMN fed_at INTEGER NOT NULL DEFAULT 0`); err != nil {
+	for _, c := range columns {
+		if has[c.name] {
+			continue
+		}
+		if _, err := tx.ExecContext(ctx, `ALTER TABLE farm_stock ADD COLUMN `+c.name+` `+c.def); err != nil {
 			return err
 		}
+	}
+	// Gà vịt từ bản cũ nuôi trong chuồng → chuyển ra sân gia cầm; sân đủ chỗ cho cả đàn (tối đa MaxCapacity).
+	yard := Buildings[placeYard]
+	if _, err := tx.ExecContext(ctx, `UPDATE farm_stock SET place = ? WHERE place = ? AND kind IN ('chicken', 'duck')`,
+		placeYard, placeBarn); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO farm_buildings (user_id, place, capacity)
+		SELECT user_id, ?, MIN(?, MAX(?, COUNT(*))) FROM farm_stock WHERE place = ? GROUP BY user_id`,
+		placeYard, yard.MaxCapacity, yard.Capacity, placeYard); err != nil {
+		return err
 	}
 	return tx.Commit()
 }
@@ -70,44 +90,35 @@ func migrate(ctx context.Context, w *wallet.Wallet) error {
 func (f *Farm) FeedStock(ctx context.Context, uid int64, place string, id int64) (State, Gained, error) {
 	var g Gained
 	s, err := f.do(ctx, uid, func(tx *wallet.Tx, s State) error {
-		pen := penOf(s, place)
-		if pen == nil {
-			return missing(place)
-		}
-		list := pen.Animals
-		if place == placePond {
-			list = pen.Fish
-		}
-		now := f.now().Unix()
-		for _, a := range list {
-			if a.ID != id {
-				continue
-			}
-			st, _ := findStock(place, a.Kind)
-			if a.ReadyAt <= now {
-				return conflict(st.Name + " đã lớn, hãy thu hoạch")
-			}
-			if !a.hungry(now) {
-				left := max(a.FedAt, a.BoughtAt) + FeedCooldown - now
-				return conflict(fmt.Sprintf("%s chưa đói, cho ăn lại sau %s", st.Name, fmtWait(left)))
-			}
-			if err := tx.Charge(uid, st.feedPrice(), GameID, "Cho "+st.Name+" ăn"); err != nil {
-				return err
-			}
-			if err := tx.AddXP(uid, 1); err != nil {
-				return err
-			}
-			g = Gained{XP: 1}
-			ready := a.ReadyAt - (a.ReadyAt-now)/4
-			_, err := tx.ExecContext(ctx, `UPDATE farm_stock SET ready_at = ?, fed_at = ? WHERE id = ? AND user_id = ?`, ready, now, id, uid)
+		_, a, st, err := findAnimal(s, place, id)
+		if err != nil {
 			return err
 		}
-		if place == placeBarn {
-			return notFound("không tìm thấy con vật này")
+		now := f.now().Unix()
+		if a.ReadyAt <= now {
+			return conflict(st.Name + " đã lớn, hãy thu hoạch")
 		}
-		return notFound("không tìm thấy con cá này")
+		if !a.hungry(now) {
+			left := max(a.FedAt, a.BoughtAt) + FeedCooldown - now
+			return conflict(fmt.Sprintf("%s chưa đói, cho ăn lại sau %s", st.Name, fmtWait(left)))
+		}
+		if err := tx.Charge(uid, st.feedPrice(), GameID, "Cho "+st.Name+" ăn"); err != nil {
+			return err
+		}
+		g = Gained{XP: 1}
+		return fed(ctx, tx, uid, a, now, 1)
 	})
 	return s, g, err
+}
+
+// fed ghi lần cho ăn của một con (đã trả tiền): rút ngắn 25% thời gian còn lại, cộng xp.
+func fed(ctx context.Context, tx *wallet.Tx, uid int64, a Animal, now, xp int64) error {
+	if err := tx.AddXP(uid, xp); err != nil {
+		return err
+	}
+	ready := a.ReadyAt - (a.ReadyAt-now)/4
+	_, err := tx.ExecContext(ctx, `UPDATE farm_stock SET ready_at = ?, fed_at = ? WHERE id = ? AND user_id = ?`, ready, now, a.ID, uid)
+	return err
 }
 
 // fmtWait ghi số giây chờ kiểu "4 phút 10 giây".

@@ -11,3 +11,11 @@ Hình trong thư mục này đều dùng giấy phép CC0 1.0 (public domain) �
 
 Hình "DCity" là vẽ / ghép / tô màu lại bằng PIL cho dự án, phát hành CC0.
 Chi tiết từng file: CREDITS.csv.
+
+Vật nuôi 3D dựng sẵn (pet3d_*.png): render từ mô hình 3D trên poly.pizza.
+- pet3d_pig, pet3d_sheep, pet3d_cow, pet3d_dog, pet3d_tilapia, pet3d_catfish, pet3d_carp, pet3d_koi:
+  mô hình của Quaternius (https://quaternius.com), CC0 1.0 — phạm vi công cộng.
+- pet3d_chicken, pet3d_duck: mô hình "Hen" và "Mallard duck" của Poly by Google,
+  CC-BY 3.0 (https://creativecommons.org/licenses/by/3.0/) — ảnh render là tác phẩm phái sinh, ghi công như trên.
+- pet3d_chicken_white: mô hình "Chicken" của madtrollstudio, CC-BY 3.0.
+Chi tiết link từng file: CREDITS.csv.

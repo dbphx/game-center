@@ -124,7 +124,7 @@ img.toon { display: block; user-select: none; -webkit-user-drag: none; }
 .shop-head { display: flex; align-items: center; justify-content: space-between; }
 .shop-head h2 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 22px; }
 .shop-head h2 .icon { color: var(--gold); }
-.shop-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.shop-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .shop-tabs .tab.active { background: linear-gradient(180deg, #ffe66b, #ffbe2e); border-color: #d97706; }
 .shop-note { margin: 0; }
 .shop-list { overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 2px 2px 6px; }
@@ -261,7 +261,7 @@ img.toon { display: block; user-select: none; -webkit-user-drag: none; }
 .yard .fence-bottom { bottom: -4px; }
 .yard .roam { position: absolute; left: 20px; right: 20px; top: 100px; bottom: 30px; }
 .yard:hover .fence-bottom, .pond-area:hover .pond-img { filter: drop-shadow(0 0 8px rgba(255, 225, 90, .95)); }
-.pond-area .pond-water { position: absolute; left: 50%; width: 290px; top: 18px; transform: translateX(-50%); }
+.pond-area .pond-water { position: absolute; left: 50%; top: 18px; transform: translateX(-50%); }
 .pond-water .pond-img { width: 100%; height: auto; }
 .pond-water .swim { position: absolute; left: 14%; right: 14%; top: 18%; bottom: 22%; }
 .obj.area.ghost .deco, .obj.area.ghost .pond-water, .obj.area.ghost .fence-top { opacity: .45; filter: saturate(.6); }
@@ -641,3 +641,71 @@ button.wide { width: 100%; justify-content: center; }
 /* Vật che nhân vật quá nhiều thì mờ đi */
 .see-through { opacity: .55; transition: opacity .2s; }
 .obj.gate, .obj.building, .obj.decor, .pen-shed, .plot-top { transition: opacity .2s; }
+
+/* ---------- Bàn phím ---------- */
+.kb-target .pet-body, .obj.kb-target img, .plot.kb-target .soil, .pen-label.kb-target .obj-label, .plot-top.kb-target .crop img {
+  filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px rgba(80, 170, 255, .95));
+}
+.tool .tool-key {
+  position: absolute; left: 4px; top: -4px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #1f4f8a; color: #fff; font: 900 11px var(--font-title); box-shadow: 0 2px 0 rgba(0, 0, 0, .25);
+}
+.farm-title .help kbd { padding: 0 5px; border-radius: 5px; background: #1f4f8a; color: #fff; font-size: 11px; }
+dialog button:focus-visible, #seed-pick button:focus-visible, .pet-card button:focus-visible, dialog button:focus, #seed-pick button:focus {
+  outline: 3px solid #3b8fe0; outline-offset: 2px;
+}
+.kb-help {
+  position: absolute; right: 14px; top: 10px; z-index: 14; width: min(420px, calc(100% - 28px)); padding: 12px 16px;
+  border-radius: 18px; background: rgba(255, 251, 236, .97); border: 3px solid #c9893f; box-shadow: var(--shadow); font-size: 13px;
+}
+.kb-help h3 { margin: 0 0 6px; font: 800 16px var(--font-title); color: #5a2c00; }
+.kb-help dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; }
+.kb-help dt { font-weight: 900; color: #1f4f8a; white-space: nowrap; }
+.kb-help dd { margin: 0; color: var(--text); }
+/* Tên chủ trại co chữ cho vừa khung */
+.farm-title > div { min-width: 0; }
+.farm-title h1 { max-width: 380px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 600px) { .farm-title h1 { max-width: calc(100vw - 90px); } .tool .tool-key { display: none; } }
+.obj.decor.fence-side { transform: none; }
+.obj.decor.sway img { animation-delay: var(--sway-delay, 0s); }
+
+
+/* Ổ rơm + trứng */
+.obj.nest { cursor: pointer; }
+.obj.nest img { filter: drop-shadow(0 3px 2px rgba(60, 40, 10, .25)); }
+.nest-eggs { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); display: flex; gap: 1px; pointer-events: none; }
+.nest-eggs img { width: auto; height: 15px; }
+.pet-goods { animation: bounce2 1.1s ease-in-out infinite; margin-bottom: 2px; }
+.pet-goods img { filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .3)); }
+.pet.woolly .pet-jump { transform: scale(1.1); transform-origin: 50% 100%; }
+.pc-btns { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.pc-btns button img { width: auto; height: 18px; margin-right: 2px; }
+.pc-btns kbd, .pc-ask kbd { padding: 0 4px; border-radius: 4px; background: rgba(0, 0, 0, .15); font-size: 10px; }
+.pc-ask { font-size: 12px; text-align: center; max-width: 200px; color: #9a3412; }
+button.danger { background: linear-gradient(180deg, #ff8a7a, #e03131); border-color: #b42318; color: #fff; }
+/* Lô đất trống chờ mua chuồng / ao */
+.empty-lot { opacity: .9; }
+.lot-sign {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 8px 16px; border-radius: 16px; background: rgba(255, 251, 236, .95); border: 3px dashed #c9893f; color: #5a2c00;
+  font: 800 15px var(--font-title); white-space: nowrap;
+}
+.lot-sign em { font-style: normal; font-size: 12px; display: inline-flex; align-items: center; gap: 3px; }
+.lot-sign .icon { width: 13px; height: 13px; }
+.world-wrap { overflow-x: clip; }
+
+/* Hộp xác nhận kiểu game */
+.ask-dlg { width: min(420px, calc(100vw - 24px)); }
+.ask-dlg h2 { margin: 0; font-size: 20px; }
+.ask-dlg p { margin: 0; font-size: 15px; font-weight: 700; color: var(--text); }
+.ask-btns { display: flex; justify-content: flex-end; gap: 8px; }
+.ask-btns kbd { padding: 0 4px; border-radius: 4px; background: rgba(0, 0, 0, .15); font-size: 10px; }
+
+/* Menu làm nhanh */
+.quick-menu .chip.quick { position: relative; min-width: 104px; }
+.quick-menu .chip.quick kbd { position: absolute; top: -6px; right: -4px; padding: 0 5px; border-radius: 6px; background: #1f4f8a; color: #fff; font: 900 10px var(--font-title); }
+.quick-menu .chip.quick em { color: #7a4a10; }
+.quick-menu .chip.quick:disabled { opacity: .5; }
+@media (max-width: 600px) { .tool .ic { width: 38px; height: 38px; } .tool b { font-size: 9px; } }
+.quick-menu { width: min(660px, calc(100% - 20px)); }

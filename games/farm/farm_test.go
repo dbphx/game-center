@@ -207,7 +207,7 @@ func TestBarnUnitsAndExpand(t *testing.T) {
 	if s.Barn.Used != 5 || len(s.Barn.Animals) != 3 {
 		t.Fatalf("bò 2 đơn vị × 2 + heo 1: used %d, %d con", s.Barn.Used, len(s.Barn.Animals))
 	}
-	_, err = e.f.BuyStock(ctx, e.uid, placeBarn, "chicken")
+	_, err = e.f.BuyStock(ctx, e.uid, placeBarn, "pig")
 	wantStatus(t, err, http.StatusConflict) // đầy
 
 	prices := []int64{}
@@ -220,7 +220,7 @@ func TestBarnUnitsAndExpand(t *testing.T) {
 	}
 	_, err = e.f.ExpandBuilding(ctx, e.uid, placeBarn)
 	wantStatus(t, err, http.StatusConflict)
-	e.ok(e.f.BuyStock(ctx, e.uid, placeBarn, "chicken"))
+	e.ok(e.f.BuyStock(ctx, e.uid, placeBarn, "pig"))
 }
 
 func TestSellAnimalAndLevel(t *testing.T) {
@@ -443,13 +443,13 @@ func TestCollectStock(t *testing.T) {
 		t.Fatal(err)
 	}
 	after := e.user()
-	if g.Coins != 0 || g.XP != 12 || g.Items["pig"] != 1 || after.Balance != before.Balance || after.XP != before.XP+12 ||
-		len(s.Barn.Animals) != 0 || s.Barn.Used != 0 || s.Storage.Products.Items["pig"] != 1 {
+	if g.Coins != 0 || g.XP != 12 || g.Items["meat_pig"] != 1 || after.Balance != before.Balance || after.XP != before.XP+12 ||
+		len(s.Barn.Animals) != 0 || s.Barn.Used != 0 || s.Storage.Products.Items["meat_pig"] != 1 {
 		t.Fatalf("thu heo: %+v, chuồng %+v, kho %+v", g, s.Barn, s.Storage.Products)
 	}
-	s, g, err = e.f.SellProduct(ctx, e.uid, "pig", 1)
+	s, g, err = e.f.SellProduct(ctx, e.uid, "meat_pig", 1)
 	if err != nil || g.Coins != 1300 {
-		t.Fatalf("bán heo từ kho: %+v %v", g, err)
+		t.Fatalf("bán thịt heo từ kho: %+v %v", g, err)
 	}
 }
 
@@ -567,16 +567,31 @@ func TestCatalogFeed(t *testing.T) {
 		t.Fatalf("feedCooldown: %v", c["feedCooldown"])
 	}
 	b, _ := json.Marshal(c["animals"])
-	if !strings.Contains(string(b), `"id":"cow"`) || !strings.Contains(string(b), `"feedPrice":150`) {
+	if !strings.Contains(string(b), `"id":"cow"`) || !strings.Contains(string(b), `"feedPrice":150`) ||
+		strings.Contains(string(b), `"chicken"`) ||
+		!strings.Contains(string(b), `"product":null,"meat":{"id":"meat_pig","name":"Thịt heo","sellPrice":1300,"xp":12}`) ||
+		!strings.Contains(string(b), `"product":{"id":"milk","name":"Sữa bò","every":1200,"sellPrice":300,"xp":5}`) {
 		t.Fatalf("catalog vật nuôi: %s", b)
 	}
+	b, _ = json.Marshal(c["poultry"])
+	if !strings.Contains(string(b), `{"id":"duck","name":"Vịt","level":1,"units":1,"price":250,"growSeconds":1200,"sellPrice":520,"xp":6,"feedPrice":25,`+
+		`"product":{"id":"duck_egg","name":"Trứng vịt","every":900,"sellPrice":80,"xp":2},"meat":{"id":"meat_duck","name":"Thịt vịt","sellPrice":520,"xp":6}}`) ||
+		!strings.Contains(string(b), `"id":"chicken"`) {
+		t.Fatalf("catalog gia cầm: %s", b)
+	}
+	if y := c["yard"].(Building); y.Capacity != 10 || y.ExpandUnits != 5 || y.MaxCapacity != 40 || y.Price != 0 {
+		t.Fatalf("catalog sân: %+v", y)
+	}
 	b, _ = json.Marshal(c["fish"])
+	if strings.Contains(string(b), `"meat"`) || strings.Contains(string(b), `"product"`) {
+		t.Fatalf("cá không có sản phẩm / thịt: %s", b)
+	}
 	if !strings.Contains(string(b), `"feedPrice":10`) || (Stock{Price: 30}).feedPrice() != 5 {
 		t.Fatalf("catalog cá: %s", b)
 	}
 }
 
-// Database từ bản cũ: farm_stock chưa có cột fed_at → New thêm cột, giữ dữ liệu cũ.
+// Database từ bản cũ: farm_stock chưa có cột fed_at / produced_at → New thêm cột, giữ dữ liệu cũ.
 func TestMigrateFedAt(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "old.db")
 	w, err := wallet.Open(path)
@@ -619,9 +634,314 @@ func TestMigrateFedAt(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if a := s.Barn.Animals; len(a) != 1 || a[0].Kind != "pig" || a[0].FedAt != 0 || !a[0].Hungry {
+		if a := s.Barn.Animals; len(a) != 1 || a[0].Kind != "pig" || a[0].FedAt != 0 || !a[0].Hungry || a[0].ProductReadyAt != 0 {
 			t.Fatalf("heo cũ sau nâng cấp: %+v", a)
 		}
 		w.Close()
+	}
+}
+
+func TestPoultryInYard(t *testing.T) {
+	e := newEnv(t, 100_000, 0)
+	s := e.ok(e.f.State(ctx, e.uid))
+	if y := s.Yard; y == nil || y.Capacity != 10 || y.MaxCapacity != 40 || y.NextExpandPrice != 1000 || y.Animals == nil || s.Barn != nil {
+		t.Fatalf("sân gia cầm có sẵn: %+v, chuồng %+v", s.Yard, s.Barn)
+	}
+	_, err := e.f.BuyBuilding(ctx, e.uid, placeYard)
+	wantStatus(t, err, http.StatusConflict) // đã có sẵn
+	e.ok(e.f.BuyStock(ctx, e.uid, placeYard, "chicken"))
+	s = e.ok(e.f.BuyStock(ctx, e.uid, placeBarn, "duck")) // gọi kiểu cũ /animals/buy → vào sân
+	if s.Yard.Used != 2 || len(s.Yard.Animals) != 2 || s.Yard.Animals[1].Kind != "duck" ||
+		s.Yard.Animals[1].ReadyAt != s.Yard.Animals[1].BoughtAt+1200 || s.Barn != nil {
+		t.Fatalf("gà + vịt: %+v", s.Yard)
+	}
+	_, err = e.f.BuyStock(ctx, e.uid, placeYard, "pig")
+	wantStatus(t, err, http.StatusBadRequest) // heo không thả sân
+	e.ok(e.f.BuyBuilding(ctx, e.uid, placeBarn))
+	_, err = e.f.BuyStock(ctx, e.uid, placeBarn, "koi")
+	wantStatus(t, err, http.StatusBadRequest)
+	for range 8 {
+		e.ok(e.f.BuyStock(ctx, e.uid, placeYard, "chicken"))
+	}
+	_, err = e.f.BuyStock(ctx, e.uid, placeYard, "chicken")
+	wantStatus(t, err, http.StatusConflict) // sân đầy 10/10
+	prices := []int64{}
+	for s = e.ok(e.f.State(ctx, e.uid)); s.Yard.Capacity < 40; s = e.ok(e.f.ExpandBuilding(ctx, e.uid, placeYard)) {
+		prices = append(prices, s.Yard.NextExpandPrice)
+	}
+	if len(prices) != 6 || prices[0] != 1000 || prices[5] != 6000 || s.Yard.NextExpandPrice != 0 {
+		t.Fatalf("giá mở rộng sân: %v", prices)
+	}
+
+	e.clock = e.clock.Add(1200 * time.Second)
+	duck := s.Yard.Animals[1].ID
+	s, g, err := e.f.CollectStock(ctx, e.uid, placeBarn, duck) // id gia cầm qua /animals/collect cũng tìm thấy
+	if err != nil || g.XP != 6 || s.Storage.Products.Items["meat_duck"] != 1 {
+		t.Fatalf("thu vịt: %+v %v", g, err)
+	}
+	if _, g, err = e.f.SellProduct(ctx, e.uid, "meat_duck", 1); err != nil || g.Coins != 520 {
+		t.Fatalf("bán vịt: %+v %v", g, err)
+	}
+	_, _, err = e.f.FeedStock(ctx, e.uid, placeYard, 99999)
+	wantStatus(t, err, http.StatusNotFound)
+}
+
+func (e *env) exec(query string, args ...any) {
+	e.t.Helper()
+	tx, err := e.w.Begin(ctx)
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	if _, err := tx.ExecContext(ctx, query, args...); err != nil {
+		e.t.Fatal(err)
+	}
+	if err := tx.Commit(); err != nil {
+		e.t.Fatal(err)
+	}
+}
+
+func TestProduceCycle(t *testing.T) {
+	e := newEnv(t, 100_000, 0)
+	s := e.ok(e.f.BuyStock(ctx, e.uid, placeYard, "chicken")) // gà thả sân (không cần chuồng), lớn sau 900 s, trứng mỗi 600 s
+	a := s.Yard.Animals[0]
+	if a.ProductReadyAt != a.ReadyAt+600 || a.ProductReady {
+		t.Fatalf("gà mới: %+v", a)
+	}
+	_, _, err := e.f.ProduceStock(ctx, e.uid, placeYard, a.ID)
+	if wantStatus(t, err, http.StatusConflict); !strings.Contains(err.Error(), "chưa lớn") {
+		t.Fatalf("gà chưa lớn: %v", err)
+	}
+	e.clock = e.clock.Add(900 * time.Second) // vừa lớn, trứng chưa có
+	_, _, err = e.f.ProduceStock(ctx, e.uid, placeYard, a.ID)
+	if wantStatus(t, err, http.StatusConflict); !strings.Contains(err.Error(), "Trứng gà chưa có, chờ thêm 10 phút") {
+		t.Fatalf("trứng chưa có: %v", err)
+	}
+	e.clock = e.clock.Add(3 * 600 * time.Second) // để lâu vẫn chỉ 1 trứng
+	s = e.ok(e.f.State(ctx, e.uid))
+	if !s.Yard.Animals[0].ProductReady {
+		t.Fatalf("trứng phải sẵn sàng: %+v", s.Yard.Animals[0])
+	}
+	xp := e.user().XP
+	s, g, err := e.f.ProduceStock(ctx, e.uid, placeYard, a.ID)
+	if err != nil || g.XP != 2 || g.Items["egg"] != 1 || e.user().XP != xp+2 || s.Storage.Products.Items["egg"] != 1 {
+		t.Fatalf("lấy trứng: %+v %v", g, err)
+	}
+	now := e.clock.Unix()
+	if b := s.Yard.Animals[0]; b.ProductReady || b.ProductReadyAt != now+600 {
+		t.Fatalf("sau khi lấy chờ lại 600 s: %+v", b)
+	}
+	_, _, err = e.f.ProduceStock(ctx, e.uid, placeYard, a.ID)
+	wantStatus(t, err, http.StatusConflict) // không cộng dồn
+	e.clock = e.clock.Add(600 * time.Second)
+	s, _, err = e.f.ProduceStock(ctx, e.uid, placeYard, a.ID)
+	if err != nil || s.Storage.Products.Items["egg"] != 2 {
+		t.Fatalf("trứng thứ hai: %v %+v", err, s.Storage.Products)
+	}
+
+	// Kho đầy thì không lấy được.
+	e.clock = e.clock.Add(600 * time.Second)
+	e.exec(`UPDATE farm_storage SET capacity = 2 WHERE user_id = ? AND store = 'products'`, e.uid)
+	_, _, err = e.f.ProduceStock(ctx, e.uid, placeYard, a.ID)
+	if wantStatus(t, err, http.StatusConflict); !strings.Contains(err.Error(), "kho sản phẩm đầy") {
+		t.Fatalf("kho đầy: %v", err)
+	}
+	_, _, err = e.f.ProduceStock(ctx, e.uid, placeYard, 99999)
+	wantStatus(t, err, http.StatusNotFound)
+
+	// Bán trứng, rồi lấy thịt gà.
+	if _, g, err = e.f.SellProduct(ctx, e.uid, "egg", 0); err != nil || g.Coins != 120 || g.Count != 2 {
+		t.Fatalf("bán 2 trứng: %+v %v", g, err)
+	}
+	s, g, err = e.f.CollectStock(ctx, e.uid, placeYard, a.ID)
+	if err != nil || g.XP != 5 || g.Items["meat_chicken"] != 1 || len(s.Yard.Animals) != 0 {
+		t.Fatalf("lấy thịt gà: %+v %v", g, err)
+	}
+	if _, g, err = e.f.SellProduct(ctx, e.uid, "meat_chicken", 1); err != nil || g.Coins != 400 {
+		t.Fatalf("bán thịt gà: %+v %v", g, err)
+	}
+}
+
+func TestPigHasNoProduct(t *testing.T) {
+	e := newEnv(t, 100_000, levelXP(2))
+	e.ok(e.f.BuyBuilding(ctx, e.uid, placeBarn))
+	s := e.ok(e.f.BuyStock(ctx, e.uid, placeBarn, "pig"))
+	if a := s.Barn.Animals[0]; a.ProductReadyAt != 0 || a.ProductReady {
+		t.Fatalf("heo không có sản phẩm: %+v", a)
+	}
+	e.clock = e.clock.Add(10 * time.Hour)
+	_, _, err := e.f.ProduceStock(ctx, e.uid, placeBarn, s.Barn.Animals[0].ID)
+	if wantStatus(t, err, http.StatusConflict); !strings.Contains(err.Error(), "không cho sản phẩm") {
+		t.Fatalf("heo: %v", err)
+	}
+}
+
+func TestSellNewAndOldProducts(t *testing.T) {
+	e := newEnv(t, 0, 0)
+	e.ok(e.f.State(ctx, e.uid))
+	// Kho từ bản cũ còn con nguyên con ("pig", "chicken"); món mới: trứng, sữa, lông, thịt.
+	want := map[string]int64{
+		"egg": 60, "duck_egg": 80, "milk": 300, "wool": 400,
+		"meat_chicken": 400, "meat_duck": 520, "meat_pig": 1300, "meat_sheep": 2000, "meat_cow": 3400,
+		"pig": 1300, "chicken": 400, "tilapia": 220, "carrot": 90,
+	}
+	for item := range want {
+		e.exec(`INSERT INTO farm_items (user_id, store, item, qty) VALUES (?, 'products', ?, 1)`, e.uid, item)
+	}
+	for item, price := range want {
+		bal := e.user().Balance
+		if _, g, err := e.f.SellProduct(ctx, e.uid, item, 1); err != nil || g.Coins != price || e.user().Balance != bal+price {
+			t.Fatalf("bán %s: %+v %v, muốn %d xu", item, g, err, price)
+		}
+	}
+	h, _ := e.w.History(ctx, e.uid, 20)
+	notes := ""
+	for _, x := range h {
+		notes += x.Note + ";"
+	}
+	for _, n := range []string{"Bán 1 Sữa bò", "Bán 1 Lông cừu", "Bán 1 Thịt bò", "Bán 1 Trứng vịt"} {
+		if !strings.Contains(notes, n) {
+			t.Fatalf("sổ cái thiếu %q: %s", n, notes)
+		}
+	}
+}
+
+// Bản cũ nuôi gà vịt trong chuồng: khởi động lại thì chuyển ra sân, sân đủ chỗ cho cả đàn.
+func TestMigratePoultryToYard(t *testing.T) {
+	e := newEnv(t, 0, 0)
+	e.exec(`INSERT INTO farm_buildings (user_id, place, capacity) VALUES (?, 'barn', 30)`, e.uid)
+	for i := range 12 {
+		kind := "chicken"
+		if i%3 == 0 {
+			kind = "duck"
+		}
+		e.exec(`INSERT INTO farm_stock (user_id, place, kind, bought_at, ready_at) VALUES (?, 'barn', ?, 0, 0)`, e.uid, kind)
+	}
+	e.exec(`INSERT INTO farm_stock (user_id, place, kind, bought_at, ready_at) VALUES (?, 'barn', 'pig', 0, 0)`, e.uid)
+	for range 2 { // chạy lại không đổi gì thêm
+		f, err := New(ctx, e.w)
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.now = e.f.now
+		s := e.ok(f.State(ctx, e.uid))
+		if len(s.Yard.Animals) != 12 || s.Yard.Used != 12 || s.Yard.Capacity != 12 ||
+			len(s.Barn.Animals) != 1 || s.Barn.Animals[0].Kind != "pig" || s.Barn.Used != 1 {
+			t.Fatalf("sau nâng cấp: sân %+v, chuồng %+v", s.Yard, s.Barn)
+		}
+	}
+}
+
+func TestPlantAll(t *testing.T) {
+	e := newEnv(t, 230, 0)
+	_, _, err := e.f.PlantAll(ctx, e.uid, "tomato")
+	wantStatus(t, err, http.StatusForbidden) // cà chua cần level 2
+	_, _, err = e.f.PlantAll(ctx, e.uid, "durian")
+	wantStatus(t, err, http.StatusBadRequest)
+	e.ok(e.f.BuySeeds(ctx, e.uid, "carrot", 2)) // còn 130 xu
+	e.ok(e.f.Plant(ctx, e.uid, 0, "corn"))      // 80 xu → còn 50
+	// 5 ô trống: 2 hạt trong kho + 1 hạt mua được (50 xu) = gieo 3 ô.
+	s, g, err := e.f.PlantAll(ctx, e.uid, "carrot")
+	if err != nil {
+		t.Fatal(err)
+	}
+	planted := 0
+	for _, p := range s.Plots {
+		if p.Crop == "carrot" {
+			planted++
+		}
+	}
+	if g.Count != 3 || g.Spent != 50 || planted != 3 || e.user().Balance != 0 || len(s.Storage.Seeds.Items) != 0 {
+		t.Fatalf("gieo nhanh: %+v, %d ô cà rốt, số dư %d, kho %+v", g, planted, e.user().Balance, s.Storage.Seeds)
+	}
+	h, _ := e.w.History(ctx, e.uid, 1)
+	if h[0].Note != "Mua 1 hạt Cà rốt" || h[0].Delta != -50 {
+		t.Fatalf("sổ cái: %+v", h[0])
+	}
+	_, _, err = e.f.PlantAll(ctx, e.uid, "carrot")
+	wantStatus(t, err, http.StatusConflict) // hết hạt, hết xu
+	e.set(10_000, 0)
+	if _, g, err = e.f.PlantAll(ctx, e.uid, "carrot"); err != nil || g.Count != 2 {
+		t.Fatalf("gieo nốt 2 ô: %+v %v", g, err)
+	}
+	_, _, err = e.f.PlantAll(ctx, e.uid, "carrot")
+	wantStatus(t, err, http.StatusConflict) // không còn ô trống
+}
+
+func TestFeedAll(t *testing.T) {
+	e := newEnv(t, 100_000, levelXP(2))
+	_, _, err := e.f.FeedAll(ctx, e.uid)
+	wantStatus(t, err, http.StatusConflict) // chưa có con nào
+	e.ok(e.f.BuyBuilding(ctx, e.uid, placeBarn))
+	e.ok(e.f.BuyBuilding(ctx, e.uid, placePond))
+	e.ok(e.f.BuyStock(ctx, e.uid, placeBarn, "pig"))          // thức ăn 60
+	e.ok(e.f.BuyStock(ctx, e.uid, placeYard, "chicken"))      // 20
+	e.ok(e.f.BuyStock(ctx, e.uid, placeYard, "duck"))         // 25
+	s := e.ok(e.f.BuyStock(ctx, e.uid, placePond, "catfish")) // 25
+	_, _, err = e.f.FeedAll(ctx, e.uid)
+	wantStatus(t, err, http.StatusConflict) // chưa con nào đói
+	e.clock = e.clock.Add(FeedCooldown * time.Second)
+	e.set(100, e.user().XP) // đủ cho heo (60) + gà (20); vịt 25 thì thiếu, cá 25 thiếu
+	xp := e.user().XP
+	s, g, err := e.f.FeedAll(ctx, e.uid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if g.Count != 2 || g.Spent != 80 || g.XP != 2 || e.user().Balance != 20 || e.user().XP != xp+2 ||
+		s.Barn.Animals[0].Hungry || s.Yard.Animals[0].Hungry || !s.Yard.Animals[1].Hungry || !s.Pond.Fish[0].Hungry {
+		t.Fatalf("cho ăn hàng loạt: %+v, số dư %d", g, e.user().Balance)
+	}
+	h, _ := e.w.History(ctx, e.uid, 1)
+	if h[0].Note != "Cho 2 con ăn" || h[0].Delta != -80 {
+		t.Fatalf("sổ cái: %+v", h[0])
+	}
+	e.set(0, e.user().XP)
+	_, _, err = e.f.FeedAll(ctx, e.uid)
+	wantStatus(t, err, http.StatusPaymentRequired)
+	e.set(1000, e.user().XP)
+	if s, g, err = e.f.FeedAll(ctx, e.uid); err != nil || g.Count != 2 || s.Pond.Fish[0].Hungry {
+		t.Fatalf("cho nốt vịt và cá: %+v %v", g, err)
+	}
+}
+
+func TestProduceAllAndCollectAllFish(t *testing.T) {
+	e := newEnv(t, 100_000, levelXP(4))
+	_, _, err := e.f.ProduceAll(ctx, e.uid)
+	wantStatus(t, err, http.StatusConflict)
+	_, _, err = e.f.CollectAllFish(ctx, e.uid)
+	wantStatus(t, err, http.StatusConflict) // chưa có ao
+	e.ok(e.f.BuyBuilding(ctx, e.uid, placeBarn))
+	e.ok(e.f.BuyBuilding(ctx, e.uid, placePond))
+	e.ok(e.f.BuyStock(ctx, e.uid, placeBarn, "cow"))
+	e.ok(e.f.BuyStock(ctx, e.uid, placeBarn, "pig"))
+	e.ok(e.f.BuyStock(ctx, e.uid, placeYard, "chicken"))
+	e.ok(e.f.BuyStock(ctx, e.uid, placeYard, "chicken"))
+	e.ok(e.f.BuyStock(ctx, e.uid, placePond, "tilapia"))
+	e.ok(e.f.BuyStock(ctx, e.uid, placePond, "tilapia"))
+	e.ok(e.f.BuyStock(ctx, e.uid, placePond, "carp"))
+	e.clock = e.clock.Add(4 * time.Hour) // bò lớn sau 3 giờ + sữa 20 phút; gà có trứng; cá đều đã lớn
+	s, g, err := e.f.ProduceAll(ctx, e.uid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if g.Count != 3 || g.Items["egg"] != 2 || g.Items["milk"] != 1 || g.XP != 2+2+5 || s.Storage.Products.Used != 3 {
+		t.Fatalf("lấy sản phẩm hàng loạt: %+v", g)
+	}
+	_, _, err = e.f.ProduceAll(ctx, e.uid)
+	wantStatus(t, err, http.StatusConflict) // vừa lấy, chưa có mới
+
+	// Kho còn 2 chỗ: thu được 2 trong 3 con cá.
+	e.exec(`UPDATE farm_storage SET capacity = 5 WHERE user_id = ? AND store = 'products'`, e.uid)
+	s, g, err = e.f.CollectAllFish(ctx, e.uid)
+	if err != nil || g.Count != 2 || len(s.Pond.Fish) != 1 || s.Storage.Products.Used != 5 {
+		t.Fatalf("thu cá hàng loạt: %+v %v, ao %+v", g, err, s.Pond.Fish)
+	}
+	_, _, err = e.f.CollectAllFish(ctx, e.uid)
+	if wantStatus(t, err, http.StatusConflict); !strings.Contains(err.Error(), "kho sản phẩm đầy") {
+		t.Fatalf("kho đầy: %v", err)
+	}
+	e.clock = e.clock.Add(time.Hour)
+	_, _, err = e.f.ProduceAll(ctx, e.uid)
+	if wantStatus(t, err, http.StatusConflict); !strings.Contains(err.Error(), "kho sản phẩm đầy") {
+		t.Fatalf("kho đầy: %v", err)
 	}
 }

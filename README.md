@@ -98,9 +98,24 @@ Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè c
 ## Nông trại
 
 - 6 ô đất miễn phí, ô thứ 7 giá 10.000 xu, mỗi ô sau +2.000 xu, tối đa 48 ô. Cây có thời gian chín, level tối thiểu.
-- **Chuồng** (heo 1, cừu / bò 2 đơn vị...) và **ao cá** (koi 3 đơn vị...): đều mở từ level 1, mặc định 5 đơn vị, mở rộng +5 tới 30.
+- **Chuồng** (heo 1, cừu / bò 2 đơn vị) và **ao cá** (koi 3 đơn vị...): đều mở từ level 1, mặc định 5 đơn vị, mở rộng +5 tới 30.
+- **Sân gia cầm**: gà, vịt (1 đơn vị) không ở chuồng mà đi quanh trang trại. Có sẵn cho mọi người, mặc định 10 đơn vị,
+  mở rộng +5 tới 40, lần thứ n giá 1.000 × n xu. Gà vịt trong chuồng từ bản cũ được chuyển ra sân khi khởi động.
 - **Cho ăn**: con chưa lớn đói lại sau 10 phút kể từ lúc mua / lần ăn trước. Cho ăn tốn 1/10 giá mua (ít nhất 5 xu),
   +1 XP và rút ngắn 25% thời gian còn lại tới lúc lớn.
+- **Sản phẩm vật nuôi**: con đã lớn cứ mỗi chu kỳ cho 1 món (để lâu vẫn chỉ 1 món chờ lấy), lấy vào kho sản phẩm;
+  hoặc **lấy thịt** (con vật mất, được thịt vào kho). Cá thu nguyên con như cũ.
+
+| Con | Sản phẩm (chu kỳ, giá, XP) | Thịt (giá, XP) |
+|---|---|---|
+| Gà | Trứng gà — 10 phút, 60 xu, 2 XP | 400 xu, 5 XP |
+| Vịt | Trứng vịt — 15 phút, 80 xu, 2 XP | 520 xu, 6 XP |
+| Heo | — | 1.300 xu, 12 XP |
+| Cừu | Lông cừu — 30 phút, 400 xu, 6 XP | 2.000 xu, 20 XP |
+| Bò | Sữa bò — 20 phút, 300 xu, 5 XP | 3.400 xu, 35 XP |
+
+- **Làm nhanh**: gieo hạt mọi ô trống (dùng hạt trong kho trước, thiếu thì mua tới khi hết xu), thu hoạch tất cả,
+  cho mọi con đói ăn (tới khi hết xu), lấy hết trứng / sữa / lông, thu hết cá đã lớn (tới khi kho đầy).
 - **Kho giống**: mua hạt theo số lượng (1–100 hạt/lần) cất vào kho; gieo hạt lấy từ kho, hết hạt thì tự mua 1 hạt.
   Sức chứa 50, mở rộng +25 tới 300, lần mở rộng thứ n giá 1.000 × n xu.
 - **Kho sản phẩm**: thu hoạch cây và thu vật nuôi / cá đã lớn → vào kho (cộng XP lúc thu); bán ở kho mới được xu.
@@ -113,9 +128,11 @@ Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè c
 | `POST /api/farm/seeds/buy` | `{crop, qty}` |
 | `POST /api/farm/plant` | `{plot, crop}` |
 | `POST /api/farm/harvest`, `/harvest-all` | `{plot}` / — |
-| `POST /api/farm/{barn,pond}/buy`, `/{barn,pond}/expand` | |
-| `POST /api/farm/{animals,fish}/buy` | `{kind}` |
-| `POST /api/farm/{animals,fish}/feed` (cho ăn), `/collect` (vào kho), `/sell` (bán thẳng) | `{id}` |
+| `POST /api/farm/{barn,pond}/buy`, `/{barn,yard,pond}/expand` | |
+| `POST /api/farm/{animals,poultry,fish}/buy` (chuồng / sân / ao) | `{kind}` |
+| `POST /api/farm/{animals,poultry,fish}/feed` (cho ăn), `/collect` (vật nuôi, gia cầm: lấy thịt; cá: vào kho), `/sell` (bán thẳng) | `{id}` |
+| `POST /api/farm/{animals,poultry}/produce` (lấy trứng / sữa / lông vào kho) | `{id}` |
+| `POST /api/farm/plant-all`, `/feed-all`, `/produce-all`, `/fish/collect-all` (làm nhanh; `gained.spent` = xu đã tiêu) | `{crop}` / — |
 | `POST /api/farm/products/sell` (qty 0 = bán hết món đó), `/products/sell-all` | `{item, qty}` / — |
 | `POST /api/farm/storage/{seeds,products}/expand` | |
 

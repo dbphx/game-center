@@ -47,8 +47,13 @@ var Crops = []Crop{
 	{"watermelon", "Dưa hấu", 4, 500, 7200, 1400, 30},
 }
 
-var Animals = []Stock{
+// Poultry là gia cầm thả rông trong sân (đi quanh trang trại), không nuôi trong chuồng.
+var Poultry = []Stock{
 	{"chicken", "Gà", 1, 1, 200, 900, 400, 5},
+	{"duck", "Vịt", 1, 1, 250, 1200, 520, 6},
+}
+
+var Animals = []Stock{
 	{"pig", "Heo", 2, 1, 600, 3600, 1300, 12},
 	{"sheep", "Cừu", 3, 2, 900, 7200, 2000, 20},
 	{"cow", "Bò", 4, 2, 1500, 10800, 3400, 35},
@@ -74,10 +79,12 @@ func plotPrice(have int) int64 { return PlotBasePrice + PlotStep*int64(have-Free
 const (
 	placeBarn = "barn"
 	placePond = "pond"
+	placeYard = "yard" // sân gia cầm: có sẵn cho mọi người, không cần mua
 )
 
 var Buildings = map[string]Building{
 	placeBarn: {Name: "chuồng", Price: 3000, Level: 1, Capacity: 5, ExpandUnits: 5, MaxCapacity: 30, expandBase: 2000},
+	placeYard: {Name: "sân gia cầm", Price: 0, Level: 1, Capacity: 10, ExpandUnits: 5, MaxCapacity: 40, expandBase: 1000},
 	placePond: {Name: "ao cá", Price: 2500, Level: 1, Capacity: 5, ExpandUnits: 5, MaxCapacity: 30, expandBase: 1500},
 }
 
@@ -103,12 +110,21 @@ var Stores = map[string]StoreSpec{
 	storeProducts: {Name: "kho sản phẩm", Capacity: 50, ExpandUnits: 25, MaxCapacity: 500, ExpandBase: 1500},
 }
 
-// product trả tên và giá bán của một món trong kho sản phẩm (nông sản, vật nuôi hoặc cá).
+// product trả tên và giá bán của một món trong kho sản phẩm: nông sản, trứng / sữa / lông, thịt,
+// cá, hoặc con vật nguyên con (kho từ bản cũ).
 func product(item string) (name string, price int64, ok bool) {
 	if c, ok := findCrop(item); ok {
 		return c.Name, c.SellPrice, true
 	}
-	for _, place := range []string{placeBarn, placePond} {
+	for _, y := range yields {
+		if y.Product != nil && y.Product.ID == item {
+			return y.Product.Name, y.Product.SellPrice, true
+		}
+		if y.Meat.ID == item {
+			return y.Meat.Name, y.Meat.SellPrice, true
+		}
+	}
+	for _, place := range []string{placeBarn, placeYard, placePond} {
 		if st, ok := findStock(place, item); ok {
 			return st.Name, st.SellPrice, true
 		}
@@ -118,8 +134,11 @@ func product(item string) (name string, price int64, ok bool) {
 
 // stockOf là danh mục con nuôi được ở mỗi nơi.
 func stockOf(place string) []Stock {
-	if place == placeBarn {
+	switch place {
+	case placeBarn:
 		return Animals
+	case placeYard:
+		return Poultry
 	}
 	return Fish
 }
@@ -146,7 +165,9 @@ func findStock(place, id string) (Stock, bool) {
 func Catalog() map[string]any {
 	return map[string]any{
 		"crops":        Crops,
-		"animals":      withFeed(Animals),
+		"animals":      withYields(withFeed(Animals)),
+		"poultry":      withYields(withFeed(Poultry)),
+		"yard":         Buildings[placeYard],
 		"fish":         withFeed(Fish),
 		"feedCooldown": FeedCooldown,
 		"plots":        map[string]int{"free": FreePlots, "max": MaxPlots, "basePrice": PlotBasePrice, "step": PlotStep},

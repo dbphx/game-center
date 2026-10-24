@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS farm_plots (
 );
 CREATE TABLE IF NOT EXISTS farm_buildings (
 	user_id    INTEGER NOT NULL REFERENCES users(id),
-	place      TEXT NOT NULL,           -- 'barn' (chuồng) hoặc 'pond' (ao)
+	place      TEXT NOT NULL,           -- 'barn' (chuồng), 'yard' (sân gia cầm) hoặc 'pond' (ao)
 	capacity   INTEGER NOT NULL,
 	expansions INTEGER NOT NULL DEFAULT 0,
 	PRIMARY KEY (user_id, place)
@@ -35,7 +35,8 @@ CREATE TABLE IF NOT EXISTS farm_stock (
 	kind      TEXT NOT NULL,
 	bought_at INTEGER NOT NULL,
 	ready_at  INTEGER NOT NULL,
-	fed_at    INTEGER NOT NULL DEFAULT 0 -- lần cho ăn gần nhất (0 = chưa cho ăn)
+	fed_at      INTEGER NOT NULL DEFAULT 0, -- lần cho ăn gần nhất (0 = chưa cho ăn)
+	produced_at INTEGER NOT NULL DEFAULT 0  -- lần lấy trứng / sữa / lông gần nhất
 );
 CREATE INDEX IF NOT EXISTS farm_stock_user ON farm_stock(user_id, place);
 CREATE TABLE IF NOT EXISTS farm_storage (
@@ -120,6 +121,10 @@ type Animal struct {
 	ReadyAt  int64  `json:"readyAt"`
 	FedAt    int64  `json:"fedAt"`
 	Hungry   bool   `json:"hungry"` // chưa lớn và đã qua FeedCooldown kể từ lần ăn gần nhất (hoặc lúc mua)
+	// Trứng / sữa / lông: lúc sẵn sàng (0 nếu con này không cho sản phẩm) và đã sẵn sàng chưa.
+	ProductReadyAt int64 `json:"productReadyAt"`
+	ProductReady   bool  `json:"productReady"`
+	producedAt     int64
 }
 
 type Pen struct {
@@ -138,6 +143,7 @@ type State struct {
 	NextPlotPrice int64   `json:"nextPlotPrice"`
 	MaxPlots      int     `json:"maxPlots"`
 	Barn          *Pen    `json:"barn"`
+	Yard          *Pen    `json:"yard"` // sân gia cầm, luôn có
 	Pond          *Pen    `json:"pond"`
 	Storage       Storage `json:"storage"`
 }
@@ -148,6 +154,7 @@ type Gained struct {
 	XP    int64          `json:"xp"`
 	Count int            `json:"count,omitempty"`
 	Items map[string]int `json:"items,omitempty"` // nông sản / sản phẩm vừa vào kho
+	Spent int64          `json:"spent,omitempty"` // xu đã tiêu (gieo / cho ăn hàng loạt)
 }
 
 type querier interface {
@@ -183,9 +190,15 @@ func loadPlots(ctx context.Context, q querier, uid int64) ([]Plot, error) {
 	return plots, rows.Err()
 }
 
-// loadPen đọc chuồng / ao; nil nếu chưa mua.
+// loadPen đọc chuồng / sân / ao; nil nếu chưa mua (sân gia cầm thì tạo sẵn).
 func loadPen(ctx context.Context, q querier, uid int64, place string, now int64) (*Pen, error) {
 	b := Buildings[place]
+	if place == placeYard {
+		if _, err := q.ExecContext(ctx, `INSERT OR IGNORE INTO farm_buildings (user_id, place, capacity) VALUES (?, ?, ?)`,
+			uid, place, b.Capacity); err != nil {
+			return nil, err
+		}
+	}
 	pen := &Pen{MaxCapacity: b.MaxCapacity}
 	err := q.QueryRowContext(ctx, `SELECT capacity, expansions FROM farm_buildings WHERE user_id = ? AND place = ?`, uid, place).
 		Scan(&pen.Capacity, &pen.expansions)
@@ -198,7 +211,7 @@ func loadPen(ctx context.Context, q querier, uid int64, place string, now int64)
 	if pen.Capacity < b.MaxCapacity {
 		pen.NextExpandPrice = b.expandPrice(pen.expansions)
 	}
-	rows, err := q.QueryContext(ctx, `SELECT id, kind, bought_at, ready_at, fed_at FROM farm_stock WHERE user_id = ? AND place = ? ORDER BY id`, uid, place)
+	rows, err := q.QueryContext(ctx, `SELECT id, kind, bought_at, ready_at, fed_at, produced_at FROM farm_stock WHERE user_id = ? AND place = ? ORDER BY id`, uid, place)
 	if err != nil {
 		return nil, err
 	}
@@ -206,19 +219,23 @@ func loadPen(ctx context.Context, q querier, uid int64, place string, now int64)
 	list := []Animal{}
 	for rows.Next() {
 		var a Animal
-		if err := rows.Scan(&a.ID, &a.Kind, &a.BoughtAt, &a.ReadyAt, &a.FedAt); err != nil {
+		if err := rows.Scan(&a.ID, &a.Kind, &a.BoughtAt, &a.ReadyAt, &a.FedAt, &a.producedAt); err != nil {
 			return nil, err
 		}
 		a.Hungry = a.hungry(now)
+		if y, ok := yields[a.Kind]; ok && y.Product != nil {
+			a.ProductReadyAt = max(a.ReadyAt, a.producedAt) + y.Product.Every
+			a.ProductReady = now >= a.ProductReadyAt
+		}
 		if s, ok := findStock(place, a.Kind); ok {
 			pen.Used += s.Units
 		}
 		list = append(list, a)
 	}
-	if place == placeBarn {
-		pen.Animals = list
-	} else {
+	if place == placePond {
 		pen.Fish = list
+	} else {
+		pen.Animals = list
 	}
 	return pen, rows.Err()
 }
@@ -238,12 +255,17 @@ func (f *Farm) load(ctx context.Context, q querier, uid int64) (State, error) {
 	if s.Barn, err = loadPen(ctx, q, uid, placeBarn, s.Now); err != nil {
 		return State{}, err
 	}
+	if s.Yard, err = loadPen(ctx, q, uid, placeYard, s.Now); err != nil {
+		return State{}, err
+	}
 	if s.Pond, err = loadPen(ctx, q, uid, placePond, s.Now); err != nil {
 		return State{}, err
 	}
 	// Ao trả mảng fish rỗng chứ không bỏ trường, để giao diện dễ đọc.
-	if s.Barn != nil && s.Barn.Animals == nil {
-		s.Barn.Animals = []Animal{}
+	for _, pen := range []*Pen{s.Barn, s.Yard} {
+		if pen != nil && pen.Animals == nil {
+			pen.Animals = []Animal{}
+		}
 	}
 	if s.Pond != nil && s.Pond.Fish == nil {
 		s.Pond.Fish = []Animal{}
@@ -431,8 +453,11 @@ func (f *Farm) HarvestAll(ctx context.Context, uid int64) (State, Gained, error)
 // ---------- Chuồng và ao ----------
 
 func penOf(s State, place string) *Pen {
-	if place == placeBarn {
+	switch place {
+	case placeBarn:
 		return s.Barn
+	case placeYard:
+		return s.Yard
 	}
 	return s.Pond
 }
@@ -442,6 +467,37 @@ func missing(place string) error {
 		return conflict("chưa có chuồng, hãy mua chuồng trước")
 	}
 	return conflict("chưa có ao cá, hãy mua ao trước")
+}
+
+// findAnimal tìm con id ở place. Gọi /animals/... với gà vịt (giao diện cũ) thì tìm thêm trong sân gia cầm.
+func findAnimal(s State, place string, id int64) (string, Animal, Stock, error) {
+	places := []string{place}
+	if place == placeBarn {
+		places = append(places, placeYard)
+	}
+	for _, pl := range places {
+		pen := penOf(s, pl)
+		if pen == nil {
+			continue
+		}
+		list := pen.Animals
+		if pl == placePond {
+			list = pen.Fish
+		}
+		for _, a := range list {
+			if a.ID == id {
+				st, _ := findStock(pl, a.Kind)
+				return pl, a, st, nil
+			}
+		}
+	}
+	switch {
+	case place != placeYard && penOf(s, place) == nil:
+		return "", Animal{}, Stock{}, missing(place)
+	case place == placePond:
+		return "", Animal{}, Stock{}, notFound("không tìm thấy con cá này")
+	}
+	return "", Animal{}, Stock{}, notFound("không tìm thấy con vật này")
 }
 
 // BuyBuilding mua chuồng (place = "barn") hoặc ao cá ("pond").
@@ -484,6 +540,9 @@ func (f *Farm) ExpandBuilding(ctx context.Context, uid int64, place string) (Sta
 
 // BuyStock mua một con vật / con cá vào chuồng / ao, chiếm Units đơn vị sức chứa.
 func (f *Farm) BuyStock(ctx context.Context, uid int64, place, kind string) (State, error) {
+	if _, ok := findStock(placeYard, kind); ok && place == placeBarn {
+		place = placeYard // gà vịt mua qua /animals/buy (bản cũ) vào sân gia cầm
+	}
 	st, ok := findStock(place, kind)
 	if !ok {
 		return State{}, bad("không có loại này")
@@ -510,40 +569,26 @@ func (f *Farm) BuyStock(ctx context.Context, uid int64, place, kind string) (Sta
 	})
 }
 
-// SellStock bán một con đã lớn: được xu và XP, giải phóng chỗ trong chuồng / ao.
+// SellStock bán một con đã lớn: được xu và XP, giải phóng chỗ trong chuồng / sân / ao.
 func (f *Farm) SellStock(ctx context.Context, uid int64, place string, id int64) (State, Gained, error) {
 	var g Gained
 	s, err := f.do(ctx, uid, func(tx *wallet.Tx, s State) error {
-		pen := penOf(s, place)
-		if pen == nil {
-			return missing(place)
-		}
-		list := pen.Animals
-		if place == placePond {
-			list = pen.Fish
-		}
-		for _, a := range list {
-			if a.ID != id {
-				continue
-			}
-			st, _ := findStock(place, a.Kind)
-			if a.ReadyAt > f.now().Unix() {
-				return conflict(st.Name + " chưa lớn")
-			}
-			if err := tx.Credit(uid, st.SellPrice, GameID, "Bán "+st.Name); err != nil {
-				return err
-			}
-			if err := tx.AddXP(uid, st.XP); err != nil {
-				return err
-			}
-			g = Gained{Coins: st.SellPrice, XP: st.XP}
-			_, err := tx.ExecContext(ctx, `DELETE FROM farm_stock WHERE id = ? AND user_id = ?`, id, uid)
+		_, a, st, err := findAnimal(s, place, id)
+		if err != nil {
 			return err
 		}
-		if place == placeBarn {
-			return notFound("không tìm thấy con vật này")
+		if a.ReadyAt > f.now().Unix() {
+			return conflict(st.Name + " chưa lớn")
 		}
-		return notFound("không tìm thấy con cá này")
+		if err := tx.Credit(uid, st.SellPrice, GameID, "Bán "+st.Name); err != nil {
+			return err
+		}
+		if err := tx.AddXP(uid, st.XP); err != nil {
+			return err
+		}
+		g = Gained{Coins: st.SellPrice, XP: st.XP}
+		_, err = tx.ExecContext(ctx, `DELETE FROM farm_stock WHERE id = ? AND user_id = ?`, id, uid)
+		return err
 	})
 	return s, g, err
 }

@@ -110,14 +110,14 @@ func (f *Farm) Handler() http.Handler {
 	handle("POST /api/farm/harvest-all", func(r *http.Request, uid int64, _ body) (State, *Gained, error) {
 		return gain(f.HarvestAll(r.Context(), uid))
 	})
-	for _, place := range []string{placeBarn, placePond} {
-		item := "animals"
-		if place == placePond {
-			item = "fish"
+	// Chuồng (/animals), sân gia cầm (/poultry, có sẵn nên không có /yard/buy), ao (/fish).
+	for _, place := range []string{placeBarn, placeYard, placePond} {
+		item := map[string]string{placeBarn: "animals", placeYard: "poultry", placePond: "fish"}[place]
+		if place != placeYard {
+			handle("POST /api/farm/"+place+"/buy", func(r *http.Request, uid int64, _ body) (State, *Gained, error) {
+				return noGain(f.BuyBuilding(r.Context(), uid, place))
+			})
 		}
-		handle("POST /api/farm/"+place+"/buy", func(r *http.Request, uid int64, _ body) (State, *Gained, error) {
-			return noGain(f.BuyBuilding(r.Context(), uid, place))
-		})
 		handle("POST /api/farm/"+place+"/expand", func(r *http.Request, uid int64, _ body) (State, *Gained, error) {
 			return noGain(f.ExpandBuilding(r.Context(), uid, place))
 		})
@@ -133,7 +133,26 @@ func (f *Farm) Handler() http.Handler {
 		handle("POST /api/farm/"+item+"/collect", func(r *http.Request, uid int64, b body) (State, *Gained, error) {
 			return gain(f.CollectStock(r.Context(), uid, place, b.ID))
 		})
+		if place != placePond {
+			handle("POST /api/farm/"+item+"/produce", func(r *http.Request, uid int64, b body) (State, *Gained, error) {
+				return gain(f.ProduceStock(r.Context(), uid, place, b.ID))
+			})
+		}
 	}
+
+	// Làm nhanh hàng loạt.
+	handle("POST /api/farm/plant-all", func(r *http.Request, uid int64, b body) (State, *Gained, error) {
+		return gain(f.PlantAll(r.Context(), uid, b.Crop))
+	})
+	handle("POST /api/farm/feed-all", func(r *http.Request, uid int64, _ body) (State, *Gained, error) {
+		return gain(f.FeedAll(r.Context(), uid))
+	})
+	handle("POST /api/farm/produce-all", func(r *http.Request, uid int64, _ body) (State, *Gained, error) {
+		return gain(f.ProduceAll(r.Context(), uid))
+	})
+	handle("POST /api/farm/fish/collect-all", func(r *http.Request, uid int64, _ body) (State, *Gained, error) {
+		return gain(f.CollectAllFish(r.Context(), uid))
+	})
 
 	// Kho giống và kho sản phẩm.
 	handle("POST /api/farm/seeds/buy", func(r *http.Request, uid int64, b body) (State, *Gained, error) {

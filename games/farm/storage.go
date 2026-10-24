@@ -125,43 +125,34 @@ func (f *Farm) ExpandStore(ctx context.Context, uid int64, store string) (State,
 	})
 }
 
-// CollectStock thu một con đã lớn từ chuồng / ao vào kho sản phẩm, cộng XP.
+// CollectStock thu một con đã lớn từ chuồng / sân / ao vào kho sản phẩm (vật nuôi, gia cầm lấy thịt), cộng XP.
 func (f *Farm) CollectStock(ctx context.Context, uid int64, place string, id int64) (State, Gained, error) {
 	var g Gained
 	s, err := f.do(ctx, uid, func(tx *wallet.Tx, s State) error {
-		pen := penOf(s, place)
-		if pen == nil {
-			return missing(place)
-		}
-		list := pen.Animals
-		if place == placePond {
-			list = pen.Fish
-		}
-		for _, a := range list {
-			if a.ID != id {
-				continue
-			}
-			st, _ := findStock(place, a.Kind)
-			if a.ReadyAt > f.now().Unix() {
-				return conflict(st.Name + " chưa lớn")
-			}
-			if s.Storage.Products.free() < 1 {
-				return productsFull(s.Storage.Products)
-			}
-			if err := addItem(ctx, tx, uid, storeProducts, st.ID, 1); err != nil {
-				return err
-			}
-			if err := tx.AddXP(uid, st.XP); err != nil {
-				return err
-			}
-			g = Gained{XP: st.XP, Count: 1, Items: map[string]int{st.ID: 1}}
-			_, err := tx.ExecContext(ctx, `DELETE FROM farm_stock WHERE id = ? AND user_id = ?`, id, uid)
+		_, a, st, err := findAnimal(s, place, id)
+		if err != nil {
 			return err
 		}
-		if place == placeBarn {
-			return notFound("không tìm thấy con vật này")
+		if a.ReadyAt > f.now().Unix() {
+			return conflict(st.Name + " chưa lớn")
 		}
-		return notFound("không tìm thấy con cá này")
+		if s.Storage.Products.free() < 1 {
+			return productsFull(s.Storage.Products)
+		}
+		// Vật nuôi cho thịt (meat_pig...); cá vào kho nguyên con.
+		item, xp := st.ID, st.XP
+		if y, ok := yields[st.ID]; ok {
+			item, xp = y.Meat.ID, y.Meat.XP
+		}
+		if err := addItem(ctx, tx, uid, storeProducts, item, 1); err != nil {
+			return err
+		}
+		if err := tx.AddXP(uid, xp); err != nil {
+			return err
+		}
+		g = Gained{XP: xp, Count: 1, Items: map[string]int{item: 1}}
+		_, err = tx.ExecContext(ctx, `DELETE FROM farm_stock WHERE id = ? AND user_id = ?`, id, uid)
+		return err
 	})
 	return s, g, err
 }

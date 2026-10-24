@@ -1286,6 +1286,643 @@
    "source": [
     "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
    ]
+  },
+  {
+   "file": "tree_da.png",
+   "w": 412,
+   "h": 340,
+   "use": "Cây đa to làng quê: thân xù xì, rễ chống, tán rộng, rễ phụ thõng",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "tree_dua.png",
+   "w": 340,
+   "h": 320,
+   "use": "Cây dừa thân cong, tàu lá xoè, chùm trái",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "fence_side.png",
+   "w": 46,
+   "h": 440,
+   "use": "Hàng rào chuồng bên hông (3/4) có cổng mở (khoảng y 250–330)",
+   "anchor": "top-left",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "fence_side_full.png",
+   "w": 46,
+   "h": 440,
+   "use": "Hàng rào chuồng bên hông (3/4), liền",
+   "anchor": "top-left",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "haystack.png",
+   "w": 274,
+   "h": 320,
+   "use": "Cây rơm (đống rơm rạ quanh cọc tre) kiểu làng quê VN",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "item_egg.png",
+   "w": 73,
+   "h": 84,
+   "use": "Trứng gà",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "item_duck_egg.png",
+   "w": 73,
+   "h": 84,
+   "use": "Trứng vịt",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "item_milk.png",
+   "w": 83,
+   "h": 92,
+   "use": "Xô sữa bò",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "item_wool.png",
+   "w": 91,
+   "h": 80,
+   "use": "Cuộn lông cừu",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "item_meat_chicken.png",
+   "w": 89,
+   "h": 80,
+   "use": "Thịt gà (đùi)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "item_meat_duck.png",
+   "w": 89,
+   "h": 80,
+   "use": "Thịt vịt (đùi)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "item_meat_pig.png",
+   "w": 96,
+   "h": 80,
+   "use": "Thịt heo",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "item_meat_cow.png",
+   "w": 94,
+   "h": 80,
+   "use": "Thịt bò",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "item_meat_sheep.png",
+   "w": 97,
+   "h": 76,
+   "use": "Thịt cừu",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "nest.png",
+   "w": 122,
+   "h": 72,
+   "use": "Ổ rơm (ổ đẻ gà / vịt); trứng đặt chồng lên bằng HTML",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "icon_scissors.png",
+   "w": 76,
+   "h": 76,
+   "use": "Biểu tượng kéo (cừu đủ lông để cắt)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "pet3d_chicken.png",
+   "w": 1096,
+   "h": 710,
+   "use": "Sprite sheet 3D dựng sẵn (gà mái nâu): mô hình 3D render bằng three.js (toon shading + viền + bóng đổ), mỗi hàng một hoạt ảnh × 8 khung 137×142: idle (hàng 0, 8 khung, 6 fps), walk (hàng 1, 8 khung, 10 fps), eat (hàng 2, 8 khung, 8 fps), look (hàng 3, 8 khung, 5 fps), hop (hàng 4, 8 khung, 12 fps); đầu quay left; hiển thị ×0.5",
+   "anchor": "bottom-center",
+   "tile": false,
+   "frameW": 137,
+   "frameH": 142,
+   "framesPerRow": 8,
+   "face": "left",
+   "animations": [
+    {
+     "name": "idle",
+     "row": 0,
+     "start": 0,
+     "frames": 8,
+     "fps": 6
+    },
+    {
+     "name": "walk",
+     "row": 1,
+     "start": 8,
+     "frames": 8,
+     "fps": 10
+    },
+    {
+     "name": "eat",
+     "row": 2,
+     "start": 16,
+     "frames": 8,
+     "fps": 8
+    },
+    {
+     "name": "look",
+     "row": 3,
+     "start": 24,
+     "frames": 8,
+     "fps": 5
+    },
+    {
+     "name": "hop",
+     "row": 4,
+     "start": 32,
+     "frames": 8,
+     "fps": 12
+    }
+   ],
+   "source": [
+    "\"Hen\" — Poly by Google",
+    "https://poly.pizza/m/8Unya0rw9tR"
+   ],
+   "license": "CC-BY 3.0"
+  },
+  {
+   "file": "pet3d_chicken_white.png",
+   "w": 1096,
+   "h": 710,
+   "use": "Sprite sheet 3D dựng sẵn (gà trắng): mô hình 3D render bằng three.js (toon shading + viền + bóng đổ), mỗi hàng một hoạt ảnh × 8 khung 137×142: idle (hàng 0, 8 khung, 6 fps), walk (hàng 1, 8 khung, 10 fps), eat (hàng 2, 8 khung, 8 fps), look (hàng 3, 8 khung, 5 fps), hop (hàng 4, 8 khung, 12 fps); đầu quay left; hiển thị ×0.5",
+   "anchor": "bottom-center",
+   "tile": false,
+   "frameW": 137,
+   "frameH": 142,
+   "framesPerRow": 8,
+   "face": "left",
+   "animations": [
+    {
+     "name": "idle",
+     "row": 0,
+     "start": 0,
+     "frames": 8,
+     "fps": 6
+    },
+    {
+     "name": "walk",
+     "row": 1,
+     "start": 8,
+     "frames": 8,
+     "fps": 10
+    },
+    {
+     "name": "eat",
+     "row": 2,
+     "start": 16,
+     "frames": 8,
+     "fps": 8
+    },
+    {
+     "name": "look",
+     "row": 3,
+     "start": 24,
+     "frames": 8,
+     "fps": 5
+    },
+    {
+     "name": "hop",
+     "row": 4,
+     "start": 32,
+     "frames": 8,
+     "fps": 12
+    }
+   ],
+   "source": [
+    "\"Chicken\" — madtrollstudio",
+    "https://poly.pizza/m/oHmIgi4boa"
+   ],
+   "license": "CC-BY 3.0"
+  },
+  {
+   "file": "pet3d_duck.png",
+   "w": 1096,
+   "h": 852,
+   "use": "Sprite sheet 3D dựng sẵn (vịt (có hàng swim: bơi, cắt dưới mặt nước + gợn sóng)): mô hình 3D render bằng three.js (toon shading + viền + bóng đổ), mỗi hàng một hoạt ảnh × 8 khung 137×142: idle (hàng 0, 8 khung, 6 fps), walk (hàng 1, 8 khung, 10 fps), eat (hàng 2, 8 khung, 8 fps), look (hàng 3, 8 khung, 5 fps), hop (hàng 4, 8 khung, 12 fps), swim (hàng 5, 8 khung, 8 fps); đầu quay left; hiển thị ×0.5",
+   "anchor": "bottom-center",
+   "tile": false,
+   "frameW": 137,
+   "frameH": 142,
+   "framesPerRow": 8,
+   "face": "left",
+   "animations": [
+    {
+     "name": "idle",
+     "row": 0,
+     "start": 0,
+     "frames": 8,
+     "fps": 6
+    },
+    {
+     "name": "walk",
+     "row": 1,
+     "start": 8,
+     "frames": 8,
+     "fps": 10
+    },
+    {
+     "name": "eat",
+     "row": 2,
+     "start": 16,
+     "frames": 8,
+     "fps": 8
+    },
+    {
+     "name": "look",
+     "row": 3,
+     "start": 24,
+     "frames": 8,
+     "fps": 5
+    },
+    {
+     "name": "hop",
+     "row": 4,
+     "start": 32,
+     "frames": 8,
+     "fps": 12
+    },
+    {
+     "name": "swim",
+     "row": 5,
+     "start": 40,
+     "frames": 8,
+     "fps": 8
+    }
+   ],
+   "source": [
+    "\"Mallard duck\" — Poly by Google",
+    "https://poly.pizza/m/frSLi6b6Vid"
+   ],
+   "license": "CC-BY 3.0"
+  },
+  {
+   "file": "pet3d_pig.png",
+   "w": 1376,
+   "h": 616,
+   "use": "Sprite sheet 3D dựng sẵn (heo): mô hình 3D render bằng three.js (toon shading + viền + bóng đổ), mỗi hàng một hoạt ảnh × 8 khung 172×154: idle (hàng 0, 8 khung, 6 fps), walk (hàng 1, 8 khung, 10 fps), eat (hàng 2, 8 khung, 8 fps), hop (hàng 3, 8 khung, 12 fps); đầu quay left; hiển thị ×0.5",
+   "anchor": "bottom-center",
+   "tile": false,
+   "frameW": 172,
+   "frameH": 154,
+   "framesPerRow": 8,
+   "face": "left",
+   "animations": [
+    {
+     "name": "idle",
+     "row": 0,
+     "start": 0,
+     "frames": 8,
+     "fps": 6
+    },
+    {
+     "name": "walk",
+     "row": 1,
+     "start": 8,
+     "frames": 8,
+     "fps": 10
+    },
+    {
+     "name": "eat",
+     "row": 2,
+     "start": 16,
+     "frames": 8,
+     "fps": 8
+    },
+    {
+     "name": "hop",
+     "row": 3,
+     "start": 24,
+     "frames": 8,
+     "fps": 12
+    }
+   ],
+   "source": [
+    "\"Pig\" — Quaternius",
+    "https://poly.pizza/m/TNvG3QUFlp"
+   ],
+   "license": "CC0"
+  },
+  {
+   "file": "pet3d_sheep.png",
+   "w": 1744,
+   "h": 648,
+   "use": "Sprite sheet 3D dựng sẵn (cừu): mô hình 3D render bằng three.js (toon shading + viền + bóng đổ), mỗi hàng một hoạt ảnh × 8 khung 218×162: idle (hàng 0, 8 khung, 6 fps), walk (hàng 1, 8 khung, 10 fps), eat (hàng 2, 8 khung, 8 fps), hop (hàng 3, 8 khung, 12 fps); đầu quay right; hiển thị ×0.5",
+   "anchor": "bottom-center",
+   "tile": false,
+   "frameW": 218,
+   "frameH": 162,
+   "framesPerRow": 8,
+   "face": "right",
+   "animations": [
+    {
+     "name": "idle",
+     "row": 0,
+     "start": 0,
+     "frames": 8,
+     "fps": 6
+    },
+    {
+     "name": "walk",
+     "row": 1,
+     "start": 8,
+     "frames": 8,
+     "fps": 10
+    },
+    {
+     "name": "eat",
+     "row": 2,
+     "start": 16,
+     "frames": 8,
+     "fps": 8
+    },
+    {
+     "name": "hop",
+     "row": 3,
+     "start": 24,
+     "frames": 8,
+     "fps": 12
+    }
+   ],
+   "source": [
+    "\"Sheep\" — Quaternius",
+    "https://poly.pizza/m/C39AUXUUes"
+   ],
+   "license": "CC0"
+  },
+  {
+   "file": "pet3d_cow.png",
+   "w": 2016,
+   "h": 760,
+   "use": "Sprite sheet 3D dựng sẵn (bò): mô hình 3D render bằng three.js (toon shading + viền + bóng đổ), mỗi hàng một hoạt ảnh × 8 khung 252×190: idle (hàng 0, 8 khung, 6 fps), walk (hàng 1, 8 khung, 10 fps), eat (hàng 2, 8 khung, 8 fps), hop (hàng 3, 8 khung, 12 fps); đầu quay left; hiển thị ×0.5",
+   "anchor": "bottom-center",
+   "tile": false,
+   "frameW": 252,
+   "frameH": 190,
+   "framesPerRow": 8,
+   "face": "left",
+   "animations": [
+    {
+     "name": "idle",
+     "row": 0,
+     "start": 0,
+     "frames": 8,
+     "fps": 6
+    },
+    {
+     "name": "walk",
+     "row": 1,
+     "start": 8,
+     "frames": 8,
+     "fps": 10
+    },
+    {
+     "name": "eat",
+     "row": 2,
+     "start": 16,
+     "frames": 8,
+     "fps": 8
+    },
+    {
+     "name": "hop",
+     "row": 3,
+     "start": 24,
+     "frames": 8,
+     "fps": 12
+    }
+   ],
+   "source": [
+    "\"Cow\" — Quaternius",
+    "https://poly.pizza/m/5XSc2Fka3F"
+   ],
+   "license": "CC0"
+  },
+  {
+   "file": "pet3d_dog.png",
+   "w": 1600,
+   "h": 680,
+   "use": "Sprite sheet 3D dựng sẵn (chó (trang trí)): mô hình 3D render bằng three.js (toon shading + viền + bóng đổ), mỗi hàng một hoạt ảnh × 8 khung 200×170: idle (hàng 0, 8 khung, 6 fps), walk (hàng 1, 8 khung, 10 fps), eat (hàng 2, 8 khung, 8 fps), hop (hàng 3, 8 khung, 12 fps); đầu quay left; hiển thị ×0.5",
+   "anchor": "bottom-center",
+   "tile": false,
+   "frameW": 200,
+   "frameH": 170,
+   "framesPerRow": 8,
+   "face": "left",
+   "animations": [
+    {
+     "name": "idle",
+     "row": 0,
+     "start": 0,
+     "frames": 8,
+     "fps": 6
+    },
+    {
+     "name": "walk",
+     "row": 1,
+     "start": 8,
+     "frames": 8,
+     "fps": 10
+    },
+    {
+     "name": "eat",
+     "row": 2,
+     "start": 16,
+     "frames": 8,
+     "fps": 8
+    },
+    {
+     "name": "hop",
+     "row": 3,
+     "start": 24,
+     "frames": 8,
+     "fps": 12
+    }
+   ],
+   "source": [
+    "\"Shiba Inu\" — Quaternius",
+    "https://poly.pizza/m/y4wdQpg767"
+   ],
+   "license": "CC0"
+  },
+  {
+   "file": "pet3d_tilapia.png",
+   "w": 944,
+   "h": 80,
+   "use": "Sprite sheet 3D dựng sẵn (cá rô phi): mô hình 3D render bằng three.js (toon shading + viền + bóng đổ), mỗi hàng một hoạt ảnh × 8 khung 118×80: swim (hàng 0, 8 khung, 8 fps); đầu quay right; hiển thị ×0.5",
+   "anchor": "bottom-center",
+   "tile": false,
+   "frameW": 118,
+   "frameH": 80,
+   "framesPerRow": 8,
+   "face": "right",
+   "animations": [
+    {
+     "name": "swim",
+     "row": 0,
+     "start": 0,
+     "frames": 8,
+     "fps": 8
+    }
+   ],
+   "source": [
+    "\"Fish\" — Quaternius (đổi màu)",
+    "https://poly.pizza/m/XWl86YFtpF"
+   ],
+   "license": "CC0"
+  },
+  {
+   "file": "pet3d_catfish.png",
+   "w": 1240,
+   "h": 80,
+   "use": "Sprite sheet 3D dựng sẵn (cá trê): mô hình 3D render bằng three.js (toon shading + viền + bóng đổ), mỗi hàng một hoạt ảnh × 8 khung 155×80: swim (hàng 0, 8 khung, 8 fps); đầu quay right; hiển thị ×0.5",
+   "anchor": "bottom-center",
+   "tile": false,
+   "frameW": 155,
+   "frameH": 80,
+   "framesPerRow": 8,
+   "face": "right",
+   "animations": [
+    {
+     "name": "swim",
+     "row": 0,
+     "start": 0,
+     "frames": 8,
+     "fps": 8
+    }
+   ],
+   "source": [
+    "\"Fish\" — Quaternius (đổi màu)",
+    "https://poly.pizza/m/Ymu8ftrmuT"
+   ],
+   "license": "CC0"
+  },
+  {
+   "file": "pet3d_carp.png",
+   "w": 744,
+   "h": 80,
+   "use": "Sprite sheet 3D dựng sẵn (cá chép): mô hình 3D render bằng three.js (toon shading + viền + bóng đổ), mỗi hàng một hoạt ảnh × 8 khung 93×80: swim (hàng 0, 8 khung, 8 fps); đầu quay right; hiển thị ×0.5",
+   "anchor": "bottom-center",
+   "tile": false,
+   "frameW": 93,
+   "frameH": 80,
+   "framesPerRow": 8,
+   "face": "right",
+   "animations": [
+    {
+     "name": "swim",
+     "row": 0,
+     "start": 0,
+     "frames": 8,
+     "fps": 8
+    }
+   ],
+   "source": [
+    "\"Goldfish\" — Quaternius",
+    "https://poly.pizza/m/qS6CgsWFAh"
+   ],
+   "license": "CC0"
+  },
+  {
+   "file": "pet3d_koi.png",
+   "w": 968,
+   "h": 80,
+   "use": "Sprite sheet 3D dựng sẵn (cá koi): mô hình 3D render bằng three.js (toon shading + viền + bóng đổ), mỗi hàng một hoạt ảnh × 8 khung 121×80: swim (hàng 0, 8 khung, 8 fps); đầu quay right; hiển thị ×0.5",
+   "anchor": "bottom-center",
+   "tile": false,
+   "frameW": 121,
+   "frameH": 80,
+   "framesPerRow": 8,
+   "face": "right",
+   "animations": [
+    {
+     "name": "swim",
+     "row": 0,
+     "start": 0,
+     "frames": 8,
+     "fps": 8
+    }
+   ],
+   "source": [
+    "\"Koi\" — Quaternius",
+    "https://poly.pizza/m/qyGtRmhgzl"
+   ],
+   "license": "CC0"
   }
  ]
 }

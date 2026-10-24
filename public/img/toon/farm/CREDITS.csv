@@ -108,3 +108,30 @@ flower_yellow.png,DCity (vẽ bằng PIL / numpy),DCity,CC0,
 flower_pink.png,DCity (vẽ bằng PIL / numpy),DCity,CC0,
 flower_purple.png,DCity (vẽ bằng PIL / numpy),DCity,CC0,
 flower_white.png,DCity (vẽ bằng PIL / numpy),DCity,CC0,
+tree_da.png,DCity (vẽ bằng PIL / numpy),DCity,CC0,
+tree_dua.png,DCity (vẽ bằng PIL / numpy),DCity,CC0,
+fence_side.png,DCity (vẽ bằng PIL / numpy),DCity,CC0,
+fence_side_full.png,DCity (vẽ bằng PIL / numpy),DCity,CC0,
+haystack.png,DCity (vẽ bằng PIL / numpy),DCity,CC0,
+item_egg.png,DCity (vẽ bằng PIL / numpy),DCity,CC0,
+item_duck_egg.png,DCity (vẽ bằng PIL / numpy),DCity,CC0,
+item_milk.png,DCity (vẽ bằng PIL / numpy),DCity,CC0,
+item_wool.png,DCity (vẽ bằng PIL / numpy),DCity,CC0,
+item_meat_chicken.png,DCity (vẽ bằng PIL / numpy),DCity,CC0,
+item_meat_duck.png,DCity (vẽ bằng PIL / numpy),DCity,CC0,
+item_meat_pig.png,DCity (vẽ bằng PIL / numpy),DCity,CC0,
+item_meat_cow.png,DCity (vẽ bằng PIL / numpy),DCity,CC0,
+item_meat_sheep.png,DCity (vẽ bằng PIL / numpy),DCity,CC0,
+nest.png,DCity (vẽ bằng PIL / numpy),DCity,CC0,
+icon_scissors.png,DCity (vẽ bằng PIL / numpy),DCity,CC0,
+pet3d_chicken.png,"Render từ mô hình 3D ""Hen"" — Poly by Google (poly.pizza)",Poly by Google,CC-BY 3.0,https://poly.pizza/m/8Unya0rw9tR
+pet3d_chicken_white.png,"Render từ mô hình 3D ""Chicken"" — madtrollstudio (poly.pizza)",madtrollstudio,CC-BY 3.0,https://poly.pizza/m/oHmIgi4boa
+pet3d_duck.png,"Render từ mô hình 3D ""Mallard duck"" — Poly by Google (poly.pizza)",Poly by Google,CC-BY 3.0,https://poly.pizza/m/frSLi6b6Vid
+pet3d_pig.png,"Render từ mô hình 3D ""Pig"" — Quaternius (poly.pizza)",Quaternius,CC0,https://poly.pizza/m/TNvG3QUFlp
+pet3d_sheep.png,"Render từ mô hình 3D ""Sheep"" — Quaternius (poly.pizza)",Quaternius,CC0,https://poly.pizza/m/C39AUXUUes
+pet3d_cow.png,"Render từ mô hình 3D ""Cow"" — Quaternius (poly.pizza)",Quaternius,CC0,https://poly.pizza/m/5XSc2Fka3F
+pet3d_dog.png,"Render từ mô hình 3D ""Shiba Inu"" — Quaternius (poly.pizza)",Quaternius,CC0,https://poly.pizza/m/y4wdQpg767
+pet3d_tilapia.png,"Render từ mô hình 3D ""Fish"" — Quaternius (đổi màu) (poly.pizza)",Quaternius (đổi màu),CC0,https://poly.pizza/m/XWl86YFtpF
+pet3d_catfish.png,"Render từ mô hình 3D ""Fish"" — Quaternius (đổi màu) (poly.pizza)",Quaternius (đổi màu),CC0,https://poly.pizza/m/Ymu8ftrmuT
+pet3d_carp.png,"Render từ mô hình 3D ""Goldfish"" — Quaternius (poly.pizza)",Quaternius,CC0,https://poly.pizza/m/qS6CgsWFAh
+pet3d_koi.png,"Render từ mô hình 3D ""Koi"" — Quaternius (poly.pizza)",Quaternius,CC0,https://poly.pizza/m/qyGtRmhgzl

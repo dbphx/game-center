@@ -45,7 +45,7 @@
           <span class="farm-icon"><i data-icon="sprout"></i></span>
           <div>
             <h1 id="farm-name">Nông trại</h1>
-            <p class="help">WASD / mũi tên hoặc bấm chuột để đi · kéo để xem ngang · E để thao tác</p>
+            <p class="help">Đi: WASD / mũi tên / chuột · E tương tác · Tab đổi mục tiêu · 1–7 công cụ · <kbd>?</kbd> phím tắt</p>
           </div>
         </div>
       </div>
@@ -53,7 +53,26 @@
       <button id="btn-harvest-all" class="primary harvest-all hidden"><i data-icon="sprout"></i><span>Thu hoạch tất cả</span></button>
       <div class="tool-tip hidden" id="tool-tip"></div>
       <div class="seed-pick hidden" id="seed-pick"></div>
+      <div class="seed-pick quick-menu hidden" id="quick-menu"></div>
       <nav class="toolbar" id="toolbar"></nav>
+      <!-- Bảng phím tắt (phím ?) -->
+      <div class="kb-help hidden" id="kb-help">
+        <h3>Phím tắt nông trại</h3>
+        <dl>
+          <dt>WASD / ← ↑ → ↓</dt><dd>Đi lại</dd>
+          <dt>E · Space · Enter</dt><dd>Tương tác đối tượng gần (gieo / thu hoạch ô, mở kho, chuồng, ao, cổng, con vật)</dd>
+          <dt>Tab · Q</dt><dd>Đổi mục tiêu khi đứng gần nhiều thứ</dd>
+          <dt>1 – 7</dt><dd>Gieo hạt · Thu hoạch · Kho giống · Kho thóc · Cửa hàng · Về thành phố · Làm nhanh</dd>
+          <dt>H</dt><dd>Thu hoạch tất cả ô chín</dd>
+          <dt>Shift+1 · Shift+F · Shift+P</dt><dd>Gieo tất cả · Cho ăn tất cả · Lấy hết trứng / sữa / lông</dd>
+          <dt>7 · G</dt><dd>Menu làm nhanh · Đàn gia cầm</dd>
+          <dt>Shift + đi / kéo chuột</dt><dd>Đang cầm công cụ gieo / thu hoạch: làm liên tiếp từng ô đi qua</dd>
+          <dt>[ ]</dt><dd>Đổi hạt khi đang cầm công cụ gieo</dd>
+          <dt>Thẻ con vật</dt><dd>F cho ăn · P trứng / sữa / lông · M lấy thịt (Enter xác nhận) · ← → con kế bên · Esc đóng</dd>
+          <dt>Hộp thoại</dt><dd>Mũi tên chọn nút · Enter bấm · 1–9 chọn nhanh hạt · Esc đóng</dd>
+          <dt>?</dt><dd>Bật / tắt bảng này</dd>
+        </dl>
+      </div>
       <div class="pan-btns">
         <button class="icon-only" data-pan="-1" title="Xem sang trái"><i data-icon="arrowLeft"></i></button>
         <button class="icon-only" data-pan="me" title="Về chỗ nhân vật"><i data-icon="user"></i></button>
@@ -72,6 +91,7 @@
       <div class="tabs shop-tabs" role="tablist" id="shop-tabs">
         <button class="tab active" data-tab="crops">Hạt giống</button>
         <button class="tab" data-tab="animals">Vật nuôi</button>
+        <button class="tab" data-tab="poultry">Gia cầm</button>
         <button class="tab" data-tab="fish">Cá</button>
       </div>
       <p class="muted shop-note" id="shop-note"></p>
@@ -98,6 +118,15 @@
         <button class="link icon-only" data-close title="Đóng"><i data-icon="x"></i></button>
       </div>
       <div id="pen-body" class="pen-body"></div>
+    </div>
+  </dialog>
+
+  <!-- Hộp xác nhận kiểu game (thay confirm()) -->
+  <dialog class="modal ask-dlg" id="dlg-ask">
+    <div class="shop-wrap">
+      <h2 id="ask-title">Xác nhận</h2>
+      <p id="ask-msg"></p>
+      <div class="ask-btns"><button id="ask-cancel">Huỷ</button><button class="primary" id="ask-ok">Đồng ý</button></div>
     </div>
   </dialog>
 
