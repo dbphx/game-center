@@ -432,3 +432,12 @@ dialog.modal .actions { display: flex; justify-content: flex-end; gap: 8px; marg
 .xp-bar > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(180deg, #7fd0ff, #3b8fe0); }
 .lv-chip { display: inline-flex; padding: 1px 6px; border-radius: 999px; background: #4a74d9; color: #fff; font-size: 10px; font-weight: 800; }
 
+
+/* Hộp xác nhận chung (Account.confirm / Account.alert) */
+dialog.ask-dialog { width: min(380px, calc(100vw - 32px)); z-index: 10000; }
+dialog.ask-dialog h2 { font-size: 20px; }
+dialog.ask-dialog .ask-msg { margin: 0; font-size: 16px; line-height: 1.5; font-weight: 600; }
+dialog.ask-dialog .ask-input { width: 100%; padding: 10px 12px; border-radius: 12px; border: 2px solid var(--border); font: inherit; background: #fff; }
+dialog.ask-dialog .actions button { min-width: 96px; }
+dialog.ask-dialog.danger { border-color: #e57373; }
+dialog.ask-dialog .danger-fill { background: linear-gradient(180deg, #ff8a80, #e53935); border-color: #b71c1c; color: #fff; }

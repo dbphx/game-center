@@ -496,8 +496,9 @@
     render();
   }
 
-  function leave() {
-    if (state && state.phase === 'playing' && !confirm('Rời phòng giữa ván? Máy sẽ đánh thay bạn tới hết ván.')) return;
+  async function leave() {
+    if (state && state.phase === 'playing' &&
+      !(await A.confirm('Rời phòng giữa ván? Máy sẽ đánh thay bạn tới hết ván.', { title: 'Rời phòng', ok: 'Rời phòng', cancel: 'Ở lại', danger: true }))) return;
     send({ t: 'leave' });
   }
 

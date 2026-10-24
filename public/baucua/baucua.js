@@ -433,7 +433,7 @@
       await navigator.clipboard.writeText(link);
       A.toast('Đã sao chép link mời — gửi cho bạn bè để vào bàn');
     } catch (e) {
-      window.prompt('Sao chép link mời:', link);
+      A.ask({ title: 'Mời bạn', message: 'Sao chép link này gửi cho bạn bè:', input: link, ok: 'Xong', cancel: '' });
     }
   });
 

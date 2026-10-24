@@ -601,3 +601,6 @@
   .hp-badge .hp-bar, .topbar .level-badge .xp-bar { display: none; }
   .hp-badge { padding: 4px 9px 4px 6px; }
 }
+/* Nhãn phím Enter trên nút vào khu */
+.enter-kbd { margin-left: 8px; padding: 1px 6px; border-radius: 6px; background: rgba(255, 255, 255, .55); color: inherit; font: 800 11px/1.4 inherit; box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .15); }
+@media (hover: none) { .enter-kbd { display: none; } }

@@ -1182,8 +1182,8 @@
     let helpHidden = false;
     try { helpHidden = localStorage.getItem('city.help') === 'off'; } catch (e) { /* bỏ qua */ }
     overlay.innerHTML = `
-      <button class="enter-hint hidden" type="button"><span class="eh-key">E</span>Vào <b class="eh-name"></b></button>
-      <div class="city-help${helpHidden ? ' hidden' : ''}">WASD / ↑↓←→ để đi · Bấm chuột để tới · E để vào
+      <button class="enter-hint hidden" type="button"><span class="eh-key">E</span><span class="eh-key">Enter</span>Vào <b class="eh-name"></b></button>
+      <div class="city-help${helpHidden ? ' hidden' : ''}">WASD / ↑↓←→ để đi · Bấm chuột để tới · E / Enter để vào
         <button class="link icon-only city-help-close" type="button" title="Ẩn">×</button></div>
       <div class="joystick" aria-label="Cần điều khiển"><div class="joy-knob"></div></div>`;
     el.parentElement.appendChild(overlay);

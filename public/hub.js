@@ -265,7 +265,7 @@
     if (hpNow() < need || inHospital()) {
       return `<button class="primary" disabled title="Cần ít nhất ${need} HP">${I.svg('heart')}Cần ≥ ${need} HP để vào</button>`;
     }
-    return `<a class="btn primary" href="${href}">${I.svg('play')}${label}</a>`;
+    return `<a class="btn primary" href="${href}">${I.svg('play')}${label}<kbd class="enter-kbd">Enter</kbd></a>`;
   }
 
   // Bảng hiện thay cho khu khi không đủ HP (hoặc đang nằm viện).
@@ -446,6 +446,8 @@
     $('panel').classList.toggle('left', x >= 900);
     const allowed = canEnter(zone);
     $('panel-body').innerHTML = allowed ? PANELS[zone]() : gatePanel(zone);
+    // Chỉ nút vào đầu tiên mang nhãn Enter (Enter bấm nút đó).
+    $('panel-body').querySelectorAll('.enter-kbd').forEach((k, i) => i > 0 && k.remove());
     document.querySelectorAll('.zone-nav button').forEach((b) => b.classList.toggle('active', b.dataset.zone === zone));
     if (!allowed) {
       const go = $('btn-go-hospital');
@@ -551,9 +553,9 @@
       const done = kind === 'wings' ? (id ? 'Đã đeo cánh' : 'Đã tháo cánh') : kind === 'face' ? 'Đã đổi gương mặt' : 'Đã đổi kiểu tóc';
       act('/api/me/items/wear', { kind, id }, done);
     }));
-    body.querySelectorAll('[data-buy]').forEach((b) => (b.onclick = () => {
+    body.querySelectorAll('[data-buy]').forEach((b) => (b.onclick = async () => {
       const o = item(b.dataset.buy);
-      if (!o || !confirm(`Mua "${o.name}" với giá ${A.xu(o.price)} xu?`)) return;
+      if (!o || !(await A.confirm(`Mua "${o.name}" với giá ${A.xu(o.price)} xu?`, { title: 'Mua đồ', ok: 'Mua' }))) return;
       if (kind === 'outfit') act('/api/outfits/buy', { outfit: o.id }, `Đã mua ${o.name}`);
       else act('/api/me/items/buy', { kind, id: o.id }, `Đã mua và mặc ${o.name}`);
     }));
@@ -722,6 +724,22 @@
       refreshPanel();
     })
     .catch(() => {});
+
+  // Enter khi bảng khu đang mở: vào khu luôn (bấm nút vào đầu tiên, vd "Vào nông trại", "Vào sòng Tiến Lên").
+  // Chạy ở pha capture để đi trước phím Enter của bản đồ (mở lại bảng).
+  window.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+    const t = e.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(t.tagName))) return;
+    if (document.querySelector('dialog[open]')) return;
+    const panel = $('panel');
+    if (!panel || panel.classList.contains('hidden') || !panel.offsetParent) return;
+    const go = panel.querySelector('a.btn.primary[href]');
+    if (!go) return;
+    e.preventDefault();
+    e.stopPropagation();
+    go.click();
+  }, true);
 
   (async () => {
     try {

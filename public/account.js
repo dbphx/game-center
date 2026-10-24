@@ -79,5 +79,54 @@
     toastTimer = setTimeout(() => el.classList.add('hidden'), 3000);
   }
 
-  window.Account = { token: load, api, me, register, login, logout, requireLogin, xu, escapeHtml, toast };
+  // Hộp xác nhận / thông báo kiểu game thay cho confirm() / alert() / prompt() của trình duyệt.
+  // ask({ title, message, ok, cancel, danger, input }) → Promise: true/false (hoặc chuỗi khi có input, null khi huỷ).
+  // Enter = đồng ý, Esc = huỷ. Chỉ một hộp mở tại một thời điểm; mở hộp mới thì hộp cũ coi như huỷ.
+  let pending = null;
+  function ask(opts) {
+    if (pending) pending(false);
+    let dlg = document.getElementById('ask-dialog');
+    if (!dlg) {
+      dlg = document.createElement('dialog');
+      dlg.id = 'ask-dialog';
+      dlg.className = 'modal ask-dialog';
+      document.body.appendChild(dlg);
+    }
+    const o = { title: 'Xác nhận', ok: 'Đồng ý', cancel: 'Huỷ', ...opts };
+    dlg.classList.toggle('danger', !!o.danger);
+    dlg.innerHTML = `<form method="dialog">
+        <h2>${escapeHtml(o.title)}</h2>
+        ${o.message ? `<p class="ask-msg">${escapeHtml(capitalize(o.message))}</p>` : ''}
+        ${o.input !== undefined ? `<input class="ask-input" value="${escapeHtml(o.input)}" readonly>` : ''}
+        <div class="actions">
+          ${o.cancel ? `<button type="button" value="cancel" data-ask="no">${escapeHtml(o.cancel)}</button>` : ''}
+          <button type="submit" value="ok" class="primary${o.danger ? ' danger-fill' : ''}" data-ask="yes">${escapeHtml(o.ok)}</button>
+        </div>
+      </form>`;
+    return new Promise((resolve) => {
+      const done = (yes) => {
+        if (pending !== finish) return;
+        pending = null;
+        if (dlg.open) dlg.close();
+        const input = dlg.querySelector('.ask-input');
+        resolve(input ? (yes ? input.value : null) : yes);
+      };
+      const finish = done;
+      pending = finish;
+      dlg.querySelector('form').onsubmit = (e) => { e.preventDefault(); done(true); };
+      const no = dlg.querySelector('[data-ask=no]');
+      if (no) no.onclick = () => done(false);
+      dlg.oncancel = (e) => { e.preventDefault(); done(false); };
+      dlg.onclick = (e) => { if (e.target === dlg && o.cancel) done(false); }; // bấm ra ngoài hộp = huỷ
+      dlg.showModal();
+      const input = dlg.querySelector('.ask-input');
+      if (input) input.select();
+      else dlg.querySelector('[data-ask=yes]').focus();
+    });
+  }
+  const confirmBox = (message, opts = {}) => ask({ ...opts, message });
+  const alertBox = (message, opts = {}) => ask({ title: 'Thông báo', ok: 'Đã hiểu', cancel: '', ...opts, message });
+
+  window.Account = { token: load, api, me, register, login, logout, requireLogin, xu, escapeHtml, toast,
+    ask, confirm: confirmBox, alert: alertBox };
 })();
