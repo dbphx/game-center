@@ -46,7 +46,13 @@ func New(w *wallet.Wallet, static fs.FS, games []Game) *Server {
 		loginFails: newLimiter(5, 15*time.Minute),
 		registers:  newLimiter(10, time.Hour),
 	}
-	s.mux.Handle("/", http.FileServer(http.FS(static)))
+	// File tĩnh nhúng trong binary không có thời điểm sửa, nên bắt trình duyệt hỏi lại mỗi lần
+	// để sau khi cập nhật server người chơi luôn nhận giao diện mới.
+	files := http.FileServer(http.FS(static))
+	s.mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache")
+		files.ServeHTTP(w, r)
+	}))
 	s.mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
 	s.mux.HandleFunc("GET /api/games", s.listGames)
 	s.mux.HandleFunc("GET /api/config", func(w http.ResponseWriter, _ *http.Request) {
