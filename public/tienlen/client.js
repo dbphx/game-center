@@ -3,6 +3,7 @@
   'use strict';
   const R = window.Rules;
   const A = window.Account;
+  const I = window.Icons;
   const PLACES = ['Nhất', 'Nhì', 'Ba', 'Bét'];
   // Vị trí ghế theo số người, tính từ mình (luôn ở dưới) theo chiều đánh.
   const POSITIONS = { 2: ['bottom', 'top'], 3: ['bottom', 'right', 'left'], 4: ['bottom', 'right', 'top', 'left'] };
@@ -107,7 +108,7 @@
   const coinsText = (p) => (p.bot ? '—' : xu(p.coins) + ' xu');
 
   function showBalance(coins) {
-    $('balance').textContent = '💰 ' + xu(coins) + ' xu';
+    $('balance').textContent = xu(coins);
   }
 
   function status(msg) {
@@ -123,7 +124,8 @@
     el.className = 'card' + (R.suitOf(c) >= 2 ? ' red' : '') + (opts.small ? ' small' : '');
     const rank = R.RANKS[R.rankOf(c)];
     const suit = R.SUITS[R.suitOf(c)];
-    el.innerHTML = `<div class="corner">${rank}<br>${suit}</div><div class="pip">${suit}</div>`;
+    const corner = `${rank}<br>${suit}`;
+    el.innerHTML = `<div class="corner">${corner}</div><div class="pip">${suit}</div><div class="corner br">${corner}</div>`;
     return el;
   }
 
@@ -147,14 +149,18 @@
     const rows = state.players.map((p) => {
       const tags = [
         p.id === state.you ? '<span class="tag me">Bạn</span>' : '',
-        p.host ? '<span class="tag host">Chủ phòng</span>' : '',
-        p.bot ? '<span class="tag bot">Máy</span>' : '',
-        !p.online || p.left ? '<span class="tag off">Mất kết nối</span>' : '',
+        p.host ? `<span class="tag host">${I.svg('crown')}Chủ phòng</span>` : '',
+        p.bot ? `<span class="tag bot">${I.svg('bot')}Máy</span>` : '',
+        !p.online || p.left ? `<span class="tag off">${I.svg('wifiOff')}Mất kết nối</span>` : '',
       ].join('');
-      const kick = host && p.id !== state.you ? `<button class="kick" data-kick="${p.id}">Mời ra</button>` : '';
-      return `<li><span class="pname">${escapeHtml(p.name)}</span>${tags}<span class="coins${!p.bot && p.coins < state.bet ? ' neg' : ''}">${coinsText(p)}</span>${kick}</li>`;
+      const kick =
+        host && p.id !== state.you
+          ? `<button class="kick link" data-kick="${p.id}" title="Mời ra">${I.svg('x')}</button>`
+          : '';
+      const coins = p.bot ? '' : `<span class="coins${p.coins < state.bet ? ' neg' : ''}">${I.svg('coins')}${xu(p.coins)}</span>`;
+      return `<li>${I.avatar(p.name, { bot: p.bot })}<span class="pname">${escapeHtml(p.name)}${tags}</span>${coins}${kick}</li>`;
     });
-    for (let i = state.players.length; i < 4; i++) rows.push('<li class="empty">Ghế trống</li>');
+    for (let i = state.players.length; i < 4; i++) rows.push(`<li class="empty">${I.svg('userPlus')}Ghế trống</li>`);
     $('lobby-players').innerHTML = rows.join('');
     const sel = $('bet');
     if (sel.options.length !== state.betOptions.length) {
@@ -189,21 +195,20 @@
 
     const name = document.createElement('div');
     name.className = 'name';
-    name.textContent = isMe ? 'Bạn' : p.name;
-    const badge = (cls, text, id) => {
+    name.innerHTML = `${I.avatar(p.name, { bot: p.bot })}<span>${escapeHtml(isMe ? 'Bạn' : p.name)}</span>`;
+    const badge = (cls, text, icon, id) => {
       const b = document.createElement('span');
       b.className = 'badge ' + cls;
-      b.textContent = text;
+      b.innerHTML = (icon ? I.svg(icon) : '') + `<span>${escapeHtml(text)}</span>`;
       if (id) b.id = id;
       name.appendChild(b);
     };
-    if (p.bot) badge('', 'Máy');
-    if (!p.online && !p.bot) badge('pass', p.left ? 'Đã rời' : 'Mất kết nối');
+    if (!p.online && !p.bot) badge('pass', p.left ? 'Đã rời' : 'Mất kết nối', 'wifiOff');
     if (p.cong) badge('cong', 'Cóng');
-    else if (p.place >= 0) badge('place', PLACES[p.place]);
-    else badge('', p.cards + ' lá');
-    if (p.passed && playing) badge('pass', 'Bỏ lượt');
-    if (playing && state.turn === i && deadline) badge('timer', '', 'turn-timer');
+    else if (p.place >= 0) badge('place', PLACES[p.place], p.place === 0 ? 'trophy' : '');
+    else badge('', p.cards + ' lá', 'layers');
+    if (p.passed && playing) badge('pass', 'Bỏ lượt', 'skip');
+    if (playing && state.turn === i && deadline) badge('timer', '', 'timer', 'turn-timer');
     el.appendChild(name);
 
     const hand = document.createElement('div');
@@ -259,9 +264,13 @@
 
   function renderSide() {
     $('game-code').textContent = state.code;
-    $('game-bet').textContent = `Cược ${xu(state.gameBet)} xu / mức`;
+    $('game-bet').innerHTML = `${I.svg('coins')}${xu(state.gameBet)} / mức`;
     $('scores').innerHTML = state.players
-      .map((p) => `<tr><td>${escapeHtml(p.id === state.you ? 'Bạn' : p.name)}</td><td class="coins">${coinsText(p)}</td></tr>`)
+      .map(
+        (p) =>
+          `<tr><td>${I.avatar(p.name, { bot: p.bot })}${escapeHtml(p.id === state.you ? 'Bạn' : p.name)}</td>` +
+          `<td><span class="coins">${coinsText(p)}</span></td></tr>`,
+      )
       .join('');
 
     const items = [`<li class="round"><b>Ván ${state.gameNo}</b></li>`];
@@ -271,8 +280,9 @@
       else if (h.pass) items.push(`<li>${who} bỏ lượt</li>`);
       else {
         const cards = h.combo.cards.map(R.cardName).join(' ');
-        items.push(`<li class="${h.chop ? 'chop' : ''}">${who}: ${R.describe(h.combo)} <b>${cards}</b>${h.chop ? ' — CHẶT!' : ''}</li>`);
-        if (h.pay) items.push(`<li class="pay">💰 ${transferText(h.pay)}</li>`);
+        const chop = h.chop ? ` ${I.svg('flame')} CHẶT!` : '';
+        items.push(`<li class="${h.chop ? 'chop' : ''}">${who}: ${R.describe(h.combo)} <b>${cards}</b>${chop}</li>`);
+        if (h.pay) items.push(`<li class="pay">${I.svg('coins')}${transferText(h.pay)}</li>`);
       }
     }
     const log = $('log');
@@ -285,19 +295,23 @@
     const over = state.phase === 'over';
     $('overlay').classList.toggle('hidden', !over);
     if (!over) return;
+    const myMoney = state.money ? state.money[mySeat()] : 0;
     if (state.instant) {
       $('result-title').textContent = `${playerName(state.instant.player)} tới trắng (${state.instant.reason})!`;
     } else {
       $('result-title').textContent = state.players[mySeat()].place === 0 ? 'Bạn về nhất!' : 'Kết thúc ván';
     }
+    const won = state.players[mySeat()].place === 0 || myMoney > 0;
+    $('result-icon').className = 'result-icon' + (won ? '' : ' lose');
+    $('result-icon').innerHTML = I.svg(won ? 'trophy' : 'layers');
     const order = state.players
       .map((p, i) => ({ i, p, place: p.place < 0 ? 99 : p.place, money: state.money ? state.money[i] : 0 }))
       .sort((a, b) => a.place - b.place || b.money - a.money);
     $('result-list').innerHTML = order
       .map(({ i, p, place, money }) => {
-        const label = p.cong ? 'Cóng: ' : place < 4 && !state.instant ? PLACES[place] + ': ' : '';
+        const label = p.cong ? 'Cóng' : place < 4 && !state.instant ? PLACES[place] : '';
         const cls = money > 0 ? 'delta-plus' : money < 0 ? 'delta-minus' : '';
-        return `<li><span>${label}${escapeHtml(playerName(i))}</span><span class="${cls}">${signed(money)} xu</span></li>`;
+        return `<li><span class="place">${label}</span><span class="who">${I.avatar(p.name, { bot: p.bot })}${escapeHtml(playerName(i))}</span><span class="${cls}">${signed(money)} xu</span></li>`;
       })
       .join('');
 
@@ -324,7 +338,7 @@
     const el = $('turn-timer');
     if (!el) return;
     const left = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
-    el.textContent = `⏱ ${left}s`;
+    el.lastElementChild.textContent = `${left}s`;
     el.classList.toggle('low', left <= 10);
   }
   setInterval(updateTimer, 250);
@@ -355,8 +369,8 @@
     navigator.clipboard?.writeText($('share-link').value).then(() => A.toast('Đã sao chép link'), () => {});
   });
   $('lobby-players').addEventListener('click', (e) => {
-    const id = e.target.dataset && e.target.dataset.kick;
-    if (id) send({ t: 'kick', id });
+    const btn = e.target.closest('[data-kick]');
+    if (btn) send({ t: 'kick', id: btn.dataset.kick });
   });
   $('btn-add-bot').addEventListener('click', () => send({ t: 'addBot' }));
   $('bet').addEventListener('change', (e) => send({ t: 'setBet', bet: Number(e.target.value) }));
@@ -383,11 +397,15 @@
 
   // ---------- Khởi động ----------
 
-  // Chưa có tài khoản thì về hub tạo, xong quay lại đúng link phòng này.
+  $('logo').innerHTML = I.logo(28);
+  $('home-art').innerHTML = I.cardFan();
+
+  // Chưa đăng nhập thì về hub, xong quay lại đúng link phòng này.
   A.me().then(
     (user) => {
       if (!user) return A.requireLogin();
       $('user-name').textContent = user.name;
+      $('user-avatar').innerHTML = I.avatar(user.name);
       showBalance(user.balance);
       render();
       connect();

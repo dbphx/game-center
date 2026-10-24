@@ -60,26 +60,86 @@ func call(t *testing.T, srv *httptest.Server, method, path, token string, body a
 	return res.StatusCode
 }
 
-type guest struct {
+type session struct {
 	Token string      `json:"token"`
 	User  wallet.User `json:"user"`
 }
 
-func newGuest(t *testing.T, srv *httptest.Server, name string) guest {
+func creds(username, password string) map[string]string {
+	return map[string]string{"username": username, "password": password, "name": username}
+}
+
+func newAccount(t *testing.T, srv *httptest.Server, username string) session {
 	t.Helper()
-	var g guest
-	if code := call(t, srv, "POST", "/api/guest", "", map[string]string{"name": name}, &g); code != 200 || g.Token == "" {
-		t.Fatalf("tạo khách: %d %+v", code, g)
+	var g session
+	if code := call(t, srv, "POST", "/api/register", "", creds(username, "matkhau123"), &g); code != 200 || g.Token == "" {
+		t.Fatalf("đăng ký %s: %d %+v", username, code, g)
 	}
 	return g
 }
 
+func TestRegisterLoginLogout(t *testing.T) {
+	srv, _ := newTestServer(t)
+	cases := []struct {
+		body map[string]string
+		want int
+	}{
+		{creds("a", "matkhau123"), 400}, // tên quá ngắn
+		{creds("binh", "123"), 400},     // mật khẩu yếu
+		{map[string]string{}, 400},      // thiếu hết
+	}
+	for _, tc := range cases {
+		if code := call(t, srv, "POST", "/api/register", "", tc.body, nil); code != tc.want {
+			t.Errorf("đăng ký %v: muốn %d, được %d", tc.body, tc.want, code)
+		}
+	}
+	a := newAccount(t, srv, "binh")
+	if code := call(t, srv, "POST", "/api/register", "", creds("BINH", "matkhau123"), nil); code != 409 {
+		t.Fatalf("trùng tên phải 409, được %d", code)
+	}
+
+	var s session
+	if code := call(t, srv, "POST", "/api/login", "", creds("Binh", "matkhau123"), &s); code != 200 || s.User.ID != a.User.ID {
+		t.Fatalf("đăng nhập: %d %+v", code, s)
+	}
+	if code := call(t, srv, "POST", "/api/logout", s.Token, nil, nil); code != 200 {
+		t.Fatalf("đăng xuất: %d", code)
+	}
+	if code := call(t, srv, "GET", "/api/me", s.Token, nil, nil); code != 401 {
+		t.Fatalf("token đã đăng xuất phải 401, được %d", code)
+	}
+	if code := call(t, srv, "GET", "/api/me", a.Token, nil, nil); code != 200 {
+		t.Fatalf("phiên khác vẫn phải dùng được, được %d", code)
+	}
+
+	if code := call(t, srv, "POST", "/api/password", a.Token, map[string]string{"old": "sai", "new": "moi123456"}, nil); code != 401 {
+		t.Fatalf("đổi mật khẩu với mật khẩu cũ sai phải 401, được %d", code)
+	}
+	if code := call(t, srv, "POST", "/api/password", a.Token, map[string]string{"old": "matkhau123", "new": "moi123456"}, nil); code != 200 {
+		t.Fatalf("đổi mật khẩu: %d", code)
+	}
+	if code := call(t, srv, "POST", "/api/login", "", creds("binh", "moi123456"), nil); code != 200 {
+		t.Fatalf("đăng nhập bằng mật khẩu mới: %d", code)
+	}
+}
+
+func TestLoginLockoutAfterFailures(t *testing.T) {
+	srv, _ := newTestServer(t)
+	newAccount(t, srv, "binh")
+	for i := range 5 {
+		if code := call(t, srv, "POST", "/api/login", "", creds("binh", "sai"), nil); code != 401 {
+			t.Fatalf("lần sai %d: muốn 401, được %d", i+1, code)
+		}
+	}
+	// Bị khoá tạm thời, kể cả khi nhập đúng.
+	if code := call(t, srv, "POST", "/api/login", "", creds("binh", "matkhau123"), nil); code != 429 {
+		t.Fatalf("sau 5 lần sai phải 429, được %d", code)
+	}
+}
+
 func TestAccountAPI(t *testing.T) {
 	srv, _ := newTestServer(t)
-	if code := call(t, srv, "POST", "/api/guest", "", map[string]string{"name": " "}, nil); code != 400 {
-		t.Fatalf("tên trống phải 400, được %d", code)
-	}
-	g := newGuest(t, srv, "An")
+	g := newAccount(t, srv, "an.nguyen")
 	if g.User.Balance != wallet.StartBalance {
 		t.Fatalf("số dư ban đầu %d", g.User.Balance)
 	}
@@ -88,7 +148,7 @@ func TestAccountAPI(t *testing.T) {
 	}
 	var u wallet.User
 	call(t, srv, "POST", "/api/me", g.Token, map[string]string{"name": "An Béo"}, &u)
-	if u.Name != "An Béo" {
+	if u.Name != "An Béo" || u.Username != "an.nguyen" {
 		t.Fatalf("đổi tên: %+v", u)
 	}
 	if code := call(t, srv, "POST", "/api/daily", g.Token, nil, &u); code != 200 || u.Balance != wallet.StartBalance+wallet.DailyBonus {
@@ -167,7 +227,7 @@ func TestWebSocketRequiresAccount(t *testing.T) {
 // Hai tài khoản + một máy chơi trọn một ván qua WebSocket thật; xu được ghi vào ví SQLite.
 func TestTienLenGameSettlesIntoWallet(t *testing.T) {
 	srv, w := newTestServer(t)
-	a, b := newGuest(t, srv, "An"), newGuest(t, srv, "Bình")
+	a, b := newAccount(t, srv, "an.nguyen"), newAccount(t, srv, "binh")
 
 	host := dial(t, srv)
 	host.send(online.Message{T: "create", Token: a.Token})
@@ -211,7 +271,7 @@ func TestTienLenGameSettlesIntoWallet(t *testing.T) {
 		cur.send(online.Message{T: "play", Cards: cards})
 	}
 
-	for i, g := range []guest{a, b} {
+	for i, g := range []session{a, b} {
 		want := max(0, wallet.StartBalance+int64(s.Money[i]))
 		u, _ := w.User(context.Background(), g.User.ID)
 		if u.Balance != want || s.Players[i].Coins != want {

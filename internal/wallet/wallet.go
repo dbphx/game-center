@@ -6,10 +6,7 @@ package wallet
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/sha256"
 	"database/sql"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
@@ -36,6 +33,7 @@ var vietnam = time.FixedZone("ICT", 7*60*60)
 
 type User struct {
 	ID        int64  `json:"id"`
+	Username  string `json:"username"` // rỗng với tài khoản khách cũ chưa đặt tên đăng nhập
 	Name      string `json:"name"`
 	Balance   int64  `json:"balance"`
 	CanDaily  bool   `json:"canDaily"` // hôm nay còn nhận thưởng được không
@@ -55,27 +53,6 @@ type Wallet struct {
 	now func() time.Time
 }
 
-const schema = `
-CREATE TABLE IF NOT EXISTS users (
-	id         INTEGER PRIMARY KEY AUTOINCREMENT,
-	token_hash TEXT NOT NULL UNIQUE,
-	name       TEXT NOT NULL,
-	balance    INTEGER NOT NULL CHECK (balance >= 0),
-	last_daily TEXT NOT NULL DEFAULT '',
-	created_at INTEGER NOT NULL
-);
-CREATE TABLE IF NOT EXISTS ledger (
-	id            INTEGER PRIMARY KEY AUTOINCREMENT,
-	user_id       INTEGER NOT NULL REFERENCES users(id),
-	delta         INTEGER NOT NULL,
-	balance_after INTEGER NOT NULL,
-	game          TEXT NOT NULL,
-	note          TEXT NOT NULL,
-	created_at    INTEGER NOT NULL
-);
-CREATE INDEX IF NOT EXISTS ledger_user ON ledger(user_id, id);
-`
-
 // Open mở (hoặc tạo) file SQLite ở path.
 func Open(path string) (*Wallet, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -87,19 +64,14 @@ func Open(path string) (*Wallet, error) {
 	}
 	// SQLite chỉ cho một writer; một kết nối là đủ và tránh lỗi "database is locked".
 	db.SetMaxOpenConns(1)
-	if _, err := db.Exec(schema); err != nil {
+	if err := migrate(db); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("tạo bảng: %w", err)
+		return nil, fmt.Errorf("nâng cấp database: %w", err)
 	}
 	return &Wallet{db: db, now: time.Now}, nil
 }
 
 func (w *Wallet) Close() error { return w.db.Close() }
-
-func hashToken(token string) string {
-	sum := sha256.Sum256([]byte(token))
-	return hex.EncodeToString(sum[:])
-}
 
 // CleanName cắt khoảng trắng và giới hạn độ dài tên hiển thị.
 func CleanName(name string) string {
@@ -115,43 +87,17 @@ func CleanName(name string) string {
 
 func (w *Wallet) today() string { return w.now().In(vietnam).Format("2006-01-02") }
 
-// CreateGuest tạo tài khoản khách. Token chỉ trả về một lần; DB chỉ lưu hash.
-func (w *Wallet) CreateGuest(ctx context.Context, name string) (User, string, error) {
-	b := make([]byte, 32)
-	rand.Read(b)
-	token := hex.EncodeToString(b)
-
-	tx, err := w.db.BeginTx(ctx, nil)
-	if err != nil {
-		return User{}, "", err
-	}
-	defer tx.Rollback()
-	now := w.now().Unix()
-	res, err := tx.ExecContext(ctx, `INSERT INTO users (token_hash, name, balance, created_at) VALUES (?, ?, ?, ?)`,
-		hashToken(token), CleanName(name), StartBalance, now)
-	if err != nil {
-		return User{}, "", err
-	}
-	id, _ := res.LastInsertId()
-	if err := addEntry(ctx, tx, id, StartBalance, StartBalance, "hub", "Quà chào mừng", now); err != nil {
-		return User{}, "", err
-	}
-	if err := tx.Commit(); err != nil {
-		return User{}, "", err
-	}
-	u, err := w.User(ctx, id)
-	return u, token, err
-}
-
 func addEntry(ctx context.Context, tx *sql.Tx, userID, delta, after int64, game, note string, at int64) error {
 	_, err := tx.ExecContext(ctx, `INSERT INTO ledger (user_id, delta, balance_after, game, note, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
 		userID, delta, after, game, note, at)
 	return err
 }
 
+const userColumns = `id, coalesce(username, ''), name, balance, last_daily`
+
 func (w *Wallet) scanUser(row *sql.Row) (User, error) {
 	var u User
-	err := row.Scan(&u.ID, &u.Name, &u.Balance, &u.lastDaily)
+	err := row.Scan(&u.ID, &u.Username, &u.Name, &u.Balance, &u.lastDaily)
 	if errors.Is(err, sql.ErrNoRows) {
 		return User{}, ErrNotFound
 	}
@@ -160,14 +106,7 @@ func (w *Wallet) scanUser(row *sql.Row) (User, error) {
 }
 
 func (w *Wallet) User(ctx context.Context, id int64) (User, error) {
-	return w.scanUser(w.db.QueryRowContext(ctx, `SELECT id, name, balance, last_daily FROM users WHERE id = ?`, id))
-}
-
-func (w *Wallet) UserByToken(ctx context.Context, token string) (User, error) {
-	if token == "" {
-		return User{}, ErrNotFound
-	}
-	return w.scanUser(w.db.QueryRowContext(ctx, `SELECT id, name, balance, last_daily FROM users WHERE token_hash = ?`, hashToken(token)))
+	return w.scanUser(w.db.QueryRowContext(ctx, `SELECT `+userColumns+` FROM users WHERE id = ?`, id))
 }
 
 func (w *Wallet) Rename(ctx context.Context, id int64, name string) (User, error) {

@@ -2,11 +2,14 @@ package wallet
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"path/filepath"
 	"testing"
 	"time"
 )
+
+var ctx = context.Background()
 
 func open(t *testing.T) *Wallet {
 	t.Helper()
@@ -18,34 +21,94 @@ func open(t *testing.T) *Wallet {
 	return w
 }
 
-func TestGuestAccount(t *testing.T) {
-	ctx := context.Background()
-	w := open(t)
-	u, token, err := w.CreateGuest(ctx, "  An   Nguyễn  ")
+func register(t *testing.T, w *Wallet, username string) (User, string) {
+	t.Helper()
+	u, token, err := w.Register(ctx, username, "matkhau123", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if u.Name != "An Nguyễn" || u.Balance != StartBalance || !u.CanDaily {
+	return u, token
+}
+
+func TestRegisterAndLogin(t *testing.T) {
+	w := open(t)
+	u, token, err := w.Register(ctx, "  An.Nguyen ", "matkhau123", "  An   Nguyễn  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if u.Username != "an.nguyen" || u.Name != "An Nguyễn" || u.Balance != StartBalance || !u.CanDaily {
 		t.Fatalf("tài khoản mới sai: %+v", u)
 	}
-	got, err := w.UserByToken(ctx, token)
-	if err != nil || got.ID != u.ID {
-		t.Fatalf("tra token: %+v %v", got, err)
+	if got, err := w.UserByToken(ctx, token); err != nil || got.ID != u.ID {
+		t.Fatalf("token sau đăng ký: %+v %v", got, err)
 	}
-	if _, err := w.UserByToken(ctx, "sai"); !errors.Is(err, ErrNotFound) {
-		t.Fatalf("token sai phải ErrNotFound, được %v", err)
+
+	// Đăng nhập không phân biệt hoa thường, mỗi lần đăng nhập là một phiên riêng.
+	_, token2, err := w.Login(ctx, "AN.NGUYEN", "matkhau123")
+	if err != nil || token2 == token {
+		t.Fatalf("đăng nhập: %v", err)
 	}
-	if u, _ = w.Rename(ctx, u.ID, "Bình"); u.Name != "Bình" {
+	if _, _, err := w.Login(ctx, "an.nguyen", "sai"); !errors.Is(err, ErrBadCredentials) {
+		t.Fatalf("sai mật khẩu phải ErrBadCredentials, được %v", err)
+	}
+	if _, _, err := w.Login(ctx, "khongco", "matkhau123"); !errors.Is(err, ErrBadCredentials) {
+		t.Fatalf("không có tài khoản phải ErrBadCredentials, được %v", err)
+	}
+
+	// Đăng xuất một phiên không ảnh hưởng phiên khác.
+	if err := w.Logout(ctx, token); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.UserByToken(ctx, token); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("token đã đăng xuất phải hết hạn, được %v", err)
+	}
+	if _, err := w.UserByToken(ctx, token2); err != nil {
+		t.Fatalf("phiên còn lại phải dùng được: %v", err)
+	}
+	if u, _ := w.Rename(ctx, u.ID, "Bình"); u.Name != "Bình" {
 		t.Fatalf("đổi tên sai: %+v", u)
 	}
 }
 
+func TestRegisterValidation(t *testing.T) {
+	w := open(t)
+	register(t, w, "anh")
+	cases := map[string]struct {
+		username, password string
+		want               error
+	}{
+		"trùng (khác hoa thường)": {"ANH", "matkhau123", ErrUsernameTaken},
+		"quá ngắn":                {"ab", "matkhau123", ErrInvalidUsername},
+		"có dấu":                  {"nguyễn", "matkhau123", ErrInvalidUsername},
+		"có dấu cách":             {"an nguyen", "matkhau123", ErrInvalidUsername},
+		"mật khẩu ngắn":           {"binh", "12345", ErrWeakPassword},
+	}
+	for name, tc := range cases {
+		if _, _, err := w.Register(ctx, tc.username, tc.password, ""); !errors.Is(err, tc.want) {
+			t.Errorf("%s: muốn %v, được %v", name, tc.want, err)
+		}
+	}
+}
+
+func TestChangePassword(t *testing.T) {
+	w := open(t)
+	u, _ := register(t, w, "binh")
+	if err := w.ChangePassword(ctx, u.ID, "sai", "moi123456"); err == nil {
+		t.Fatal("mật khẩu cũ sai phải lỗi")
+	}
+	if err := w.ChangePassword(ctx, u.ID, "matkhau123", "moi123456"); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := w.Login(ctx, "binh", "moi123456"); err != nil {
+		t.Fatalf("đăng nhập bằng mật khẩu mới: %v", err)
+	}
+}
+
 func TestDailyOncePerVietnamDay(t *testing.T) {
-	ctx := context.Background()
 	w := open(t)
 	clock := time.Date(2026, 10, 24, 16, 0, 0, 0, time.UTC) // 23h giờ VN
 	w.now = func() time.Time { return clock }
-	u, _, _ := w.CreateGuest(ctx, "An")
+	u, _ := register(t, w, "binh")
 
 	if u, err := w.ClaimDaily(ctx, u.ID); err != nil || u.Balance != StartBalance+DailyBonus || u.CanDaily {
 		t.Fatalf("nhận lần đầu: %+v %v", u, err)
@@ -60,10 +123,9 @@ func TestDailyOncePerVietnamDay(t *testing.T) {
 }
 
 func TestSettleClampsAtZeroAndRecordsLedger(t *testing.T) {
-	ctx := context.Background()
 	w := open(t)
-	a, _, _ := w.CreateGuest(ctx, "An")
-	b, _, _ := w.CreateGuest(ctx, "Bình")
+	a, _ := register(t, w, "binh")
+	b, _ := register(t, w, "chi")
 
 	bal, err := w.Settle(ctx, "tienlen", "ván 1", map[int64]int64{a.ID: 300, b.ID: -1500})
 	if err != nil {
@@ -81,5 +143,54 @@ func TestSettleClampsAtZeroAndRecordsLedger(t *testing.T) {
 	}
 	if u, _ := w.User(ctx, a.ID); u.Balance != 1300 {
 		t.Fatalf("lỗi phải rollback cả transaction, số dư %d", u.Balance)
+	}
+}
+
+// Database từ bản cũ (tài khoản khách, token nằm trong bảng users) phải được nâng cấp
+// mà người đang chơi không mất xu, không bị đăng xuất, và đặt được tên đăng nhập.
+func TestMigrateFromGuestSchema(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "old.db")
+	db, err := sql.Open("sqlite", "file:"+path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = db.Exec(`
+CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, token_hash TEXT NOT NULL UNIQUE, name TEXT NOT NULL,
+	balance INTEGER NOT NULL CHECK (balance >= 0), last_daily TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL);
+CREATE TABLE ledger (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id), delta INTEGER NOT NULL,
+	balance_after INTEGER NOT NULL, game TEXT NOT NULL, note TEXT NOT NULL, created_at INTEGER NOT NULL);
+CREATE INDEX ledger_user ON ledger(user_id, id);
+INSERT INTO users VALUES (1, ?, 'Khách cũ', 1700, '', 0);
+INSERT INTO ledger VALUES (1, 1, 1000, 1000, 'hub', 'Quà chào mừng', 0), (2, 1, 700, 1700, 'tienlen', 'ván 1', 0);`,
+		hashToken("token-cu"))
+	db.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	w, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer w.Close()
+	u, err := w.UserByToken(ctx, "token-cu")
+	if err != nil || u.Name != "Khách cũ" || u.Balance != 1700 || u.Username != "" {
+		t.Fatalf("khách cũ sau nâng cấp: %+v %v", u, err)
+	}
+	if h, _ := w.History(ctx, u.ID, 10); len(h) != 2 {
+		t.Fatalf("sổ cái phải còn nguyên: %+v", h)
+	}
+	if u, err = w.SetCredentials(ctx, u.ID, "khachcu", "matkhau123"); err != nil || u.Username != "khachcu" {
+		t.Fatalf("đặt tên đăng nhập: %+v %v", u, err)
+	}
+	if _, err := w.SetCredentials(ctx, u.ID, "khac", "matkhau123"); !errors.Is(err, ErrHasCredentials) {
+		t.Fatalf("đặt lần hai phải lỗi, được %v", err)
+	}
+	if got, _, err := w.Login(ctx, "khachcu", "matkhau123"); err != nil || got.Balance != 1700 {
+		t.Fatalf("đăng nhập sau khi đặt: %+v %v", got, err)
+	}
+	// Tài khoản mới sau nâng cấp vẫn tạo bình thường và có id tiếp theo.
+	if nu, _, err := w.Register(ctx, "moi", "matkhau123", ""); err != nil || nu.ID != 2 {
+		t.Fatalf("đăng ký sau nâng cấp: %+v %v", nu, err)
 	}
 }

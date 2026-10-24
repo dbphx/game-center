@@ -1,5 +1,5 @@
 // Tài khoản và ví dùng chung cho mọi trang trong Game Hub.
-// Token tài khoản khách lưu trong localStorage nên mọi tab cùng trình duyệt là cùng một người.
+// Token phiên đăng nhập lưu trong localStorage nên mọi tab cùng trình duyệt là cùng một người.
 (function () {
   'use strict';
   const KEY = 'hub.token';
@@ -35,13 +35,27 @@
     }
   }
 
-  async function createGuest(name) {
-    const data = await api('/api/guest', { method: 'POST', body: { name } });
+  async function register(username, password, name) {
+    const data = await api('/api/register', { method: 'POST', body: { username, password, name } });
     save(data.token);
     return data.user;
   }
 
-  // Chuyển về hub để tạo tài khoản rồi quay lại đúng trang này.
+  async function login(username, password) {
+    const data = await api('/api/login', { method: 'POST', body: { username, password } });
+    save(data.token);
+    return data.user;
+  }
+
+  async function logout() {
+    try {
+      await api('/api/logout', { method: 'POST' });
+    } finally {
+      save(null);
+    }
+  }
+
+  // Chuyển về hub để đăng nhập rồi quay lại đúng trang này.
   function requireLogin() {
     location.href = '/?next=' + encodeURIComponent(location.pathname + location.search);
   }
@@ -65,5 +79,5 @@
     toastTimer = setTimeout(() => el.classList.add('hidden'), 3000);
   }
 
-  window.Account = { token: load, api, me, createGuest, requireLogin, xu, escapeHtml, toast };
+  window.Account = { token: load, api, me, register, login, logout, requireLogin, xu, escapeHtml, toast };
 })();

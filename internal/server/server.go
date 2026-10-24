@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/dbphx/game-center/internal/wallet"
 )
@@ -30,17 +31,28 @@ type Server struct {
 	wallet *wallet.Wallet
 	games  []Game
 	mux    *http.ServeMux
+
+	loginFails *limiter // đăng nhập sai theo tên đăng nhập
+	registers  *limiter // số tài khoản tạo theo IP
 }
 
 func New(w *wallet.Wallet, static fs.FS, games []Game) *Server {
-	s := &Server{wallet: w, games: games, mux: http.NewServeMux()}
+	s := &Server{
+		wallet: w, games: games, mux: http.NewServeMux(),
+		loginFails: newLimiter(5, 15*time.Minute),
+		registers:  newLimiter(10, time.Hour),
+	}
 	s.mux.Handle("/", http.FileServer(http.FS(static)))
 	s.mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
 	s.mux.HandleFunc("GET /api/games", s.listGames)
 	s.mux.HandleFunc("GET /api/config", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]int{"startBalance": wallet.StartBalance, "dailyBonus": wallet.DailyBonus})
 	})
-	s.mux.HandleFunc("POST /api/guest", s.createGuest)
+	s.mux.HandleFunc("POST /api/register", s.register)
+	s.mux.HandleFunc("POST /api/login", s.login)
+	s.mux.HandleFunc("POST /api/logout", s.authed(s.logout))
+	s.mux.HandleFunc("POST /api/credentials", s.authed(s.setCredentials))
+	s.mux.HandleFunc("POST /api/password", s.authed(s.changePassword))
 	s.mux.HandleFunc("GET /api/me", s.authed(s.me))
 	s.mux.HandleFunc("POST /api/me", s.authed(s.rename))
 	s.mux.HandleFunc("POST /api/daily", s.authed(s.daily))
@@ -70,8 +82,7 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 
 func (s *Server) authed(h func(http.ResponseWriter, *http.Request, wallet.User)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
-		u, err := s.wallet.UserByToken(r.Context(), token)
+		u, err := s.wallet.UserByToken(r.Context(), bearer(r))
 		if errors.Is(err, wallet.ErrNotFound) {
 			writeError(w, http.StatusUnauthorized, "phiên đăng nhập không hợp lệ")
 			return
@@ -89,11 +100,20 @@ func (s *Server) internal(w http.ResponseWriter, err error) {
 	writeError(w, http.StatusInternalServerError, "lỗi máy chủ, thử lại sau")
 }
 
+func bearer(r *http.Request) string {
+	return strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+}
+
+// readJSON đọc body JSON nhỏ; body hỏng thì để giá trị rỗng, phần kiểm tra phía sau sẽ báo lỗi.
+func readJSON(w http.ResponseWriter, r *http.Request, v any) {
+	json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(v)
+}
+
 func readName(w http.ResponseWriter, r *http.Request) string {
 	var body struct {
 		Name string `json:"name"`
 	}
-	json.NewDecoder(http.MaxBytesReader(w, r.Body, 1024)).Decode(&body)
+	readJSON(w, r, &body)
 	return body.Name
 }
 
@@ -110,20 +130,6 @@ func (s *Server) listGames(w http.ResponseWriter, _ *http.Request) {
 		}
 	}
 	writeJSON(w, http.StatusOK, out)
-}
-
-func (s *Server) createGuest(w http.ResponseWriter, r *http.Request) {
-	name := readName(w, r)
-	if strings.TrimSpace(name) == "" {
-		writeError(w, http.StatusBadRequest, "nhập tên trước đã")
-		return
-	}
-	u, token, err := s.wallet.CreateGuest(r.Context(), name)
-	if err != nil {
-		s.internal(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]any{"token": token, "user": u})
 }
 
 func (s *Server) me(w http.ResponseWriter, _ *http.Request, u wallet.User) {

@@ -24,8 +24,9 @@ Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè c
 
 ## Tài khoản và xu
 
-- Lần đầu vào chỉ cần nhập tên: tạo **tài khoản khách**, trình duyệt nhớ tài khoản (localStorage). Mọi tab cùng trình duyệt là cùng một người,
-  nên muốn tự thử 2 người trên một máy thì mở thêm cửa sổ ẩn danh hoặc trình duyệt khác.
+- Đăng ký bằng **tên đăng nhập + mật khẩu** (tên đăng nhập 3–20 ký tự: chữ không dấu, số, `_`, `.`; không phân biệt hoa thường; mật khẩu ≥ 6 ký tự, băm bcrypt).
+  Mỗi lần đăng nhập là một phiên riêng, đăng nhập được trên nhiều máy; sai mật khẩu 5 lần trong 15 phút thì tạm khoá tên đăng nhập đó.
+- Tài khoản khách từ bản cũ vẫn chơi tiếp được và có nút đặt tên đăng nhập + mật khẩu, giữ nguyên xu. Database cũ được nâng cấp tự động khi khởi động.
 - Tài khoản mới được **1.000 xu**, mỗi ngày nhận thêm **500 xu** (reset 0h giờ Việt Nam).
 - Số dư không bao giờ âm: thua quá số đang có thì chỉ mất hết số đang có.
 - Chơi với máy thì máy đóng vai nhà cái: thắng máy được xu thật vào ví, thua thì mất.
@@ -85,14 +86,18 @@ public/tienlen/          giao diện Tiến Lên
 
 1. Viết logic và server của game trong `games/<id>/`. Game nhận người chơi qua WebSocket, xác thực bằng token tài khoản
    (xem `online.Handler` của Tiến Lên), và cộng / trừ xu qua `wallet.Settle(game, ghi chú, map[userID]số xu)` — một transaction, có ghi sổ cái.
-2. Làm giao diện trong `public/<id>/`, dùng `/account.js` (`Account.me()`, `Account.token()`, `Account.requireLogin()`) và `/common.css`.
+2. Làm giao diện trong `public/<id>/`, dùng `/account.js` (`Account.me()`, `Account.token()`, `Account.requireLogin()`), `/icons.js` (icon SVG, avatar) và `/common.css`.
 3. Đăng ký game trong `games()` ở `main.go` (tên, mô tả, đường dẫn trang, handler WebSocket, số người đang chơi). Trang hub tự hiện game mới.
 
 ### API
 
 | | |
 |---|---|
-| `POST /api/guest {name}` | tạo tài khoản khách → `{token, user}` |
+| `POST /api/register {username, password, name}` | đăng ký → `{token, user}` |
+| `POST /api/login {username, password}` | đăng nhập → `{token, user}` |
+| `POST /api/logout` | đăng xuất phiên hiện tại |
+| `POST /api/password {old, new}` | đổi mật khẩu |
+| `POST /api/credentials {username, password}` | tài khoản khách cũ đặt tên đăng nhập |
 | `GET /api/me` | thông tin + số dư (header `Authorization: Bearer <token>`) |
 | `POST /api/me {name}` | đổi tên |
 | `POST /api/daily` | nhận thưởng ngày (409 nếu đã nhận) |
