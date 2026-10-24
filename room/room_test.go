@@ -82,13 +82,13 @@ func TestSoloWithBotsFinishes(t *testing.T) {
 	st := c.lastState()
 	sum := 0
 	for _, p := range st.Players {
-		sum += p.Score
+		sum += p.Coins - StartCoins
 		if p.ID != st.You && p.Reveal == nil && p.Cards > 0 {
 			t.Error("hết ván phải lộ bài còn lại")
 		}
 	}
 	if sum != 0 {
-		t.Errorf("tổng điểm %d khác 0", sum)
+		t.Errorf("tổng xu thay đổi %d, phải bằng 0", sum)
 	}
 }
 
@@ -213,5 +213,52 @@ func TestLeaveMidGameBotTakesOver(t *testing.T) {
 	host.Room.Handle(host.Player, Message{T: "start"})
 	if n := len(hc.lastState().Players); n != 2 {
 		t.Fatalf("người đã rời phải bị xoá trước ván mới, còn %d người", n)
+	}
+}
+
+func TestBetAndCoins(t *testing.T) {
+	h := NewHub(fastOptions)
+	host, hc := mustCreate(t, h, "An")
+	gc := &fakeConn{}
+	guest, _ := h.Join(host.Room.Code, "Bình", gc)
+
+	if err := guest.Room.Handle(guest.Player, Message{T: "setBet", Bet: 100}); err == nil {
+		t.Fatal("khách không được đổi mức cược")
+	}
+	if err := host.Room.Handle(host.Player, Message{T: "setBet", Bet: 7}); err == nil {
+		t.Fatal("mức cược lạ phải bị từ chối")
+	}
+	if err := host.Room.Handle(host.Player, Message{T: "setBet", Bet: 100}); err != nil {
+		t.Fatal(err)
+	}
+	if err := guest.Room.Handle(guest.Player, Message{T: "refill"}); err == nil {
+		t.Fatal("còn đủ xu thì không được nhận thêm")
+	}
+
+	// Chơi hết một ván (người không đánh thì hết giờ máy đánh thay); xu đổi theo tiền ván × mức cược.
+	host.Room.Handle(host.Player, Message{T: "start"})
+	waitFor(t, "hết ván", func() bool { return hc.lastState().Phase == PhaseOver })
+	st := hc.lastState()
+	if st.GameBet != 100 {
+		t.Fatalf("mức cược ván phải là 100, được %d", st.GameBet)
+	}
+	for i, p := range st.Players {
+		if p.Coins != StartCoins+st.Money[i] || st.Money[i]%100 != 0 {
+			t.Fatalf("%s: xu %d, tiền ván %d", p.Name, p.Coins, st.Money[i])
+		}
+	}
+
+	// Hết xu thì không vào ván được cho tới khi nhận lại.
+	host.Room.mu.Lock()
+	guest.Player.Coins = 50
+	host.Room.mu.Unlock()
+	if err := host.Room.Handle(host.Player, Message{T: "start"}); err == nil {
+		t.Fatal("người không đủ xu thì không được bắt đầu")
+	}
+	if err := guest.Room.Handle(guest.Player, Message{T: "refill"}); err != nil {
+		t.Fatal(err)
+	}
+	if v := gc.lastState().Players[1]; v.Coins != StartCoins || v.Refills != 1 {
+		t.Fatalf("nhận lại xu sai: %+v", v)
 	}
 }

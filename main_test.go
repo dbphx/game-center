@@ -105,7 +105,7 @@ func TestTwoPlayersAndBotPlayFullGame(t *testing.T) {
 		if s.Phase == room.PhaseOver {
 			sum := 0
 			for _, p := range s.Players {
-				sum += p.Score
+				sum += p.Coins - room.StartCoins
 			}
 			if sum != 0 {
 				t.Fatalf("tổng điểm %d khác 0", sum)

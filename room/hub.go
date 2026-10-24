@@ -30,7 +30,7 @@ type Session struct {
 
 func (h *Hub) Create(name string, conn Conn) (*Session, error) {
 	h.mu.Lock()
-	r := &Room{hub: h, opts: h.opts, phase: PhaseLobby}
+	r := &Room{hub: h, opts: h.opts, phase: PhaseLobby, bet: DefaultBet}
 	for {
 		var b strings.Builder
 		for range 4 {

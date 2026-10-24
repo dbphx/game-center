@@ -166,7 +166,7 @@ func TestSimulateBots(t *testing.T) {
 			sum += s
 		}
 		if sum != 0 {
-			t.Errorf("%d người: tổng điểm %d khác 0", players, sum)
+			t.Errorf("%d người: tổng tiền %d khác 0", players, sum)
 		}
 	}
 }

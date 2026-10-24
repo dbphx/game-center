@@ -59,6 +59,11 @@ input {
   background: rgba(255, 255, 255, .06);
 }
 .players li .pname { flex: 1; font-weight: 600; }
+.bet-row { display: flex; align-items: center; gap: 8px; }
+.bet-row select { font: inherit; padding: 6px 10px; border-radius: 8px; background: #0f1d16; color: #fff; border: 1px solid #4b6b58; }
+.bet-row b { color: #ffd54a; }
+.coins { color: #ffd54a; font-variant-numeric: tabular-nums; font-size: 14px; }
+.coins.neg { color: #ff8a80; }
 .players li.empty { color: #6f8a7b; font-style: italic; }
 .players .kick { padding: 2px 10px; font-size: 13px; }
 
@@ -67,6 +72,7 @@ input {
 .tag.bot { background: #3d5a80; }
 .tag.off { background: #8a3a3a; }
 .tag.me { background: #2e7d32; }
+.tag.refill { background: #5d4037; }
 
 button {
   font: inherit;
@@ -130,6 +136,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .badge { font-size: 12px; padding: 1px 6px; border-radius: 8px; background: rgba(0, 0, 0, .35); font-weight: 500; }
 .badge.pass { background: #8a3a3a; }
 .badge.place { background: #b8860b; }
+.badge.cong { background: #6a1b9a; }
 .badge.timer { background: #ffd54a; color: #222; font-variant-numeric: tabular-nums; }
 .badge.timer.low { background: #e53935; color: #fff; }
 
@@ -191,10 +198,14 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 #log { list-style: none; padding-left: 0; margin: 0; font-size: 13px; line-height: 1.5; color: #cfd8d3; flex: 1; overflow-y: auto; }
 #log .round { color: #7fa38c; margin-top: 4px; }
 #log .chop { color: #ff8a80; font-weight: 600; }
+#log .pay { color: #ffd54a; }
 
 .overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, .6); display: flex; align-items: center; justify-content: center; padding: 16px; }
 .dialog { background: #fff; color: #222; padding: 24px 32px; border-radius: 12px; min-width: 300px; text-align: center; }
 .dialog ol { text-align: left; list-style: none; padding: 0; line-height: 1.8; }
+.dialog ol li { display: flex; justify-content: space-between; gap: 24px; }
+#result-transfers { text-align: left; list-style: none; padding: 8px 0 0; margin: 0 0 12px; border-top: 1px solid #eee; font-size: 13px; color: #555; line-height: 1.7; }
+#result-transfers:empty { display: none; }
 .dialog .row { justify-content: center; }
 .dialog .muted { color: #666; }
 .delta-plus { color: #2e7d32; font-weight: 600; }

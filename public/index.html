@@ -33,7 +33,14 @@
         <button id="btn-copy">Sao chép link</button>
       </div>
       <p class="muted">Gửi link cho bạn bè để vào cùng. Chơi được 2–4 người, thiếu người thì thêm máy.</p>
+      <div class="bet-row">
+        <span>Mức cược</span>
+        <select id="bet" class="host-only"></select>
+        <b id="bet-text" class="guest-only"></b>
+        <span class="muted">xu / mức</span>
+      </div>
       <ul id="lobby-players" class="players"></ul>
+      <button id="btn-refill" class="hidden">Hết xu — nhận lại <span id="refill-amount"></span> xu</button>
       <div class="row host-only">
         <button id="btn-add-bot">+ Thêm máy</button>
         <button id="btn-start" class="primary">Bắt đầu</button>
@@ -68,6 +75,8 @@
 
     <aside class="side">
       <h2>Phòng <span id="game-code" class="code"></span></h2>
+      <div class="muted" id="game-bet"></div>
+      <h2>Xu</h2>
       <table id="scores"></table>
       <h2>Diễn biến</h2>
       <ul id="log"></ul>
@@ -78,6 +87,7 @@
       <div class="dialog">
         <h2 id="result-title"></h2>
         <ol id="result-list"></ol>
+        <ul id="result-transfers"></ul>
         <div class="row host-only">
           <button id="btn-again" class="primary">Ván mới</button>
           <button id="btn-to-lobby">Phòng chờ</button>

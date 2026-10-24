@@ -21,7 +21,7 @@ hoặc deploy lên Fly.io / Render / Railway bằng Dockerfile có sẵn, hoặc
 
 1. Nhập tên → **Tạo phòng mới**. Bạn nhận mã phòng 4 chữ và một link để gửi cho bạn bè.
 2. Bạn bè mở link (hoặc nhập mã phòng) → **Vào phòng**.
-3. Chủ phòng có thể **Thêm máy** hoặc **Mời ra**, rồi bấm **Bắt đầu** khi có 2–4 người.
+3. Chủ phòng chọn **mức cược**, có thể **Thêm máy** hoặc **Mời ra**, rồi bấm **Bắt đầu** khi có 2–4 người.
 4. Bấm vào lá bài để chọn, **Đánh** (Enter), **Bỏ lượt** (Space), **Gợi ý** để máy chọn giúp.
 
 - Mỗi lượt có 30 giây, hết giờ thì máy đánh thay.
@@ -39,8 +39,25 @@ hoặc deploy lên Fly.io / Render / Railway bằng Dockerfile có sẵn, hoặc
 - Mỗi người 13 lá; chơi ít hơn 4 người thì phần bài còn lại để riêng.
 - Ván đầu: ai giữ lá nhỏ nhất (đủ 4 người là 3♠) đánh trước và phải đánh kèm lá đó. Các ván sau: người về nhất đánh trước.
 - Tới trắng: tứ quý heo, sảnh rồng, 6 đôi, 5 đôi thông.
-- Điểm theo thứ hạng: 4 người +3/+1/−1/−3, 3 người +2/0/−2, 2 người +1/−1. Tới trắng: người thắng +2 × số người thua, mỗi người thua −2.
-- Chưa có: thối heo/thối bom, cóng.
+
+## Xu ảo và tiền cược
+
+Xu chỉ để chơi cho vui, không nạp/rút tiền thật. Mỗi người vào phòng có **1.000 xu**. Chủ phòng chọn mức cược 10–500 xu/mức giữa các ván.
+Mọi khoản dưới đây tính bằng *mức*, nhân với mức cược ra số xu:
+
+| Khoản | Mức |
+|---|---|
+| Thứ hạng, 4 người | Nhất +3, Nhì +1, Ba −1, Bét −3 |
+| Thứ hạng, 3 người | +2 / 0 / −2 |
+| Thứ hạng, 2 người | +1 / −1 |
+| Tới trắng | người thắng +2 × số người thua, mỗi người thua −2 |
+| Heo đen ♠♣ / heo đỏ ♦♥ | 1 / 2 |
+| 3 đôi thông / tứ quý / 4 đôi thông | 3 / 4 / 6 |
+
+- **Chặt heo / chặt hàng**: người bị chặt trả người chặt theo bảng trên. **Chặt chồng**: người bị chặt sau trả luôn số tiền mình vừa ăn, nên người chặt cuối ăn trọn.
+- **Thối**: hết ván, người về bét còn heo / hàng trên tay thì trả cho người về nhất.
+- **Cóng**: khi có người về nhất mà ai đó chưa đánh lá nào thì người đó bị cóng: xếp bét, bị loại khỏi ván và cũng phải thối cả tay.
+- Không đủ xu cho mức cược thì không vào ván được; bấm **nhận lại 1.000 xu** trong phòng chờ (số lần nhận lại hiện cho cả phòng thấy). Máy hết xu được cấp lại tự động.
 
 ## Cấu trúc
 

@@ -97,6 +97,8 @@
   const mySeat = () => state.players.findIndex((p) => p.id === state.you);
   const isHost = () => !!(state && me() && me().host);
   const myTurn = () => state.phase === 'playing' && state.turn === mySeat();
+  const xu = (n) => n.toLocaleString('vi-VN');
+  const signed = (n) => (n > 0 ? '+' : '') + xu(n);
   const escapeHtml = (s) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
 
   let toastTimer = null;
@@ -148,12 +150,21 @@
         p.host ? '<span class="tag host">Chủ phòng</span>' : '',
         p.bot ? '<span class="tag bot">Máy</span>' : '',
         !p.online || p.left ? '<span class="tag off">Mất kết nối</span>' : '',
+        p.refills ? `<span class="tag refill" title="Số lần nhận lại xu">Nhận lại ×${p.refills}</span>` : '',
       ].join('');
       const kick = host && p.id !== state.you ? `<button class="kick" data-kick="${p.id}">Mời ra</button>` : '';
-      return `<li><span class="pname">${escapeHtml(p.name)}</span>${tags}<span class="muted">${p.score} điểm</span>${kick}</li>`;
+      return `<li><span class="pname">${escapeHtml(p.name)}</span>${tags}<span class="coins${p.coins < state.bet ? ' neg' : ''}">${xu(p.coins)} xu</span>${kick}</li>`;
     });
     for (let i = state.players.length; i < 4; i++) rows.push('<li class="empty">Ghế trống</li>');
     $('lobby-players').innerHTML = rows.join('');
+    const sel = $('bet');
+    if (sel.options.length !== state.betOptions.length) {
+      sel.innerHTML = state.betOptions.map((b) => `<option value="${b}">${xu(b)}</option>`).join('');
+    }
+    sel.value = state.bet;
+    $('bet-text').textContent = xu(state.bet);
+    $('refill-amount').textContent = xu(state.startCoins);
+    $('btn-refill').classList.toggle('hidden', me().coins >= state.bet);
     $('btn-add-bot').disabled = state.players.length >= 4;
     $('btn-start').disabled = state.players.filter((p) => !p.left).length < 2;
   }
@@ -175,7 +186,7 @@
     const playing = state.phase === 'playing';
     el.className = 'seat';
     el.classList.toggle('turn', playing && state.turn === i);
-    el.classList.toggle('done', playing && p.place >= 0);
+    el.classList.toggle('done', playing && (p.place >= 0 || p.cong));
     el.classList.toggle('offline', !p.online);
 
     const name = document.createElement('div');
@@ -190,7 +201,8 @@
     };
     if (p.bot) badge('', 'Máy');
     if (!p.online && !p.bot) badge('pass', p.left ? 'Đã rời' : 'Mất kết nối');
-    if (p.place >= 0) badge('place', PLACES[p.place]);
+    if (p.cong) badge('cong', 'Cóng');
+    else if (p.place >= 0) badge('place', PLACES[p.place]);
     else badge('', p.cards + ' lá');
     if (p.passed && playing) badge('pass', 'Bỏ lượt');
     if (playing && state.turn === i && deadline) badge('timer', '', 'turn-timer');
@@ -249,8 +261,9 @@
 
   function renderSide() {
     $('game-code').textContent = state.code;
+    $('game-bet').textContent = `Cược ${xu(state.gameBet)} xu / mức`;
     $('scores').innerHTML = state.players
-      .map((p) => `<tr><td>${escapeHtml(p.id === state.you ? 'Bạn' : p.name)}</td><td>${p.score}</td></tr>`)
+      .map((p) => `<tr><td>${escapeHtml(p.id === state.you ? 'Bạn' : p.name)}</td><td class="coins">${xu(p.coins)}</td></tr>`)
       .join('');
 
     const items = [`<li class="round"><b>Ván ${state.gameNo}</b></li>`];
@@ -261,6 +274,7 @@
       else {
         const cards = h.combo.cards.map(R.cardName).join(' ');
         items.push(`<li class="${h.chop ? 'chop' : ''}">${who}: ${R.describe(h.combo)} <b>${cards}</b>${h.chop ? ' — CHẶT!' : ''}</li>`);
+        if (h.pay) items.push(`<li class="pay">💰 ${transferText(h.pay)}</li>`);
       }
     }
     const log = $('log');
@@ -279,15 +293,33 @@
       $('result-title').textContent = state.players[mySeat()].place === 0 ? 'Bạn về nhất!' : 'Kết thúc ván';
     }
     const order = state.players
-      .map((p, i) => ({ i, place: p.place < 0 ? 99 : p.place, delta: state.delta ? state.delta[i] : 0 }))
-      .sort((a, b) => a.place - b.place || b.delta - a.delta);
+      .map((p, i) => ({ i, p, place: p.place < 0 ? 99 : p.place, money: state.money ? state.money[i] : 0 }))
+      .sort((a, b) => a.place - b.place || b.money - a.money);
     $('result-list').innerHTML = order
-      .map(({ i, place, delta }) => {
-        const label = place < 4 && !state.instant ? PLACES[place] + ': ' : '';
-        const cls = delta > 0 ? 'delta-plus' : delta < 0 ? 'delta-minus' : '';
-        return `<li>${label}${escapeHtml(playerName(i))} <span class="${cls}">${delta > 0 ? '+' : ''}${delta}</span></li>`;
+      .map(({ i, p, place, money }) => {
+        const label = p.cong ? 'Cóng: ' : place < 4 && !state.instant ? PLACES[place] + ': ' : '';
+        const cls = money > 0 ? 'delta-plus' : money < 0 ? 'delta-minus' : '';
+        return `<li><span>${label}${escapeHtml(playerName(i))}</span><span class="${cls}">${signed(money)} xu</span></li>`;
       })
       .join('');
+
+    // Chi tiết: tiền thứ hạng rồi tới từng khoản chặt / thối.
+    const lines = [];
+    if (state.delta) {
+      const rank = state.players.map((_, i) => `${escapeHtml(playerName(i))} ${signed(state.delta[i] * state.gameBet)}`);
+      lines.push(`<li>${state.instant ? 'Tới trắng' : 'Thứ hạng'}: ${rank.join(', ')}</li>`);
+    }
+    for (const t of state.transfers || []) lines.push(`<li>${transferText(t)}</li>`);
+    $('result-transfers').innerHTML = lines.join('');
+  }
+
+  // "An chặt heo Bình: +20 xu" / "Bình thối 1 heo đỏ cho An: 20 xu"
+  function transferText(t) {
+    const from = escapeHtml(playerName(t.from));
+    const to = escapeHtml(playerName(t.to));
+    const amount = xu(t.units * state.gameBet) + ' xu';
+    if (t.reason.startsWith('thối')) return `${from} ${t.reason} cho ${to}: ${amount}`;
+    return `${to} ${t.reason} ${from}: ${amount}`;
   }
 
   function updateTimer() {
@@ -346,6 +378,8 @@
     if (id) send({ t: 'kick', id });
   });
   $('btn-add-bot').addEventListener('click', () => send({ t: 'addBot' }));
+  $('bet').addEventListener('change', (e) => send({ t: 'setBet', bet: Number(e.target.value) }));
+  $('btn-refill').addEventListener('click', () => send({ t: 'refill' }));
   $('btn-start').addEventListener('click', () => send({ t: 'start' }));
   $('btn-again').addEventListener('click', () => send({ t: 'start' }));
   $('btn-to-lobby').addEventListener('click', () => { showLobby = true; render(); });
