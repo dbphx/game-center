@@ -1,7 +1,7 @@
 # DCity
 
 Thành phố game online chơi qua trình duyệt. Mỗi người có một **nhân vật** (giới tính, trang phục, level riêng) dạo quanh
-bản đồ thành phố **nhìn từ trên cao xuống** (lưới phố, xe chạy, mái nhà đổ bóng, con sông có cầu và thuyền chạy);
+bản đồ thành phố **nhìn từ trên cao xuống** (lưới phố, xe chạy, mái nhà đổ bóng, con sông chảy ngang giữa thành phố có cầu và thuyền);
 mỗi khu là một game hoặc tiện ích, tất cả **dùng chung một ví xu**.
 
 | Khu | |
@@ -11,7 +11,7 @@ mỗi khu là một game hoặc tiện ích, tất cả **dùng chung một ví 
 | Shop thời trang | đổi giới tính / trang phục |
 | Quảng trường | thông tin nhân vật, level, XP |
 | Nông trại, Công trường | sắp mở — chỗ cho các game tiếp theo |
-| Công viên, khu nhà dân, sân bóng rổ | trang trí |
+| Công viên ven sông, bến thuyền | trang trí; đi qua cầu để sang bờ Nam |
 
 - Bấm vào một khu (hoặc thanh đi nhanh phía dưới), nhân vật đi bộ theo đường ngắn nhất trên lưới phố, quay mặt theo hướng đi,
   tới nơi thì mở bảng của khu.

@@ -14,9 +14,9 @@
   const WALK = 14;
   // Phần vẽ thêm quanh bản đồ: màn hình khác tỉ lệ 16:10 vẫn thấy cỏ và đường nối tiếp, không bị viền trống.
   const PAD = 900;
-  // Sông chảy ngang phía trên thành phố (toạ độ y âm), hai trục đường dọc bắc cầu qua sông.
-  const RIVER_TOP = 200;
-  const RIVER = `M${-PAD} -110 C-500 -170 -100 -40 300 -105 S1100 -175 1500 -100 S2300 -50 ${W + PAD} -115`;
+  // Sông chảy ngang giữa thành phố, chia bờ Bắc / bờ Nam; hai trục đường dọc bắc cầu qua sông.
+  const RIVER = `M${-PAD} 520 C-500 490 -150 545 200 515 S800 488 1100 520 S1500 545 ${W + PAD} 512`;
+  const BRIDGE_Y = [402, 628];
 
   const ZONES = {
     plaza: { name: 'Quảng trường', sub: 'Nhân vật của bạn', node: 'plaza' },
@@ -33,13 +33,13 @@
     h1a: [240, 330], h1b: [800, 330], h1c: [1360, 330],
     h2a: [240, 700], h2b: [800, 700], h2c: [1360, 700],
     casino: [240, 262], bank: [800, 262], shop: [1360, 262],
-    plaza: [800, 418], site: [240, 772], farm: [1360, 772],
+    plaza: [800, 772], site: [240, 772], farm: [1360, 772],
   };
   const EDGES = [
     ['h1a', 'x11'], ['x11', 'h1b'], ['h1b', 'x12'], ['x12', 'h1c'],
     ['h2a', 'x21'], ['x21', 'h2b'], ['h2b', 'x22'], ['x22', 'h2c'],
     ['x11', 'x21'], ['x12', 'x22'],
-    ['casino', 'h1a'], ['bank', 'h1b'], ['shop', 'h1c'], ['plaza', 'h1b'], ['site', 'h2a'], ['farm', 'h2c'],
+    ['casino', 'h1a'], ['bank', 'h1b'], ['shop', 'h1c'], ['plaza', 'h2b'], ['site', 'h2a'], ['farm', 'h2c'],
   ];
   const SPEED = 300; // đơn vị bản đồ / giây
   const SPRITE_SCALE = 1.35;
@@ -150,10 +150,10 @@
   }
 
   function river() {
-    const ducks = [[180, -86], [196, -78], [210, -92], [1240, -128], [1256, -120]]
+    const ducks = [[180, 470], [196, 478], [210, 464], [1240, 560], [1256, 568]]
       .map(([x, y]) => `<g class="duck"><ellipse cx="${x}" cy="${y}" rx="6" ry="4.5" fill="#fff"/><circle cx="${x + 5}" cy="${y - 2}" r="2.6" fill="#2e7d32"/><path d="M${x + 7} ${y - 2} l3 1 l-3 1 Z" fill="#f2a516"/></g>`)
       .join('');
-    const pads = [[40, -130], [70, -118], [880, -150], [905, -138], [1700, -95]]
+    const pads = [[40, 476], [70, 488], [880, 476], [905, 466], [640, 560], [1500, 556]]
       .map(([x, y]) => `<circle cx="${x}" cy="${y}" r="9" fill="#5aa64f"/><path d="M${x} ${y} l9 -3" stroke="#3fa9dd" stroke-width="2.5"/>`)
       .join('');
     return `<g class="river">
@@ -164,8 +164,8 @@
       <path d="${RIVER}" fill="none" stroke="#e6f8ff" stroke-width="2.5" stroke-dasharray="18 42" class="river-wave" transform="translate(0 -22)"/>
       <path d="${RIVER}" fill="none" stroke="#e6f8ff" stroke-width="2.5" stroke-dasharray="14 50" class="river-wave slow" transform="translate(0 20)"/>
       ${pads}${ducks}
-      <g transform="translate(1290 -48)"><rect x="-6" y="-38" width="12" height="40" fill="#8a5a3b"/><rect x="-26" y="-44" width="52" height="12" rx="2" fill="#a1785a"/>
-        ${[-20, 0, 20].map((x) => `<rect x="${x - 1.5}" y="-46" width="3" height="16" fill="#6b4a2f"/>`).join('')}</g>
+      <g transform="translate(1300 628)"><rect x="-8" y="-72" width="16" height="72" fill="#8a5a3b"/><rect x="-30" y="-82" width="60" height="14" rx="2" fill="#a1785a"/>
+        ${[-24, 0, 24].map((x) => `<rect x="${x - 1.5}" y="-84" width="3" height="18" fill="#6b4a2f"/>`).join('')}</g>
       ${boat('#f4f4f4', '#d94b85', 24, 0)}${boat('#ffcc33', '#2f6fb0', 31, -11)}${boat('#8d6e4a', '#e5484d', 27, -6, true)}
       </g>`;
   }
@@ -185,8 +185,7 @@
   function bridges() {
     return ROADS_V.map((x) => {
       const w = (HALF + WALK) * 2 + 16;
-      const y0 = -RIVER_TOP + 10;
-      const y1 = -24;
+      const [y0, y1] = BRIDGE_Y;
       const posts = Array.from({ length: 8 }, (_, i) => y0 + 8 + i * ((y1 - y0 - 16) / 7));
       return `<g class="bridge">
         <rect x="${x - w / 2 + 6}" y="${y0 + 6}" width="${w}" height="${y1 - y0}" fill="rgba(0,0,0,.25)"/>
@@ -204,7 +203,7 @@
     const lanes = [
       [`M-60 ${330 + 16} H${W + 60}`, 13, '#e5484d'], [`M${W + 60} ${330 - 16} H-60`, 17, '#4f8ef7'],
       [`M-60 ${700 + 16} H${W + 60}`, 15, '#f6c744'], [`M${W + 60} ${700 - 16} H-60`, 11, '#ffffff'],
-      [`M${520 + 16} ${-RIVER_TOP - 80} V${H + 60}`, 13, '#7e57c2'], [`M${1080 - 16} ${H + 60} V${-RIVER_TOP - 80}`, 15, '#26a69a'],
+      [`M${520 + 16} -60 V${H + 60}`, 13, '#7e57c2'], [`M${1080 - 16} ${H + 60} V-60`, 15, '#26a69a'],
     ];
     return lanes
       .map(([d, dur, color], i) => `<g>${car(color)}<animateMotion path="${d}" dur="${dur}s" begin="-${i * 2.3}s" repeatCount="indefinite" rotate="auto"/></g>`)
@@ -276,64 +275,41 @@
   }
 
   function plaza() {
-    const beds = [[640, 420], [960, 420], [640, 610], [960, 610]]
-      .map(([x, y]) => `<circle cx="${x}" cy="${y}" r="26" fill="#6db867"/>${[0, 1, 2, 3, 4, 5]
-        .map((i) => `<circle cx="${x + 14 * Math.cos(i)}" cy="${y + 14 * Math.sin(i)}" r="5" fill="${['#ff6f9f', '#ffd54a', '#fff'][i % 3]}"/>`)
+    const cx = 800;
+    const cy = 873;
+    const beds = [[620, 780], [980, 780], [620, 968], [980, 968]]
+      .map(([x, y]) => `<circle cx="${x}" cy="${y}" r="24" fill="#6db867"/>${[0, 1, 2, 3, 4, 5]
+        .map((i) => `<circle cx="${x + 13 * Math.cos(i)}" cy="${y + 13 * Math.sin(i)}" r="5" fill="${['#ff6f9f', '#ffd54a', '#fff'][i % 3]}"/>`)
         .join('')}`)
       .join('');
-    const benches = [[800, 395, 0], [800, 635, 0], [690, 515, 90], [910, 515, 90]]
+    const benches = [[cx, 975, 0], [700, cy, 90], [900, cy, 90]]
       .map(([x, y, r]) => `<rect x="${x - 22}" y="${y - 6}" width="44" height="12" rx="3" fill="#8a5a3b" transform="rotate(${r} ${x} ${y})"/>`)
       .join('');
     return `<g class="zone" data-zone="plaza">
-      <rect x="566" y="376" width="468" height="278" fill="url(#tiles)"/>
-      <circle cx="800" cy="515" r="126" fill="#efe6d1" stroke="#cbbd9c" stroke-width="5"/>
-      <g stroke="#d9cdb0" stroke-width="10"><line x1="566" y1="515" x2="1034" y2="515"/><line x1="800" y1="376" x2="800" y2="654"/></g>
-      <circle cx="800" cy="515" r="70" fill="#b9b2a2"/>
-      <circle cx="800" cy="515" r="60" fill="url(#water)"/>
-      <circle cx="800" cy="515" r="44" fill="none" stroke="#e6faff" stroke-width="3" class="ripple"/>
-      <circle cx="800" cy="515" r="44" fill="none" stroke="#e6faff" stroke-width="3" class="ripple r2"/>
-      <circle cx="800" cy="515" r="13" fill="#e9e3d5" stroke="#b9b2a2" stroke-width="3"/>
-      <circle cx="800" cy="515" r="5" fill="#bdefff" class="spray"/>
+      <rect x="566" y="746" width="468" height="254" fill="url(#tiles)"/>
+      <circle cx="${cx}" cy="${cy}" r="112" fill="#efe6d1" stroke="#cbbd9c" stroke-width="5"/>
+      <g stroke="#d9cdb0" stroke-width="10"><line x1="566" y1="${cy}" x2="1034" y2="${cy}"/><line x1="${cx}" y1="746" x2="${cx}" y2="1000"/></g>
+      <circle cx="${cx}" cy="${cy}" r="66" fill="#b9b2a2"/>
+      <circle cx="${cx}" cy="${cy}" r="56" fill="url(#water)"/>
+      <circle cx="${cx}" cy="${cy}" r="40" fill="none" stroke="#e6faff" stroke-width="3" class="ripple"/>
+      <circle cx="${cx}" cy="${cy}" r="40" fill="none" stroke="#e6faff" stroke-width="3" class="ripple r2"/>
+      <circle cx="${cx}" cy="${cy}" r="12" fill="#e9e3d5" stroke="#b9b2a2" stroke-width="3"/>
+      <circle cx="${cx}" cy="${cy}" r="5" fill="#bdefff" class="spray"/>
       ${benches}${beds}
-      ${tree(600, 400, 18)}${tree(1000, 400, 18)}${tree(600, 630, 18)}${tree(1000, 630, 18)}
+      ${tree(590, 873, 16)}${tree(1010, 873, 16)}
       </g>`;
   }
 
-  function park() {
-    return `<g class="park">
-      <rect x="0" y="376" width="474" height="278" fill="url(#grass)"/>
-      <path d="M0 470 Q120 420 230 480 T474 450" fill="none" stroke="#d9cba8" stroke-width="16"/>
-      <path d="M150 560 Q170 500 250 505 Q340 510 340 560 Q340 615 250 618 Q160 620 150 560 Z" fill="url(#water)"/>
-      <ellipse cx="230" cy="545" rx="26" ry="8" fill="#e6faff" opacity=".6" class="spray"/>
-      <rect x="210" y="597" width="40" height="34" rx="4" fill="#a1785a"/>
-      ${tree(60, 420, 24)}${tree(110, 600, 26)}${tree(400, 560, 24)}${tree(420, 410, 20)}${tree(60, 520, 18)}
-      </g>`;
-  }
-
-  function homes() {
-    const lots = [[1140, 390], [1300, 390], [1460, 390], [1140, 525], [1300, 525], [1460, 525]];
-    const roofs = [['#c0574a', '#a8473b'], ['#5d7b9b', '#4c6783'], ['#c79a3f', '#ad8432'], ['#6c8f5a', '#5a7a4a'], ['#9b5d8d', '#834c76'], ['#b0703c', '#975f31']];
-    return `<g class="homes">
-      <rect x="1126" y="376" width="474" height="278" fill="url(#grass)"/>
-      ${lots.map(([x, y], i) => `<rect x="${x}" y="${y}" width="128" height="116" rx="6" fill="#9ed49a" stroke="#86bf82" stroke-width="2"/>
-        ${house(x + 12, y + 14, 74, 62, ...roofs[i])}
-        <rect x="${x + 96}" y="${y + 60}" width="22" height="56" fill="#d0c8b4"/>`).join('')}
-      <rect x="1180" y="606" width="38" height="24" rx="5" fill="url(#water)" stroke="#fff" stroke-width="3"/>
-      <rect x="1500" y="470" width="38" height="24" rx="5" fill="url(#water)" stroke="#fff" stroke-width="3"/>
-      </g>`;
-  }
-
-  function court() {
-    return `<g class="court">
-      <rect x="566" y="746" width="468" height="254" fill="url(#grass)"/>
-      <rect x="610" y="770" width="300" height="180" rx="6" fill="#d97b3f"/>
-      <g fill="none" stroke="#fff" stroke-width="3">
-        <rect x="620" y="780" width="280" height="160"/><line x1="760" y1="780" x2="760" y2="940"/><circle cx="760" cy="860" r="24"/>
-        <path d="M620 820 h40 v80 h-40 M900 820 h-40 v80 h40"/>
-      </g>
-      <circle cx="790" cy="840" r="6" fill="#e65100" class="ball"/>
-      ${tree(960, 790, 22)}${tree(990, 900, 26)}${tree(940, 970, 18)}
-      </g>`;
+  // Công viên ven sông hai bên bờ: cây, ghế đá, đèn đường.
+  function promenade() {
+    const xs = [60, 180, 300, 420, 620, 740, 860, 980, 1180, 1300, 1420, 1540];
+    const north = xs.filter((_, i) => i % 2 === 0).map((x) => tree(x, 396, 16)).join('');
+    const south = xs.filter((x, i) => i % 2 === 1 && x !== 1300).map((x) => tree(x, 638, 16)).join('');
+    const benches = [120, 360, 680, 920, 1240, 1480]
+      .map((x, i) => `<rect x="${x - 18}" y="${i % 2 ? 628 : 384}" width="36" height="10" rx="3" fill="#8a5a3b"/>`)
+      .join('');
+    const lamps = [240, 800, 1360].map((x) => [386, 642].map((y) => `<circle cx="${x}" cy="${y}" r="7" fill="#3b4652"/><circle cx="${x}" cy="${y}" r="4" fill="#ffe8a3" filter="url(#glow)"/>`).join('')).join('');
+    return `<g class="promenade">${north}${south}${benches}${lamps}</g>`;
   }
 
   function site() {
@@ -386,7 +362,7 @@
   }
 
   function labels() {
-    const pos = { casino: [200, 22], bank: [800, 22], shop: [1360, 22], plaza: [690, 600], site: [150, 776], farm: [1500, 720] };
+    const pos = { casino: [200, 22], bank: [800, 22], shop: [1360, 22], plaza: [940, 752], site: [150, 776], farm: [1500, 720] };
     return Object.entries(ZONES)
       .map(([id, z]) => {
         const [x, y] = pos[id];
@@ -485,11 +461,11 @@
 
   function mount(el, o) {
     opts = o;
-    el.innerHTML = `<svg class="city-svg" viewBox="0 ${-RIVER_TOP} ${W} ${H + RIVER_TOP}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Bản đồ DCity nhìn từ trên cao">
+    el.innerHTML = `<svg class="city-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Bản đồ DCity nhìn từ trên cao">
       ${defs()}<rect x="${-PAD}" y="${-PAD}" width="${W + 2 * PAD}" height="${H + 2 * PAD}" fill="url(#grass)"/>
-      ${[[-120, 120], [-200, 560], [-90, 880], [1720, 140], [1800, 520], [1700, 900], [300, -300], [1300, -320], [700, 1120], [1400, 1130], [120, -10], [980, -14], [1520, -8]]
+      ${[[-120, 120], [-200, 300], [-90, 880], [1720, 140], [1800, 300], [1700, 900], [300, -90], [1300, -110], [700, 1120], [1400, 1130]]
         .map(([x, y]) => tree(x, y, 30)).join('')}
-      ${river()}${park()}${homes()}${court()}${roads()}${traffic()}${bridges()}
+      ${river()}${promenade()}${roads()}${bridges()}${traffic()}
       ${plaza()}${casino()}${bank()}${shop()}${site()}${farm()}
       ${labels()}
       <g id="me">
