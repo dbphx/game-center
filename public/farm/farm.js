@@ -576,10 +576,11 @@
     // Cây đa to sau ao (tán vươn lên trời, không che ruộng / lối).
     parts.push(deco('tree_da', POND_BOX.x + POND_BOX.w / 2 + 10, POND_BOX.y + 4, 400, false, 'sway slow big'));
     parts.push(deco('well', POND_BOX.x + 42, POND_BOX.y - 4, 76));
-    parts.push(deco('tree_xoai', W - 70, 606, 260, true, 'sway slow mango'));
+    // Xoài ở góc sau, giữa ruộng và ao (tán ở trên hàng rào, không che ruộng / mặt ao).
+    parts.push(deco('tree_xoai', POND_BOX.x - 24, Math.min(POND_BOX.y - 30, 230), 250, true, 'sway slow mango'));
     // Dừa cạnh ao + góc phải; luỹ tre dọc hàng rào sau.
-    parts.push(deco('tree_dua', POND_BOX.x + POND_BOX.w - 6, Math.min(590, POND_BOX.y + POND_BOX.h + 60), 330, true, 'sway slow'));
-    parts.push(deco('tree_dua', W - 8, 262, 300, true, 'sway slow'));
+    // Dừa sau ao, mép phải (gốc sau lô ao, tán vươn lên trên / ra ngoài — không che mặt nước hay biển "Mua ao").
+    parts.push(deco('tree_dua', POND_BOX.x + POND_BOX.w - 24, POND_BOX.y - 4, 330, false, 'sway slow'));
     // Dọc hàng rào sau: tre thưa xen mai, đào (thấy được hàng rào + đồng ruộng xa phía sau).
     parts.push(deco('tree_tre', 44, SKY + 34, 300, false, 'sway slow'));
     parts.push(deco('tree_xoai', BX[0] + BLOCK_W + 24, SKY + 30, 250, false, 'sway slow mango'));
