@@ -6,15 +6,25 @@ mỗi khu là một game hoặc tiện ích, tất cả **dùng chung một ví 
 
 | Khu | |
 |---|---|
-| Casino | **Tiến Lên Miền Nam** (2–4 người, thiếu người thì thêm máy) |
+| Casino | **Tiến Lên Miền Nam** (2–4 người, thiếu người thì thêm máy) — sảnh có bàn ghế để chọn bàn / tạo bàn |
+| Bệnh viện | hồi máu, nằm viện khi hết HP |
 | Ngân hàng | số dư, thưởng hằng ngày, lịch sử xu |
 | Shop thời trang | mua trang phục theo level, mặc lại đồ đã mua |
 | Quảng trường | thông tin nhân vật, level, XP |
-| Nông trại, Công trường | sắp mở — chỗ cho các game tiếp theo |
+| Nông trại | trồng trọt (6 ô miễn phí, mua thêm tới 48 ô), chuồng gia súc và ao cá theo đơn vị sức chứa |
 | Công viên ven sông, bến thuyền | trang trí; đi qua cầu để sang bờ Nam |
 
-- Bấm vào một khu (hoặc thanh đi nhanh phía dưới), nhân vật đi bộ theo đường ngắn nhất trên lưới phố, quay mặt theo hướng đi,
-  tới nơi thì mở bảng của khu.
+- Điều khiển nhân vật: **WASD / phím mũi tên** đi tự do (không đi xuyên sông, toà nhà), **bấm chuột** vào chỗ bất kỳ
+  để tự tìm đường tới, **E / Enter** khi đứng trước cửa để vào khu; điện thoại có cần điều khiển ảo.
+  Thanh đi nhanh phía dưới cho nhân vật tự đi tới khu.
+- Hình ảnh: pixel art CC0 (Kenney) — xem [docs/ART.md](docs/ART.md); không vẽ hình minh hoạ bằng SVG/CSS.
+
+## Máu (HP) và Bệnh viện
+
+- Nhân vật có 100 HP, tự hồi 1 HP/phút. **Bị xe tông −20 HP.**
+- Hết HP → **nằm viện 5 phút** (bị đưa tới Bệnh viện, không đi / vào khu được), hồi dần tới đầy; trả 200 xu để xuất viện ngay.
+  Khi khoẻ có thể chữa nhanh ở Bệnh viện: 2 xu mỗi HP thiếu.
+- HP tối thiểu để vào khu (server cũng chặn): Shop 10, Casino 30, Nông trại 40; Quảng trường, Ngân hàng, Bệnh viện 0.
 - Server Go giữ bài và kiểm tra mọi nước đi; giao diện web (HTML/CSS/JS thuần, hình vẽ SVG) được nhúng thẳng vào binary.
 - Tài khoản, nhân vật và ví lưu trong SQLite (driver Go thuần, không cần cgo), mọi thay đổi số dư đều ghi sổ cái.
 

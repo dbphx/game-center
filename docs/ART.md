@@ -28,12 +28,15 @@
 - Vật thể (xe, cây, con vật, nhân vật): `<img>` hoặc `<image>` đặt vị trí tuyệt đối; hướng / xoay bằng transform.
 - Hoạt ảnh: đổi frame trong sprite sheet hoặc dịch chuyển (CSS / requestAnimationFrame), không vẽ lại bằng SVG.
 
-## Hiện trạng (nợ cần thay)
+## Hiện trạng
 
-| Chỗ | Đang là | Cần thay bằng |
-|---|---|---|
-| `public/city.js` | toà nhà, đường, sông, xe, cây vẽ SVG | tile + sprite Kenney |
-| `public/character.js` | nhân vật chibi vẽ SVG (chính diện, avatar, nhìn từ trên) | sprite nhân vật theo giới tính / trang phục |
-| `public/tienlen/` sảnh casino | thảm, bàn, ghế vẽ CSS (đã gom vào `art.table()` / `art.chair()`, tự dùng ảnh khi có manifest) | ảnh trong `public/img/casino/` |
-| `public/farm/` | (đang làm) | ảnh trong `public/img/farm/` |
-| `public/icons.js` | icon giao diện SVG | ngoại lệ — giữ, trừ khi người dùng yêu cầu |
+| Chỗ | Hình |
+|---|---|
+| `public/city.js` bản đồ | canvas + ảnh `public/img/city/` (Kenney Roguelike Modern City / RPG Urban + vài hình tự vẽ cùng bảng màu: thuyền, cầu, biển CASINO, bệnh viện, xe cứu thương) |
+| `public/character.js` nhân vật | sprite `public/img/characters/` (RPG Urban, 2 giới tính × 6 trang phục, 4 hướng, bước đi, nằm, nháy đỏ) |
+| `public/tienlen/` sảnh casino + bàn chơi | `public/img/casino/` (Roguelike Indoors) |
+| `public/farm/` nông trại | `public/img/farm/` (Tiny Farm / Tiny Town / RPG Urban / Fish Pack) |
+| `public/icons.js` | icon giao diện SVG nhỏ trong nút — ngoại lệ, giữ |
+
+Hình còn tạm (thiếu trong gói Kenney): heo (bò đổi màu), lúa (lúa mì), dưa hấu (bắp cải), dâu tây (bụi quả mọng), cá vẽ đơn giản.
+Muốn thay thì vẽ pixel PNG cùng phong cách và cập nhật manifest.
