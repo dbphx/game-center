@@ -16,6 +16,9 @@ chuồng, con vật, ao, cá), nhân vật — phải dùng **ảnh raster vẽ 
 
 ## Làm việc
 
+- Người dùng muốn Claude **điều phối nhiều agent song song** (fork tuỳ ý) cho mọi yêu cầu lớn: chốt hợp đồng,
+  chia phạm vi file, kiểm tra, ghép, commit. Quy trình chi tiết: skill `dcity-orchestrate`
+  (`.claude/skills/dcity-orchestrate/SKILL.md`).
 - Test: `go test -race ./...`; kiểm tra giao diện bằng trình duyệt thật (playwright-core + Chrome), tự xem ảnh chụp.
 - Comment và chữ hiển thị bằng tiếng Việt, theo phong cách code hiện có.
 - Server dev của người dùng chạy ở cổng 8090 với `data/gamehub.db` — không tắt / ghi đè khi thử nghiệm; dùng cổng
