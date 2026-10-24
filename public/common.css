@@ -359,6 +359,46 @@ dialog.modal .actions { display: flex; justify-content: flex-end; gap: 8px; marg
   background: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, .45), transparent 70%), var(--avatar);
 }
 .char-avatar img { width: 100%; height: 100%; display: block; object-fit: cover; transform: translateY(6%) scale(1.08); }
+.char-avatar { position: relative; }
+.char-avatar img.char-layer { position: absolute; inset: 0; }
+
+/* Có cánh: thân và hai lớp cánh (khung rộng gấp đôi) là thẻ con cùng hàng / khung bước với sprite. */
+.char-sprite.has-wings { position: relative; background: none; }
+.char-sprite.has-wings > i { position: absolute; top: 0; height: var(--h); background-repeat: no-repeat; pointer-events: none; }
+.char-sprite > .cs-body {
+  left: 0;
+  width: var(--w);
+  background-image: var(--sheet);
+  background-size: calc(var(--w) * 5) calc(var(--h) * 4);
+  background-position: 0 calc(var(--h) * var(--row) * -1);
+}
+.char-sprite > .cs-wing {
+  left: calc(var(--w) * -.5);
+  width: calc(var(--w) * 2);
+  background-image: var(--wing);
+  background-size: calc(var(--w) * 10) calc(var(--h) * 4);
+  background-position: 0 calc(var(--h) * var(--row) * -1);
+}
+.char-sprite.has-wings.walking { animation: none; }
+.char-sprite.has-wings.walking.hurt { animation: char-hurt .5s steps(1) infinite; }
+.char-sprite.walking > .cs-body { animation: char-walk .56s steps(1) infinite; }
+.char-sprite.walking > .cs-wing { animation: char-walk-wide .56s steps(1) infinite; }
+@keyframes char-walk-wide {
+  0% { background-position-x: calc(var(--w) * -2); }
+  25% { background-position-x: calc(var(--w) * -4); }
+  50% { background-position-x: calc(var(--w) * -6); }
+  75% { background-position-x: calc(var(--w) * -8); }
+}
+
+/* Ảnh toàn thân có lớp tóc / cánh: khung ngoài nhận cỡ từ CSS của trang (class "character"),
+   khung trong ôm đúng ảnh thân để các lớp đặt theo %. */
+.character.char-stack { display: inline-block; line-height: 0; text-align: center; }
+.char-stack-in { position: relative; display: inline-block; height: 100%; isolation: isolate; }
+.char-stack-in > img { display: block; height: 100%; width: auto; }
+.char-stack-in > .char-base { position: relative; z-index: 1; }
+.char-stack-in > .char-layer { position: absolute; left: 0; width: 100% !important; max-width: none; z-index: 2; }
+.char-stack-in > .char-layer.wing { left: -50%; width: 200% !important; z-index: 0; }
+.char-stack-in > .char-layer.crown { top: 0; height: 100% !important; z-index: 3; }
 
 .level-badge {
   display: inline-flex;

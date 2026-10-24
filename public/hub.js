@@ -28,7 +28,16 @@
   let current = null; // khu đang mở bảng
   let cityMounted = false;
 
-  const look = (u) => ({ gender: u.gender, outfit: u.outfit });
+  // Ngoại hình nhân vật: tóc / cánh đọc ở đây (user.hair, user.wings) để các chỗ vẽ dùng chung.
+  const look = (u) => ({ gender: u.gender, outfit: u.outfit, hair: u.hair || 'default', wings: u.wings || '' });
+
+  // Ba nhóm của shop thời trang: danh mục (từ /api/config), đồ đã có, đồ đang mặc.
+  let shopTab = 'outfit';
+  const SHOP_KINDS = {
+    outfit: { name: 'Đồ', icon: 'shirt', list: () => config.catalog, owned: () => user.owned || [], worn: () => user.outfit },
+    hair: { name: 'Tóc', icon: 'sparkles', list: () => config.hair || [], owned: () => user.ownedHair || ['default'], worn: () => user.hair || 'default' },
+    wings: { name: 'Cánh', icon: 'crown', list: () => config.wings || [], owned: () => user.ownedWings || [], worn: () => user.wings || '' },
+  };
 
   // Sau khi đăng nhập thì quay lại trang đang mở dở (ví dụ link mời vào phòng).
   function nextPage() {
@@ -374,30 +383,38 @@
     },
 
     shop() {
-      const items = config.catalog.map((o) => {
-        const have = (user.owned || []).includes(o.id);
-        const wearing = user.outfit === o.id;
+      const kind = SHOP_KINDS[shopTab] ? shopTab : 'outfit';
+      const K = SHOP_KINDS[kind];
+      const list = kind === 'wings' ? [{ id: '', name: 'Không cánh', level: 1, price: 0, starter: true }, ...K.list()] : K.list();
+      const items = list.map((o) => {
+        // Quần áo starter chỉ có bộ đã chọn lúc tạo nhân vật; tóc mặc định / không cánh thì ai cũng có.
+        const have = K.owned().includes(o.id) || (kind !== 'outfit' && o.starter);
+        const wearing = K.worn() === o.id;
         const locked = !have && user.level < o.level;
         const poor = !have && !locked && user.balance < o.price;
         let action;
-        if (wearing) action = `<button class="wear" disabled>${I.svg('check')}Đang mặc</button>`;
-        else if (have) action = `<button class="wear" data-wear="${o.id}">${I.svg('shirt')}Mặc</button>`;
+        if (wearing) action = `<button class="wear" disabled>${I.svg('check')}${o.id === '' ? 'Đang để trống' : 'Đang mặc'}</button>`;
+        else if (have) action = `<button class="wear" data-wear="${o.id}">${I.svg(K.icon)}${kind === 'wings' && o.id === '' ? 'Tháo cánh' : 'Mặc'}</button>`;
         else if (locked) action = `<button class="wear" disabled>${I.svg('lock')}Cần Lv ${o.level}</button>`;
         else action = `<button class="primary wear" data-buy="${o.id}" ${poor ? 'disabled title="Không đủ xu"' : ''}>${I.svg('coins')}${A.xu(o.price)}</button>`;
-        const tag = have ? '<span class="tag me">Đã có</span>' : `<span class="tag lv-tag">Lv ${o.level}+</span>`;
+        const tag = have ? `<span class="tag me">${o.starter ? 'Miễn phí' : 'Đã có'}</span>` : `<span class="tag lv-tag">Lv ${o.level}+</span>`;
         return `<div class="shop-item${locked ? ' locked' : ''}${wearing ? ' wearing' : ''}" data-try="${o.id}">
-            <div class="shop-preview">${C.svg({ gender: user.gender, outfit: o.id })}${locked ? `<span class="lock">${I.svg('lock')}</span>` : ''}</div>
+            <div class="shop-preview">${C.svg({ ...look(user), [kind]: o.id })}${locked ? `<span class="lock">${I.svg('lock')}</span>` : ''}</div>
             <div class="shop-name">${A.escapeHtml(o.name)}</div>${tag}
             ${action}
           </div>`;
       });
-      return `${panelHead('shop', 'Shop thời trang', 'Đủ level thì mua bằng xu, đồ đã mua mặc lúc nào cũng được')}
+      const tabs = Object.entries(SHOP_KINDS)
+        .map(([k, t]) => `<button class="tab${k === kind ? ' active' : ''}" data-shop-tab="${k}" role="tab">${I.svg(t.icon)}${t.name}</button>`)
+        .join('');
+      return `${panelHead('shop', 'Shop thời trang', 'Quần áo, tóc, cánh: đủ level thì mua bằng xu, đồ đã mua mặc lúc nào cũng được')}
         <div class="panel-section">
           <div class="stats">
             <div class="stat"><div class="muted">Level</div><b>${I.svg('trophy')}Lv ${user.level}</b></div>
             <div class="stat"><div class="muted">Số dư</div><b class="gold">${I.svg('coins')}${A.xu(user.balance)}</b></div>
           </div>
-          <p class="muted" style="margin:0">Bấm vào một bộ để mặc thử trên bản đồ.</p>
+          <div class="tabs" role="tablist" style="grid-template-columns:repeat(3,1fr)">${tabs}</div>
+          <p class="muted" style="margin:0">Bấm vào một món để mặc thử trên bản đồ.</p>
           <div class="shop-grid">${items.join('')}</div>
         </div>`;
     },
@@ -501,17 +518,23 @@
 
   function bindShop() {
     const body = $('panel-body');
+    const kind = SHOP_KINDS[shopTab] ? shopTab : 'outfit';
+    body.querySelectorAll('[data-shop-tab]').forEach((b) => (b.onclick = () => {
+      shopTab = b.dataset.shopTab;
+      City.setLook(look(user));
+      openPanel('shop');
+    }));
     // Mặc thử trên bản đồ (chưa lưu); đóng bảng hoặc đi chỗ khác thì trở lại đồ đang mặc.
     body.querySelectorAll('[data-try]').forEach((el) =>
       el.addEventListener('click', (e) => {
         if (e.target.closest('button')) return;
-        City.setLook({ gender: user.gender, outfit: el.dataset.try });
+        City.setLook({ ...look(user), [kind]: el.dataset.try });
         body.querySelectorAll('.shop-item').forEach((x) => x.classList.toggle('trying', x === el));
       }),
     );
-    const act = async (path, outfit, done) => {
+    const act = async (path, payload, done) => {
       try {
-        setUser(await A.api(path, { method: 'POST', body: { outfit } }));
+        setUser(await A.api(path, { method: 'POST', body: payload }));
         renderHUD();
         City.setLook(look(user));
         openPanel('shop');
@@ -520,11 +543,18 @@
         A.toast(e.message);
       }
     };
-    body.querySelectorAll('[data-wear]').forEach((b) => (b.onclick = () => act('/api/character', b.dataset.wear, 'Đã thay trang phục')));
+    const item = (id) => SHOP_KINDS[kind].list().find((x) => x.id === id);
+    body.querySelectorAll('[data-wear]').forEach((b) => (b.onclick = () => {
+      const id = b.dataset.wear;
+      if (kind === 'outfit') return act('/api/character', { outfit: id }, 'Đã thay trang phục');
+      const done = kind === 'wings' ? (id ? 'Đã đeo cánh' : 'Đã tháo cánh') : 'Đã đổi kiểu tóc';
+      act('/api/me/items/wear', { kind, id }, done);
+    }));
     body.querySelectorAll('[data-buy]').forEach((b) => (b.onclick = () => {
-      const o = config.catalog.find((x) => x.id === b.dataset.buy);
-      if (!confirm(`Mua "${o.name}" với giá ${A.xu(o.price)} xu?`)) return;
-      act('/api/outfits/buy', o.id, `Đã mua ${o.name}`);
+      const o = item(b.dataset.buy);
+      if (!o || !confirm(`Mua "${o.name}" với giá ${A.xu(o.price)} xu?`)) return;
+      if (kind === 'outfit') act('/api/outfits/buy', { outfit: o.id }, `Đã mua ${o.name}`);
+      else act('/api/me/items/buy', { kind, id: o.id }, `Đã mua và mặc ${o.name}`);
     }));
   }
 

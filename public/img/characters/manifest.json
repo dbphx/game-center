@@ -1,158 +1,342 @@
 {
-  "style": "Hoạt hình chibi (Kenney Toon Characters, CC0, tô lại màu + vẽ thêm chi tiết trang phục)",
-  "frame": {
-    "w": 96,
-    "h": 148,
-    "cols": 5,
-    "rows": [
-      "down",
-      "left",
-      "right",
-      "up"
-    ],
-    "colsMeaning": "cột 0 đứng yên, cột 1–4 khung bước đi (lặp)",
-    "anchor": {
-      "x": 48,
-      "y": 147,
-      "note": "điểm chân nhân vật trong khung (đặt ở toạ độ chân trên bản đồ)"
-    },
-    "headTop": 28
+ "style": "Hoạt hình chibi (Kenney Toon Characters, CC0, tô lại màu + vẽ thêm chi tiết trang phục)",
+ "frame": {
+  "w": 96,
+  "h": 148,
+  "cols": 5,
+  "rows": [
+   "down",
+   "left",
+   "right",
+   "up"
+  ],
+  "colsMeaning": "cột 0 đứng yên, cột 1–4 khung bước đi (lặp)",
+  "anchor": {
+   "x": 48,
+   "y": 147,
+   "note": "điểm chân nhân vật trong khung (đặt ở toạ độ chân trên bản đồ)"
   },
-  "full": "ảnh toàn thân đứng chính diện, cắt sát, cao ~250px — dùng cho xem trước",
-  "head": "chân dung đầu-vai 128×128 cho avatar tròn",
-  "still": "ảnh đứng từng hướng, cùng cỡ khung sprite",
-  "looks": {
-    "male_casual": {
-      "sheet": "male_casual.png",
-      "full": "male_casual_full.png",
-      "head": "male_casual_head.png",
-      "still": {
-        "down": "male_casual_down.png",
-        "left": "male_casual_left.png",
-        "right": "male_casual_right.png",
-        "up": "male_casual_up.png"
-      }
-    },
-    "male_sport": {
-      "sheet": "male_sport.png",
-      "full": "male_sport_full.png",
-      "head": "male_sport_head.png",
-      "still": {
-        "down": "male_sport_down.png",
-        "left": "male_sport_left.png",
-        "right": "male_sport_right.png",
-        "up": "male_sport_up.png"
-      }
-    },
-    "male_hoodie": {
-      "sheet": "male_hoodie.png",
-      "full": "male_hoodie_full.png",
-      "head": "male_hoodie_head.png",
-      "still": {
-        "down": "male_hoodie_down.png",
-        "left": "male_hoodie_left.png",
-        "right": "male_hoodie_right.png",
-        "up": "male_hoodie_up.png"
-      }
-    },
-    "male_suit": {
-      "sheet": "male_suit.png",
-      "full": "male_suit_full.png",
-      "head": "male_suit_head.png",
-      "still": {
-        "down": "male_suit_down.png",
-        "left": "male_suit_left.png",
-        "right": "male_suit_right.png",
-        "up": "male_suit_up.png"
-      }
-    },
-    "male_aodai": {
-      "sheet": "male_aodai.png",
-      "full": "male_aodai_full.png",
-      "head": "male_aodai_head.png",
-      "still": {
-        "down": "male_aodai_down.png",
-        "left": "male_aodai_left.png",
-        "right": "male_aodai_right.png",
-        "up": "male_aodai_up.png"
-      }
-    },
-    "male_royal": {
-      "sheet": "male_royal.png",
-      "full": "male_royal_full.png",
-      "head": "male_royal_head.png",
-      "still": {
-        "down": "male_royal_down.png",
-        "left": "male_royal_left.png",
-        "right": "male_royal_right.png",
-        "up": "male_royal_up.png"
-      }
-    },
-    "female_casual": {
-      "sheet": "female_casual.png",
-      "full": "female_casual_full.png",
-      "head": "female_casual_head.png",
-      "still": {
-        "down": "female_casual_down.png",
-        "left": "female_casual_left.png",
-        "right": "female_casual_right.png",
-        "up": "female_casual_up.png"
-      }
-    },
-    "female_sport": {
-      "sheet": "female_sport.png",
-      "full": "female_sport_full.png",
-      "head": "female_sport_head.png",
-      "still": {
-        "down": "female_sport_down.png",
-        "left": "female_sport_left.png",
-        "right": "female_sport_right.png",
-        "up": "female_sport_up.png"
-      }
-    },
-    "female_hoodie": {
-      "sheet": "female_hoodie.png",
-      "full": "female_hoodie_full.png",
-      "head": "female_hoodie_head.png",
-      "still": {
-        "down": "female_hoodie_down.png",
-        "left": "female_hoodie_left.png",
-        "right": "female_hoodie_right.png",
-        "up": "female_hoodie_up.png"
-      }
-    },
-    "female_suit": {
-      "sheet": "female_suit.png",
-      "full": "female_suit_full.png",
-      "head": "female_suit_head.png",
-      "still": {
-        "down": "female_suit_down.png",
-        "left": "female_suit_left.png",
-        "right": "female_suit_right.png",
-        "up": "female_suit_up.png"
-      }
-    },
-    "female_aodai": {
-      "sheet": "female_aodai.png",
-      "full": "female_aodai_full.png",
-      "head": "female_aodai_head.png",
-      "still": {
-        "down": "female_aodai_down.png",
-        "left": "female_aodai_left.png",
-        "right": "female_aodai_right.png",
-        "up": "female_aodai_up.png"
-      }
-    },
-    "female_royal": {
-      "sheet": "female_royal.png",
-      "full": "female_royal_full.png",
-      "head": "female_royal_head.png",
-      "still": {
-        "down": "female_royal_down.png",
-        "left": "female_royal_left.png",
-        "right": "female_royal_right.png",
-        "up": "female_royal_up.png"
-      }
-    }
+  "headTop": 28
+ },
+ "full": "ảnh toàn thân đứng chính diện, cắt sát, cao ~250px — dùng cho xem trước",
+ "head": "chân dung đầu-vai 128×128 cho avatar tròn",
+ "still": "ảnh đứng từng hướng, cùng cỡ khung sprite",
+ "looks": {
+  "male_casual": {
+   "sheet": "male_casual.png",
+   "full": "male_casual_full.png",
+   "head": "male_casual_head.png",
+   "still": {
+    "down": "male_casual_down.png",
+    "left": "male_casual_left.png",
+    "right": "male_casual_right.png",
+    "up": "male_casual_up.png"
+   }
+  },
+  "male_sport": {
+   "sheet": "male_sport.png",
+   "full": "male_sport_full.png",
+   "head": "male_sport_head.png",
+   "still": {
+    "down": "male_sport_down.png",
+    "left": "male_sport_left.png",
+    "right": "male_sport_right.png",
+    "up": "male_sport_up.png"
+   }
+  },
+  "male_hoodie": {
+   "sheet": "male_hoodie.png",
+   "full": "male_hoodie_full.png",
+   "head": "male_hoodie_head.png",
+   "still": {
+    "down": "male_hoodie_down.png",
+    "left": "male_hoodie_left.png",
+    "right": "male_hoodie_right.png",
+    "up": "male_hoodie_up.png"
+   }
+  },
+  "male_suit": {
+   "sheet": "male_suit.png",
+   "full": "male_suit_full.png",
+   "head": "male_suit_head.png",
+   "still": {
+    "down": "male_suit_down.png",
+    "left": "male_suit_left.png",
+    "right": "male_suit_right.png",
+    "up": "male_suit_up.png"
+   }
+  },
+  "male_aodai": {
+   "sheet": "male_aodai.png",
+   "full": "male_aodai_full.png",
+   "head": "male_aodai_head.png",
+   "still": {
+    "down": "male_aodai_down.png",
+    "left": "male_aodai_left.png",
+    "right": "male_aodai_right.png",
+    "up": "male_aodai_up.png"
+   }
+  },
+  "male_royal": {
+   "sheet": "male_royal.png",
+   "full": "male_royal_full.png",
+   "head": "male_royal_head.png",
+   "still": {
+    "down": "male_royal_down.png",
+    "left": "male_royal_left.png",
+    "right": "male_royal_right.png",
+    "up": "male_royal_up.png"
+   }
+  },
+  "female_casual": {
+   "sheet": "female_casual.png",
+   "full": "female_casual_full.png",
+   "head": "female_casual_head.png",
+   "still": {
+    "down": "female_casual_down.png",
+    "left": "female_casual_left.png",
+    "right": "female_casual_right.png",
+    "up": "female_casual_up.png"
+   }
+  },
+  "female_sport": {
+   "sheet": "female_sport.png",
+   "full": "female_sport_full.png",
+   "head": "female_sport_head.png",
+   "still": {
+    "down": "female_sport_down.png",
+    "left": "female_sport_left.png",
+    "right": "female_sport_right.png",
+    "up": "female_sport_up.png"
+   }
+  },
+  "female_hoodie": {
+   "sheet": "female_hoodie.png",
+   "full": "female_hoodie_full.png",
+   "head": "female_hoodie_head.png",
+   "still": {
+    "down": "female_hoodie_down.png",
+    "left": "female_hoodie_left.png",
+    "right": "female_hoodie_right.png",
+    "up": "female_hoodie_up.png"
+   }
+  },
+  "female_suit": {
+   "sheet": "female_suit.png",
+   "full": "female_suit_full.png",
+   "head": "female_suit_head.png",
+   "still": {
+    "down": "female_suit_down.png",
+    "left": "female_suit_left.png",
+    "right": "female_suit_right.png",
+    "up": "female_suit_up.png"
+   }
+  },
+  "female_aodai": {
+   "sheet": "female_aodai.png",
+   "full": "female_aodai_full.png",
+   "head": "female_aodai_head.png",
+   "still": {
+    "down": "female_aodai_down.png",
+    "left": "female_aodai_left.png",
+    "right": "female_aodai_right.png",
+    "up": "female_aodai_up.png"
+   }
+  },
+  "female_royal": {
+   "sheet": "female_royal.png",
+   "full": "female_royal_full.png",
+   "head": "female_royal_head.png",
+   "still": {
+    "down": "female_royal_down.png",
+    "left": "female_royal_left.png",
+    "right": "female_royal_right.png",
+    "up": "female_royal_up.png"
+   }
   }
+ },
+ "layers": {
+  "note": "Lớp chồng lên nhân vật (vẽ PIL, CC0). Tóc: sheet cùng khung 96×148 chồng trên thân; _full có lề trên fullPad px, căn đáy theo ảnh full của giới tính; _head 128×128. Cánh: khung rộng 192×148 (gấp đôi, căn giữa), _back nằm SAU thân (hàng down/left/right), _front nằm TRƯỚC thân (hàng up, đã chừa đầu); _full rộng gấp đôi, cùng lề trên. crown/: vương miện / tiara của đồ Hoàng gia, đặt trên lớp tóc.",
+  "hair": {
+   "short_spiky": {
+    "name": "Tóc dựng",
+    "male": {
+     "sheet": "hair/short_spiky_male.png",
+     "full": "hair/short_spiky_male_full.png",
+     "head": "hair/short_spiky_male_head.png"
+    },
+    "female": {
+     "sheet": "hair/short_spiky_female.png",
+     "full": "hair/short_spiky_female_full.png",
+     "head": "hair/short_spiky_female_head.png"
+    }
+   },
+   "ponytail": {
+    "name": "Đuôi ngựa",
+    "male": {
+     "sheet": "hair/ponytail_male.png",
+     "full": "hair/ponytail_male_full.png",
+     "head": "hair/ponytail_male_head.png"
+    },
+    "female": {
+     "sheet": "hair/ponytail_female.png",
+     "full": "hair/ponytail_female_full.png",
+     "head": "hair/ponytail_female_head.png"
+    }
+   },
+   "long_wave": {
+    "name": "Tóc dài xoăn",
+    "male": {
+     "sheet": "hair/long_wave_male.png",
+     "full": "hair/long_wave_male_full.png",
+     "head": "hair/long_wave_male_head.png"
+    },
+    "female": {
+     "sheet": "hair/long_wave_female.png",
+     "full": "hair/long_wave_female_full.png",
+     "head": "hair/long_wave_female_head.png"
+    }
+   },
+   "bun": {
+    "name": "Tóc búi",
+    "male": {
+     "sheet": "hair/bun_male.png",
+     "full": "hair/bun_male_full.png",
+     "head": "hair/bun_male_head.png"
+    },
+    "female": {
+     "sheet": "hair/bun_female.png",
+     "full": "hair/bun_female_full.png",
+     "head": "hair/bun_female_head.png"
+    }
+   },
+   "mohawk": {
+    "name": "Mohican",
+    "male": {
+     "sheet": "hair/mohawk_male.png",
+     "full": "hair/mohawk_male_full.png",
+     "head": "hair/mohawk_male_head.png"
+    },
+    "female": {
+     "sheet": "hair/mohawk_female.png",
+     "full": "hair/mohawk_female_full.png",
+     "head": "hair/mohawk_female_head.png"
+    }
+   },
+   "pink_twin": {
+    "name": "Hai bím hồng",
+    "male": {
+     "sheet": "hair/pink_twin_male.png",
+     "full": "hair/pink_twin_male_full.png",
+     "head": "hair/pink_twin_male_head.png"
+    },
+    "female": {
+     "sheet": "hair/pink_twin_female.png",
+     "full": "hair/pink_twin_female_full.png",
+     "head": "hair/pink_twin_female_head.png"
+    }
+   }
+  },
+  "wings": {
+   "angel": {
+    "name": "Cánh thiên thần",
+    "male": {
+     "back": "wings/angel_male_back.png",
+     "front": "wings/angel_male_front.png",
+     "full": "wings/angel_male_full.png"
+    },
+    "female": {
+     "back": "wings/angel_female_back.png",
+     "front": "wings/angel_female_front.png",
+     "full": "wings/angel_female_full.png"
+    }
+   },
+   "fairy": {
+    "name": "Cánh tiên",
+    "male": {
+     "back": "wings/fairy_male_back.png",
+     "front": "wings/fairy_male_front.png",
+     "full": "wings/fairy_male_full.png"
+    },
+    "female": {
+     "back": "wings/fairy_female_back.png",
+     "front": "wings/fairy_female_front.png",
+     "full": "wings/fairy_female_full.png"
+    }
+   },
+   "butterfly": {
+    "name": "Cánh bướm",
+    "male": {
+     "back": "wings/butterfly_male_back.png",
+     "front": "wings/butterfly_male_front.png",
+     "full": "wings/butterfly_male_full.png"
+    },
+    "female": {
+     "back": "wings/butterfly_female_back.png",
+     "front": "wings/butterfly_female_front.png",
+     "full": "wings/butterfly_female_full.png"
+    }
+   },
+   "bat": {
+    "name": "Cánh dơi",
+    "male": {
+     "back": "wings/bat_male_back.png",
+     "front": "wings/bat_male_front.png",
+     "full": "wings/bat_male_full.png"
+    },
+    "female": {
+     "back": "wings/bat_female_back.png",
+     "front": "wings/bat_female_front.png",
+     "full": "wings/bat_female_full.png"
+    }
+   },
+   "dragon": {
+    "name": "Cánh rồng",
+    "male": {
+     "back": "wings/dragon_male_back.png",
+     "front": "wings/dragon_male_front.png",
+     "full": "wings/dragon_male_full.png"
+    },
+    "female": {
+     "back": "wings/dragon_female_back.png",
+     "front": "wings/dragon_female_front.png",
+     "full": "wings/dragon_female_full.png"
+    }
+   }
+  },
+  "crown": {
+   "male": {
+    "sheet": "crown/male.png",
+    "full": "crown/male_full.png",
+    "head": "crown/male_head.png",
+    "fullSize": [
+     151,
+     243
+    ]
+   },
+   "female": {
+    "sheet": "crown/female.png",
+    "full": "crown/female_full.png",
+    "head": "crown/female_head.png",
+    "fullSize": [
+     143,
+     229
+    ]
+   }
+  },
+  "fullSize": {
+   "male": [
+    151,
+    243
+   ],
+   "female": [
+    143,
+    217
+   ]
+  },
+  "fullPad": {
+   "male": 73,
+   "female": 65
+  }
+ }
 }
