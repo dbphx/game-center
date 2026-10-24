@@ -1,38 +1,63 @@
-# Tiến Lên Miền Nam
+# Tiến Lên Miền Nam online
 
-Game bài Tiến Lên Miền Nam 4 người: bạn chơi với 3 máy, chạy trực tiếp trên trình duyệt, không cần cài đặt gì.
+Game bài Tiến Lên Miền Nam chơi online qua trình duyệt, **2–4 người**. Thiếu người thì chủ phòng thêm máy.
+
+- Server Go giữ bài và kiểm tra mọi nước đi, nên không ai xem được bài người khác.
+- Giao diện web được nhúng thẳng vào binary, chỉ cần chạy một file.
 
 ## Chạy
 
-Mở `index.html` bằng trình duyệt (double-click là được).
+```
+go run .
+```
 
-- Bấm vào lá bài để chọn, **Đánh** (Enter) để đánh, **Bỏ lượt** (Space) để bỏ.
-- **Gợi ý** chọn sẵn nước đi do bot đề xuất.
+Mở http://localhost:8080. Server in ra cả địa chỉ LAN (ví dụ `http://192.168.1.10:8080`) để bạn bè cùng mạng wifi vào được.
+Đổi cổng: `PORT=3000 go run .` hoặc `go run . -addr :3000`.
 
-## Luật đã cài
+Muốn chơi với bạn ở xa thì đưa server lên mạng: chạy `docker build -t tienlen . && docker run -p 8080:8080 tienlen` trên VPS,
+hoặc deploy lên Fly.io / Render / Railway bằng Dockerfile có sẵn, hoặc mở tạm bằng tunnel (`cloudflared tunnel --url http://localhost:8080`, `ngrok http 8080`).
+
+## Cách chơi
+
+1. Nhập tên → **Tạo phòng mới**. Bạn nhận mã phòng 4 chữ và một link để gửi cho bạn bè.
+2. Bạn bè mở link (hoặc nhập mã phòng) → **Vào phòng**.
+3. Chủ phòng có thể **Thêm máy** hoặc **Mời ra**, rồi bấm **Bắt đầu** khi có 2–4 người.
+4. Bấm vào lá bài để chọn, **Đánh** (Enter), **Bỏ lượt** (Space), **Gợi ý** để máy chọn giúp.
+
+- Mỗi lượt có 30 giây, hết giờ thì máy đánh thay.
+- Mất mạng hoặc tải lại trang thì vẫn giữ chỗ; trong lúc vắng mặt, máy đánh thay.
+- Rời phòng giữa ván thì máy đánh nốt ván đó thay bạn.
+- Ván đang chơi thì không vào thêm được; đợi hết ván.
+
+## Luật
 
 - Thứ tự: 3 < 4 < … < K < A < 2; chất ♠ < ♣ < ♦ < ♥.
 - Bộ bài: rác, đôi, sám cô, sảnh (≥3 lá, không có 2), đôi thông (≥3 đôi liên tiếp), tứ quý.
 - Chặn: cùng loại, cùng số lá, lá cao nhất lớn hơn.
 - Chặt: 3 đôi thông chặt heo; tứ quý chặt heo, đôi heo, 3 đôi thông; 4 đôi thông chặt heo, đôi heo, 3 đôi thông, tứ quý.
 - Bỏ lượt là mất quyền đánh tới hết vòng. Người về trước mà không ai chặn thì người kế tiếp được đánh.
-- Ván đầu: người có 3♠ đánh trước và phải đánh kèm 3♠. Các ván sau: người về nhất đánh trước.
+- Mỗi người 13 lá; chơi ít hơn 4 người thì phần bài còn lại để riêng.
+- Ván đầu: ai giữ lá nhỏ nhất (đủ 4 người là 3♠) đánh trước và phải đánh kèm lá đó. Các ván sau: người về nhất đánh trước.
 - Tới trắng: tứ quý heo, sảnh rồng, 6 đôi, 5 đôi thông.
-- Điểm: Nhất +3, Nhì +1, Ba −1, Bét −3; tới trắng +6, mỗi người còn lại −2.
-
-Chưa có: thối heo/thối bom, cóng, chơi online nhiều người.
+- Điểm theo thứ hạng: 4 người +3/+1/−1/−3, 3 người +2/0/−2, 2 người +1/−1. Tới trắng: người thắng +2 × số người thua, mỗi người thua −2.
+- Chưa có: thối heo/thối bom, cóng.
 
 ## Cấu trúc
 
-- `js/rules.js` — nhận diện bộ bài, so bài, chặt, tới trắng.
-- `js/engine.js` — trạng thái ván, lượt, vòng, xếp hạng.
-- `js/ai.js` — bot.
-- `js/game.js`, `index.html`, `style.css` — giao diện.
+| Thư mục | Nội dung |
+|---|---|
+| `game/` | Luật, luồng ván, bot (Go) |
+| `room/` | Phòng chơi: vào/ra, chủ phòng, máy, hẹn giờ lượt, mất kết nối |
+| `main.go` | HTTP + WebSocket, nhúng `public/` |
+| `public/` | Giao diện web (HTML/CSS/JS thuần) |
+
+Giao thức WebSocket (`/ws`, JSON): client gửi `create`, `join`, `resume`, `addBot`, `kick`, `start`, `play`, `pass`, `hint`, `leave`;
+server gửi `session`, `state` (riêng cho từng người, chỉ có bài của chính họ), `hint`, `error`, `left`.
 
 ## Test
 
 ```
-npm test
+go test -race ./...
 ```
 
-Gồm test luật và giả lập 500 ván bot đánh với nhau.
+Gồm test luật, giả lập 500 ván bot cho mỗi số người 2/3/4, test phòng chơi, và một ván trọn vẹn qua WebSocket thật.
