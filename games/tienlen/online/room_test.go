@@ -122,7 +122,7 @@ func waitFor(t *testing.T, what string, cond func() bool) {
 func mustCreate(t *testing.T, h *Hub, u User) (*Session, *fakeConn) {
 	t.Helper()
 	c := &fakeConn{}
-	s, err := h.Create(u, c, 0)
+	s, err := h.Create(u, c, DefaultBet)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -427,5 +427,29 @@ func TestHPGate(t *testing.T) {
 	again, err := h.Join(host.Room.Code, weak, &fakeConn{})
 	if err != nil || again.Player != host.Player {
 		t.Fatalf("người đã có ghế phải vào lại được dù thiếu máu: %v", err)
+	}
+}
+
+// Bàn 0 xu là chơi vui: chơi hết ván không đổi ví, không ghi sổ, không cộng XP.
+func TestZeroBetIsFreePlay(t *testing.T) {
+	bank := richBank()
+	h := NewHub(bank, fastOptions)
+	s, c := mustCreate(t, h, an)
+	if err := s.Room.Handle(s.Player, Message{T: "setBet", Bet: 0}); err != nil {
+		t.Fatal(err)
+	}
+	for range 3 {
+		s.Room.Handle(s.Player, Message{T: "addBot"})
+	}
+	if err := s.Room.Handle(s.Player, Message{T: "start"}); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, "hết ván", func() bool { return c.lastState().Phase == PhaseOver })
+	if st := c.lastState(); st.GameBet != 0 || bank.get(an.ID) != 1000 || bank.settled != 0 || bank.getXP(an.ID) != 0 {
+		t.Fatalf("bàn 0 xu: cược %d, ví %d, chốt %d lần, XP %d", st.GameBet, bank.get(an.ID), bank.settled, bank.getXP(an.ID))
+	}
+	s2, _ := h.Create(binh, &fakeConn{}, 0)
+	if s2.Room.bet != 0 {
+		t.Fatalf("tạo bàn 0 xu phải giữ mức 0, được %d", s2.Room.bet)
 	}
 }

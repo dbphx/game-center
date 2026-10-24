@@ -539,6 +539,17 @@
    "source": [
     "DCity (vẽ / ghép bằng PIL cho dự án)"
    ]
+  },
+  {
+   "file": "farm_gate.png",
+   "w": 200,
+   "h": 164,
+   "use": "Cổng gỗ khu Nông trại trên bản đồ (biển NÔNG TRẠI), cùng tông gỗ với hàng rào farm/fence_piece.png",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
   }
  ]
 }

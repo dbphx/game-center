@@ -22,6 +22,11 @@
   const H = ROWS * T; // 1024
   const SKY = 96; // dải trời + đồi xa phía trên bản đồ (toạ độ y âm), biển tên các toà bờ Bắc nằm ở đây
   const HORIZON = 150; // đường chân đồi: trên đó là trời / đồi, dưới là cỏ
+  // Vùng ngoại ô quanh bản đồ (chỉ để nhìn, không đi vào được): đường, sông, nhà, rừng cây nối tiếp ra hai bên và
+  // phía dưới, trời phía trên — để màn hình rộng hơn bản đồ không lộ mép cắt cứng.
+  const MX = 480; // hai bên trái / phải
+  const MT = 200; // phía trên dải trời
+  const MB = 160; // phía dưới
 
   // Lưới phố (theo ô): hai trục ngang, hai trục dọc rộng 3 ô, vỉa hè 1 ô mỗi bên; sông 4 ô chảy ngang giữa,
   // sát vỉa hè hai bờ.
@@ -40,10 +45,15 @@
     casino: [0, 0, 14, 8], bank: [19, 0, 13, 8], shop: [37, 0, 13, 8],
     hospital: [0, 22, 14, 10], plaza: [19, 22, 13, 10], farm: [37, 22, 13, 10],
   };
-  // Vật cản trong các khu bờ Nam (cột, hàng, rộng, cao): đài phun nước, nhà kho nông trại, toà bệnh viện.
-  const FOUNTAIN = [22, 25, 7, 4];
-  const BARN = [44, 24, 5, 3];
-  const HOSPITAL = [3, 22, 8, 8]; // toà 242×240, cửa giữa đáy (x 224, y 960); sân trước hàng 30–31
+  // Vật cản trong các khu bờ Nam (cột, hàng, rộng, cao): đài phun nước, toà bệnh viện, bên trong hàng rào nông trại.
+  const FOUNTAIN = [23, 27, 6, 3];
+  const HOSPITAL = [4, 24, 6, 6]; // toà thu 0.8 (194×192), cửa giữa đáy (x 224, y 966); sân trước hàng 30–31
+  // Nông trại là khu có hàng rào: hàng rào chạy ngang ở y FARM_FENCE_Y, cổng gỗ giữa (x FARM_GATE_X); bên trong
+  // (ruộng, chuồng, gia súc) chỉ để nhìn — vào chơi qua cổng. Hàng 22–24 trước hàng rào là sân đất đi được.
+  const FARM_FENCE_Y = 820;
+  const FARM_GATE_X = 1440;
+  const FARM_IN = [37, 25, 13, 7];
+  const FARM_GATE_COLS = [43, 46]; // ô hàng 25 ngay dưới cổng vẫn đi được (bước vào khung cổng)
 
   const ZONES = {
     plaza: { name: 'Quảng trường', sub: 'Nhân vật của bạn', node: 'plaza' },
@@ -56,8 +66,8 @@
 
   // Điểm đứng trước cửa / trong mỗi khu (đơn vị bản đồ).
   const NODES = {
-    casino: [224, 276], bank: [816, 276], shop: [1392, 276],
-    plaza: [816, 736], hospital: [224, 984], farm: [1392, 736],
+    casino: [224, 276], bank: [816, 276], shop: [1452, 276], // cửa Shop lệch phải trong ảnh toà nhà
+    plaza: [816, 780], hospital: [224, 994], farm: [FARM_GATE_X, 790],
   };
   const SPEED = 240; // đơn vị bản đồ / giây
   const SPRITE_SIZE = 96; // chiều cao nhân vật chibi (khung 96×148, neo chân giữa đáy)
@@ -68,13 +78,15 @@
 
   const inRect = (c, r, [rc, rr, rw, rh]) => c >= rc && c < rc + rw && r >= rr && r < rr + rh;
 
-  // Ô (c, r) có đi được không: đường, vỉa hè, cầu, công viên ven sông và các khu bờ Nam (trừ đài phun, nhà kho);
+  // Ô (c, r) có đi được không: đường, vỉa hè, cầu, công viên ven sông và các khu bờ Nam (trừ đài phun, toà bệnh viện,
+  // bên trong hàng rào nông trại); ngoài mép bản đồ (ngoại ô) không đi được;
   // nước sông và toà nhà bờ Bắc thì không.
   function cellWalkable(c, r) {
     if (c < 0 || r < 0 || c >= COLS || r >= ROWS) return false;
     if (RIVER_ROWS.includes(r)) return onBridge(c);
     if (r < 8) return r >= 5 && (WALK_COLS.includes(c) || inRoadCol(c)); // bờ Bắc: chỉ vỉa hè / đường giữa các toà nhà, tới chân đồi
-    if (inRect(c, r, FOUNTAIN) || inRect(c, r, BARN) || inRect(c, r, HOSPITAL)) return false;
+    if (inRect(c, r, FOUNTAIN) || inRect(c, r, HOSPITAL)) return false;
+    if (inRect(c, r, FARM_IN) && !(r === FARM_IN[1] && c >= FARM_GATE_COLS[0] && c <= FARM_GATE_COLS[1])) return false;
     return true;
   }
   const walkable = (x, y) => cellWalkable(Math.floor(x / T), Math.floor(y / T));
@@ -219,23 +231,35 @@
     };
     const put = (name, x, y, w, h) => images[name] && g.drawImage(images[name], x, y, w, h);
     g.save();
-    g.translate(0, SKY);
+    // Gốc toạ độ là góc trên-trái bản đồ; canvas rộng thêm phần ngoại ô (MX hai bên, MT + dải trời phía trên, MB phía dưới).
+    g.translate(MX, MT + SKY);
+    const X0 = -MX;
+    const X1 = W + MX;
+    const Y1 = H + MB;
 
-    // Trời + đồi xa: chân ảnh nằm ở đường chân đồi.
+    // Trời + đồi xa: chân ảnh nằm ở đường chân đồi; hai bên là ảnh lật ngang để nối liền mạch ra ngoại ô.
     const sky = images['farm/bg_sky_hills'];
     if (sky) {
-      const k = W / sky.width;
-      g.drawImage(sky, 0, HORIZON - sky.height * k, W, sky.height * k);
+      const sh = sky.height * (W / sky.width);
+      const sy = HORIZON - sh;
+      g.drawImage(sky, 0, sy, W, sh);
+      for (const ox of [0, 2 * W]) {
+        g.save();
+        g.translate(ox, 0);
+        g.scale(-1, 1);
+        g.drawImage(sky, 0, sy, W, sh);
+        g.restore();
+      }
     }
-    // Cỏ toàn bản đồ dưới chân đồi.
-    fill('grass_tile', 0, HORIZON, W, H - HORIZON, 0.5);
+    // Cỏ dưới chân đồi, phủ cả ngoại ô.
+    fill('grass_tile', X0, HORIZON, X1 - X0, Y1 - HORIZON, 0.5);
 
-    // Vỉa hè (hàng / cột vỉa hè), mặt đường ngang và dọc, ngã tư, vạch qua đường.
+    // Vỉa hè (hàng / cột vỉa hè), mặt đường ngang và dọc, ngã tư, vạch qua đường; đường kéo dài ra ngoại ô.
     const top = 5 * T; // đường dọc bờ Bắc bắt đầu từ chân đồi
-    for (const r of WALK_ROWS) fill('sidewalk_tile', 0, r * T, W, T, 0.5);
-    for (const c of WALK_COLS) fill('sidewalk_tile', c * T, top, T, H - top, 0.5);
-    for (const g3 of ROAD_ROWS) fill('road_h', 0, g3[0] * T, W, 3 * T, 0.75);
-    for (const g3 of ROAD_COLS) fill('road_v', g3[0] * T, top, 3 * T, H - top, 0.75);
+    for (const r of WALK_ROWS) fill('sidewalk_tile', X0, r * T, X1 - X0, T, 0.5);
+    for (const c of WALK_COLS) fill('sidewalk_tile', c * T, top, T, Y1 - top, 0.5);
+    for (const g3 of ROAD_ROWS) fill('road_h', X0, g3[0] * T, X1 - X0, 3 * T, 0.75);
+    for (const g3 of ROAD_COLS) fill('road_v', g3[0] * T, top, 3 * T, Y1 - top, 0.75);
     for (const r3 of ROAD_ROWS) for (const c3 of ROAD_COLS) fill('road_plain', c3[0] * T, r3[0] * T, 3 * T, 3 * T, 0.75);
     for (const r3 of ROAD_ROWS) for (const c of WALK_COLS) put('road_crosswalk_h', c * T - 14, r3[0] * T + 4, T + 28, 3 * T - 8);
     for (const c3 of ROAD_COLS) for (const r of [8, 21]) put('road_crosswalk_v', c3[0] * T + 4, r * T - 14, 3 * T - 8, T + 28);
@@ -243,9 +267,9 @@
     // Sông: bờ trên / dưới (nước ở giữa là lớp HTML gợn sóng), cầu gỗ có lan can.
     const ry = RIVER_ROWS[0] * T;
     const rh = RIVER_ROWS.length * T;
-    fill('water_tile', 0, ry, W, rh, 0.75);
-    fill('river_bank_top', 0, ry, W, 36, 0.75);
-    fill('river_bank_bottom', 0, ry + rh - 36, W, 36, 0.75);
+    fill('water_tile', X0, ry, X1 - X0, rh, 0.75);
+    fill('river_bank_top', X0, ry, X1 - X0, 36, 0.75);
+    fill('river_bank_bottom', X0, ry + rh - 36, X1 - X0, 36, 0.75);
     for (const [a, b] of [[14, 19], [32, 37]]) {
       fill('bridge_deck', a * T, ry - 6, (b - a) * T, rh + 12, 0.75);
       g.fillStyle = 'rgba(70, 40, 10, .25)';
@@ -254,14 +278,16 @@
       fill('bridge_rail_v', b * T - 14, ry - 18, 20, rh + 30, 1);
     }
 
-    // Nền riêng các khu bờ Nam: quảng trường và sân bệnh viện lát gạch, nông trại có đường đất + ruộng.
+    // Nền từng lô bờ Nam: quảng trường lát gạch cả lô; bệnh viện có sân lát gạch trước cửa nối ra vỉa hè;
+    // nông trại có sân đất trước hàng rào, lối đất từ cổng vào chuồng và ruộng bên trong.
     const [pc, pr, pw, ph] = BLOCKS.plaza;
     fill('sidewalk_tile', pc * T, pr * T, pw * T, ph * T, 0.75);
-    fill('sidewalk_tile', 3 * T, 29 * T, 8 * T, 3 * T, 0.75);
-    const [fc, fr] = BLOCKS.farm;
-    fill('farm/dirt_path_tile', fc * T, 23 * T, 13 * T, 40, 0.5);
-    for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) {
-      put(j ? 'farm/soil_plot_wet' : 'farm/soil_plot', (fc + 1) * T + i * 60, (fr + 3) * T + j * 60, 58, 58);
+    fill('sidewalk_tile', 40, 944, 14 * T - 40, H - 944, 0.75);
+    const [fc, fr, fw] = BLOCKS.farm;
+    fill('farm/dirt_path_tile', fc * T, fr * T, fw * T, FARM_FENCE_Y - fr * T - 4, 0.5);
+    fill('farm/dirt_path_tile', FARM_GATE_X - 36, FARM_FENCE_Y - 8, 72, H - FARM_FENCE_Y + 8, 0.5);
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) {
+      put(j ? 'farm/soil_plot_wet' : 'farm/soil_plot', 1204 + i * 64, 848 + j * 64, 60, 60);
     }
     g.restore();
   }
@@ -272,23 +298,25 @@
   function props() {
     const list = [];
     const at = (img, x, y, k = 1, flip = false, cls = '') => list.push([img, x, y, k, flip, cls]);
+    const X0 = -MX;
+    const X1 = W + MX;
+    // Ngoài lòng đường / vỉa hè dọc (để cây ngoại ô phía dưới không che đường).
+    const offRoad = (x) => !WALK_COLS.concat(...ROAD_COLS).some((c) => x > c * T - 30 && x < (c + 1) * T + 30);
 
-    // Hàng cây / bụi dọc chân đồi, che chỗ đường dọc biến mất vào xa.
-    for (let x = 30; x < W; x += 92) at(['bush_1', 'farm/bush_1', 'bush_3'][(x / 92) % 3 | 0], x, HORIZON + 6, 0.7);
+    // Hàng bụi dọc chân đồi (kéo dài ra ngoại ô), cây to nơi đường dọc biến mất vào xa.
+    const hedge = ['bush_1', 'farm/bush_1', 'bush_3'];
+    for (let x = X0 + 30, i = 0; x < X1; x += 92, i++) at(hedge[i % 3], x, HORIZON + 6, 0.7);
     for (const c3 of ROAD_COLS) at('tree_big', (c3[0] + 1.5) * T, HORIZON + 14, 0.75);
 
-    // Toà nhà bờ Bắc, cửa ở đáy (sát vỉa hè hàng 8).
+    // Toà nhà bờ Bắc đặt giữa lô, cửa ở đáy (sát vỉa hè hàng 8); hai bên mỗi toà có cây và chậu hoa.
     at('building_casino', 224, 8 * T, 1);
     at('building_bank', 816, 8 * T, 0.86);
-    at('building_shop', 1392 - (165 - 105.5) * 1, 8 * T, 1);
-    at('house_2', 1532, 8 * T, 0.72);
-    at('tree_1', 40, 8 * T + 2, 0.8);
-    at('tree_1', 410, 8 * T + 2, 0.72);
-    at('farm/flowers', 150, 8 * T + 4, 0.6);
-    at('farm/flowers', 300, 8 * T + 4, 0.6);
+    at('building_shop', 1392, 8 * T, 1);
+    for (const x of [40, 408, 1226, 1558]) at('tree_1', x, 8 * T + 2, 0.72);
+    for (const x of [140, 308, 1272, 1512]) at('farm/flowers', x, 8 * T + 4, 0.55);
 
-    // Vỉa hè: đèn đường hai bên đường ngang.
-    for (const x of [96, 400, 700, 940, 1250, 1540]) {
+    // Vỉa hè: đèn đường hai bên đường ngang (cả ngoại ô).
+    for (const x of [-380, -120, 96, 400, 700, 940, 1250, 1540, 1760, 2000]) {
       at('lamp', x, 9 * T - 2, 0.75);
       at('lamp', x + 30, 22 * T - 2, 0.75);
     }
@@ -297,50 +325,66 @@
     const free = (x) => !(x > 13 * T && x < 20 * T) && !(x > 31 * T && x < 38 * T);
     const kinds = ['tree_4', 'bush_2', 'tree_3', 'bush_3', 'tree_4', 'bush_4'];
     let k = 0;
-    for (let x = 40; x < W; x += 104) {
+    for (let x = X0 + 40; x < X1; x += 104) {
       if (!free(x)) continue;
       const kind = kinds[k++ % kinds.length];
       at(kind, x, 13 * T - 4, kind.startsWith('tree') ? 1.3 : 0.9);
       if (free(x + 52)) at(kinds[(k + 2) % kinds.length], x + 52, 18 * T - 4, 1.1);
     }
-    for (const x of [200, 760, 1300]) {
+    for (const x of [-260, 200, 760, 1300, 1840]) {
       at('bench', x, 13 * T - 2, 0.6);
       at('bench', x + 60, 18 * T - 2, 0.6);
     }
 
-    // Bệnh viện: toà nhà, xe cứu thương đậu trước sân, cây, ghế chờ.
-    at('building_hospital', 224, 30 * T, 1);
-    at('ambulance_side', 392, 31 * T + 8, 0.75);
-    at('bench', 70, 31 * T + 4, 0.6);
-    at('tree_1', 36, 26 * T, 0.8);
-    at('tree_1', 412, 26 * T, 0.7);
-    at('farm/flowers', 110, 30 * T, 0.55);
-    at('farm/flowers', 340, 30 * T, 0.55);
+    // Bệnh viện: toà giữa lô, sân lát gạch trước cửa, xe cứu thương đậu trong sân, cây và hoa hai bên.
+    at('building_hospital', 224, 966, 0.8);
+    at('ambulance_side', 396, 1012, 0.7);
+    at('bench', 74, 1008, 0.55);
+    at('tree_1', 52, 30 * T - 24, 0.7);
+    at('tree_1', 400, 30 * T - 24, 0.7);
+    at('farm/flowers', 112, 30 * T - 2, 0.5);
+    at('farm/flowers', 336, 30 * T - 2, 0.5);
 
-    // Quảng trường: đài phun nước ở giữa, ghế, cây và chậu hoa ở góc.
-    at('fountain', 816, 900, 1.2);
-    at('bench', 690, 960, 0.65);
-    at('bench', 942, 960, 0.65);
-    at('tree_big', 640, 800, 0.62);
-    at('tree_big', 992, 800, 0.62);
-    at('tree_1', 628, 1010, 0.6);
-    at('tree_1', 1004, 1010, 0.6);
-    at('farm/flowers', 720, 780, 0.6);
-    at('farm/flowers', 912, 780, 0.6);
+    // Quảng trường: đài phun nước giữa lô, ghế, cây và chậu hoa ở góc.
+    at('fountain', 816, 945, 1.1);
+    at('bench', 690, 1004, 0.6);
+    at('bench', 942, 1004, 0.6);
+    at('tree_big', 650, 872, 0.55);
+    at('tree_big', 982, 872, 0.55);
+    at('tree_1', 630, 1018, 0.55);
+    at('tree_1', 1002, 1018, 0.55);
+    at('farm/flowers', 724, 812, 0.55);
+    at('farm/flowers', 908, 812, 0.55);
 
-    // Nông trại: hàng rào, nhà kho, rơm, cây, cây trồng trên ruộng, gia súc thả rông.
-    for (let x = 1190; x < 1430; x += 64) at('farm/fence_piece', x + 32, 23 * T + 46, 0.9);
-    at('farm/barn', 1500, 27 * T, 0.75);
-    at('farm/hay', 1420, 27 * T + 10, 0.6);
-    at('farm/silo', 1584, 27 * T - 6, 0.5);
-    at('farm/tree_big', 1582, 31 * T + 18, 0.55);
-    const crops = ['corn_ripe', 'tomato_ripe', 'carrot_2', 'watermelon_ripe', 'strawberry_2', 'rice_ripe', 'corn_2', 'tomato_2'];
-    crops.forEach((c, i) => at('farm/crop_' + c, 38 * T + (i % 4) * 60 + 29, 25 * T + Math.floor(i / 4) * 60 + 50, 0.55));
-    at('farm/animal_cow', 1300, 31 * T + 14, 0.6, true);
-    at('farm/animal_sheep', 1220, 30 * T + 10, 0.55);
-    at('farm/animal_pig', 1440, 31 * T + 12, 0.6, true);
-    at('farm/animal_chicken', 1380, 30 * T + 4, 0.6);
-    at('farm/animal_chicken_white', 1410, 30 * T + 16, 0.6, true);
+    // Nông trại: hàng rào ngang có cổng gỗ, bụi rào bên trái; trong rào là ruộng, chuồng, rơm, gia súc.
+    for (const x of [1211.7, 1267, 1322.3]) at('farm/fence_piece', x, FARM_FENCE_Y, 0.84);
+    at('farm/fence_piece', 1565, FARM_FENCE_Y, 1.06);
+    at('farm_gate', FARM_GATE_X, FARM_FENCE_Y + 1, 0.9);
+    for (let y = 856; y <= 1016; y += 32) for (const x of [1198, 1590]) at('bush_2', x, y, 0.7);
+    const crops = ['corn_ripe', 'tomato_ripe', 'carrot_2', 'watermelon_ripe', 'strawberry_2', 'rice_ripe'];
+    crops.forEach((c, i) => at('farm/crop_' + c, 1204 + (i % 3) * 64 + 30, 848 + Math.floor(i / 3) * 64 + 52, 0.5));
+    at('farm/barn', 1540, 965, 0.62);
+    at('farm/hay', 1586, 1014, 0.5);
+    at('farm/trough_water', 1516, 1016, 0.45);
+    at('farm/animal_cow', 1250, 1018, 0.5, true);
+    at('farm/animal_sheep', 1330, 1014, 0.45);
+    at('farm/animal_pig', 1394, 1016, 0.5, true);
+    at('farm/animal_chicken', 1424, 905, 0.5);
+    at('farm/animal_chicken_white', 1460, 940, 0.5, true);
+
+    // Ngoại ô (ngoài mép bản đồ, chỉ để nhìn): phố nhà dân bờ Bắc, nhà + rừng cây bờ Nam, hàng bụi và cây phía dưới.
+    for (const [img, x, kk] of [['house_4', -120, 0.75], ['tree_1', -232, 0.72], ['house_1', -352, 0.68], ['tree_1', -462, 0.7],
+      ['house_2', 1684, 0.75], ['tree_1', 1788, 0.72], ['house_8', 1922, 0.68], ['tree_1', 2050, 0.7]]) {
+      at(img, x, 8 * T + (img.startsWith('tree') ? 2 : 0), kk);
+    }
+    for (const [img, x, y, kk] of [
+      ['tree_5', -84, 856, 0.55], ['house_3', -226, 880, 0.8], ['tree_5', -388, 850, 0.6],
+      ['bush_1', -64, 1012, 0.6], ['house_6', -252, 1012, 0.7], ['tree_1', -420, 1016, 0.7],
+      ['farm/tree_big', 1672, 884, 0.55], ['farm/silo', 1782, 900, 0.5], ['house_5', 1930, 900, 0.75], ['tree_1', 2050, 904, 0.7],
+      ['farm/tractor', 1702, 1012, 0.55], ['tree_5', 1862, 1020, 0.55], ['house_4', 2004, 1020, 0.7],
+    ]) at(img, x, y, kk);
+    for (let x = X0 + 40, i = 0; x < X1; x += 76, i++) if (offRoad(x)) at(i % 2 ? 'bush_1' : 'farm/bush_1', x, H + 34, 0.6);
+    for (let x = X0 + 70, i = 0; x < X1; x += 128, i++) if (offRoad(x)) at(i % 3 ? 'tree_1' : 'tree_5', x, H + 150, 0.6);
 
     return list;
   }
@@ -368,9 +412,9 @@
       .join('');
   }
 
-  // Nước sông gợn: các đoạn giữa hai cây cầu, nền ảnh mặt nước trôi dần.
+  // Nước sông gợn: các đoạn giữa hai cây cầu (hai đầu chảy tiếp ra ngoại ô), nền ảnh mặt nước trôi dần.
   function waterHtml() {
-    const segs = [[0, 14], [19, 32], [37, COLS]];
+    const segs = [[-MX / T, 14], [19, 32], [37, COLS + MX / T]];
     return segs
       .map(([a, b]) => `<div class="river-flow" style="left:${px(a * T)};top:${px(RIVER_ROWS[0] * T + 34)};width:${px((b - a) * T)};height:${px(RIVER_ROWS.length * T - 68)}"></div>`)
       .join('');
@@ -400,10 +444,10 @@
     }).join('');
   }
 
-  // Vị trí tâm xe hiện tại.
+  // Vị trí tâm xe hiện tại; xe chạy hết cả đoạn đường ngoại ô rồi mới quay vòng (không hiện ra / biến mất giữa màn hình).
   function carPos(car) {
-    const span = carHorizontal(car) ? W + 240 : H + 240;
-    const p = ((car.at % span) + span) % span - 120;
+    const span = carHorizontal(car) ? W + 2 * MX + 240 : H + 240;
+    const p = ((car.at % span) + span) % span - (carHorizontal(car) ? MX + 120 : 120);
     if (car.dir === 'east') return [p, car.y];
     if (car.dir === 'west') return [W - p, car.y];
     if (car.dir === 'south') return [car.x, p];
@@ -433,7 +477,8 @@
 
   // Vùng bấm của từng khu và biển tên (HTML).
   function zonesHtml() {
-    const labelAt = { casino: [224, -84], bank: [816, -84], shop: [1392, -84], plaza: [700, 712], hospital: [78, 742], farm: [1290, 712] };
+    // Biển tên: bờ Bắc treo trên trời phía trên toà nhà; bờ Nam đặt ở đầu lô (dải cỏ / sân giữa vỉa hè và toà nhà).
+    const labelAt = { casino: [224, -84], bank: [816, -84], shop: [1392, -84], plaza: [816, 712], hospital: [224, 706], farm: [1262, 712] };
     return Object.entries(ZONES)
       .map(([id, z]) => {
         const [c, r, w, h] = BLOCKS[id];
@@ -826,7 +871,8 @@
     el.classList.add('city-toon');
     el.innerHTML = `<div class="city-stage">
       <div class="city-world" style="width:${px(W)};height:${px(H + SKY)}" role="img" aria-label="Bản đồ DCity">
-        <canvas class="city-canvas" width="${W}" height="${H + SKY}"></canvas>
+        <canvas class="city-canvas" width="${W + 2 * MX}" height="${H + SKY + MT + MB}"
+          style="left:${px(-MX)};top:${px(-MT)};width:${px(W + 2 * MX)};height:${px(H + SKY + MT + MB)}"></canvas>
         <div class="city-inner" style="top:${px(SKY)};width:${px(W)};height:${px(H)}">
           <div class="city-props"></div>
           <div class="walk-target hidden"></div>

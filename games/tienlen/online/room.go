@@ -28,8 +28,8 @@ const (
 	DefaultBet = 10
 )
 
-// BetOptions là các mức cược (xu mỗi mức) chủ phòng được chọn.
-var BetOptions = []int{10, 20, 50, 100, 200, 500}
+// BetOptions là các mức cược (xu mỗi mức) chủ phòng được chọn. Mức 0 là bàn chơi vui: không thắng thua xu, không cộng XP.
+var BetOptions = []int{0, 10, 20, 50, 100, 200, 500}
 
 const (
 	PhaseLobby   = "lobby"
@@ -469,6 +469,9 @@ func (r *Room) afterMove() {
 
 // settle ghi kết quả ván vào ví. Máy đóng vai nhà cái nên phần của máy không ghi vào đâu cả.
 func (r *Room) settle() {
+	if r.gameBet == 0 {
+		return // bàn chơi vui
+	}
 	deltas := map[int64]int64{}
 	for i, units := range r.game.Money() {
 		if p := r.players[i]; !p.Bot {

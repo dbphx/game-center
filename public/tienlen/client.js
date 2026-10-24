@@ -12,7 +12,10 @@
   // Vị trí ghế theo số người, tính từ mình (luôn ở dưới) theo chiều đánh.
   const POSITIONS = { 2: ['bottom', 'top'], 3: ['bottom', 'right', 'left'], 4: ['bottom', 'right', 'top', 'left'] };
   const ROOM_KEY = 'tlmn.room'; // phòng đang ngồi, để tải lại trang thì vào lại đúng ghế
-  const DEFAULT_BETS = [10, 20, 50, 100, 200, 500];
+  const DEFAULT_BETS = [0, 10, 20, 50, 100, 200, 500];
+  const DEFAULT_BET = 10;
+  // Mức 0 là bàn chơi vui, không thắng thua xu.
+  const betText = (b) => (b ? `${xu(b)} xu/mức` : 'Chơi vui · 0 xu');
   const HALL_REFRESH = 3000;
   const SEATS = ['bottom', 'left', 'top', 'right']; // vị trí 4 ghế quanh bàn trong sảnh
 
@@ -102,7 +105,7 @@
     if (s.phase === 'playing' && prevPhase !== 'playing') selected.clear();
     selected = new Set([...selected].filter((c) => s.hand.includes(c)));
     deadline = s.turnMs > 0 ? Date.now() + s.turnMs : 0;
-    if (pendingBet && s.phase === 'lobby') {
+    if (pendingBet !== null && s.phase === 'lobby') {
       const mine = s.players.find((p) => p.id === s.you);
       if (mine && mine.host && s.bet !== pendingBet) send({ t: 'setBet', bet: pendingBet });
       pendingBet = null;
@@ -228,7 +231,7 @@
         ${scene(`${seats}
           <div class="tfelt">
             <span class="tcode">${escapeHtml(room.code)}</span>
-            <span class="tbet">${I.svg('coins')}${xu(room.bet || 10)} xu/mức</span>
+            <span class="tbet">${I.svg('coins')}${betText(room.bet ?? DEFAULT_BET)}</span>
             <span class="tstatus${playing ? ' live' : ''}">${status}</span>
             ${note ? `<span class="tnote">${note}</span>` : ''}
           </div>`)}
@@ -256,14 +259,15 @@
     const bets = (state && state.betOptions) || DEFAULT_BETS;
     const grid = $('bet-grid');
     grid.innerHTML = bets
-      .map((b, i) => `<label class="bet-opt"><input type="radio" name="bet" value="${b}" ${i === 0 ? 'checked' : ''}>
-          <span>${I.svg('coins')}${xu(b)}<small>xu/mức</small></span></label>`)
+      .map((b) => `<label class="bet-opt"><input type="radio" name="bet" value="${b}" ${b === DEFAULT_BET ? 'checked' : ''}>
+          <span>${I.svg('coins')}${b ? xu(b) : 'Chơi vui'}<small>${b ? 'xu/mức' : '0 xu'}</small></span></label>`)
       .join('');
     const dlg = $('dlg-create');
     const form = dlg.querySelector('form');
     form.onsubmit = (e) => {
       if (e.submitter && e.submitter.value === 'cancel') return;
-      const bet = Number(new FormData(form).get('bet')) || bets[0];
+      const v = new FormData(form).get('bet');
+      const bet = v === null ? DEFAULT_BET : Number(v);
       pendingBet = bet;
       send({ t: 'create', token: A.token(), bet });
     };
@@ -292,10 +296,10 @@
     $('lobby-players').innerHTML = rows.join('');
     const sel = $('bet');
     if (sel.options.length !== state.betOptions.length) {
-      sel.innerHTML = state.betOptions.map((b) => `<option value="${b}">${xu(b)}</option>`).join('');
+      sel.innerHTML = state.betOptions.map((b) => `<option value="${b}">${b ? xu(b) : '0 (chơi vui)'}</option>`).join('');
     }
     sel.value = state.bet;
-    $('bet-text').textContent = xu(state.bet);
+    $('bet-text').textContent = state.bet ? xu(state.bet) : '0 (chơi vui)';
     $('low-coins').classList.toggle('hidden', me().coins >= state.bet);
     $('btn-add-bot').disabled = state.players.length >= 4;
     $('btn-start').disabled = state.players.filter((p) => !p.left).length < 2;
@@ -392,7 +396,7 @@
 
   function renderSide() {
     $('game-code').textContent = state.code;
-    $('game-bet').innerHTML = `${I.svg('coins')}${xu(state.gameBet)} / mức`;
+    $('game-bet').innerHTML = `${I.svg('coins')}${state.gameBet ? `${xu(state.gameBet)} / mức` : 'Chơi vui'}`;
     $('scores').innerHTML = state.players
       .map(
         (p) =>

@@ -163,14 +163,17 @@
 /* Máy tính: chừa dải dưới cho thanh đi nhanh để không che các khu bờ Nam. */
 @media (min-width: 861px) {
   .city { background: #4f8f3a; }
-  .city-map { bottom: 72px; }
+  /* clip (không phải hidden): phần ngoại ô tràn ra ngoài bản đồ không tạo vùng cuộn, nên không bị cuộn lệch. */
+  .city-map { bottom: 72px; overflow: clip; }
 }
 
 /* Bản đồ hoạt hình: thế giới 1600×(1024 + dải trời) đơn vị, thu phóng bằng transform cho vừa khung. */
 .city-toon { image-rendering: auto; background-color: #7cc04a; }
 .city-stage { position: relative; flex-shrink: 0; }
-.city-world { position: absolute; left: 0; top: 0; transform-origin: 0 0; user-select: none; cursor: crosshair; overflow: hidden; }
-.city-canvas { position: absolute; inset: 0; display: block; }
+.city-world { position: absolute; left: 0; top: 0; transform-origin: 0 0; user-select: none; cursor: crosshair; }
+/* Canvas mặt đất lớn hơn bản đồ: phần ngoại ô (đường, sông, nhà, cây) tràn ra ngoài để mép bản đồ liền với nền
+   (toạ độ / kích thước đặt trong city.js); .city-map cắt phần thừa ngoài khung nhìn. */
+.city-canvas { position: absolute; display: block; }
 .city-inner { position: absolute; left: 0; }
 .city-props { position: absolute; inset: 0; }
 /* Toà nhà, cây, đồ vật, gia súc: đặt theo giữa đáy, chồng lớp theo y (z-index đặt trong JS). */
@@ -521,6 +524,8 @@
   .auth-form { padding: 20px; }
   /* Màn hình hẹp: bản đồ rộng hơn màn hình, kéo ngang để xem. */
   .city-map { overflow-x: auto; overflow-y: hidden; justify-content: flex-start; }
+  /* Bản đồ cuộn ngang: cắt phần ngoại ô để vùng cuộn đúng bằng bản đồ. */
+  .city-stage { overflow: hidden; }
   .zone-panel, .zone-panel.left { top: auto; left: 10px; right: 10px; bottom: 84px; width: auto; max-width: none; max-height: 52%; padding: 16px; }
   .profile .character { height: 120px; width: 96px; }
   .legacy { left: 12px; right: 12px; }
