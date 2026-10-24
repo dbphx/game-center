@@ -1,4 +1,4 @@
-package game
+package tienlen
 
 import (
 	"errors"

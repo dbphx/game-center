@@ -1,52 +1,5 @@
-* { box-sizing: border-box; }
+/* Giao diện riêng của Tiến Lên: phòng chờ, bàn chơi, lá bài. */
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  background: #1b2a22;
-  color: #f2f2f2;
-}
-
-.hidden { display: none !important; }
-.muted { color: #9fb5a8; font-size: 14px; }
-.code { font-family: ui-monospace, Menlo, monospace; letter-spacing: 2px; color: #ffd54a; }
-
-/* ---------- Màn hình đầu và phòng chờ ---------- */
-
-.center-screen {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  background: radial-gradient(ellipse at center, #2f7a4f 0%, #1f5636 70%, #173f28 100%);
-}
-.panel {
-  width: 100%;
-  max-width: 420px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 28px;
-  border-radius: 14px;
-  background: rgba(10, 25, 17, .85);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, .4);
-}
-.panel h1 { margin: 0 0 4px; font-size: 26px; text-align: center; }
-.panel label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: #cfe3d6; }
-.row { display: flex; gap: 8px; }
-.row input { flex: 1; min-width: 0; }
-.divider { text-align: center; font-size: 13px; color: #8aa596; }
-
-input {
-  font: inherit;
-  padding: 9px 12px;
-  border-radius: 8px;
-  border: 1px solid #4b6b58;
-  background: #0f1d16;
-  color: #fff;
-}
 #code { text-transform: uppercase; letter-spacing: 3px; }
 
 .players { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -62,40 +15,16 @@ input {
 .bet-row { display: flex; align-items: center; gap: 8px; }
 .bet-row select { font: inherit; padding: 6px 10px; border-radius: 8px; background: #0f1d16; color: #fff; border: 1px solid #4b6b58; }
 .bet-row b { color: #ffd54a; }
-.coins { color: #ffd54a; font-variant-numeric: tabular-nums; font-size: 14px; }
-.coins.neg { color: #ff8a80; }
 .players li.empty { color: #6f8a7b; font-style: italic; }
 .players .kick { padding: 2px 10px; font-size: 13px; }
 
-.tag { font-size: 11px; padding: 2px 7px; border-radius: 8px; background: rgba(0, 0, 0, .35); font-weight: 500; }
-.tag.host { background: #b8860b; }
-.tag.bot { background: #3d5a80; }
-.tag.off { background: #8a3a3a; }
-.tag.me { background: #2e7d32; }
-.tag.refill { background: #5d4037; }
-
-button {
-  font: inherit;
-  padding: 8px 18px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  background: #f5f5f5;
-  color: #222;
-  cursor: pointer;
-}
-button.primary { background: #ffd54a; border-color: #d9a900; font-weight: 600; }
-button.wide { width: 100%; }
-button.link { background: none; border: none; color: #9fb5a8; text-decoration: underline; padding: 4px; }
-button:disabled { opacity: .45; cursor: not-allowed; }
-
 /* ---------- Bàn chơi ---------- */
 
-.game-screen { display: flex; min-height: 100vh; }
+.game-screen { display: flex; flex: 1; }
 
 .table {
   position: relative;
   flex: 1;
-  min-height: 100vh;
   display: grid;
   grid-template-columns: 160px 1fr 160px;
   grid-template-rows: auto 1fr auto auto auto;
@@ -187,7 +116,9 @@ button:disabled { opacity: .45; cursor: not-allowed; }
   padding: 16px;
   background: #13201a;
   overflow-y: auto;
-  max-height: 100vh;
+  max-height: calc(100vh - 53px);
+  position: sticky;
+  top: 53px;
   display: flex;
   flex-direction: column;
 }
@@ -211,18 +142,6 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .delta-plus { color: #2e7d32; font-weight: 600; }
 .delta-minus { color: #c62828; font-weight: 600; }
 
-.toast {
-  position: fixed;
-  left: 50%;
-  bottom: 24px;
-  transform: translateX(-50%);
-  padding: 10px 18px;
-  border-radius: 8px;
-  background: #222;
-  color: #fff;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, .4);
-  z-index: 10;
-}
 
 @media (max-width: 800px) {
   .game-screen { flex-direction: column; }

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tiến Lên Miền Nam</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>♠</text></svg>">
+  <link rel="stylesheet" href="/common.css">
+  <link rel="stylesheet" href="/tienlen/tienlen.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">← 🎲 <span class="brand-text">Game Hub</span></a>
+    <span class="spacer"></span>
+    <div class="user">
+      <span class="user-name" id="user-name"></span>
+      <span class="coins" id="balance"></span>
+    </div>
+  </header>
+
+  <!-- Màn hình đầu: tạo hoặc vào phòng -->
+  <section class="screen center-screen hidden" id="home">
+    <div class="panel">
+      <h1>Tiến Lên Miền Nam</h1>
+      <p class="muted">Chơi 2–4 người. Thắng thua tính bằng xu trong ví chung của Game Hub.</p>
+      <button id="btn-create" class="primary wide">Tạo phòng mới</button>
+      <div class="divider">hoặc vào phòng có sẵn</div>
+      <div class="row">
+        <input id="code" maxlength="4" placeholder="Mã phòng" autocomplete="off">
+        <button id="btn-join">Vào phòng</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Phòng chờ -->
+  <section class="screen center-screen hidden" id="lobby">
+    <div class="panel">
+      <h1>Phòng <span id="lobby-code" class="code"></span></h1>
+      <div class="row">
+        <input id="share-link" readonly>
+        <button id="btn-copy">Sao chép link</button>
+      </div>
+      <p class="muted">Gửi link cho bạn bè để vào cùng. Chơi được 2–4 người, thiếu người thì thêm máy.</p>
+      <div class="bet-row">
+        <span>Mức cược</span>
+        <select id="bet" class="host-only"></select>
+        <b id="bet-text" class="guest-only"></b>
+        <span class="muted">xu / mức</span>
+      </div>
+      <ul id="lobby-players" class="players"></ul>
+      <p class="warn hidden" id="low-coins">Bạn không đủ xu cho mức cược này. Về <a href="/">Game Hub</a> nhận thưởng hằng ngày, hoặc nhờ chủ phòng giảm mức cược.</p>
+      <div class="row host-only">
+        <button id="btn-add-bot">+ Thêm máy</button>
+        <button id="btn-start" class="primary">Bắt đầu</button>
+      </div>
+      <p class="muted guest-only">Đợi chủ phòng bắt đầu...</p>
+      <button id="btn-leave-lobby" class="link">Rời phòng</button>
+    </div>
+  </section>
+
+  <!-- Bàn chơi -->
+  <section class="screen game-screen hidden" id="game">
+    <div class="table">
+      <div class="seat" data-pos="top"></div>
+      <div class="seat" data-pos="left"></div>
+      <div class="seat" data-pos="right"></div>
+
+      <div class="center">
+        <div class="pile" id="pile"></div>
+        <div class="pile-label" id="pile-label"></div>
+      </div>
+
+      <div class="seat" data-pos="bottom"></div>
+
+      <div class="controls">
+        <button id="btn-play" class="primary">Đánh</button>
+        <button id="btn-pass">Bỏ lượt</button>
+        <button id="btn-hint">Gợi ý</button>
+        <button id="btn-clear">Bỏ chọn</button>
+      </div>
+      <div class="status" id="status"></div>
+    </div>
+
+    <aside class="side">
+      <h2>Phòng <span id="game-code" class="code"></span></h2>
+      <div class="muted" id="game-bet"></div>
+      <h2>Xu</h2>
+      <table id="scores"></table>
+      <h2>Diễn biến</h2>
+      <ul id="log"></ul>
+      <button id="btn-leave-game" class="link">Rời phòng</button>
+    </aside>
+
+    <div class="overlay hidden" id="overlay">
+      <div class="dialog">
+        <h2 id="result-title"></h2>
+        <ol id="result-list"></ol>
+        <ul id="result-transfers"></ul>
+        <div class="row host-only">
+          <button id="btn-again" class="primary">Ván mới</button>
+          <button id="btn-to-lobby">Phòng chờ</button>
+        </div>
+        <p class="muted guest-only">Đợi chủ phòng bắt đầu ván mới...</p>
+      </div>
+    </div>
+  </section>
+
+  <script src="/account.js"></script>
+  <script src="/tienlen/rules.js"></script>
+  <script src="/tienlen/client.js"></script>
+</body>
+</html>

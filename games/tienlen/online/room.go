@@ -1,29 +1,30 @@
-// Package room quản lý các phòng chơi online: người vào/ra, máy, lượt đánh và hẹn giờ.
+// Package online chạy Tiến Lên nhiều người qua WebSocket: phòng, người vào/ra, máy, lượt đánh,
+// hẹn giờ và trả thưởng vào ví chung của hub.
 //
 // Mọi thao tác trên một Room đều chạy dưới Room.mu. Thứ tự khoá là Room.mu → Hub.mu,
 // Hub không bao giờ giữ Hub.mu khi gọi vào Room.
-package room
+package online
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	mrand "math/rand/v2"
 	"slices"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/dbphx/game-center/game"
+	"github.com/dbphx/game-center/games/tienlen"
 )
 
 const (
+	GameID     = "tienlen"
 	MinPlayers = 2
 	MaxPlayers = 4
-	maxNameLen = 16
-
-	StartCoins = 1000 // xu ảo mỗi người có khi vào phòng hoặc nhận lại
 	DefaultBet = 10
 )
 
@@ -35,6 +36,18 @@ const (
 	PhasePlaying = "playing"
 	PhaseOver    = "over"
 )
+
+// User là tài khoản hub đang chơi.
+type User struct {
+	ID   int64
+	Name string
+}
+
+// Bank là ví xu dùng chung của hub.
+type Bank interface {
+	Balance(ctx context.Context, userID int64) (int64, error)
+	Settle(ctx context.Context, game, note string, deltas map[int64]int64) (map[int64]int64, error)
+}
 
 // Conn là kết nối tới một người chơi. Send không được chặn vì được gọi khi đang giữ khoá phòng.
 type Conn interface {
@@ -50,15 +63,14 @@ type Options struct {
 var DefaultOptions = Options{BotDelay: 900 * time.Millisecond, TurnTimeout: 30 * time.Second, Grace: 30 * time.Second}
 
 type Player struct {
-	ID      string
-	Name    string
-	Bot     bool
-	Online  bool
-	Left    bool // rời phòng giữa ván: máy đánh thay tới hết ván rồi xoá
-	Coins   int
-	Refills int // số lần nhận lại xu khi hết
+	ID     string // id công khai trong phòng
+	UserID int64  // 0 với máy
+	Name   string
+	Bot    bool
+	Online bool
+	Left   bool  // rời phòng giữa ván: máy đánh thay tới hết ván rồi xoá
+	Coins  int64 // số dư ví (bản sao để hiển thị), máy không có ví
 
-	token     string
 	conn      Conn
 	graceTime *time.Timer
 }
@@ -72,7 +84,7 @@ type Room struct {
 	hostID   string
 	players  []*Player
 	phase    string
-	game     *game.Game
+	game     *tienlen.Game
 	roster   string // id các ghế của game hiện tại; đổi người thì tạo game mới
 	timer    *time.Timer
 	timerGen int // tăng mỗi lần đặt hẹn giờ để bỏ qua hẹn giờ cũ
@@ -84,27 +96,18 @@ type Room struct {
 }
 
 func randomID() string {
-	b := make([]byte, 16)
+	b := make([]byte, 8)
 	rand.Read(b)
 	return hex.EncodeToString(b)
 }
 
-func cleanName(name string) string {
-	name = strings.TrimSpace(name)
-	if name == "" {
-		name = "Người chơi"
-	}
-	if r := []rune(name); len(r) > maxNameLen {
-		name = string(r[:maxNameLen])
-	}
-	return name
-}
-
 func (r *Room) seatOf(p *Player) int { return slices.Index(r.players, p) }
 
-func (r *Room) host() *Player {
+func (r *Room) host() *Player { return r.findPlayer(r.hostID) }
+
+func (r *Room) findPlayer(id string) *Player {
 	for _, p := range r.players {
-		if p.ID == r.hostID {
+		if p.ID == id {
 			return p
 		}
 	}
@@ -121,9 +124,26 @@ func (r *Room) humans() []*Player {
 	return out
 }
 
-func (r *Room) addHuman(name string, conn Conn) (*Player, error) {
+func (r *Room) refreshCoins(p *Player) error {
+	bal, err := r.hub.bank.Balance(context.Background(), p.UserID)
+	if err == nil {
+		p.Coins = bal
+	}
+	return err
+}
+
+// join cho người dùng vào phòng, hoặc trả lại ghế cũ nếu họ đã ở trong phòng.
+func (r *Room) join(u User, conn Conn) (*Player, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	if r.closed {
 		return nil, errors.New("phòng đã đóng")
+	}
+	for _, p := range r.players {
+		if p.UserID == u.ID && !p.Left {
+			r.resume(p, conn)
+			return p, nil
+		}
 	}
 	if r.phase == PhasePlaying {
 		return nil, errors.New("phòng đang chơi, đợi hết ván rồi vào lại")
@@ -131,14 +151,31 @@ func (r *Room) addHuman(name string, conn Conn) (*Player, error) {
 	if len(r.players) >= MaxPlayers {
 		return nil, errors.New("phòng đã đủ 4 người")
 	}
-	p := &Player{ID: randomID(), Name: cleanName(name), Online: true, Coins: StartCoins, token: randomID(), conn: conn}
+	p := &Player{ID: randomID(), UserID: u.ID, Name: u.Name, Online: true, conn: conn}
+	if err := r.refreshCoins(p); err != nil {
+		return nil, err
+	}
 	r.players = append(r.players, p)
 	if r.host() == nil {
 		r.hostID = p.ID
 	}
-	r.hub.register(p.token, r)
 	r.rosterChanged()
 	return p, nil
+}
+
+func (r *Room) resume(p *Player, conn Conn) {
+	if p.graceTime != nil {
+		p.graceTime.Stop()
+	}
+	if p.conn != nil && p.conn != conn {
+		p.conn.Send(map[string]string{"t": "replaced"})
+	}
+	p.conn, p.Online = conn, true
+	if h := r.host(); h == nil || !h.Online {
+		r.hostID = p.ID
+	}
+	r.scheduleIfTurn(p)
+	r.broadcast()
 }
 
 // rosterChanged: sau khi đổi người, kết quả ván cũ không còn khớp ghế nên quay về phòng chờ.
@@ -158,11 +195,8 @@ func (r *Room) remove(p *Player, notify bool) {
 	if p.graceTime != nil {
 		p.graceTime.Stop()
 	}
-	if !p.Bot {
-		r.hub.unregister(p.token)
-		if notify && p.conn != nil {
-			p.conn.Send(map[string]string{"t": "left"})
-		}
+	if notify && p.conn != nil {
+		p.conn.Send(map[string]string{"t": "left"})
 	}
 	if len(r.humans()) == 0 {
 		r.close()
@@ -191,9 +225,6 @@ func (r *Room) close() {
 	r.closed = true
 	r.stopTimer()
 	for _, p := range r.players {
-		if !p.Bot {
-			r.hub.unregister(p.token)
-		}
 		if p.graceTime != nil {
 			p.graceTime.Stop()
 		}
@@ -204,12 +235,11 @@ func (r *Room) close() {
 // Message là tin nhắn từ client.
 type Message struct {
 	T     string `json:"t"`
-	Name  string `json:"name,omitempty"`
+	Token string `json:"token,omitempty"` // token tài khoản hub, gửi kèm create / join
 	Code  string `json:"code,omitempty"`
-	Token string `json:"token,omitempty"`
 	Cards []int  `json:"cards,omitempty"`
-	Bet   int    `json:"bet,omitempty"`
 	ID    string `json:"id,omitempty"`
+	Bet   int    `json:"bet,omitempty"`
 }
 
 // Handle xử lý một hành động của người chơi đã ở trong phòng.
@@ -233,31 +263,8 @@ func (r *Room) Handle(p *Player, m Message) error {
 			return errors.New("phòng đã đủ 4 người")
 		}
 		r.botSeq++
-		r.players = append(r.players, &Player{ID: randomID(), Name: fmt.Sprintf("Máy %d", r.botSeq), Bot: true, Online: true, Coins: StartCoins})
+		r.players = append(r.players, &Player{ID: randomID(), Name: fmt.Sprintf("Máy %d", r.botSeq), Bot: true, Online: true})
 		r.rosterChanged()
-
-	case "setBet":
-		switch {
-		case !isHost:
-			return errors.New("chỉ chủ phòng được đổi mức cược")
-		case !inLobby:
-			return errors.New("ván đang chơi")
-		case !slices.Contains(BetOptions, m.Bet):
-			return errors.New("mức cược không hợp lệ")
-		}
-		r.bet = m.Bet
-		r.broadcast()
-
-	case "refill":
-		if !inLobby {
-			return errors.New("đợi hết ván rồi nhận xu")
-		}
-		if p.Coins >= r.bet {
-			return errors.New("bạn vẫn còn đủ xu")
-		}
-		p.Coins = StartCoins
-		p.Refills++
-		r.broadcast()
 
 	case "kick":
 		target := r.findPlayer(m.ID)
@@ -270,6 +277,18 @@ func (r *Room) Handle(p *Player, m Message) error {
 			return errors.New("không mời ra được người này")
 		}
 		r.remove(target, true)
+
+	case "setBet":
+		switch {
+		case !isHost:
+			return errors.New("chỉ chủ phòng được đổi mức cược")
+		case !inLobby:
+			return errors.New("ván đang chơi")
+		case !slices.Contains(BetOptions, m.Bet):
+			return errors.New("mức cược không hợp lệ")
+		}
+		r.bet = m.Bet
+		r.broadcast()
 
 	case "start":
 		if !isHost {
@@ -300,7 +319,7 @@ func (r *Room) Handle(p *Player, m Message) error {
 			return errors.New("chưa tới lượt")
 		}
 		seat := r.seatOf(p)
-		cards := game.ChooseMove(r.game.Hands[seat], r.game.Context(seat))
+		cards := tienlen.ChooseMove(r.game.Hands[seat], r.game.Context(seat))
 		p.conn.Send(map[string]any{"t": "hint", "cards": cards})
 
 	case "leave":
@@ -312,28 +331,22 @@ func (r *Room) Handle(p *Player, m Message) error {
 	return nil
 }
 
-func (r *Room) findPlayer(id string) *Player {
-	for _, p := range r.players {
-		if p.ID == id {
-			return p
-		}
-	}
-	return nil
-}
-
 func (r *Room) leave(p *Player) {
 	if r.phase != PhasePlaying {
 		r.remove(p, true)
 		return
 	}
-	// Giữa ván: máy đánh thay tới hết ván.
+	// Giữa ván: máy đánh thay tới hết ván, kết quả vẫn tính vào ví của người rời.
 	p.Left, p.Online = true, false
-	r.hub.unregister(p.token)
 	if p.conn != nil {
 		p.conn.Send(map[string]string{"t": "left"})
 		p.conn = nil
 	}
 	if len(r.humans()) == 0 {
+		// Không còn ai xem: cho máy đánh nốt ngay để chốt xu rồi đóng phòng.
+		for r.phase == PhasePlaying {
+			r.autoMove()
+		}
 		r.close()
 		return
 	}
@@ -361,6 +374,9 @@ func (r *Room) Disconnect(p *Player, conn Conn) {
 		if r.phase == PhasePlaying {
 			// Đang chơi thì giữ ghế, máy tiếp tục đánh thay; chỉ đóng phòng nếu không còn ai.
 			if !slices.ContainsFunc(r.humans(), func(h *Player) bool { return h.Online }) {
+				for r.phase == PhasePlaying {
+					r.autoMove()
+				}
 				r.close()
 			}
 			return
@@ -371,41 +387,23 @@ func (r *Room) Disconnect(p *Player, conn Conn) {
 	r.broadcast()
 }
 
-func (r *Room) resume(p *Player, conn Conn) {
-	if p.graceTime != nil {
-		p.graceTime.Stop()
-	}
-	if p.conn != nil && p.conn != conn {
-		p.conn.Send(map[string]string{"t": "replaced"})
-	}
-	p.conn, p.Online = conn, true
-	if r.host() == nil || !r.host().Online {
-		r.hostID = p.ID
-	}
-	r.scheduleIfTurn(p)
-	r.broadcast()
-}
-
 func (r *Room) startGame() error {
-	for _, p := range slices.Clone(r.players) {
-		if p.Left {
-			r.players = slices.DeleteFunc(r.players, func(q *Player) bool { return q == p })
-		}
-	}
+	r.players = slices.DeleteFunc(r.players, func(p *Player) bool { return p.Left })
 	if len(r.players) < MinPlayers {
 		r.broadcast()
 		return errors.New("cần ít nhất 2 người, hãy thêm máy hoặc mời bạn bè")
 	}
 	for _, p := range r.players {
-		if p.Coins >= r.bet {
+		if p.Bot {
 			continue
 		}
-		if !p.Bot {
+		if err := r.refreshCoins(p); err != nil {
+			return err
+		}
+		if p.Coins < int64(r.bet) {
 			r.broadcast()
 			return fmt.Errorf("%s không đủ %d xu để vào ván", p.Name, r.bet)
 		}
-		p.Coins = StartCoins
-		p.Refills++
 	}
 	ids := make([]string, len(r.players))
 	for i, p := range r.players {
@@ -413,7 +411,7 @@ func (r *Room) startGame() error {
 	}
 	roster := strings.Join(ids, ",")
 	if r.game == nil || roster != r.roster {
-		r.game, _ = game.NewGame(len(r.players), mrand.New(mrand.NewPCG(mrand.Uint64(), mrand.Uint64())))
+		r.game, _ = tienlen.NewGame(len(r.players), mrand.New(mrand.NewPCG(mrand.Uint64(), mrand.Uint64())))
 		r.roster = roster
 	}
 	r.game.Start()
@@ -427,13 +425,32 @@ func (r *Room) afterMove() {
 	if r.game.Over {
 		r.phase = PhaseOver
 		r.stopTimer()
-		for i, units := range r.game.Money() {
-			r.players[i].Coins += units * r.gameBet
-		}
+		r.settle()
 	} else {
 		r.schedule()
 	}
 	r.broadcast()
+}
+
+// settle ghi kết quả ván vào ví. Máy đóng vai nhà cái nên phần của máy không ghi vào đâu cả.
+func (r *Room) settle() {
+	deltas := map[int64]int64{}
+	for i, units := range r.game.Money() {
+		if p := r.players[i]; !p.Bot {
+			deltas[p.UserID] += int64(units * r.gameBet)
+		}
+	}
+	note := fmt.Sprintf("Tiến Lên phòng %s, ván %d", r.Code, r.game.GameNo)
+	balances, err := r.hub.bank.Settle(context.Background(), GameID, note, deltas)
+	if err != nil {
+		log.Printf("tienlen: ghi kết quả %s: %v", note, err)
+		return
+	}
+	for _, p := range r.players {
+		if bal, ok := balances[p.UserID]; ok && !p.Bot {
+			p.Coins = bal
+		}
+	}
 }
 
 func (r *Room) stopTimer() {
@@ -474,7 +491,7 @@ func (r *Room) scheduleIfTurn(p *Player) {
 
 func (r *Room) autoMove() {
 	seat := r.game.Turn
-	if move := game.ChooseMove(r.game.Hands[seat], r.game.Context(seat)); move != nil {
+	if move := tienlen.ChooseMove(r.game.Hands[seat], r.game.Context(seat)); move != nil {
 		r.game.Play(seat, move)
 	} else {
 		r.game.Pass(seat)

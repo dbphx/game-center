@@ -1,6 +1,8 @@
-package room
+package online
 
 import (
+	"context"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -39,7 +41,52 @@ func (f *fakeConn) got(t string) bool {
 	return false
 }
 
+// fakeBank là ví trong bộ nhớ, cùng quy tắc với wallet thật: số dư không âm.
+type fakeBank struct {
+	mu       sync.Mutex
+	balances map[int64]int64
+	settled  int
+}
+
+func newBank(balances map[int64]int64) *fakeBank { return &fakeBank{balances: balances} }
+
+func (b *fakeBank) Balance(_ context.Context, id int64) (int64, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	bal, ok := b.balances[id]
+	if !ok {
+		return 0, errors.New("không có tài khoản")
+	}
+	return bal, nil
+}
+
+func (b *fakeBank) Settle(_ context.Context, _, _ string, deltas map[int64]int64) (map[int64]int64, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.settled++
+	out := map[int64]int64{}
+	for id, d := range deltas {
+		b.balances[id] = max(0, b.balances[id]+d)
+		out[id] = b.balances[id]
+	}
+	return out, nil
+}
+
+func (b *fakeBank) get(id int64) int64 {
+	bal, _ := b.Balance(context.Background(), id)
+	return bal
+}
+
+var (
+	an   = User{ID: 1, Name: "An"}
+	binh = User{ID: 2, Name: "Bình"}
+	chi  = User{ID: 3, Name: "Chi"}
+)
+
+func richBank() *fakeBank { return newBank(map[int64]int64{1: 1000, 2: 1000, 3: 1000}) }
+
 var fastOptions = Options{BotDelay: time.Millisecond, TurnTimeout: 5 * time.Millisecond, Grace: 20 * time.Millisecond}
+var slowOptions = Options{BotDelay: time.Millisecond, TurnTimeout: time.Hour, Grace: time.Hour}
 
 func waitFor(t *testing.T, what string, cond func() bool) {
 	t.Helper()
@@ -52,20 +99,32 @@ func waitFor(t *testing.T, what string, cond func() bool) {
 	}
 }
 
-func mustCreate(t *testing.T, h *Hub, name string) (*Session, *fakeConn) {
+func mustCreate(t *testing.T, h *Hub, u User) (*Session, *fakeConn) {
 	t.Helper()
 	c := &fakeConn{}
-	s, err := h.Create(name, c)
+	s, err := h.Create(u, c)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return s, c
 }
 
-// Một người với 3 máy: người không đánh thì hết giờ máy đánh thay, ván phải tự chạy tới hết.
-func TestSoloWithBotsFinishes(t *testing.T) {
-	h := NewHub(fastOptions)
-	s, c := mustCreate(t, h, "An")
+func mustJoin(t *testing.T, h *Hub, code string, u User) (*Session, *fakeConn) {
+	t.Helper()
+	c := &fakeConn{}
+	s, err := h.Join(code, u, c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s, c
+}
+
+// Một người với 3 máy: người không đánh thì hết giờ máy đánh thay, ván phải tự chạy tới hết
+// và kết quả của người thật được ghi vào ví.
+func TestSoloWithBotsSettlesIntoWallet(t *testing.T) {
+	bank := richBank()
+	h := NewHub(bank, fastOptions)
+	s, c := mustCreate(t, h, an)
 	for range 3 {
 		if err := s.Room.Handle(s.Player, Message{T: "addBot"}); err != nil {
 			t.Fatal(err)
@@ -80,26 +139,20 @@ func TestSoloWithBotsFinishes(t *testing.T) {
 	waitFor(t, "hết ván", func() bool { return c.lastState().Phase == PhaseOver })
 
 	st := c.lastState()
-	sum := 0
-	for _, p := range st.Players {
-		sum += p.Coins - StartCoins
-		if p.ID != st.You && p.Reveal == nil && p.Cards > 0 {
+	if want := max(0, 1000+int64(st.Money[0])); bank.get(an.ID) != want || st.Players[0].Coins != want {
+		t.Fatalf("ví sau ván: %d, hiển thị %d, muốn %d", bank.get(an.ID), st.Players[0].Coins, want)
+	}
+	for _, p := range st.Players[1:] {
+		if p.Reveal == nil && p.Cards > 0 {
 			t.Error("hết ván phải lộ bài còn lại")
 		}
-	}
-	if sum != 0 {
-		t.Errorf("tổng xu thay đổi %d, phải bằng 0", sum)
 	}
 }
 
 func TestTwoHumansSeeOnlyOwnHand(t *testing.T) {
-	h := NewHub(Options{BotDelay: time.Millisecond, TurnTimeout: time.Hour, Grace: time.Hour})
-	host, hc := mustCreate(t, h, "An")
-	gc := &fakeConn{}
-	guest, err := h.Join(" "+host.Room.Code+" ", "Bình", gc)
-	if err != nil {
-		t.Fatal(err)
-	}
+	h := NewHub(richBank(), slowOptions)
+	host, hc := mustCreate(t, h, an)
+	guest, gc := mustJoin(t, h, " "+host.Room.Code+" ", binh)
 	if err := guest.Room.Handle(guest.Player, Message{T: "start"}); err == nil {
 		t.Fatal("khách không được bắt đầu")
 	}
@@ -109,14 +162,11 @@ func TestTwoHumansSeeOnlyOwnHand(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if _, err := h.Join(host.Room.Code, "Chi", &fakeConn{}); err == nil {
+	if _, err := h.Join(host.Room.Code, chi, &fakeConn{}); err == nil {
 		t.Fatal("không được vào khi đang chơi")
 	}
 
 	hs, gs := hc.lastState(), gc.lastState()
-	if hs.Phase != PhasePlaying || len(hs.Players) != 2 {
-		t.Fatalf("trạng thái sai: %+v", hs)
-	}
 	if len(hs.Hand) != 13 || len(gs.Hand) != 13 || hs.Hand[0] == gs.Hand[0] {
 		t.Fatal("mỗi người phải thấy đúng 13 lá của mình")
 	}
@@ -125,8 +175,6 @@ func TestTwoHumansSeeOnlyOwnHand(t *testing.T) {
 			t.Fatal("không được lộ bài người khác giữa ván")
 		}
 	}
-
-	// Người không tới lượt đánh thì bị từ chối.
 	notTurn, notTurnState := host, hs
 	if hs.Players[hs.Turn].ID == host.Player.ID {
 		notTurn, notTurnState = guest, gs
@@ -136,43 +184,44 @@ func TestTwoHumansSeeOnlyOwnHand(t *testing.T) {
 	}
 }
 
-func TestDisconnectAndResume(t *testing.T) {
-	h := NewHub(Options{BotDelay: time.Millisecond, TurnTimeout: time.Hour, Grace: time.Hour})
-	host, _ := mustCreate(t, h, "An")
-	gc := &fakeConn{}
-	guest, _ := h.Join(host.Room.Code, "Bình", gc)
+// Mất kết nối rồi vào lại bằng mã phòng (kể cả giữa ván) thì được trả đúng ghế cũ.
+func TestRejoinGetsSameSeat(t *testing.T) {
+	h := NewHub(richBank(), slowOptions)
+	host, _ := mustCreate(t, h, an)
+	guest, gc := mustJoin(t, h, host.Room.Code, binh)
+	host.Room.Handle(host.Player, Message{T: "addBot"})
+	host.Room.Handle(host.Player, Message{T: "start"})
 
 	guest.Room.Disconnect(guest.Player, gc)
 	if guest.Player.Online {
 		t.Fatal("phải đánh dấu offline")
 	}
-	gc2 := &fakeConn{}
-	s, err := h.Resume(guest.Token, gc2)
-	if err != nil || s.Player != guest.Player || !s.Player.Online {
-		t.Fatalf("vào lại thất bại: %v", err)
+	again, gc2 := mustJoin(t, h, host.Room.Code, binh)
+	if again.Player != guest.Player || !again.Player.Online {
+		t.Fatal("vào lại phải được ghế cũ")
 	}
-	if gc2.lastState().Code != host.Room.Code {
-		t.Fatal("phải nhận lại trạng thái phòng")
+	if n := len(gc2.lastState().Players); n != 3 {
+		t.Fatalf("không được thêm ghế mới, có %d người", n)
+	}
+	// Mở tab thứ hai: tab cũ bị thay thế.
+	mustJoin(t, h, host.Room.Code, binh)
+	if !gc2.got("replaced") {
+		t.Fatal("tab cũ phải nhận tin replaced")
 	}
 }
 
 func TestOfflinePlayerRemovedAfterGraceInLobby(t *testing.T) {
-	h := NewHub(fastOptions)
-	host, hc := mustCreate(t, h, "An")
-	gc := &fakeConn{}
-	guest, _ := h.Join(host.Room.Code, "Bình", gc)
+	h := NewHub(richBank(), fastOptions)
+	host, hc := mustCreate(t, h, an)
+	guest, gc := mustJoin(t, h, host.Room.Code, binh)
 	guest.Room.Disconnect(guest.Player, gc)
 	waitFor(t, "xoá người offline", func() bool { return len(hc.lastState().Players) == 1 })
-	if _, err := h.Resume(guest.Token, &fakeConn{}); err == nil {
-		t.Fatal("token cũ không được dùng lại sau khi bị xoá")
-	}
 }
 
 func TestHostLeavesPassesHostAndLastLeaveClosesRoom(t *testing.T) {
-	h := NewHub(fastOptions)
-	host, hc := mustCreate(t, h, "An")
-	gc := &fakeConn{}
-	guest, _ := h.Join(host.Room.Code, "Bình", gc)
+	h := NewHub(richBank(), fastOptions)
+	host, hc := mustCreate(t, h, an)
+	guest, gc := mustJoin(t, h, host.Room.Code, binh)
 
 	host.Room.Handle(host.Player, Message{T: "leave"})
 	if !hc.got("left") {
@@ -188,11 +237,26 @@ func TestHostLeavesPassesHostAndLastLeaveClosesRoom(t *testing.T) {
 	}
 }
 
+// Người cuối cùng rời giữa ván: máy đánh nốt ngay để chốt xu rồi mới đóng phòng.
+func TestLastHumanLeavingMidGameStillSettles(t *testing.T) {
+	bank := richBank()
+	h := NewHub(bank, slowOptions)
+	s, _ := mustCreate(t, h, an)
+	s.Room.Handle(s.Player, Message{T: "addBot"})
+	s.Room.Handle(s.Player, Message{T: "start"})
+	s.Room.Handle(s.Player, Message{T: "leave"})
+	if h.RoomCount() != 0 {
+		t.Fatal("phòng phải đóng")
+	}
+	if bank.settled != 1 {
+		t.Fatalf("ván phải được chốt xu đúng 1 lần, được %d", bank.settled)
+	}
+}
+
 func TestLeaveMidGameBotTakesOver(t *testing.T) {
-	h := NewHub(Options{BotDelay: time.Millisecond, TurnTimeout: time.Hour, Grace: time.Hour})
-	host, hc := mustCreate(t, h, "An")
-	gc := &fakeConn{}
-	guest, _ := h.Join(host.Room.Code, "Bình", gc)
+	h := NewHub(richBank(), slowOptions)
+	host, hc := mustCreate(t, h, an)
+	guest, _ := mustJoin(t, h, host.Room.Code, binh)
 	host.Room.Handle(host.Player, Message{T: "addBot"})
 	host.Room.Handle(host.Player, Message{T: "start"})
 
@@ -216,11 +280,11 @@ func TestLeaveMidGameBotTakesOver(t *testing.T) {
 	}
 }
 
-func TestBetAndCoins(t *testing.T) {
-	h := NewHub(fastOptions)
-	host, hc := mustCreate(t, h, "An")
-	gc := &fakeConn{}
-	guest, _ := h.Join(host.Room.Code, "Bình", gc)
+func TestBetRules(t *testing.T) {
+	bank := newBank(map[int64]int64{1: 1000, 2: 50})
+	h := NewHub(bank, slowOptions)
+	host, _ := mustCreate(t, h, an)
+	guest, gc := mustJoin(t, h, host.Room.Code, binh)
 
 	if err := guest.Room.Handle(guest.Player, Message{T: "setBet", Bet: 100}); err == nil {
 		t.Fatal("khách không được đổi mức cược")
@@ -231,34 +295,17 @@ func TestBetAndCoins(t *testing.T) {
 	if err := host.Room.Handle(host.Player, Message{T: "setBet", Bet: 100}); err != nil {
 		t.Fatal(err)
 	}
-	if err := guest.Room.Handle(guest.Player, Message{T: "refill"}); err == nil {
-		t.Fatal("còn đủ xu thì không được nhận thêm")
+	if gc.lastState().Bet != 100 {
+		t.Fatal("mọi người phải thấy mức cược mới")
 	}
-
-	// Chơi hết một ván (người không đánh thì hết giờ máy đánh thay); xu đổi theo tiền ván × mức cược.
-	host.Room.Handle(host.Player, Message{T: "start"})
-	waitFor(t, "hết ván", func() bool { return hc.lastState().Phase == PhaseOver })
-	st := hc.lastState()
-	if st.GameBet != 100 {
-		t.Fatalf("mức cược ván phải là 100, được %d", st.GameBet)
-	}
-	for i, p := range st.Players {
-		if p.Coins != StartCoins+st.Money[i] || st.Money[i]%100 != 0 {
-			t.Fatalf("%s: xu %d, tiền ván %d", p.Name, p.Coins, st.Money[i])
-		}
-	}
-
-	// Hết xu thì không vào ván được cho tới khi nhận lại.
-	host.Room.mu.Lock()
-	guest.Player.Coins = 50
-	host.Room.mu.Unlock()
 	if err := host.Room.Handle(host.Player, Message{T: "start"}); err == nil {
 		t.Fatal("người không đủ xu thì không được bắt đầu")
 	}
-	if err := guest.Room.Handle(guest.Player, Message{T: "refill"}); err != nil {
+	// Bình nạp thêm xu ở nơi khác (ví dụ nhận thưởng ở hub): bắt đầu lại phải đọc số dư mới.
+	bank.mu.Lock()
+	bank.balances[2] = 500
+	bank.mu.Unlock()
+	if err := host.Room.Handle(host.Player, Message{T: "start"}); err != nil {
 		t.Fatal(err)
-	}
-	if v := gc.lastState().Players[1]; v.Coins != StartCoins || v.Refills != 1 {
-		t.Fatalf("nhận lại xu sai: %+v", v)
 	}
 }

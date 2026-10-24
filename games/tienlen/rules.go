@@ -2,7 +2,7 @@
 //
 // Lá bài là số nguyên 0..51: rank = c / 4 (0 = 3, ..., 11 = A, 12 = 2), suit = c % 4 (0 ♠, 1 ♣, 2 ♦, 3 ♥).
 // So sánh 2 lá chỉ cần so số: rank trước, chất sau. Client JS (public/js/rules.js) dùng cùng quy ước.
-package game
+package tienlen
 
 import (
 	"math/rand/v2"

@@ -1,9 +1,9 @@
-# Tiến Lên Miền Nam online
+# Game Hub
 
-Game bài Tiến Lên Miền Nam chơi online qua trình duyệt, **2–4 người**. Thiếu người thì chủ phòng thêm máy.
+Tổ hợp game online chơi qua trình duyệt, **dùng chung một ví xu** cho mọi game. Game đầu tiên: **Tiến Lên Miền Nam** (2–4 người, thiếu người thì thêm máy).
 
-- Server Go giữ bài và kiểm tra mọi nước đi, nên không ai xem được bài người khác.
-- Giao diện web được nhúng thẳng vào binary, chỉ cần chạy một file.
+- Server Go giữ bài và kiểm tra mọi nước đi; giao diện web được nhúng thẳng vào binary.
+- Tài khoản và ví lưu trong SQLite (driver Go thuần, không cần cgo), mọi thay đổi số dư đều ghi sổ cái.
 
 ## Chạy
 
@@ -11,25 +11,37 @@ Game bài Tiến Lên Miền Nam chơi online qua trình duyệt, **2–4 ngư�
 go run .
 ```
 
-Mở http://localhost:8080. Server in ra cả địa chỉ LAN (ví dụ `http://192.168.1.10:8080`) để bạn bè cùng mạng wifi vào được.
-Đổi cổng: `PORT=3000 go run .` hoặc `go run . -addr :3000`.
+Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè cùng wifi vào được.
 
-Muốn chơi với bạn ở xa thì đưa server lên mạng: chạy `docker build -t tienlen . && docker run -p 8080:8080 tienlen` trên VPS,
-hoặc deploy lên Fly.io / Render / Railway bằng Dockerfile có sẵn, hoặc mở tạm bằng tunnel (`cloudflared tunnel --url http://localhost:8080`, `ngrok http 8080`).
+| Tuỳ chọn | Mặc định | |
+|---|---|---|
+| `-addr` / `PORT` | `:8080` | địa chỉ lắng nghe |
+| `-db` / `DB_PATH` | `data/gamehub.db` | file SQLite lưu tài khoản và ví |
 
-## Cách chơi
+Đưa lên mạng để bạn ở xa chơi: `docker build -t gamehub . && docker run -p 8080:8080 -v gamehub-data:/data gamehub`
+(nhớ gắn volume `/data` để không mất ví), hoặc deploy Dockerfile lên Fly.io / Render / Railway, hoặc mở tạm bằng tunnel
+(`cloudflared tunnel --url http://localhost:8080`).
 
-1. Nhập tên → **Tạo phòng mới**. Bạn nhận mã phòng 4 chữ và một link để gửi cho bạn bè.
-2. Bạn bè mở link (hoặc nhập mã phòng) → **Vào phòng**.
-3. Chủ phòng chọn **mức cược**, có thể **Thêm máy** hoặc **Mời ra**, rồi bấm **Bắt đầu** khi có 2–4 người.
-4. Bấm vào lá bài để chọn, **Đánh** (Enter), **Bỏ lượt** (Space), **Gợi ý** để máy chọn giúp.
+## Tài khoản và xu
 
-- Mỗi lượt có 30 giây, hết giờ thì máy đánh thay.
-- Mất mạng hoặc tải lại trang thì vẫn giữ chỗ; trong lúc vắng mặt, máy đánh thay.
-- Rời phòng giữa ván thì máy đánh nốt ván đó thay bạn.
-- Ván đang chơi thì không vào thêm được; đợi hết ván.
+- Lần đầu vào chỉ cần nhập tên: tạo **tài khoản khách**, trình duyệt nhớ tài khoản (localStorage). Mọi tab cùng trình duyệt là cùng một người,
+  nên muốn tự thử 2 người trên một máy thì mở thêm cửa sổ ẩn danh hoặc trình duyệt khác.
+- Tài khoản mới được **1.000 xu**, mỗi ngày nhận thêm **500 xu** (reset 0h giờ Việt Nam).
+- Số dư không bao giờ âm: thua quá số đang có thì chỉ mất hết số đang có.
+- Chơi với máy thì máy đóng vai nhà cái: thắng máy được xu thật vào ví, thua thì mất.
+- Trang hub có lịch sử xu (sổ cái) để xem xu đến / đi từ đâu.
+- Xu chỉ để chơi cho vui, không nạp / rút tiền thật.
 
-## Luật
+## Tiến Lên Miền Nam
+
+1. Ở hub chọn **Tiến Lên Miền Nam** → **Tạo phòng mới**, gửi link phòng cho bạn bè. Bạn bè mở link, tạo tài khoản (nếu chưa có) là vào thẳng phòng.
+2. Chủ phòng chọn **mức cược**, **Thêm máy** / **Mời ra**, rồi **Bắt đầu** khi có 2–4 người. Ai không đủ xu cho mức cược thì không bắt đầu được.
+3. Bấm lá bài để chọn, **Đánh** (Enter), **Bỏ lượt** (Space), **Gợi ý** để máy chọn giúp.
+
+- Mỗi lượt 30 giây, hết giờ máy đánh thay. Mất mạng / tải lại trang vẫn giữ ghế (vào lại bằng link phòng), trong lúc vắng máy đánh thay.
+- Rời phòng giữa ván thì máy đánh nốt ván, kết quả vẫn tính vào ví người rời.
+
+### Luật
 
 - Thứ tự: 3 < 4 < … < K < A < 2; chất ♠ < ♣ < ♦ < ♥.
 - Bộ bài: rác, đôi, sám cô, sảnh (≥3 lá, không có 2), đôi thông (≥3 đôi liên tiếp), tứ quý.
@@ -40,10 +52,9 @@ hoặc deploy lên Fly.io / Render / Railway bằng Dockerfile có sẵn, hoặc
 - Ván đầu: ai giữ lá nhỏ nhất (đủ 4 người là 3♠) đánh trước và phải đánh kèm lá đó. Các ván sau: người về nhất đánh trước.
 - Tới trắng: tứ quý heo, sảnh rồng, 6 đôi, 5 đôi thông.
 
-## Xu ảo và tiền cược
+### Tiền cược
 
-Xu chỉ để chơi cho vui, không nạp/rút tiền thật. Mỗi người vào phòng có **1.000 xu**. Chủ phòng chọn mức cược 10–500 xu/mức giữa các ván.
-Mọi khoản dưới đây tính bằng *mức*, nhân với mức cược ra số xu:
+Mọi khoản tính bằng *mức*, nhân với mức cược (10–500 xu/mức, chủ phòng chọn) ra số xu:
 
 | Khoản | Mức |
 |---|---|
@@ -57,19 +68,40 @@ Mọi khoản dưới đây tính bằng *mức*, nhân với mức cược ra s
 - **Chặt heo / chặt hàng**: người bị chặt trả người chặt theo bảng trên. **Chặt chồng**: người bị chặt sau trả luôn số tiền mình vừa ăn, nên người chặt cuối ăn trọn.
 - **Thối**: hết ván, người về bét còn heo / hàng trên tay thì trả cho người về nhất.
 - **Cóng**: khi có người về nhất mà ai đó chưa đánh lá nào thì người đó bị cóng: xếp bét, bị loại khỏi ván và cũng phải thối cả tay.
-- Không đủ xu cho mức cược thì không vào ván được; bấm **nhận lại 1.000 xu** trong phòng chờ (số lần nhận lại hiện cho cả phòng thấy). Máy hết xu được cấp lại tự động.
 
 ## Cấu trúc
 
-| Thư mục | Nội dung |
-|---|---|
-| `game/` | Luật, luồng ván, bot (Go) |
-| `room/` | Phòng chơi: vào/ra, chủ phòng, máy, hẹn giờ lượt, mất kết nối |
-| `main.go` | HTTP + WebSocket, nhúng `public/` |
-| `public/` | Giao diện web (HTML/CSS/JS thuần) |
+```
+main.go                  khởi động server, đăng ký danh sách game
+internal/wallet/         tài khoản khách, ví xu, sổ cái (SQLite)
+internal/server/         API hub (/api/...), WebSocket từng game (/ws/<game>), file tĩnh
+games/tienlen/           luật, luồng ván, tiền cược, bot
+games/tienlen/online/    phòng chơi online: người vào/ra, máy, hẹn giờ, trả thưởng vào ví
+public/                  trang hub (index.html, hub.js), phần dùng chung (account.js, common.css)
+public/tienlen/          giao diện Tiến Lên
+```
 
-Giao thức WebSocket (`/ws`, JSON): client gửi `create`, `join`, `resume`, `addBot`, `kick`, `start`, `play`, `pass`, `hint`, `leave`;
-server gửi `session`, `state` (riêng cho từng người, chỉ có bài của chính họ), `hint`, `error`, `left`.
+### Thêm một game mới
+
+1. Viết logic và server của game trong `games/<id>/`. Game nhận người chơi qua WebSocket, xác thực bằng token tài khoản
+   (xem `online.Handler` của Tiến Lên), và cộng / trừ xu qua `wallet.Settle(game, ghi chú, map[userID]số xu)` — một transaction, có ghi sổ cái.
+2. Làm giao diện trong `public/<id>/`, dùng `/account.js` (`Account.me()`, `Account.token()`, `Account.requireLogin()`) và `/common.css`.
+3. Đăng ký game trong `games()` ở `main.go` (tên, mô tả, đường dẫn trang, handler WebSocket, số người đang chơi). Trang hub tự hiện game mới.
+
+### API
+
+| | |
+|---|---|
+| `POST /api/guest {name}` | tạo tài khoản khách → `{token, user}` |
+| `GET /api/me` | thông tin + số dư (header `Authorization: Bearer <token>`) |
+| `POST /api/me {name}` | đổi tên |
+| `POST /api/daily` | nhận thưởng ngày (409 nếu đã nhận) |
+| `GET /api/history` | 30 giao dịch gần nhất |
+| `GET /api/games` | danh sách game và số người đang chơi |
+| `GET /api/config` | số xu tặng ban đầu, thưởng ngày |
+
+WebSocket Tiến Lên (`/ws/tienlen`, JSON): client gửi `create {token}`, `join {code, token}`, `addBot`, `kick`, `setBet`, `start`, `play`, `pass`, `hint`, `leave`;
+server gửi `session`, `state` (riêng từng người, chỉ có bài của chính họ), `hint`, `error`, `left`, `auth`.
 
 ## Test
 
@@ -77,4 +109,5 @@ server gửi `session`, `state` (riêng cho từng người, chỉ có bài củ
 go test -race ./...
 ```
 
-Gồm test luật, giả lập 500 ván bot cho mỗi số người 2/3/4, test phòng chơi, và một ván trọn vẹn qua WebSocket thật.
+Gồm: luật, tiền chặt / thối / cóng, giả lập 500 ván bot cho mỗi số người 2/3/4, phòng chơi, ví SQLite (thưởng ngày, số dư không âm,
+rollback), API hub, và một ván trọn vẹn qua WebSocket thật có ghi kết quả vào ví.

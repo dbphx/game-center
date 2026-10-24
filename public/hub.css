@@ -1,0 +1,56 @@
+/* Trang chủ Game Hub: danh sách game và lịch sử xu. */
+
+.center { text-align: center; }
+
+.hub {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.hub h2 { margin: 0 0 12px; font-size: 18px; color: #9fd3b0; }
+
+.games { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.game-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  border-radius: 14px;
+  background: linear-gradient(160deg, #2f7a4f 0%, #1f5636 100%);
+  color: #fff;
+  text-decoration: none;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .3);
+  transition: transform .12s, box-shadow .12s;
+}
+.game-card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(0, 0, 0, .4); }
+.game-card .icon { font-size: 40px; line-height: 1; }
+.game-card h3 { margin: 0; font-size: 20px; }
+.game-card p { margin: 0; font-size: 14px; color: #d6eadd; flex: 1; }
+.game-card .meta { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #bcd8c6; }
+.game-card .play { background: #ffd54a; color: #222; padding: 6px 16px; border-radius: 8px; font-weight: 600; }
+
+.history { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.history li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 16px;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .05);
+  font-size: 14px;
+}
+.history .when { font-size: 12px; color: #8aa596; }
+.history .delta { font-weight: 700; font-variant-numeric: tabular-nums; }
+.history .plus { color: #81c784; }
+.history .minus { color: #ff8a80; }
+.history .after { color: #9fb5a8; font-variant-numeric: tabular-nums; min-width: 90px; text-align: right; }
+.history .empty { color: #6f8a7b; font-style: italic; display: block; }
+
+@media (max-width: 600px) {
+  .history li { grid-template-columns: 1fr auto; }
+  .history .after { display: none; }
+}

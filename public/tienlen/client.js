@@ -1,12 +1,12 @@
-// Client online: mọi luật do server Go quyết định, client chỉ hiển thị và gửi hành động.
+// Client Tiến Lên: mọi luật do server Go quyết định, client chỉ hiển thị và gửi hành động.
 (function () {
   'use strict';
   const R = window.Rules;
+  const A = window.Account;
   const PLACES = ['Nhất', 'Nhì', 'Ba', 'Bét'];
   // Vị trí ghế theo số người, tính từ mình (luôn ở dưới) theo chiều đánh.
   const POSITIONS = { 2: ['bottom', 'top'], 3: ['bottom', 'right', 'left'], 4: ['bottom', 'right', 'top', 'left'] };
-  const TOKEN_KEY = 'tlmn.token';
-  const NAME_KEY = 'tlmn.name';
+  const ROOM_KEY = 'tlmn.room'; // phòng đang ngồi, để tải lại trang thì vào lại đúng ghế
 
   const $ = (id) => document.getElementById(id);
 
@@ -27,10 +27,10 @@
 
   function connect() {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    ws = new WebSocket(`${proto}://${location.host}/ws`);
+    ws = new WebSocket(`${proto}://${location.host}/ws/tienlen`);
     ws.onopen = () => {
-      const token = load(sessionStorage, TOKEN_KEY);
-      if (token) send({ t: 'resume', token });
+      const code = load(sessionStorage, ROOM_KEY) || new URLSearchParams(location.search).get('room');
+      if (code) send({ t: 'join', code, token: A.token() });
       else if (pending) send(pending);
       pending = null;
     };
@@ -50,8 +50,12 @@
   function onMessage(m) {
     switch (m.t) {
       case 'session':
-        store(sessionStorage, TOKEN_KEY, m.token);
+        store(sessionStorage, ROOM_KEY, m.code);
         history.replaceState(null, '', '?room=' + m.code);
+        break;
+      case 'auth':
+        stopped = true;
+        A.requireLogin();
         break;
       case 'state':
         onState(m);
@@ -63,10 +67,10 @@
         render();
         break;
       case 'error':
-        toast(capitalize(m.msg));
+        A.toast(m.msg);
         break;
       case 'left':
-        store(sessionStorage, TOKEN_KEY, null);
+        store(sessionStorage, ROOM_KEY, null);
         state = null;
         history.replaceState(null, '', location.pathname);
         render();
@@ -75,7 +79,7 @@
         stopped = true;
         state = null;
         render();
-        toast('Bạn đã mở phòng này ở tab khác');
+        A.toast('Bạn đã mở phòng này ở tab khác');
         break;
     }
   }
@@ -87,27 +91,23 @@
     if (s.phase === 'playing' && prevPhase !== 'playing') selected.clear();
     selected = new Set([...selected].filter((c) => s.hand.includes(c)));
     deadline = s.turnMs > 0 ? Date.now() + s.turnMs : 0;
+    showBalance(me().coins);
     render();
   }
 
   // ---------- Tiện ích ----------
 
-  const capitalize = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
   const me = () => state.players.find((p) => p.id === state.you);
   const mySeat = () => state.players.findIndex((p) => p.id === state.you);
   const isHost = () => !!(state && me() && me().host);
   const myTurn = () => state.phase === 'playing' && state.turn === mySeat();
-  const xu = (n) => n.toLocaleString('vi-VN');
+  const xu = A.xu;
   const signed = (n) => (n > 0 ? '+' : '') + xu(n);
-  const escapeHtml = (s) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
+  const escapeHtml = A.escapeHtml;
+  const coinsText = (p) => (p.bot ? '—' : xu(p.coins) + ' xu');
 
-  let toastTimer = null;
-  function toast(msg) {
-    const el = $('toast');
-    el.textContent = msg;
-    el.classList.remove('hidden');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.add('hidden'), 3000);
+  function showBalance(coins) {
+    $('balance').textContent = '💰 ' + xu(coins) + ' xu';
   }
 
   function status(msg) {
@@ -150,10 +150,9 @@
         p.host ? '<span class="tag host">Chủ phòng</span>' : '',
         p.bot ? '<span class="tag bot">Máy</span>' : '',
         !p.online || p.left ? '<span class="tag off">Mất kết nối</span>' : '',
-        p.refills ? `<span class="tag refill" title="Số lần nhận lại xu">Nhận lại ×${p.refills}</span>` : '',
       ].join('');
       const kick = host && p.id !== state.you ? `<button class="kick" data-kick="${p.id}">Mời ra</button>` : '';
-      return `<li><span class="pname">${escapeHtml(p.name)}</span>${tags}<span class="coins${p.coins < state.bet ? ' neg' : ''}">${xu(p.coins)} xu</span>${kick}</li>`;
+      return `<li><span class="pname">${escapeHtml(p.name)}</span>${tags}<span class="coins${!p.bot && p.coins < state.bet ? ' neg' : ''}">${coinsText(p)}</span>${kick}</li>`;
     });
     for (let i = state.players.length; i < 4; i++) rows.push('<li class="empty">Ghế trống</li>');
     $('lobby-players').innerHTML = rows.join('');
@@ -163,8 +162,7 @@
     }
     sel.value = state.bet;
     $('bet-text').textContent = xu(state.bet);
-    $('refill-amount').textContent = xu(state.startCoins);
-    $('btn-refill').classList.toggle('hidden', me().coins >= state.bet);
+    $('low-coins').classList.toggle('hidden', me().coins >= state.bet);
     $('btn-add-bot').disabled = state.players.length >= 4;
     $('btn-start').disabled = state.players.filter((p) => !p.left).length < 2;
   }
@@ -263,7 +261,7 @@
     $('game-code').textContent = state.code;
     $('game-bet').textContent = `Cược ${xu(state.gameBet)} xu / mức`;
     $('scores').innerHTML = state.players
-      .map((p) => `<tr><td>${escapeHtml(p.id === state.you ? 'Bạn' : p.name)}</td><td class="coins">${xu(p.coins)}</td></tr>`)
+      .map((p) => `<tr><td>${escapeHtml(p.id === state.you ? 'Bạn' : p.name)}</td><td class="coins">${coinsText(p)}</td></tr>`)
       .join('');
 
     const items = [`<li class="round"><b>Ván ${state.gameNo}</b></li>`];
@@ -339,39 +337,22 @@
     render();
   }
 
-  function playerNameInput() {
-    const name = $('name').value.trim();
-    if (!name) {
-      $('name').focus();
-      toast('Nhập tên trước đã');
-      return null;
-    }
-    store(localStorage, NAME_KEY, name);
-    return name;
-  }
-
   function leave() {
     if (state && state.phase === 'playing' && !confirm('Rời phòng giữa ván? Máy sẽ đánh thay bạn tới hết ván.')) return;
     send({ t: 'leave' });
   }
 
-  $('btn-create').addEventListener('click', () => {
-    const name = playerNameInput();
-    if (name) send({ t: 'create', name });
-  });
+  $('btn-create').addEventListener('click', () => send({ t: 'create', token: A.token() }));
   $('btn-join').addEventListener('click', () => {
-    const name = playerNameInput();
     const code = $('code').value.trim().toUpperCase();
-    if (!name) return;
-    if (code.length !== 4) return toast('Mã phòng gồm 4 chữ cái');
-    send({ t: 'join', name, code });
+    if (code.length !== 4) return A.toast('Mã phòng gồm 4 chữ cái');
+    send({ t: 'join', code, token: A.token() });
   });
   $('code').addEventListener('keydown', (e) => e.key === 'Enter' && $('btn-join').click());
-  $('name').addEventListener('keydown', (e) => e.key === 'Enter' && ($('code').value ? $('btn-join') : $('btn-create')).click());
 
   $('btn-copy').addEventListener('click', () => {
     $('share-link').select();
-    navigator.clipboard?.writeText($('share-link').value).then(() => toast('Đã sao chép link'), () => {});
+    navigator.clipboard?.writeText($('share-link').value).then(() => A.toast('Đã sao chép link'), () => {});
   });
   $('lobby-players').addEventListener('click', (e) => {
     const id = e.target.dataset && e.target.dataset.kick;
@@ -379,7 +360,6 @@
   });
   $('btn-add-bot').addEventListener('click', () => send({ t: 'addBot' }));
   $('bet').addEventListener('change', (e) => send({ t: 'setBet', bet: Number(e.target.value) }));
-  $('btn-refill').addEventListener('click', () => send({ t: 'refill' }));
   $('btn-start').addEventListener('click', () => send({ t: 'start' }));
   $('btn-again').addEventListener('click', () => send({ t: 'start' }));
   $('btn-to-lobby').addEventListener('click', () => { showLobby = true; render(); });
@@ -403,9 +383,15 @@
 
   // ---------- Khởi động ----------
 
-  $('name').value = load(localStorage, NAME_KEY) || '';
-  const roomParam = new URLSearchParams(location.search).get('room');
-  if (roomParam) $('code').value = roomParam.toUpperCase();
-  render();
-  connect();
+  // Chưa có tài khoản thì về hub tạo, xong quay lại đúng link phòng này.
+  A.me().then(
+    (user) => {
+      if (!user) return A.requireLogin();
+      $('user-name').textContent = user.name;
+      showBalance(user.balance);
+      render();
+      connect();
+    },
+    (e) => A.toast(e.message),
+  );
 })();
