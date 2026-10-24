@@ -617,3 +617,23 @@ button.wide { width: 100%; justify-content: center; }
 .hungry-tag { color: #c2410c; }
 
 .pen-label { position: absolute; transform: translateX(-50%); cursor: pointer; }
+
+/* ---------- Cây kiểu Việt + khóm hoa ---------- */
+.obj.decor.sway img { animation: treesway 4.5s ease-in-out infinite; transform-origin: 50% 100%; }
+.obj.decor.sway.slow img { animation-duration: 6s; }
+.obj.decor.flip.sway img { animation-name: treesway-flip; }
+@keyframes treesway { 0%, 100% { transform: rotate(-1.2deg); } 50% { transform: rotate(1.4deg); } }
+@keyframes treesway-flip { 0%, 100% { transform: scaleX(-1) rotate(-1.2deg); } 50% { transform: scaleX(-1) rotate(1.4deg); } }
+.obj.decor img { filter: drop-shadow(0 4px 3px rgba(60, 40, 10, .25)); }
+.flower-clump { position: absolute; transform: translate(-50%, -100%); pointer-events: none; }
+.petal {
+  position: absolute; z-index: 3000; width: 10px; height: 10px; pointer-events: none;
+  animation: petal-fall 4s linear forwards;
+}
+@keyframes petal-fall {
+  0% { opacity: 0; transform: translate(0, 0) rotate(0); }
+  10% { opacity: 1; }
+  50% { transform: translate(calc(var(--dx) * .6), calc(var(--fall) * .5)) rotate(200deg); }
+  85% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--dx), var(--fall)) rotate(400deg); }
+}

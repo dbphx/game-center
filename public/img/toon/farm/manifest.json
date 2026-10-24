@@ -1165,6 +1165,127 @@
    "source": [
     "DCity (vẽ / ghép bằng PIL cho dự án)"
    ]
+  },
+  {
+   "file": "tree_mai.png",
+   "w": 210,
+   "h": 230,
+   "use": "Cây mai vàng (hoa 5 cánh), đung đưa, rơi cánh petal_mai",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "tree_dao.png",
+   "w": 210,
+   "h": 230,
+   "use": "Cây đào hồng, đung đưa, rơi cánh petal_dao",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "tree_chuoi.png",
+   "w": 218,
+   "h": 210,
+   "use": "Cây chuối có buồng",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "tree_tre.png",
+   "w": 170,
+   "h": 250,
+   "use": "Bụi tre",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "petal_mai.png",
+   "w": 12,
+   "h": 12,
+   "use": "Cánh hoa mai rơi",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "petal_dao.png",
+   "w": 12,
+   "h": 12,
+   "use": "Cánh hoa đào rơi",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "flower_red.png",
+   "w": 68,
+   "h": 54,
+   "use": "Khóm hoa nhỏ màu đỏ (rải trên mảng cỏ)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "flower_yellow.png",
+   "w": 68,
+   "h": 54,
+   "use": "Khóm hoa nhỏ màu vàng (rải trên mảng cỏ)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "flower_pink.png",
+   "w": 68,
+   "h": 54,
+   "use": "Khóm hoa nhỏ màu hồng (rải trên mảng cỏ)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "flower_purple.png",
+   "w": 68,
+   "h": 54,
+   "use": "Khóm hoa nhỏ màu tím (rải trên mảng cỏ)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "flower_white.png",
+   "w": 68,
+   "h": 54,
+   "use": "Khóm hoa nhỏ màu trắng (rải trên mảng cỏ)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
   }
  ]
 }

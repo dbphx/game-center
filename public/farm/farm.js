@@ -322,8 +322,54 @@
   }
 
   // Đồ trang trí đặt theo chân (x, y).
-  const deco = (name, x, y, h, flip = false) =>
-    `<span class="obj decor${flip ? ' flip' : ''}" style="${pos(x, y)}">${art.img(name, { h })}</span>`;
+  const deco = (name, x, y, h, flip = false, cls = '') =>
+    `<span class="obj decor${flip ? ' flip' : ''}${cls ? ' ' + cls : ''}" data-tree="${/^tree_(mai|dao)/.test(name) ? name.slice(5) : ''}" style="${pos(x, y)}">${art.img(name, { h })}</span>`;
+
+  // Khóm hoa nhỏ nhiều màu rải trên các mảng cỏ (ngẫu nhiên cố định theo seed) — lớp mặt đất dưới nhân vật.
+  function flowersHTML() {
+    let seed = 20240214;
+    const r = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+    const colors = ['red', 'yellow', 'pink', 'purple', 'white'];
+    const zones = [
+      [PEN.x1 + 24, 340, PEN.x2 - 24, PEN.y2 - 30, 10], // trong chuồng
+      [480, 362, 700, 455, 5], // lô cỏ giữa
+      [POND_BOX.x + 10, POND_BOX.y + POND_BOX.h - 26, POND_BOX.x + POND_BOX.w - 10, POND_BOX.y + POND_BOX.h - 8, 6], // bờ ao dưới
+      [POND_BOX.x + 10, POND_BOX.y + 6, POND_BOX.x + POND_BOX.w - 10, POND_BOX.y + 18, 3], // bờ ao trên
+      [16, SKY + 10, W - 16, SKY + 26, 18], // dải cỏ dưới hàng rào
+    ];
+    const out = [];
+    for (const [x1, y1, x2, y2, n] of zones) {
+      for (let i = 0; i < n; i++) {
+        const x = x1 + r() * (x2 - x1);
+        const y = y1 + r() * (y2 - y1);
+        const c = colors[Math.floor(r() * colors.length)];
+        out.push(`<span class="flower-clump" style="${pos(x, y, 4)}">${art.img(`flower_${c}`, { h: Math.round(26 + r() * 10) })}</span>`);
+      }
+    }
+    return out.join('');
+  }
+
+  // Cánh mai / đào thỉnh thoảng rơi từ tán cây.
+  function dropPetal() {
+    const trees = document.querySelectorAll('[data-tree="mai"], [data-tree="dao"]');
+    if (!trees.length || document.hidden) return;
+    const t = trees[Math.floor(Math.random() * trees.length)];
+    const img = t.querySelector('img');
+    const x = t.offsetLeft + (Math.random() - 0.5) * img.width * 0.8;
+    const y = t.offsetTop - img.height * (0.45 + Math.random() * 0.4);
+    const el = document.createElement('img');
+    el.className = 'petal';
+    el.src = `${IMG}petal_${t.dataset.tree}.png`;
+    el.alt = '';
+    el.style.left = `${Math.round(x)}px`;
+    el.style.top = `${Math.round(y)}px`;
+    el.style.setProperty('--dx', `${Math.round((Math.random() - 0.3) * 70)}px`);
+    el.style.setProperty('--fall', `${Math.round(img.height * (0.5 + Math.random() * 0.4))}px`);
+    el.style.animationDuration = `${3 + Math.random() * 2}s`;
+    $('pets').appendChild(el);
+    setTimeout(() => el.remove(), 5200);
+  }
+  setInterval(dropPetal, 700);
 
   function renderWorld() {
     computeLayout();
@@ -370,7 +416,7 @@
     // Lô cỏ nhỏ giữa (giếng, cây ăn trái, hoa) và gà con đi dạo.
     parts.push(`<span class="patch" style="left:470px;top:350px;width:236px;height:112px;z-index:3"></span>`);
     parts.push(deco('well', 544, 450, 72));
-    parts.push(deco('tree_med', 652, 450, 104));
+    parts.push(deco('tree_mai', 654, 452, 132, false, 'sway blossom'));
     parts.push(deco('flowers', 494, 400, 30));
     for (const [x, y, k, d] of [[470, 520, 'chicken_white', 9], [600, 540, 'chicken_white', 12], [720, 330, 'chicken', 10]]) {
       parts.push(`<span class="obj decor stroll" style="${pos(x, y)};--dur:${d}s">${art.img(`animal_${k}`, { h: 30 })}</span>`);
@@ -387,8 +433,14 @@
     parts.push(pondHTML());
     objs.pond = { x: POND_BOX.x - 18, y: POND_BOX.y + 130, face: 'right', hx: POND_BOX.x + POND_BOX.w / 2, hy: POND_BOX.y + 8, verb: farm.pond ? 'Xem ao' : 'Mua ao', run: () => openPen('pond') };
 
-    parts.push(deco('wheelbarrow', 730, 600, 44, true));
-    parts.push(deco('hay', W - 40, 600, 38));
+    // Cây kiểu Việt ở rìa: mai, đào hai bên cổng, đào trong chuồng, chuối + tre sau ao, mai góc phải.
+    parts.push(deco('tree_mai', 448, 606, 150, false, 'sway blossom'));
+    parts.push(deco('tree_dao', 704, 606, 128, true, 'sway blossom'));
+    parts.push(deco('tree_dao', 352, 322, 150, false, 'sway blossom'));
+    parts.push(deco('tree_chuoi', POND_BOX.x + 60, 246, 136, false, 'sway'));
+    parts.push(deco('tree_tre', POND_BOX.x + POND_BOX.w - 30, 246, 160, false, 'sway slow'));
+    parts.push(deco('tree_mai', W - 26, 606, 140, true, 'sway blossom'));
+    parts.push(flowersHTML());
 
     $('objects').innerHTML = parts.join('');
     syncPets();
