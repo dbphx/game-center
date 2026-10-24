@@ -227,6 +227,7 @@
       [PEN.x2 - 140, 536, PEN.x2 - 14, 566], // cây rơm trong chuồng
       [X(404), 262, X(604), 296], // kho thóc
       [X(640), 270, X(772), 296], // kho giống
+      [X(560), 212, X(664), 238], // đống rơm sau hai kho
       [POND_BOX.x + 14, POND_BOX.y - 24, POND_BOX.x + 70, POND_BOX.y - 6], // giếng (cạnh cây đa sau ao)
       [POND_BOX.x + POND_BOX.w / 2 - 20, POND_BOX.y - 14, POND_BOX.x + POND_BOX.w / 2 + 40, POND_BOX.y + 4], // gốc cây đa
       [X(588), 476, X(612), 490], // gốc cây mai lô giữa
@@ -502,6 +503,9 @@
     // Chuồng gia súc ở mép trái.
     parts.push(yardHTML());
     objs.barn = { x: PEN.x2 + 26, y: 450, face: 'left', hx: (PEN.x1 + PEN.x2) / 2, hy: PEN.y1 + 14, verb: farm.barn ? 'Xem chuồng' : 'Mua chuồng', run: () => openPen('barn') };
+
+    // Đống rơm phía sau, giữa hai kho (trước luỹ tre, sau hai kho — nhô lên giữa hai mái).
+    parts.push(deco('haystack', X(612), 236, 176));
 
     // Hai kho ở rìa: sát hàng rào sau, cạnh chuồng.
     parts.push(storeObjHTML('products', X(504), 296, 'hut_rice', 190));
