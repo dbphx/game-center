@@ -83,7 +83,7 @@ func (e *env) user(uid int64) wallet.User {
 
 func (e *env) bet(face string, amount int64) State {
 	e.t.Helper()
-	s, err := e.g.Bet(ctx, e.uid, face, amount)
+	s, err := e.g.Bet(ctx, Lobby, e.uid, face, amount)
 	if err != nil {
 		e.t.Fatal(err)
 	}
@@ -110,21 +110,21 @@ func TestBetChargesAndPhases(t *testing.T) {
 		t.Fatal("chưa mở bát thì không lộ xúc xắc")
 	}
 
-	if _, err := e.g.Bet(ctx, e.uid, "rong", 10); status(err) != http.StatusBadRequest {
+	if _, err := e.g.Bet(ctx, Lobby, e.uid, "rong", 10); status(err) != http.StatusBadRequest {
 		t.Fatalf("mặt lạ phải 400, được %v", err)
 	}
-	if _, err := e.g.Bet(ctx, e.uid, "cua", 30); status(err) != http.StatusBadRequest {
+	if _, err := e.g.Bet(ctx, Lobby, e.uid, "cua", 30); status(err) != http.StatusBadRequest {
 		t.Fatalf("chip lạ phải 400, được %v", err)
 	}
-	if _, err := e.g.Bet(ctx, e.uid, "cua", 1000); status(err) != http.StatusPaymentRequired {
+	if _, err := e.g.Bet(ctx, Lobby, e.uid, "cua", 1000); status(err) != http.StatusPaymentRequired {
 		t.Fatalf("không đủ xu phải 402, được %v", err)
 	}
 
 	e.clock = e.clock.Add(BettingTime)
-	if _, err := e.g.Bet(ctx, e.uid, "cua", 10); status(err) != http.StatusConflict {
+	if _, err := e.g.Bet(ctx, Lobby, e.uid, "cua", 10); status(err) != http.StatusConflict {
 		t.Fatalf("hết giờ cược phải 409, được %v", err)
 	}
-	s, _ = e.g.State(ctx, e.uid)
+	s, _ = e.g.State(ctx, Lobby, e.uid)
 	if s.Phase != PhaseRolling || s.Dice != nil {
 		t.Fatalf("đang lắc: pha %s, xúc xắc %v", s.Phase, s.Dice)
 	}
@@ -135,7 +135,7 @@ func TestMaxTotal(t *testing.T) {
 	for range 20 {
 		e.bet("bau", 1000)
 	}
-	if _, err := e.g.Bet(ctx, e.uid, "tom", 10); status(err) != http.StatusConflict {
+	if _, err := e.g.Bet(ctx, Lobby, e.uid, "tom", 10); status(err) != http.StatusConflict {
 		t.Fatalf("vượt %d xu một vòng phải 409, được %v", MaxTotal, err)
 	}
 }
@@ -172,13 +172,13 @@ func TestSettleOnceAndReveal(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if _, err := e.g.State(ctx, e.uid); err != nil {
+			if _, err := e.g.State(ctx, Lobby, e.uid); err != nil {
 				t.Error(err)
 			}
 		}()
 	}
 	wg.Wait()
-	s, err := e.g.State(ctx, e.uid)
+	s, err := e.g.State(ctx, Lobby, e.uid)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -201,7 +201,7 @@ func TestSettleOnceAndReveal(t *testing.T) {
 
 	// Vòng sau: lịch sử còn đó, cược mới về 0.
 	e.clock = e.clock.Add(ResultTime)
-	s, _ = e.g.State(ctx, e.uid)
+	s, _ = e.g.State(ctx, Lobby, e.uid)
 	if s.Round != round0+1 || s.Phase != PhaseBetting || s.Mine.Total != 0 || len(s.History) != 1 {
 		t.Fatalf("vòng mới: %+v", s)
 	}
@@ -216,7 +216,7 @@ func TestLateSettle(t *testing.T) {
 	e.dice = [3]string{"bau", "bau", "bau"}
 	e.bet("bau", 100)
 	e.clock = e.clock.Add(5 * RoundTime)
-	if _, err := e.g.State(ctx, 0); err != nil {
+	if _, err := e.g.State(ctx, Lobby, 0); err != nil {
 		t.Fatal(err)
 	}
 	if u := e.user(e.uid); u.Balance != 1300 || u.XP != XPPlay+XPWin {
@@ -228,9 +228,9 @@ func TestLoseGivesPlayXP(t *testing.T) {
 	e := newEnv(t, 1000)
 	e.bet("nai", 500)
 	e.clock = e.clock.Add(BettingTime)
-	s, _ := e.g.State(ctx, e.uid)
+	s, _ := e.g.State(ctx, Lobby, e.uid)
 	e.clock = e.clock.Add(RollingTime)
-	s, _ = e.g.State(ctx, e.uid)
+	s, _ = e.g.State(ctx, Lobby, e.uid)
 	if *s.Mine.Won != 0 || *s.Mine.Net != -500 || *s.Balance != 500 {
 		t.Fatalf("thua: %+v số dư %d", s.Mine, *s.Balance)
 	}
@@ -243,19 +243,19 @@ func TestClearRefunds(t *testing.T) {
 	e := newEnv(t, 1000)
 	e.bet("tom", 500)
 	e.bet("ca", 100)
-	s, err := e.g.Clear(ctx, e.uid)
+	s, err := e.g.Clear(ctx, Lobby, e.uid)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if *s.Balance != 1000 || s.Mine.Total != 0 || len(s.Players) != 0 {
 		t.Fatalf("huỷ cược: số dư %d, %+v", *s.Balance, s.Mine)
 	}
-	if _, err := e.g.Clear(ctx, e.uid); status(err) != http.StatusConflict {
+	if _, err := e.g.Clear(ctx, Lobby, e.uid); status(err) != http.StatusConflict {
 		t.Fatalf("huỷ khi chưa đặt phải 409, được %v", err)
 	}
 	e.bet("tom", 10)
 	e.clock = e.clock.Add(BettingTime)
-	if _, err := e.g.Clear(ctx, e.uid); status(err) != http.StatusConflict {
+	if _, err := e.g.Clear(ctx, Lobby, e.uid); status(err) != http.StatusConflict {
 		t.Fatalf("hết giờ cược không huỷ được, được %v", err)
 	}
 }
@@ -273,7 +273,7 @@ func TestRefundOnRestart(t *testing.T) {
 		t.Fatalf("khởi động lại phải hoàn cược, số dư %d", b)
 	}
 	e.clock = e.clock.Add(BettingTime + RollingTime)
-	s, _ := e.g.State(ctx, e.uid)
+	s, _ := e.g.State(ctx, Lobby, e.uid)
 	if s.Mine.Total != 0 || s.Mine.Won != nil {
 		t.Fatalf("cược đã hoàn không còn tính: %+v", s.Mine)
 	}
@@ -298,7 +298,7 @@ func TestNoPayoutWhileRolling(t *testing.T) {
 	e := newEnv(t, 1000)
 	e.bet("cua", 100) // ra 2 lần: nhận 300
 	e.clock = e.clock.Add(BettingTime + time.Second)
-	s, err := e.g.State(ctx, e.uid)
+	s, err := e.g.State(ctx, Lobby, e.uid)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -306,7 +306,7 @@ func TestNoPayoutWhileRolling(t *testing.T) {
 		t.Fatalf("đang lắc đã trả thưởng: pha %s, số dư %d, ví %d", s.Phase, *s.Balance, e.user(e.uid).Balance)
 	}
 	e.clock = e.clock.Add(RollingTime)
-	if s, _ = e.g.State(ctx, e.uid); s.Phase != PhaseResult || *s.Balance != 1200 {
+	if s, _ = e.g.State(ctx, Lobby, e.uid); s.Phase != PhaseResult || *s.Balance != 1200 {
 		t.Fatalf("mở bát: pha %s, số dư %d", s.Phase, *s.Balance)
 	}
 }

@@ -20,15 +20,41 @@
     </div>
   </header>
 
+  <!-- Sảnh: sòng chung (máy làm cái) và các bàn riêng của người chơi -->
+  <main class="lobby hidden" id="lobby">
+    <div class="lobby-head">
+      <div class="lobby-title">
+        <div class="lobby-faces" id="lobby-faces"></div>
+        <div>
+          <h1>Sảnh Bầu Cua</h1>
+          <p class="muted">Vào sòng chung, hoặc mở bàn riêng mời bạn bè — ai muốn thì làm cái.</p>
+        </div>
+      </div>
+      <div class="lobby-actions">
+        <form class="code-form" id="code-form">
+          <input id="code-input" placeholder="Nhập mã bàn" maxlength="12" autocomplete="off" aria-label="Mã bàn">
+          <button type="submit"><i data-icon="door"></i>Vào</button>
+        </form>
+        <button class="primary" id="btn-create"><i data-icon="plus"></i>Tạo bàn</button>
+      </div>
+    </div>
+    <div class="tables" id="tables"><p class="muted">Đang tải các bàn...</p></div>
+  </main>
+
   <main class="room hidden" id="room">
-    <!-- Đầu sòng: tên game, vòng, pha + đồng hồ, lịch sử 10 vòng -->
+    <!-- Đầu sòng: tên game, mã bàn, vòng, pha + đồng hồ, lịch sử 10 vòng -->
     <div class="room-head">
       <div class="title">
-        <h1>Bầu Cua Tôm Cá</h1>
+        <h1 id="room-title">Bầu Cua Tôm Cá</h1>
         <span class="round" id="round"></span>
       </div>
       <div class="phase" id="phase"><span class="phase-text" id="phase-text"></span><b class="clock" id="clock"></b></div>
       <div class="history" id="history" title="Kết quả 10 vòng gần nhất (mới nhất bên trái)"></div>
+      <div class="room-tools">
+        <span class="room-code hidden" id="room-code" title="Mã bàn"></span>
+        <button class="hidden" id="btn-invite"><i data-icon="link"></i>Mời bạn</button>
+        <button id="btn-lobby"><i data-icon="arrowLeft"></i>Sảnh</button>
+      </div>
     </div>
 
     <div class="arena">
@@ -38,12 +64,17 @@
       <div class="center">
         <!-- Nhà cái: bàn gỗ, đĩa, bát úp, 3 xúc xắc -->
         <div class="dealer" id="dealer">
+          <div class="banker" id="banker"></div>
+          <div class="banker-tag" id="banker-tag"></div>
           <img class="dealer-table" src="/img/toon/baucua/dealer_table.png" alt="" draggable="false">
           <img class="plate" src="/img/toon/baucua/plate.png" alt="" draggable="false">
           <div class="dice" id="dice"></div>
           <img class="bowl" id="bowl" src="/img/toon/baucua/bowl.png" alt="" draggable="false">
           <div class="banner" id="banner"></div>
         </div>
+
+        <!-- Bàn có người làm cái: giới hạn tổng cược mỗi vòng theo quỹ cái -->
+        <p class="table-left hidden" id="table-left"></p>
 
         <!-- Chiếu cược 6 ô -->
         <div class="board" id="board"></div>
@@ -52,16 +83,41 @@
       <div class="crowd right" id="crowd-right"></div>
     </div>
 
+    <!-- Người làm cái: không đặt cược, thấy tổng cược bàn so với giới hạn quỹ -->
+    <div class="dock bank-dock hidden" id="bank-dock">
+      <div class="bank-info">
+        <span class="muted">Bạn đang làm cái · Quỹ</span><b id="bank-fund">0</b>
+        <span class="muted">Tổng cược bàn</span><b id="bank-total">0</b><span class="muted" id="bank-max"></span>
+      </div>
+      <div class="bank-meter"><span id="bank-meter"></span></div>
+      <button id="btn-unbank"><i data-icon="logOut"></i>Thôi làm cái</button>
+    </div>
+
     <!-- Thanh chip: chọn mức rồi bấm ô để đặt -->
-    <div class="dock">
+    <div class="dock" id="dock">
       <div class="chips" id="chips" role="radiogroup" aria-label="Mức chip"></div>
       <div class="dock-info">
         <div><span class="muted">Đã cược</span><b id="my-total">0</b><span class="muted" id="max-total"></span></div>
         <button id="btn-clear"><i data-icon="undo"></i>Huỷ cược</button>
+        <button class="primary hidden" id="btn-bank"><i data-icon="crown"></i>Làm cái</button>
       </div>
     </div>
     <div class="crowd mobile" id="crowd-mobile"></div>
   </main>
+
+  <!-- Làm cái: nhập quỹ cái -->
+  <dialog class="modal bank-dlg" id="dlg-bank">
+    <form method="dialog" id="bank-form">
+      <h2><i data-icon="crown"></i>Làm cái bàn này</h2>
+      <p class="muted">Bạn đặt một khoản quỹ để trả thưởng. Người chơi đặt cược với bạn thay vì với máy; tổng cược mỗi vòng
+        tối đa bằng 1/3 quỹ. Thôi làm cái thì quỹ còn lại trả về ví.</p>
+      <div class="presets" id="bank-presets"></div>
+      <label class="fund-field"><span>Quỹ cái (xu)</span>
+        <input type="number" id="bank-input" min="3000" step="100" required></label>
+      <p class="muted bank-hint" id="bank-hint"></p>
+      <div class="actions"><button value="cancel" formnovalidate>Huỷ</button><button class="primary" value="ok"><i data-icon="crown"></i>Làm cái</button></div>
+    </form>
+  </dialog>
 
   <script src="/icons.js"></script>
   <script src="/character.js"></script>

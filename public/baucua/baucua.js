@@ -1,5 +1,7 @@
-// Bầu Cua Tôm Cá của DCity: một sòng chung cho cả thành phố, mỗi vòng 30 giây (đặt cược 20 s → lắc 4 s → mở bát 6 s).
-// Server quyết định mọi thứ (/api/baucua/...): trang này chỉ hiển thị, đếm ngược theo giờ server và gửi lệnh đặt / huỷ cược.
+// Bầu Cua Tôm Cá của DCity: sảnh gồm sòng chung (máy làm cái) và các bàn riêng mời bạn bè, trong bàn riêng ai muốn thì
+// làm cái bằng quỹ của mình. Mỗi vòng 30 giây (đặt cược 20 s → lắc 4 s → mở bát 6 s).
+// Server quyết định mọi thứ (/api/baucua/...): trang này chỉ hiển thị, đếm ngược theo giờ server và gửi lệnh.
+// /baucua/ là sảnh, /baucua/?room=MÃ vào thẳng một bàn (link mời).
 // Hình hoạt hình CC0 ở /img/toon/baucua (xem manifest.json, CREDITS.csv).
 (function () {
   'use strict';
@@ -21,6 +23,15 @@
   const faceImg = (id, size, cls = '') => `<img class="face ${cls}" src="${IMG}face_${id}.png" width="${size}" height="${size}" alt="" draggable="false">`;
   const chipImg = (v, size = 34, cls = '') => `<img class="chip-img ${cls}" src="${IMG}chip_${v}.png" width="${size}" height="${Math.round(size * 1.05)}" alt="" draggable="false">`;
 
+  const BANK_MIN = 3000; // quỹ cái tối thiểu (khớp games/baucua MinBankroll)
+  const LOBBY = 'chung'; // mã sòng chung (máy làm cái)
+  const BANK_PRESETS = [3000, 10000, 50000];
+
+  // Bàn đang ngồi: null = đang ở sảnh; '' = sòng chung khi server không đặt mã cho nó.
+  const roomCode = new URLSearchParams(location.search).get('room');
+  const roomQuery = () => (roomCode ? `?room=${encodeURIComponent(roomCode)}` : '');
+  const goRoom = (code) => (location.href = `/baucua/?room=${encodeURIComponent(code || '')}`);
+
   let user = null;
   let st = null; // trạng thái sòng mới nhất
   let offset = 0; // giờ server − giờ máy (ms)
@@ -28,8 +39,16 @@
   let seen = { round: null, phase: null }; // để chỉ chạy hiệu ứng một lần mỗi pha
   let busy = false;
   let pollTimer = null;
+  let fundAtRoll = null; // quỹ cái lúc bắt đầu lắc, để tính lời / lỗ của người làm cái
 
   const serverNow = () => Date.now() + offset;
+  const isMe = (p) => !!(p && user && p.name === user.name);
+  const room = () => (st && st.room) || null;
+  const banker = () => (room() && room().banker) || null;
+  // Server báo mine.banker; máy chủ cũ không có thì so tên.
+  const amBanker = () => (st && st.mine && typeof st.mine.banker === 'boolean' ? st.mine.banker : isMe(banker()));
+  // Bàn riêng có chủ bàn; sòng chung thì không (máy luôn làm cái).
+  const isPrivate = () => !!(room() && room().host);
 
   // Ghi HTML chỉ khi nội dung đổi — poll mỗi giây không làm hiệu ứng (xúc xắc rơi, ô sáng) chạy lại.
   function setHTML(id, html) {
@@ -118,10 +137,12 @@
 
   // Người chơi trong sòng: chia hai bên bàn (máy tính) hoặc một hàng cuộn ngang (điện thoại).
   function renderCrowd() {
-    const players = (st.players || []).slice(0, 10);
+    const all = (room() && room().members) || st.players || [];
+    const b = banker();
+    const players = all.filter((p) => !(b && p.name === b.name)).slice(0, 10);
     const tag = (p) => `<span class="p-tag"><span class="lv">Lv ${p.level || 1}</span>${esc(p.name)}</span>
       <span class="p-bet">${p.total ? `${I.svg('coins')}${xu(p.total)}` : 'Đang xem'}</span>`;
-    const person = (p, dir) => `<div class="person${user && p.name === user.name ? ' me' : ''}">
+    const person = (p, dir) => `<div class="person${isMe(p) ? ' me' : ''}">
         ${C.sprite(p, { size: 110, dir })}<span class="shadow"></span>${tag(p)}</div>`;
     const left = players.filter((_, i) => i % 2 === 0);
     const right = players.filter((_, i) => i % 2 === 1);
@@ -129,7 +150,52 @@
     setHTML('crowd-right', right.map((p) => person(p, 'left')).join(''));
     setHTML('crowd-mobile', players.length
       ? players.map((p) => person(p, 'down')).join('')
-      : '<p class="muted">Chưa ai đặt cược vòng này — bạn mở hàng nhé!</p>');
+      : `<p class="muted">${isPrivate() ? 'Bàn còn trống — bấm "Mời bạn" để gửi link cho bạn bè.' : 'Chưa ai đặt cược vòng này — bạn mở hàng nhé!'}</p>`);
+  }
+
+  // Lãi / lỗ của quỹ cái trong vòng vừa mở bát (server chỉ gửi ở pha mở bát).
+  const netTag = (b) => (st.phase === 'result' && typeof b.net === 'number' && b.net
+    ? `<b class="net ${b.net > 0 ? 'plus' : 'minus'}">${b.net > 0 ? '+' : '−'}${xu(Math.abs(b.net))}</b>` : '');
+
+  // Nhà cái: máy, hoặc nhân vật người làm cái đứng sau bàn kèm quỹ cái.
+  function renderBanker() {
+    const b = banker();
+    setHTML('banker', b ? C.sprite(b, { size: 104, dir: 'down' }) : '');
+    setHTML('banker-tag', b
+      ? `<span class="who">${I.svg('crown')}Cái: ${esc(b.name)}${amBanker() ? ' (bạn)' : ''}</span><span class="fund">${I.svg('coins')}Quỹ ${xu(b.bankroll || 0)}${netTag(b)}</span>${b.leaving ? '<span class="leaving">Sắp thôi làm cái</span>' : ''}`
+      : `<span class="who">${I.svg('bot')}Máy làm cái</span>`);
+    $('dealer').classList.toggle('has-banker', !!b);
+  }
+
+  // Thông tin bàn: tên, mã, mời bạn; nút làm cái / thôi làm cái; giới hạn cược theo quỹ cái.
+  function renderTable() {
+    const r = room();
+    const priv = isPrivate();
+    $('room-title').textContent = priv ? `Bàn của ${r.host.name}` : 'Sòng chung';
+    $('room-code').classList.toggle('hidden', !priv);
+    $('btn-invite').classList.toggle('hidden', !priv);
+    if (priv) $('room-code').textContent = `Mã ${r.code}`;
+    const b = banker();
+    const me = amBanker();
+    $('dock').classList.toggle('hidden', me);
+    $('bank-dock').classList.toggle('hidden', !me);
+    $('btn-bank').classList.toggle('hidden', !priv || !!b);
+    const max = (r && r.maxRoundTotal) || 0;
+    const total = (r && r.roundTotal) || 0;
+    if (me) {
+      $('bank-fund').textContent = xu(b.bankroll || 0);
+      $('bank-total').textContent = xu(total);
+      $('bank-max').textContent = max ? ` / tối đa ${xu(max)}` : '';
+      $('bank-meter').style.width = `${max ? Math.min(100, Math.round((total / max) * 100)) : 0}%`;
+      $('btn-unbank').disabled = !!b.leaving;
+      $('btn-unbank').lastChild.textContent = b.leaving ? 'Thôi sau vòng này' : 'Thôi làm cái';
+    }
+    const left = $('table-left');
+    left.classList.toggle('hidden', !b || me);
+    if (b && !me) {
+      const remain = Math.max(0, max - total);
+      left.innerHTML = `${I.svg('crown')}<span>Cái <b>${esc(b.name)}</b> nhận tối đa <b>${xu(max)}</b> xu mỗi vòng — còn nhận được <b class="${remain ? '' : 'full'}">${xu(remain)}</b> xu</span>`;
+    }
   }
 
   function renderDice() {
@@ -167,6 +233,8 @@
     renderCrowd();
     renderDice();
     renderDock();
+    renderBanker();
+    renderTable();
   }
 
   // ---------- Hiệu ứng ----------
@@ -217,8 +285,21 @@
   // Chạy khi sang pha mới: lắc bát, mở bát, trả thưởng.
   function onPhase(prev) {
     if (st.phase === 'betting' && prev) banner('Mời đặt cược!', 'go');
-    if (st.phase === 'rolling') banner('Nhà cái lắc bát...', 'roll');
+    if (st.phase === 'rolling') {
+      banner(banker() ? `Cái ${banker().name} lắc bát...` : 'Nhà cái lắc bát...', 'roll');
+      fundAtRoll = amBanker() ? banker().bankroll || 0 : null;
+    }
     if (st.phase !== 'result' || !st.dice) return;
+    if (amBanker() && fundAtRoll !== null) {
+      const names = st.dice.map((d) => (FACES.find((f) => f.id === d) || { name: d }).name).join(' · ');
+      const diff = typeof banker().net === 'number' ? banker().net : (banker().bankroll || 0) - fundAtRoll;
+      setTimeout(() => {
+        banner(diff > 0 ? `${names} — Cái ăn ${xu(diff)} xu!` : diff < 0 ? `${names} — Cái chung ${xu(-diff)} xu` : names, diff > 0 ? 'win' : diff < 0 ? 'lose' : '');
+        if (diff) float($('bank-fund'), `${diff > 0 ? '+' : '−'}${xu(Math.abs(diff))} xu`, diff > 0 ? 'plus' : 'minus');
+      }, 500);
+      setTimeout(refreshUser, 900);
+      return;
+    }
     const mine = st.mine || {};
     const bets = mine.bets || {};
     const counts = {};
@@ -284,9 +365,10 @@
 
   async function poll() {
     try {
-      apply(await A.api('/api/baucua/state'));
+      apply(await A.api('/api/baucua/state' + roomQuery()));
     } catch (e) {
       if (e.status === 401) return A.requireLogin();
+      if (e.status === 404) return gone(e.message);
       schedule();
     }
   }
@@ -295,7 +377,9 @@
     if (busy) return;
     busy = true;
     try {
-      apply(await A.api(path, { method: 'POST', body: body || {} }));
+      const data = await A.api(path, { method: 'POST', body: { ...(body || {}), ...(roomCode ? { room: roomCode } : {}) } });
+      if (data && data.round !== undefined) apply(data);
+      else poll();
       return true;
     } catch (e) {
       if (e.status === 401) return A.requireLogin();
@@ -332,6 +416,151 @@
 
   $('btn-clear').addEventListener('click', () => send('/api/baucua/clear'));
 
+  // ---------- Bàn riêng: mời bạn, làm cái ----------
+
+  // Bàn không còn (chủ bàn đóng / mã sai): báo rồi về sảnh.
+  function gone(msg) {
+    clearTimeout(pollTimer);
+    A.toast(msg || 'Bàn này không còn nữa');
+    setTimeout(() => (location.href = '/baucua/'), 1500);
+  }
+
+  $('btn-lobby').addEventListener('click', () => (location.href = '/baucua/'));
+
+  $('btn-invite').addEventListener('click', async () => {
+    const link = location.origin + ((st && st.invite) || `/baucua/?room=${encodeURIComponent(roomCode || '')}`);
+    try {
+      await navigator.clipboard.writeText(link);
+      A.toast('Đã sao chép link mời — gửi cho bạn bè để vào bàn');
+    } catch (e) {
+      window.prompt('Sao chép link mời:', link);
+    }
+  });
+
+  $('bank-presets').innerHTML = BANK_PRESETS.map((v) => `<button type="button" data-fund="${v}">${I.svg('coins')}${xu(v)}</button>`).join('');
+  $('bank-presets').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-fund]');
+    if (b) $('bank-input').value = b.dataset.fund;
+  });
+  $('btn-bank').addEventListener('click', () => {
+    $('bank-input').value = Math.min(Math.max(BANK_MIN, 10000), Math.max(BANK_MIN, user.balance));
+    $('bank-hint').textContent = `Tối thiểu ${xu(BANK_MIN)} xu · ví bạn đang có ${xu(user.balance)} xu. Làm cái thì không đặt cược.`;
+    $('dlg-bank').showModal();
+  });
+  $('bank-form').addEventListener('submit', async (e) => {
+    if (e.submitter && e.submitter.value === 'cancel') return;
+    const bankroll = Number($('bank-input').value);
+    if (!(bankroll >= BANK_MIN)) {
+      e.preventDefault();
+      return A.toast(`Quỹ cái tối thiểu ${xu(BANK_MIN)} xu`);
+    }
+    if (await send('/api/baucua/bank', { bankroll })) {
+      A.toast(`Bạn đang làm cái với quỹ ${xu(bankroll)} xu`);
+      refreshUser();
+    }
+  });
+  $('btn-unbank').addEventListener('click', async () => {
+    if (await send('/api/baucua/unbank')) {
+      A.toast(banker() && banker().leaving ? 'Bạn sẽ thôi làm cái sau khi chốt vòng này — quỹ còn lại về ví' : 'Đã thôi làm cái — quỹ còn lại về ví');
+      refreshUser();
+    }
+  });
+
+  // Vào bàn thì báo server (để hiện trong danh sách thành viên); rời trang thì báo rời, kể cả khi đóng tab.
+  async function join() {
+    try {
+      await A.api('/api/baucua/join', { method: 'POST', body: roomCode ? { room: roomCode } : {} });
+      return true;
+    } catch (e) {
+      if (e.status === 401) return A.requireLogin();
+      if (e.status === 404 || e.status === 400) {
+        gone(e.message);
+        return false;
+      }
+      return true; // lỗi khác (vd máy chủ cũ chưa có bàn riêng): vẫn xem sòng được
+    }
+  }
+  function leave() {
+    const token = A.token();
+    if (!token) return;
+    fetch('/api/baucua/leave', {
+      method: 'POST', keepalive: true,
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify(roomCode ? { room: roomCode } : {}),
+    }).catch(() => {});
+  }
+
+  // ---------- Sảnh ----------
+
+  let rooms = null;
+  let lobbyTimer = null;
+
+  function tableCard(r) {
+    const common = !r.host;
+    const b = r.banker;
+    const phase = PHASES[r.phase] || '';
+    const who = common
+      ? `<div class="t-art">${['cua', 'ga', 'nai'].map((f) => faceImg(f, 54)).join('')}</div>`
+      : `<div class="t-art">${C.sprite(r.host, { size: 88, dir: 'down' })}</div>`;
+    const bankLine = b
+      ? `<span class="t-bank">${C.head(b, { size: 26 })}Cái: <b>${esc(b.name)}</b> · quỹ ${xu(b.bankroll || 0)}</span>`
+      : `<span class="t-bank">${I.svg('bot')}Máy làm cái</span>`;
+    return `<div class="t-card${common ? ' common' : ''}">
+        ${who}
+        <div class="t-body">
+          <h3>${common ? 'Sòng chung' : `Bàn của ${esc(r.host.name)}`}</h3>
+          ${common ? '<span class="muted">Cả thành phố chơi cùng, luôn mở</span>' : `<span class="t-code">Mã ${esc(r.code)}</span>`}
+          ${bankLine}
+          <span class="t-meta">${I.svg('users')}${r.members || 0} người${phase ? ` · ${phase}` : ''}</span>
+        </div>
+        <button class="primary" data-room="${esc(r.code || '')}">${I.svg('play')}Vào</button>
+      </div>`;
+  }
+
+  function renderLobby() {
+    if (rooms === null) return;
+    const list = rooms.slice().sort((a, b) => (!a.host ? -1 : !b.host ? 1 : (b.members || 0) - (a.members || 0)));
+    if (!list.some((r) => !r.host)) list.unshift({ code: LOBBY, host: null, banker: null, members: 0, phase: '' });
+    const empty = list.length === 1 ? '<p class="muted t-empty">Chưa có bàn riêng nào — bấm "Tạo bàn" để mở bàn và mời bạn bè.</p>' : '';
+    setHTML('tables', list.map(tableCard).join('') + empty);
+  }
+
+  async function loadRooms() {
+    try {
+      const data = await A.api('/api/baucua/rooms');
+      rooms = Array.isArray(data) ? data : data.rooms || [];
+    } catch (e) {
+      if (e.status === 401) return A.requireLogin();
+      if (rooms === null) rooms = [];
+    }
+    renderLobby();
+    clearTimeout(lobbyTimer);
+    lobbyTimer = setTimeout(loadRooms, 3000);
+  }
+
+  $('tables').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-room]');
+    if (b) goRoom(b.dataset.room);
+  });
+  $('code-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const code = $('code-input').value.trim().toUpperCase();
+    if (!code) return A.toast('Nhập mã bàn bạn bè gửi cho bạn');
+    goRoom(code);
+  });
+  $('btn-create').addEventListener('click', async (e) => {
+    e.currentTarget.disabled = true;
+    try {
+      const data = await A.api('/api/baucua/rooms', { method: 'POST', body: {} });
+      goRoom(data.code);
+    } catch (err) {
+      if (err.status === 401) return A.requireLogin();
+      const hp = err.status === 423 || (err.status === 403 && /HP/.test(err.message));
+      A.toast(hp ? `${err.message} — ghé Bệnh viện trên bản đồ để hồi máu` : err.message);
+      e.currentTarget.disabled = false;
+    }
+  });
+
   setInterval(renderClock, 250);
   document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && poll());
 
@@ -339,12 +568,20 @@
 
   $('logo').innerHTML = I.logo(28);
   A.me().then(
-    (u) => {
+    async (u) => {
       if (!u) return A.requireLogin();
       user = u;
       renderHUD();
-      $('room').classList.remove('hidden');
+      $('lobby-faces').innerHTML = FACES.map((f) => faceImg(f.id, 40)).join('');
       I.render();
+      if (roomCode === null) {
+        $('lobby').classList.remove('hidden');
+        loadRooms();
+        return;
+      }
+      $('room').classList.remove('hidden');
+      if (!(await join())) return;
+      window.addEventListener('pagehide', leave);
       poll();
     },
     (e) => A.toast(e.message),

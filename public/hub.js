@@ -362,7 +362,7 @@
         <div class="panel-section">
           <div class="panel-art">${['bau', 'cua', 'tom', 'ca', 'ga', 'nai'].map((f) => `<img src="/img/toon/baucua/face_${f}.png" alt="" width="40" height="40" draggable="false">`).join('')}</div>
           <h2 style="margin:0">Bầu Cua Tôm Cá</h2>
-          <p class="muted" style="margin:0">Đặt chip vào bầu, cua, tôm, cá, gà, nai rồi chờ nhà cái mở bát: mặt ra mấy lần ăn gấp mấy lần.</p>
+          <p class="muted" style="margin:0">Đặt chip vào bầu, cua, tôm, cá, gà, nai rồi chờ nhà cái mở bát: mặt ra mấy lần ăn gấp mấy lần. Vào sòng chung, hoặc mở bàn riêng mời bạn bè và tự làm cái.</p>
           <div class="stats">
             <div class="stat"><div class="muted">Mỗi vòng</div><b>${I.svg('timer')}30 giây</b></div>
             <div class="stat"><div class="muted">Thưởng</div><b>${I.svg('trophy')}XP mỗi vòng</b></div>

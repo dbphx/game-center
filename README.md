@@ -123,23 +123,41 @@ Mã lỗi: 400 dữ liệu sai, 402 không đủ xu, 403 thiếu level / HP, 404
 
 ## Bầu Cua Tôm Cá
 
-Một sòng chung trong khu Casino, máy làm nhà cái. Mỗi vòng 30 giây: **đặt cược 20 s → lắc 4 s → mở bát 6 s**.
+Trong khu Casino. Có **sòng chung** (mã `chung`, máy luôn làm cái) và **bàn riêng** người chơi tự mở để chơi với
+bạn (mã 6 ký tự, link mời `/baucua/?room=MÃ`). Mỗi bàn có xúc xắc và lịch sử riêng; mọi bàn chạy cùng nhịp
+30 giây: **đặt cược 20 s → lắc 4 s → mở bát 6 s**.
 
 - 6 mặt `bau, cua, tom, ca, ga, nai`; 3 xúc xắc. Chip 10 / 50 / 100 / 500 / 1.000 xu, tổng tối đa 20.000 xu
   một người một vòng; đặt nhiều lần, nhiều mặt được. Xu trừ ngay lúc đặt; huỷ cược (trong giờ cược) thì hoàn.
-- Mặt đã đặt ra k lần (k ≥ 1) → nhận lại vốn + k × cược; không ra thì mất cược. Mỗi vòng có đặt +2 XP, có lời thêm +3.
-- Kết quả quay và trả thưởng đúng một lần ở request đầu tiên sau giờ cược. Cược còn treo khi server tắt được hoàn
-  lúc khởi động lại. Đặt / huỷ cần đủ 30 HP và không nằm viện (như Casino).
+- Mặt đã đặt ra k lần (k ≥ 1) → nhận lại vốn + k × cược; không ra thì mất cược. Trả thưởng lúc mở bát.
+  Mỗi vòng có đặt +2 XP, có lời thêm +3.
+- **Làm cái** (chỉ bàn riêng): nộp quỹ ≥ 3.000 xu khi bàn chưa ai làm cái và (đang cược mà chưa có cược nào, hoặc
+  lúc mở bát — áp dụng từ vòng sau). Người làm cái không được đặt cược; tổng cược cả bàn mỗi vòng ≤ quỹ / 3 để luôn
+  đủ trả. Tiền thua vào quỹ, tiền thắng trả từ quỹ; người làm cái +2 XP mỗi vòng có cược, +3 nếu quỹ lời.
+  Thôi làm cái: hoàn quỹ về ví (ghi lãi / lỗ); còn cược chưa chốt thì thôi sau khi chốt. Tự thôi khi quỹ < 300
+  hoặc vắng mặt > 60 s. Không ai làm cái thì máy làm cái.
+- Có mặt ở bàn = gọi `join` hoặc poll `state` có token trong 15 s gần nhất. Bàn riêng bỏ trống 5 phút thì đóng.
+- Kết quả quay và trả thưởng đúng một lần (dưới khoá, một transaction). Khởi động lại server: cược treo và quỹ
+  cái được hoàn, bàn riêng mất (chỉ sống trong bộ nhớ). Mở bàn / vào bàn / đặt cược / làm cái cần đủ 30 HP và
+  không nằm viện (như Casino).
 
 | API | Body |
 |---|---|
-| `GET /api/baucua/state` (token tuỳ chọn) | |
-| `POST /api/baucua/bet` | `{face, amount}` |
-| `POST /api/baucua/clear` | |
+| `GET /api/baucua/state?room=MÃ` (mặc định `chung`, token tuỳ chọn) | |
+| `GET /api/baucua/rooms` | |
+| `POST /api/baucua/rooms` → `{code}` | `{}` |
+| `POST /api/baucua/join`, `/leave` | `{room}` |
+| `POST /api/baucua/bet` | `{room, face, amount}` |
+| `POST /api/baucua/clear`, `/unbank` | `{room}` |
+| `POST /api/baucua/bank` | `{room, bankroll}` |
 
 `state` trả `{round, phase: betting|rolling|result, endsAt, now (ms), dice (chỉ khi result), totals, players,
-mine: {bets, total, won?, net?}, history (10 vòng, mới nhất trước), chips, maxTotal, faces, balance?}`.
-POST trả cùng dạng. Mã lỗi: 400 mặt / chip sai, 402 không đủ xu, 409 hết giờ cược / vượt tối đa, 403 / 423 HP.
+mine: {bets, total, won?, net?, banker, host}, history (10 vòng, mới nhất trước), chips, maxTotal, faces, balance?,
+room: {code, host, banker: null|{name, gender, outfit, hair, wings, face, level, bankroll, start, net?, leaving},
+members: [{name, …, level, total}], maxRoundTotal (0 = không giới hạn), roundTotal}, invite}`.
+`rooms` trả `[{code, host, banker, members, phase}]`, sòng chung đứng đầu.
+Mã lỗi: 400 mặt / chip / quỹ sai, 402 không đủ xu, 404 không có bàn, 409 hết giờ cược / vượt giới hạn / đang làm cái,
+403 / 423 HP.
 
 ## Tiến Lên Miền Nam
 
