@@ -109,5 +109,33 @@
     </svg></span>`;
   }
 
-  window.Character = { svg, group, head, OUTFITS, GENDERS };
+  // Nhân vật nhìn từ trên cao xuống, tâm ở (0, 0), mặt hướng lên trên (bắc).
+  // Dùng trên bản đồ; xoay cả nhóm theo hướng đi. Chân / tay có class để CSS tạo bước đi.
+  function topdown(look = {}) {
+    const p = palette(look);
+    const female = look.gender === 'female';
+    const hair = female ? HAIR.female : HAIR.male;
+    const sleeve = look.outfit === 'casual' ? SKIN : p.top;
+    const tail = look.outfit === 'aodai' ? `<path d="M-10 4 Q-8 22 0 24 Q8 22 10 4 Z" fill="${p.top}"/><path d="M-4 8 L4 8" stroke="${p.trim}" stroke-width="1.5"/>` : '';
+    let detail = '';
+    if (look.outfit === 'suit') detail = `<path d="M-5 -7 L0 1 L5 -7" fill="#fff"/>` + (female ? '' : `<path d="M0 -4 L0 3" stroke="#d93a3a" stroke-width="2.4" stroke-linecap="round"/>`);
+    if (look.outfit === 'sport') detail = `<path d="M-13 -1 L-5 -1 M5 -1 L13 -1" stroke="#fff" stroke-width="2"/>`;
+    if (look.outfit === 'aodai') detail = `<path d="M-4 -7 Q0 -3 4 -7" fill="none" stroke="${p.trim}" stroke-width="1.6"/>`;
+    const ponytail = female ? `<ellipse cx="0" cy="9.5" rx="4.6" ry="7" fill="${hair}"/>` : '';
+    const bow = female ? `<circle cx="7.5" cy="-6" r="2.6" fill="#ff7aa8"/>` : '';
+    return `<ellipse cx="3" cy="4" rx="17" ry="15" fill="rgba(0,0,0,.25)"/>
+      <g class="td-foot td-foot-l"><ellipse cx="-5.5" cy="0" rx="4" ry="6" fill="${p.shoes}" stroke="rgba(0,0,0,.25)"/></g>
+      <g class="td-foot td-foot-r"><ellipse cx="5.5" cy="0" rx="4" ry="6" fill="${p.shoes}" stroke="rgba(0,0,0,.25)"/></g>
+      ${tail}
+      <g class="td-arm td-arm-l"><circle cx="-14.5" cy="1" r="4.4" fill="${sleeve}" stroke="rgba(0,0,0,.2)"/></g>
+      <g class="td-arm td-arm-r"><circle cx="14.5" cy="1" r="4.4" fill="${sleeve}" stroke="rgba(0,0,0,.2)"/></g>
+      <ellipse cx="0" cy="1" rx="14" ry="8.5" fill="${p.top}" stroke="rgba(0,0,0,.2)"/>
+      ${detail}${ponytail}
+      <circle cx="0" cy="-2" r="9.5" fill="${SKIN}"/>
+      <circle cx="0" cy="0" r="9" fill="${hair}"/>
+      <path d="M-6 -6.5 Q0 -10.5 6 -6.5" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="1.5"/>
+      ${bow}`;
+  }
+
+  window.Character = { svg, group, head, topdown, OUTFITS, GENDERS };
 })();

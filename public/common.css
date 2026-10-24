@@ -333,3 +333,8 @@ dialog.modal .actions { display: flex; justify-content: flex-end; gap: 8px; marg
 .xp-bar { width: 70px; height: 6px; border-radius: 999px; background: rgba(255, 255, 255, .12); overflow: hidden; }
 .xp-bar > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #7aa7ff, #b18cff); }
 .lv-chip { display: inline-flex; padding: 1px 6px; border-radius: 999px; background: #4a74d9; color: #fff; font-size: 10px; font-weight: 800; }
+
+/* Nhân vật nhìn từ trên xuống: chân bước tới lui, tay vung ngược chiều. */
+.td-char.walking .td-foot-l, .td-char.walking .td-arm-r { animation: td-step .32s ease-in-out infinite alternate; }
+.td-char.walking .td-foot-r, .td-char.walking .td-arm-l { animation: td-step .32s ease-in-out infinite alternate-reverse; }
+@keyframes td-step { from { transform: translateY(-5px); } to { transform: translateY(5px); } }

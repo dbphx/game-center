@@ -1,6 +1,7 @@
 # DCity
 
-Thành phố game online chơi qua trình duyệt. Mỗi người có một **nhân vật** (giới tính, trang phục, level riêng) dạo quanh bản đồ thành phố;
+Thành phố game online chơi qua trình duyệt. Mỗi người có một **nhân vật** (giới tính, trang phục, level riêng) dạo quanh
+bản đồ thành phố **nhìn từ trên cao xuống** (lưới phố, xe chạy, mái nhà đổ bóng);
 mỗi khu là một game hoặc tiện ích, tất cả **dùng chung một ví xu**.
 
 | Khu | |
@@ -10,8 +11,10 @@ mỗi khu là một game hoặc tiện ích, tất cả **dùng chung một ví 
 | Shop thời trang | đổi giới tính / trang phục |
 | Quảng trường | thông tin nhân vật, level, XP |
 | Nông trại, Công trường | sắp mở — chỗ cho các game tiếp theo |
+| Công viên, khu nhà dân, sân bóng rổ | trang trí |
 
-- Bấm vào một khu (hoặc thanh đi nhanh phía dưới), nhân vật đi bộ theo đường phố tới đó rồi mở bảng của khu.
+- Bấm vào một khu (hoặc thanh đi nhanh phía dưới), nhân vật đi bộ theo đường ngắn nhất trên lưới phố, quay mặt theo hướng đi,
+  tới nơi thì mở bảng của khu.
 - Server Go giữ bài và kiểm tra mọi nước đi; giao diện web (HTML/CSS/JS thuần, hình vẽ SVG) được nhúng thẳng vào binary.
 - Tài khoản, nhân vật và ví lưu trong SQLite (driver Go thuần, không cần cgo), mọi thay đổi số dư đều ghi sổ cái.
 

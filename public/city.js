@@ -1,240 +1,344 @@
-// Bản đồ thành phố DCity: mỗi khu là một game / tiện ích, nhân vật đi bộ theo đường phố giữa các khu.
-// City.mount(el, { look, name, level, at, onArrive }) vẽ bản đồ; City.walkTo(zone) cho nhân vật đi tới.
+// Bản đồ DCity nhìn từ trên cao xuống: lưới phố, mỗi ô phố là một khu (game / tiện ích / trang trí).
+// Nhân vật đi theo đường ngắn nhất trên mạng lưới đường giữa các khu.
+// City.mount(el, { look, name, level, at, onArrive, onDepart, onMove }) vẽ bản đồ; City.walkTo(zone) cho nhân vật đi.
 (function () {
   'use strict';
   const C = window.Character;
 
-  // Khu vực. node là điểm nhân vật đứng khi tới khu (trước cửa).
+  const W = 1600;
+  const H = 1000;
+  // Hai trục ngang và hai trục dọc; mặt đường rộng 64, vỉa hè 14 mỗi bên.
+  const ROADS_H = [330, 700];
+  const ROADS_V = [520, 1080];
+  const HALF = 32;
+  const WALK = 14;
+  // Phần vẽ thêm quanh bản đồ: màn hình khác tỉ lệ 16:10 vẫn thấy cỏ và đường nối tiếp, không bị viền trống.
+  const PAD = 900;
+
   const ZONES = {
     plaza: { name: 'Quảng trường', sub: 'Nhân vật của bạn', node: 'plaza' },
     casino: { name: 'Casino', sub: 'Tiến Lên Miền Nam', node: 'casino', game: 'tienlen' },
-    shop: { name: 'Shop thời trang', sub: 'Đổi trang phục', node: 'shop' },
     bank: { name: 'Ngân hàng', sub: 'Ví xu · Thưởng ngày', node: 'bank' },
+    shop: { name: 'Shop thời trang', sub: 'Đổi trang phục', node: 'shop' },
     site: { name: 'Công trường', sub: 'Game mới sắp mở', node: 'site', soon: true },
     farm: { name: 'Nông trại', sub: 'Trồng trọt · Sắp mở', node: 'farm', soon: true },
   };
 
-  // Mạng lưới đường: các nút trên trục đường chính (y = 560) và lối vào từng khu.
-  const ROAD_Y = 560;
+  // Mạng lưới đường: ngã tư, điểm trước cửa mỗi khu, và điểm nhân vật đứng trong khu.
   const NODES = {
-    r260: [260, ROAD_Y], r650: [650, ROAD_Y], r800: [800, ROAD_Y], r990: [990, ROAD_Y], r1300: [1300, ROAD_Y], r1370: [1370, ROAD_Y],
-    casino: [260, 508], shop: [650, 508], bank: [990, 508], site: [1370, 508],
-    plaza: [800, 668], farm: [1300, 668],
+    x11: [520, 330], x12: [1080, 330], x21: [520, 700], x22: [1080, 700],
+    h1a: [240, 330], h1b: [800, 330], h1c: [1360, 330],
+    h2a: [240, 700], h2b: [800, 700], h2c: [1360, 700],
+    casino: [240, 262], bank: [800, 262], shop: [1360, 262],
+    plaza: [800, 418], site: [240, 772], farm: [1360, 772],
   };
   const EDGES = [
-    ['r260', 'r650'], ['r650', 'r800'], ['r800', 'r990'], ['r990', 'r1300'], ['r1300', 'r1370'],
-    ['r260', 'casino'], ['r650', 'shop'], ['r990', 'bank'], ['r1370', 'site'], ['r800', 'plaza'], ['r1300', 'farm'],
+    ['h1a', 'x11'], ['x11', 'h1b'], ['h1b', 'x12'], ['x12', 'h1c'],
+    ['h2a', 'x21'], ['x21', 'h2b'], ['h2b', 'x22'], ['x22', 'h2c'],
+    ['x11', 'x21'], ['x12', 'x22'],
+    ['casino', 'h1a'], ['bank', 'h1b'], ['shop', 'h1c'], ['plaza', 'h1b'], ['site', 'h2a'], ['farm', 'h2c'],
   ];
-  const SPEED = 320; // đơn vị bản đồ / giây
-  const SPRITE_SCALE = 0.9;
+  const SPEED = 300; // đơn vị bản đồ / giây
+  const SPRITE_SCALE = 1.35;
 
+  const dist = (a, b) => Math.hypot(NODES[a][0] - NODES[b][0], NODES[a][1] - NODES[b][1]);
   const adj = {};
   for (const [a, b] of EDGES) {
     (adj[a] = adj[a] || []).push(b);
     (adj[b] = adj[b] || []).push(a);
   }
 
-  // Đường đi ngắn nhất (theo số đoạn) giữa hai nút.
+  // Dijkstra theo khoảng cách thật: đi đường ngắn nhất trên lưới phố.
   function route(from, to) {
-    const prev = { [from]: null };
-    const queue = [from];
-    while (queue.length) {
-      const n = queue.shift();
-      if (n === to) break;
-      for (const m of adj[n] || []) if (!(m in prev)) { prev[m] = n; queue.push(m); }
+    const d = { [from]: 0 };
+    const prev = {};
+    const todo = new Set(Object.keys(NODES));
+    while (todo.size) {
+      let n = null;
+      for (const m of todo) if (d[m] !== undefined && (n === null || d[m] < d[n])) n = m;
+      if (n === null || n === to) break;
+      todo.delete(n);
+      for (const m of adj[n] || []) {
+        const nd = d[n] + dist(n, m);
+        if (d[m] === undefined || nd < d[m]) { d[m] = nd; prev[m] = n; }
+      }
     }
-    if (!(to in prev)) return [from];
-    const path = [];
-    for (let n = to; n !== null; n = prev[n]) path.unshift(n);
-    return path;
+    const path = [to];
+    while (path[0] !== from && prev[path[0]]) path.unshift(prev[path[0]]);
+    return path[0] === from ? path : [from];
   }
 
-  // ---------- Vẽ bản đồ ----------
+  // ---------- Hình vẽ dùng chung ----------
 
-  const tree = (x, y, s = 1) => `<g transform="translate(${x} ${y}) scale(${s})">
-      <ellipse cx="0" cy="34" rx="22" ry="6" fill="rgba(0,0,0,.18)"/>
-      <rect x="-5" y="8" width="10" height="26" rx="3" fill="#7a5134"/>
-      <circle cx="0" cy="-4" r="26" fill="#3f9c4c"/><circle cx="-12" cy="4" r="17" fill="#4caf57"/><circle cx="12" cy="2" r="18" fill="#47a652"/>
-      <circle cx="-6" cy="-14" r="10" fill="#6cc874" opacity=".7"/></g>`;
+  const tree = (x, y, r = 22, c = '#3f9c4c') => `<g class="tree">
+      <circle cx="${x + 7}" cy="${y + 8}" r="${r}" fill="rgba(0,0,0,.2)"/>
+      <circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/>
+      <circle cx="${x - r * 0.3}" cy="${y - r * 0.3}" r="${r * 0.55}" fill="#5cbf68" opacity=".8"/>
+      <circle cx="${x + r * 0.35}" cy="${y + r * 0.1}" r="${r * 0.35}" fill="#2f8a3d" opacity=".6"/></g>`;
 
-  const lamp = (x) => `<g transform="translate(${x} 598)">
-      <rect x="-2" y="-62" width="4" height="62" fill="#3b4652"/><rect x="-10" y="-66" width="20" height="6" rx="3" fill="#3b4652"/>
-      <circle cx="0" cy="-58" r="6" class="lamp-light" fill="#ffe8a3"/></g>`;
+  // Xe nhìn từ trên xuống, đầu xe hướng sang phải (+x).
+  const car = (color) => `<g>
+      <rect x="-18" y="-10" width="36" height="20" rx="6" fill="rgba(0,0,0,.25)" transform="translate(3 3)"/>
+      <rect x="-18" y="-10" width="36" height="20" rx="6" fill="${color}"/>
+      <rect x="2" y="-8" width="9" height="16" rx="3" fill="#cfe9ff"/><rect x="-14" y="-8" width="7" height="16" rx="2" fill="#a9c9e6"/>
+      <rect x="-5" y="-9" width="6" height="18" rx="2" fill="rgba(255,255,255,.18)"/></g>`;
 
-  function ground() {
-    return `
-      <defs>
-        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fd3ff"/><stop offset="1" stop-color="#c9ecff"/></linearGradient>
-        <radialGradient id="water" cx=".5" cy=".4"><stop offset="0" stop-color="#9be7ff"/><stop offset="1" stop-color="#3fb4e6"/></radialGradient>
-        <linearGradient id="casino-wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a2378"/><stop offset="1" stop-color="#2c1150"/></linearGradient>
-        <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe082"/><stop offset="1" stop-color="#e0a800"/></linearGradient>
-        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-        <pattern id="tiles" width="28" height="28" patternUnits="userSpaceOnUse"><rect width="28" height="28" fill="#e6dcc4"/><path d="M0 0H28V28" fill="none" stroke="#d3c7aa" stroke-width="2"/></pattern>
-      </defs>
-      <rect width="1600" height="1000" fill="#7cc576"/>
-      <rect width="1600" height="190" fill="url(#sky)"/>
-      <g fill="#b7d9ee" opacity=".9">
-        <rect x="40" y="90" width="70" height="100"/><rect x="120" y="60" width="50" height="130"/><rect x="520" y="80" width="90" height="110"/>
-        <rect x="760" y="50" width="60" height="140"/><rect x="830" y="100" width="80" height="90"/><rect x="1180" y="70" width="70" height="120"/>
-        <rect x="1440" y="90" width="110" height="100"/>
-      </g>
-      <g fill="#fff" opacity=".85"><ellipse cx="300" cy="60" rx="60" ry="18"/><ellipse cx="340" cy="50" rx="40" ry="16"/>
-        <ellipse cx="1050" cy="45" rx="70" ry="18"/><ellipse cx="1100" cy="38" rx="40" ry="14"/></g>
-      <rect y="186" width="1600" height="30" fill="#5fae62"/>
-      <g fill="#8fd18c" opacity=".55"><ellipse cx="200" cy="700" rx="160" ry="40"/><ellipse cx="1450" cy="930" rx="200" ry="50"/><ellipse cx="600" cy="950" rx="180" ry="40"/></g>`;
+  const parked = (x, y, color, rot = 90) => `<g transform="translate(${x} ${y}) rotate(${rot})">${car(color)}</g>`;
+
+  // Mái nhà dốc hai bên: hai nửa khác sắc độ và đường nóc ở giữa.
+  const house = (x, y, w, h, c1, c2) => `<g>
+      <rect x="${x + 8}" y="${y + 8}" width="${w}" height="${h}" fill="rgba(0,0,0,.22)"/>
+      <rect x="${x}" y="${y}" width="${w}" height="${h / 2}" fill="${c1}"/>
+      <rect x="${x}" y="${y + h / 2}" width="${w}" height="${h / 2}" fill="${c2}"/>
+      <rect x="${x}" y="${y + h / 2 - 2}" width="${w}" height="4" fill="rgba(0,0,0,.25)"/>
+      <rect x="${x + w - 26}" y="${y + 8}" width="12" height="12" fill="#8d6e63"/></g>`;
+
+  // ---------- Nền, đường, xe ----------
+
+  function defs() {
+    return `<defs>
+      <radialGradient id="water" cx=".4" cy=".35"><stop offset="0" stop-color="#a6ecff"/><stop offset="1" stop-color="#2fa6dc"/></radialGradient>
+      <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe082"/><stop offset="1" stop-color="#e0a800"/></linearGradient>
+      <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <filter id="shadow" x="-20%" y="-20%" width="150%" height="150%"><feDropShadow dx="10" dy="12" stdDeviation="4" flood-opacity=".35"/></filter>
+      <pattern id="tiles" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="24" height="24" fill="#e7ddc6"/><path d="M0 0H24V24" fill="none" stroke="#d6caae" stroke-width="2"/></pattern>
+      <pattern id="grass" width="40" height="40" patternUnits="userSpaceOnUse"><rect width="40" height="40" fill="#7cc576"/><circle cx="8" cy="10" r="2" fill="#6db867"/><circle cx="28" cy="26" r="2" fill="#8bd184"/></pattern>
+      <pattern id="dirt" width="30" height="30" patternUnits="userSpaceOnUse"><rect width="30" height="30" fill="#c9a874"/><circle cx="7" cy="9" r="2" fill="#b8955f"/><circle cx="22" cy="21" r="3" fill="#d5b886"/></pattern>
+    </defs>`;
   }
 
   function roads() {
-    const v = (x, y1, y2) => `<rect x="${x - 28}" y="${y1}" width="56" height="${y2 - y1}" fill="#cfc6b1"/>`;
-    return `
-      <rect x="0" y="512" width="1600" height="96" fill="#d8cfba"/>
-      <rect x="0" y="522" width="1600" height="76" fill="#4b5663"/>
-      <line x1="0" y1="${ROAD_Y}" x2="1600" y2="${ROAD_Y}" stroke="#f6f1e1" stroke-width="4" stroke-dasharray="34 26"/>
-      <rect x="0" y="520" width="1600" height="3" fill="#a59c86"/><rect x="0" y="597" width="1600" height="3" fill="#a59c86"/>
-      ${v(800, 598, 660)}${v(1300, 598, 655)}
-      <g fill="#fff" opacity=".85">${[740, 760, 780, 800, 820, 840].map((x) => `<rect x="${x - 6}" y="528" width="10" height="64" rx="2"/>`).join('')}</g>`;
+    const out = [];
+    // Vỉa hè trước, mặt đường đè lên.
+    const x0 = -PAD, y0 = -PAD, w = W + 2 * PAD, h = H + 2 * PAD;
+    for (const y of ROADS_H) out.push(`<rect x="${x0}" y="${y - HALF - WALK}" width="${w}" height="${(HALF + WALK) * 2}" fill="#d4ccb9"/>`);
+    for (const x of ROADS_V) out.push(`<rect x="${x - HALF - WALK}" y="${y0}" width="${(HALF + WALK) * 2}" height="${h}" fill="#d4ccb9"/>`);
+    for (const y of ROADS_H) out.push(`<rect x="${x0}" y="${y - HALF}" width="${w}" height="${HALF * 2}" fill="#4b5563"/>`);
+    for (const x of ROADS_V) out.push(`<rect x="${x - HALF}" y="${y0}" width="${HALF * 2}" height="${h}" fill="#4b5563"/>`);
+    // Vạch giữa đường, chừa ngã tư.
+    const gap = HALF + WALK + 6;
+    for (const y of ROADS_H) {
+      const xs = [-PAD, ...ROADS_V, W + PAD];
+      for (let i = 0; i < xs.length - 1; i++) {
+        const a = xs[i] + (i ? gap : 0);
+        const b = xs[i + 1] - (i + 1 < xs.length - 1 ? gap : 0);
+        out.push(`<line x1="${a}" y1="${y}" x2="${b}" y2="${y}" stroke="#f3e9c6" stroke-width="3" stroke-dasharray="26 20"/>`);
+      }
+    }
+    for (const x of ROADS_V) {
+      const ys = [-PAD, ...ROADS_H, H + PAD];
+      for (let i = 0; i < ys.length - 1; i++) {
+        const a = ys[i] + (i ? gap : 0);
+        const b = ys[i + 1] - (i + 1 < ys.length - 1 ? gap : 0);
+        out.push(`<line x1="${x}" y1="${a}" x2="${x}" y2="${b}" stroke="#f3e9c6" stroke-width="3" stroke-dasharray="26 20"/>`);
+      }
+    }
+    // Vạch qua đường ở bốn phía mỗi ngã tư.
+    const stripes = (horizontal, cx, cy) => [-24, -12, 0, 12, 24]
+      .map((o) => horizontal
+        ? `<rect x="${cx + o - 4}" y="${cy - 8}" width="8" height="16" rx="1"/>`
+        : `<rect x="${cx - 8}" y="${cy + o - 4}" width="16" height="8" rx="1"/>`)
+      .join('');
+    for (const x of ROADS_V) for (const y of ROADS_H) {
+      const off = HALF + 10;
+      out.push(`<g fill="#f5f5f5" opacity=".9">${stripes(true, x, y - off)}${stripes(true, x, y + off)}${stripes(false, x - off, y)}${stripes(false, x + off, y)}</g>`);
+    }
+    return out.join('');
   }
+
+  // Xe chạy vòng trên các làn đường.
+  function traffic() {
+    const lanes = [
+      [`M-60 ${330 + 16} H${W + 60}`, 13, '#e5484d'], [`M${W + 60} ${330 - 16} H-60`, 17, '#4f8ef7'],
+      [`M-60 ${700 + 16} H${W + 60}`, 15, '#f6c744'], [`M${W + 60} ${700 - 16} H-60`, 11, '#ffffff'],
+      [`M${520 + 16} -60 V${H + 60}`, 12, '#7e57c2'], [`M${1080 - 16} ${H + 60} V-60`, 14, '#26a69a'],
+    ];
+    return lanes
+      .map(([d, dur, color], i) => `<g>${car(color)}<animateMotion path="${d}" dur="${dur}s" begin="-${i * 2.3}s" repeatCount="indefinite" rotate="auto"/></g>`)
+      .join('');
+  }
+
+  // ---------- Các khu ----------
 
   function casino() {
-    const bulbs = Array.from({ length: 17 }, (_, i) => `<circle cx="${82 + i * 22.5}" cy="232" r="4.5" class="bulb b${i % 2}"/>`).join('');
-    const windows = [110, 175, 345, 410]
-      .map((x) => `<path d="M${x - 22} 340 V300 a22 22 0 0 1 44 0 V340 Z" fill="#ffd27a" stroke="url(#gold)" stroke-width="3"/>`)
-      .join('');
+    const stalls = Array.from({ length: 6 }, (_, i) => `<line x1="384" y1="${30 + i * 40}" x2="470" y2="${30 + i * 40}" stroke="#fff" stroke-width="3"/>`).join('');
+    const bulbs = Array.from({ length: 20 }, (_, i) => `<circle cx="${44 + i * 16.5}" cy="34" r="3.5" class="bulb b${i % 2}"/>`).join('') +
+      Array.from({ length: 20 }, (_, i) => `<circle cx="${44 + i * 16.5}" cy="220" r="3.5" class="bulb b${(i + 1) % 2}"/>`).join('');
     return `<g class="zone" data-zone="casino">
-      <rect x="70" y="236" width="380" height="270" rx="6" fill="url(#casino-wall)"/>
-      <rect x="58" y="218" width="404" height="26" rx="8" fill="url(#gold)"/>
-      ${bulbs}
-      <rect x="138" y="150" width="244" height="62" rx="14" fill="#1a0b30" stroke="#ff4fd8" stroke-width="4" class="neon-frame"/>
-      <text x="260" y="194" text-anchor="middle" class="neon-text" font-size="38" font-weight="800" letter-spacing="6">CASINO</text>
-      ${windows}
-      <g font-size="30" text-anchor="middle" font-weight="700">
-        <text x="110" y="400" fill="#f6c744">♠</text><text x="410" y="400" fill="#ff6b8b">♥</text>
-        <text x="110" y="460" fill="#ff6b8b">♦</text><text x="410" y="460" fill="#f6c744">♣</text>
+      <rect x="0" y="0" width="474" height="284" fill="#3b424b"/>
+      ${stalls}
+      ${parked(427, 50, '#e5484d', 0)}${parked(427, 130, '#f4f4f4', 0)}${parked(427, 210, '#263445', 0)}
+      <g filter="url(#shadow)">
+        <rect x="30" y="22" width="340" height="208" rx="12" fill="#2c1150"/>
+        <rect x="40" y="32" width="320" height="188" rx="8" fill="#4a2378" stroke="url(#gold)" stroke-width="4"/>
       </g>
-      <path d="M205 506 V420 a55 55 0 0 1 110 0 V506 Z" fill="#2a0f45" stroke="url(#gold)" stroke-width="5"/>
-      <path d="M215 506 V422 a45 45 0 0 1 90 0 V506 Z" fill="#ffcf6a" opacity=".9" class="door-light"/>
-      <rect x="230" y="506" width="60" height="20" fill="#c62828"/>
-      </g>`;
-  }
-
-  function shop() {
-    const stripes = Array.from({ length: 8 }, (_, i) => `<path d="M${530 + i * 30} 352 h30 l-4 34 a11 11 0 0 1 -22 0 Z" fill="${i % 2 ? '#fff' : '#ff6f9f'}"/>`).join('');
-    return `<g class="zone" data-zone="shop">
-      <rect x="540" y="300" width="220" height="206" rx="6" fill="#fde7ef"/>
-      <rect x="530" y="290" width="240" height="22" rx="6" fill="#d94b85"/>
-      <rect x="560" y="316" width="180" height="34" rx="8" fill="#fff" stroke="#d94b85" stroke-width="3"/>
-      <text x="650" y="340" text-anchor="middle" font-size="17" font-weight="800" fill="#d94b85" letter-spacing="1">THỜI TRANG</text>
-      ${stripes}
-      <rect x="556" y="400" width="66" height="90" rx="4" fill="#bfe8ff" stroke="#c2577f" stroke-width="3"/>
-      <rect x="678" y="400" width="66" height="90" rx="4" fill="#bfe8ff" stroke="#c2577f" stroke-width="3"/>
-      <g transform="translate(570 404) scale(.42)">${C.group({ gender: 'female', outfit: 'aodai' })}</g>
-      <g transform="translate(692 404) scale(.42)">${C.group({ gender: 'male', outfit: 'suit' })}</g>
-      <rect x="625" y="420" width="50" height="86" rx="4" fill="#8c3a5d"/><circle cx="665" cy="465" r="3" fill="#f6c744"/>
+      ${bulbs}
+      <rect x="70" y="86" width="260" height="70" rx="14" fill="#1a0b30" stroke="#ff4fd8" stroke-width="4" class="neon-frame"/>
+      <text x="200" y="135" text-anchor="middle" class="neon-text" font-size="44" font-weight="800" letter-spacing="7">CASINO</text>
+      <g font-size="26" text-anchor="middle" font-weight="700">
+        <text x="80" y="200" fill="#f6c744">♠</text><text x="140" y="200" fill="#ff6b8b">♥</text>
+        <text x="260" y="200" fill="#ff6b8b">♦</text><text x="320" y="200" fill="#f6c744">♣</text>
+      </g>
+      <g fill="#8b7aa8"><rect x="60" y="48" width="26" height="20" rx="3"/><rect x="314" y="48" width="26" height="20" rx="3"/></g>
+      <rect x="196" y="226" width="88" height="44" rx="6" fill="#c62828" stroke="url(#gold)" stroke-width="3"/>
+      <g stroke="#f6c744" stroke-width="2" opacity=".8"><line x1="206" y1="236" x2="274" y2="236"/><line x1="206" y1="260" x2="274" y2="260"/></g>
+      <rect x="226" y="270" width="28" height="14" fill="#c62828"/>
+      ${tree(170, 256, 14, '#2e8b57')}${tree(310, 256, 14, '#2e8b57')}
       </g>`;
   }
 
   function bank() {
-    const cols = [880, 935, 1045, 1100].map((x) => `<rect x="${x - 11}" y="352" width="22" height="130" fill="#f7f3ea" stroke="#d6cdb8" stroke-width="2"/>`).join('');
+    const cols = Array.from({ length: 9 }, (_, i) => `<circle cx="${660 + i * 35}" cy="226" r="9" fill="#f7f3ea" stroke="#cfc4ab" stroke-width="2"/>`).join('');
+    const ribs = Array.from({ length: 8 }, (_, i) => `<line x1="800" y1="120" x2="${800 + 52 * Math.cos((i * Math.PI) / 4)}" y2="${120 + 52 * Math.sin((i * Math.PI) / 4)}" stroke="#4b958a" stroke-width="2"/>`).join('');
     return `<g class="zone" data-zone="bank">
-      <rect x="850" y="340" width="280" height="166" fill="#ece5d6"/>
-      <path d="M836 342 L990 248 L1144 342 Z" fill="#f4eee1" stroke="#cfc4ab" stroke-width="3"/>
-      <circle cx="990" cy="304" r="22" fill="url(#gold)" stroke="#b98a00" stroke-width="3"/>
-      <text x="990" y="312" text-anchor="middle" font-size="22" font-weight="800" fill="#7a5600">xu</text>
-      <rect x="846" y="340" width="288" height="16" fill="#d9cfb8"/>
-      <text x="990" y="353" text-anchor="middle" font-size="12" font-weight="800" fill="#6d6250" letter-spacing="3">NGÂN HÀNG</text>
+      <rect x="566" y="0" width="468" height="284" fill="url(#grass)"/>
+      <rect x="772" y="236" width="56" height="48" fill="#e7ddc6"/>
+      <g filter="url(#shadow)"><rect x="620" y="26" width="360" height="196" rx="6" fill="#e9e2d2" stroke="#cfc4ab" stroke-width="4"/></g>
+      <rect x="644" y="48" width="312" height="150" rx="4" fill="#ddd4c0"/>
+      <circle cx="800" cy="120" r="58" fill="url(#gold)"/>
+      <circle cx="800" cy="120" r="52" fill="#5fb3a6"/>${ribs}
+      <circle cx="800" cy="120" r="14" fill="url(#gold)"/>
+      <text x="800" y="126" text-anchor="middle" font-size="13" font-weight="800" fill="#7a5600">xu</text>
+      <text x="800" y="194" text-anchor="middle" font-size="15" font-weight="800" fill="#6d6250" letter-spacing="4">NGÂN HÀNG</text>
       ${cols}
-      <rect x="960" y="400" width="60" height="106" rx="4" fill="#6b4a2f"/><rect x="988" y="400" width="4" height="106" fill="#4f351f"/>
-      <rect x="836" y="482" width="308" height="12" fill="#d9cfb8"/><rect x="826" y="494" width="328" height="12" fill="#cfc4ab"/>
+      <g fill="#cfc4ab"><rect x="740" y="238" width="120" height="6"/><rect x="730" y="248" width="140" height="6"/></g>
+      ${tree(600, 40, 18)}${tree(1000, 40, 18)}${tree(600, 250, 16)}${tree(1000, 250, 16)}
       </g>`;
   }
 
-  function site() {
-    return `<g class="zone soon" data-zone="site">
-      <rect x="1220" y="360" width="300" height="146" fill="#d9c7a3"/>
-      <g stroke="#e08a1e" stroke-width="5" fill="none">
-        <rect x="1240" y="300" width="120" height="206"/><path d="M1240 300 L1360 404 M1360 300 L1240 404 M1240 404 L1360 506 M1360 404 L1240 506"/>
-      </g>
-      <g stroke="#f2b233" stroke-width="7" stroke-linecap="round">
-        <path d="M1450 506 V230"/><path d="M1380 236 H1560"/><path d="M1540 236 V300"/>
-      </g>
-      <rect x="1530" y="300" width="20" height="18" fill="#3b4652"/>
-      <rect x="1412" y="230" width="22" height="22" fill="#3b4652"/>
-      <rect x="1290" y="420" width="160" height="60" rx="8" fill="#ffcc33" stroke="#222" stroke-width="3"/>
-      <text x="1370" y="448" text-anchor="middle" font-size="16" font-weight="800" fill="#222">SẮP MỞ</text>
-      <text x="1370" y="468" text-anchor="middle" font-size="12" font-weight="700" fill="#222">Game mới</text>
-      <g fill="#ff7a1a">${[1250, 1300, 1440, 1490].map((x) => `<path d="M${x} 506 l8 -24 l8 24 Z"/>`).join('')}</g>
+  function shop() {
+    const awning = Array.from({ length: 12 }, (_, i) => `<path d="M${1180 + i * 30} 208 h30 v22 a15 10 0 0 1 -30 0 Z" fill="${i % 2 ? '#fff' : '#ff6f9f'}"/>`).join('');
+    const pots = [1150, 1570].map((x) => `${tree(x, 60, 14, '#43a047')}${tree(x, 160, 14, '#43a047')}`).join('');
+    return `<g class="zone" data-zone="shop">
+      <rect x="1126" y="0" width="474" height="284" fill="#f3d9e2"/>
+      <g fill="#ecc7d4">${Array.from({ length: 10 }, (_, i) => `<rect x="${1126 + i * 48}" y="0" width="24" height="284"/>`).join('')}</g>
+      <g filter="url(#shadow)"><rect x="1180" y="34" width="360" height="176" rx="10" fill="#f8bbd0" stroke="#d94b85" stroke-width="4"/></g>
+      <rect x="1250" y="80" width="220" height="56" rx="12" fill="#fff" stroke="#d94b85" stroke-width="3"/>
+      <text x="1360" y="117" text-anchor="middle" font-size="24" font-weight="800" fill="#d94b85" letter-spacing="2">THỜI TRANG</text>
+      <path d="M1340 172 L1360 156 L1380 172 Z M1360 156 v-6 a5 5 0 1 1 5 -5" fill="none" stroke="#d94b85" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      ${awning}
+      <g fill="#c2577f"><rect x="1200" y="52" width="22" height="18" rx="3"/><rect x="1498" y="52" width="22" height="18" rx="3"/></g>
+      ${pots}
       </g>`;
   }
 
   function plaza() {
+    const beds = [[640, 420], [960, 420], [640, 610], [960, 610]]
+      .map(([x, y]) => `<circle cx="${x}" cy="${y}" r="26" fill="#6db867"/>${[0, 1, 2, 3, 4, 5]
+        .map((i) => `<circle cx="${x + 14 * Math.cos(i)}" cy="${y + 14 * Math.sin(i)}" r="5" fill="${['#ff6f9f', '#ffd54a', '#fff'][i % 3]}"/>`)
+        .join('')}`)
+      .join('');
+    const benches = [[800, 395, 0], [800, 635, 0], [690, 515, 90], [910, 515, 90]]
+      .map(([x, y, r]) => `<rect x="${x - 22}" y="${y - 6}" width="44" height="12" rx="3" fill="#8a5a3b" transform="rotate(${r} ${x} ${y})"/>`)
+      .join('');
     return `<g class="zone" data-zone="plaza">
-      <circle cx="800" cy="800" r="150" fill="url(#tiles)" stroke="#c9bd9f" stroke-width="6"/>
-      <circle cx="800" cy="800" r="62" fill="#b9b2a2"/>
-      <circle cx="800" cy="800" r="52" fill="url(#water)"/>
-      <circle cx="800" cy="800" r="40" fill="none" stroke="#e6faff" stroke-width="3" class="ripple"/>
-      <circle cx="800" cy="800" r="40" fill="none" stroke="#e6faff" stroke-width="3" class="ripple r2"/>
-      <rect x="792" y="752" width="16" height="44" rx="4" fill="#d9d2c2"/>
-      <path d="M800 750 q-26 -6 -34 22 M800 750 q26 -6 34 22 M800 750 q0 -26 0 -30" stroke="#bdefff" stroke-width="4" fill="none" stroke-linecap="round" class="spray"/>
-      ${[650, 950].map((x) => `<rect x="${x - 26}" y="900" width="52" height="10" rx="3" fill="#8a5a3b"/><rect x="${x - 22}" y="910" width="6" height="12" fill="#5d3c27"/><rect x="${x + 16}" y="910" width="6" height="12" fill="#5d3c27"/>`).join('')}
-      </g>`;
-  }
-
-  function farm() {
-    // Ruộng: các luống rau xanh và lúa vàng.
-    const rows = (x, y, w, n, color, crop) =>
-      Array.from({ length: n }, (_, i) => `<rect x="${x}" y="${y + i * 22}" width="${w}" height="14" rx="7" fill="${color}"/>` +
-        Array.from({ length: Math.floor(w / 26) }, (_, j) => `<circle cx="${x + 13 + j * 26}" cy="${y + 7 + i * 22}" r="6" fill="${crop}"/>`).join('')).join('');
-    const fence = (x1, x2, y) => `<g stroke="#a8784d" stroke-width="4"><line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}"/><line x1="${x1}" y1="${y + 12}" x2="${x2}" y2="${y + 12}"/></g>` +
-      Array.from({ length: Math.floor((x2 - x1) / 30) + 1 }, (_, i) => `<rect x="${x1 + i * 30 - 3}" y="${y - 8}" width="6" height="28" rx="2" fill="#c08f5f"/>`).join('');
-    const chicken = (x, y) => `<g transform="translate(${x} ${y})" class="chicken"><ellipse rx="9" ry="7" fill="#fff"/><circle cx="7" cy="-6" r="5" fill="#fff"/><path d="M11 -6 l5 1 l-5 2 Z" fill="#f2a516"/><path d="M5 -11 q2 -4 4 0" fill="#e53935"/></g>`;
-    return `<g class="zone soon" data-zone="farm">
-      <rect x="1120" y="640" width="470" height="350" rx="16" fill="#9ccc65"/>
-      <rect x="1140" y="760" width="200" height="210" rx="10" fill="#8d6e4a"/>
-      ${rows(1150, 772, 180, 9, '#7a5a3a', '#66bb6a')}
-      <rect x="1360" y="830" width="210" height="140" rx="10" fill="#8d6e4a"/>
-      ${rows(1370, 842, 190, 6, '#7a5a3a', '#f6c744')}
-      <!-- Chuồng đỏ và silo -->
-      <rect x="1420" y="690" width="120" height="110" fill="#c62828"/>
-      <path d="M1410 692 L1480 640 L1550 692 Z" fill="#8e1b1b"/>
-      <rect x="1455" y="740" width="50" height="60" fill="#fff"/><path d="M1455 740 L1505 800 M1505 740 L1455 800" stroke="#c62828" stroke-width="5"/>
-      <rect x="1468" y="704" width="24" height="20" fill="#fff"/>
-      <rect x="1550" y="680" width="30" height="120" rx="15" fill="#cfd8dc"/><path d="M1550 690 a15 15 0 0 1 30 0" fill="#90a4ae"/>
-      <!-- Cối xay gió -->
-      <path d="M1185 750 L1197 640 L1213 640 L1225 750 Z" fill="#f1e3c8" stroke="#bfa57a" stroke-width="3"/>
-      <rect x="1196" y="712" width="18" height="26" rx="3" fill="#8a5a3b"/>
-      <g transform="translate(1205 642)"><g class="windmill">
-        ${[0, 90, 180, 270].map((a) => `<rect x="-6" y="-62" width="12" height="58" rx="3" fill="#fff" stroke="#bfa57a" stroke-width="2" transform="rotate(${a})"/>`).join('')}
-        <circle r="7" fill="#8a5a3b"/>
-      </g></g>
-      ${fence(1240, 1400, 700)}
-      ${chicken(1270, 735)}${chicken(1305, 745)}${chicken(1350, 732)}
+      <rect x="566" y="376" width="468" height="278" fill="url(#tiles)"/>
+      <circle cx="800" cy="515" r="126" fill="#efe6d1" stroke="#cbbd9c" stroke-width="5"/>
+      <g stroke="#d9cdb0" stroke-width="10"><line x1="566" y1="515" x2="1034" y2="515"/><line x1="800" y1="376" x2="800" y2="654"/></g>
+      <circle cx="800" cy="515" r="70" fill="#b9b2a2"/>
+      <circle cx="800" cy="515" r="60" fill="url(#water)"/>
+      <circle cx="800" cy="515" r="44" fill="none" stroke="#e6faff" stroke-width="3" class="ripple"/>
+      <circle cx="800" cy="515" r="44" fill="none" stroke="#e6faff" stroke-width="3" class="ripple r2"/>
+      <circle cx="800" cy="515" r="13" fill="#e9e3d5" stroke="#b9b2a2" stroke-width="3"/>
+      <circle cx="800" cy="515" r="5" fill="#bdefff" class="spray"/>
+      ${benches}${beds}
+      ${tree(600, 400, 18)}${tree(1000, 400, 18)}${tree(600, 630, 18)}${tree(1000, 630, 18)}
       </g>`;
   }
 
   function park() {
     return `<g class="park">
-      <ellipse cx="330" cy="800" rx="250" ry="140" fill="#69b86b"/>
-      <ellipse cx="300" cy="820" rx="110" ry="55" fill="url(#water)" opacity=".9"/>
-      <ellipse cx="270" cy="810" rx="30" ry="8" fill="#e6faff" opacity=".6"/>
-      ${tree(120, 700)}${tree(500, 700, 0.9)}${tree(470, 880, 1.1)}${tree(130, 900, 0.9)}
+      <rect x="0" y="376" width="474" height="278" fill="url(#grass)"/>
+      <path d="M0 470 Q120 420 230 480 T474 450" fill="none" stroke="#d9cba8" stroke-width="16"/>
+      <path d="M150 560 Q170 500 250 505 Q340 510 340 560 Q340 615 250 618 Q160 620 150 560 Z" fill="url(#water)"/>
+      <ellipse cx="230" cy="545" rx="26" ry="8" fill="#e6faff" opacity=".6" class="spray"/>
+      <rect x="210" y="597" width="40" height="34" rx="4" fill="#a1785a"/>
+      ${tree(60, 420, 24)}${tree(110, 600, 26)}${tree(400, 560, 24)}${tree(420, 410, 20)}${tree(60, 520, 18)}
       </g>`;
   }
 
-  function decorations() {
-    return [40, 470, 1185, 1575].map((x) => tree(x, 470, 0.95)).join('') +
-      tree(1080, 930, 0.9) + tree(620, 980, 0.8) +
-      [140, 560, 1060, 1500].map(lamp).join('');
+  function homes() {
+    const lots = [[1140, 390], [1300, 390], [1460, 390], [1140, 525], [1300, 525], [1460, 525]];
+    const roofs = [['#c0574a', '#a8473b'], ['#5d7b9b', '#4c6783'], ['#c79a3f', '#ad8432'], ['#6c8f5a', '#5a7a4a'], ['#9b5d8d', '#834c76'], ['#b0703c', '#975f31']];
+    return `<g class="homes">
+      <rect x="1126" y="376" width="474" height="278" fill="url(#grass)"/>
+      ${lots.map(([x, y], i) => `<rect x="${x}" y="${y}" width="128" height="116" rx="6" fill="#9ed49a" stroke="#86bf82" stroke-width="2"/>
+        ${house(x + 12, y + 14, 74, 62, ...roofs[i])}
+        <rect x="${x + 96}" y="${y + 60}" width="22" height="56" fill="#d0c8b4"/>`).join('')}
+      <rect x="1180" y="606" width="38" height="24" rx="5" fill="url(#water)" stroke="#fff" stroke-width="3"/>
+      <rect x="1500" y="470" width="38" height="24" rx="5" fill="url(#water)" stroke="#fff" stroke-width="3"/>
+      </g>`;
+  }
+
+  function court() {
+    return `<g class="court">
+      <rect x="566" y="746" width="468" height="254" fill="url(#grass)"/>
+      <rect x="610" y="770" width="300" height="180" rx="6" fill="#d97b3f"/>
+      <g fill="none" stroke="#fff" stroke-width="3">
+        <rect x="620" y="780" width="280" height="160"/><line x1="760" y1="780" x2="760" y2="940"/><circle cx="760" cy="860" r="24"/>
+        <path d="M620 820 h40 v80 h-40 M900 820 h-40 v80 h40"/>
+      </g>
+      <circle cx="790" cy="840" r="6" fill="#e65100" class="ball"/>
+      ${tree(960, 790, 22)}${tree(990, 900, 26)}${tree(940, 970, 18)}
+      </g>`;
+  }
+
+  function site() {
+    const slabs = Array.from({ length: 3 }, (_, r) => Array.from({ length: 3 }, (_, c) =>
+      `<rect x="${60 + c * 70}" y="${800 + r * 58}" width="58" height="46" fill="#bdbdbd" stroke="#9e9e9e" stroke-width="2"/>`).join('')).join('');
+    return `<g class="zone soon" data-zone="site">
+      <rect x="0" y="746" width="474" height="254" fill="url(#dirt)"/>
+      <rect x="40" y="784" width="230" height="190" fill="none" stroke="#e08a1e" stroke-width="5" stroke-dasharray="14 8"/>
+      ${slabs}
+      ${parked(360, 960, '#f2b233', 30)}
+      <g transform="translate(400 880)">
+        <rect x="-14" y="-14" width="28" height="28" fill="#f2b233" stroke="#7a5600" stroke-width="3"/>
+        <g class="crane-arm">
+          <rect x="-150" y="-6" width="230" height="12" fill="#f2b233" stroke="#7a5600" stroke-width="2"/>
+          <rect x="50" y="-12" width="28" height="24" fill="#5d6670"/>
+          <rect x="-150" y="-3" width="16" height="6" fill="#333"/>
+          <animateTransform attributeName="transform" type="rotate" values="-25;35;-25" dur="18s" repeatCount="indefinite"/>
+        </g>
+      </g>
+      <rect x="300" y="770" width="140" height="56" rx="8" fill="#ffcc33" stroke="#222" stroke-width="3"/>
+      <text x="370" y="795" text-anchor="middle" font-size="16" font-weight="800" fill="#222">SẮP MỞ</text>
+      <text x="370" y="815" text-anchor="middle" font-size="12" font-weight="700" fill="#222">Game mới</text>
+      <g fill="#ff7a1a">${[30, 80, 130].map((x) => `<circle cx="${x}" cy="764" r="7"/>`).join('')}</g>
+      </g>`;
+  }
+
+  function farm() {
+    const rows = (x, y, w, h, n, soil, crop) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="${soil}"/>` +
+      Array.from({ length: n }, (_, i) => `<rect x="${x + 8}" y="${y + 10 + i * ((h - 20) / (n - 1)) - 4}" width="${w - 16}" height="8" rx="4" fill="${crop}"/>`).join('');
+    const sheep = [[1500, 960], [1530, 942], [1555, 968]]
+      .map(([x, y]) => `<g class="sheep"><ellipse cx="${x}" cy="${y}" rx="10" ry="7" fill="#fff"/><circle cx="${x + 9}" cy="${y}" r="4" fill="#333"/></g>`)
+      .join('');
+    return `<g class="zone soon" data-zone="farm">
+      <rect x="1126" y="746" width="474" height="254" fill="#a5d36b"/>
+      ${rows(1140, 800, 120, 180, 7, '#8d6e4a', '#66bb6a')}
+      ${rows(1270, 800, 110, 180, 7, '#8d6e4a', '#f6c744')}
+      ${rows(1390, 800, 80, 110, 5, '#7a5a3a', '#a1887f')}
+      <g filter="url(#shadow)">
+        <rect x="1480" y="770" width="100" height="70" fill="#c62828"/>
+        <rect x="1480" y="803" width="100" height="5" fill="#8e1b1b"/>
+      </g>
+      <g filter="url(#shadow)"><circle cx="1452" cy="955" r="18" fill="#cfd8dc"/><circle cx="1452" cy="955" r="9" fill="#90a4ae"/></g>
+      <ellipse cx="1520" cy="890" rx="44" ry="26" fill="url(#water)"/>
+      <rect x="1478" y="925" width="112" height="66" rx="4" fill="none" stroke="#a8784d" stroke-width="4"/>
+      ${sheep}
+      <g transform="translate(1415 945)"><circle r="12" fill="#f1e3c8" stroke="#bfa57a" stroke-width="3"/>
+        <g class="windmill">${[0, 90, 180, 270].map((a) => `<rect x="-4" y="-46" width="8" height="40" rx="2" fill="#fff" stroke="#bfa57a" stroke-width="2" transform="rotate(${a})"/>`).join('')}<circle r="5" fill="#8a5a3b"/></g>
+      </g>
+      </g>`;
   }
 
   function labels() {
-    const pos = {
-      casino: [260, 130], shop: [650, 275], bank: [990, 228], site: [1370, 210], plaza: [1035, 905], farm: [1460, 612],
-    };
+    const pos = { casino: [200, 22], bank: [800, 22], shop: [1360, 22], plaza: [690, 600], site: [150, 776], farm: [1500, 720] };
     return Object.entries(ZONES)
       .map(([id, z]) => {
         const [x, y] = pos[id];
         const w = Math.max(z.name.length, z.sub.length) * 8.6 + 34;
-        return `<g class="zone-label${z.soon ? ' soon' : ''}" data-zone="${id}" transform="translate(${x} ${y})">
+        return `<g class="zone-label${z.soon ? ' soon' : ''}" data-zone="${id}" transform="translate(${x} ${y + 24})">
           <rect x="${-w / 2}" y="-24" width="${w}" height="46" rx="12"/>
           <text y="-4" text-anchor="middle" class="zl-name">${z.name}</text>
           <text y="13" text-anchor="middle" class="zl-sub" id="zl-sub-${id}">${z.sub}</text>
@@ -246,18 +350,18 @@
   // ---------- Nhân vật ----------
 
   let svgEl = null;
-  let me = null; // { node, x, y, dir, look, el, inner, walking }
+  let me = null; // { node, x, y, angle, look, walking, el, rot, body }
   let opts = {};
   let anim = null;
 
   function placeMe() {
     me.el.setAttribute('transform', `translate(${me.x} ${me.y})`);
-    me.flip.setAttribute('transform', `scale(${me.dir} 1)`);
+    me.rot.setAttribute('transform', `rotate(${me.angle}) scale(${SPRITE_SCALE})`);
   }
 
   function drawMe() {
-    me.inner.innerHTML = C.group(me.look);
-    me.inner.setAttribute('class', 'character' + (me.walking ? ' walking' : ''));
+    me.body.innerHTML = C.topdown(me.look);
+    me.body.setAttribute('class', 'td-char' + (me.walking ? ' walking' : ''));
   }
 
   function setTag(name, level) {
@@ -276,7 +380,7 @@
     const z = ZONES[zone];
     if (!z || !me) return;
     cancelAnimationFrame(anim);
-    // Đang đi giữa hai nút: đi tiếp từ nút gần nhất.
+    // Đang đi giữa chừng: đi tiếp từ nút gần nhất.
     const nearest = Object.keys(NODES).reduce((best, n) =>
       Math.hypot(NODES[n][0] - me.x, NODES[n][1] - me.y) < Math.hypot(NODES[best][0] - me.x, NODES[best][1] - me.y) ? n : best);
     const path = route(nearest, z.node).map((n) => NODES[n]);
@@ -289,23 +393,23 @@
     drawMe();
     let last = performance.now();
     const step = (now) => {
-      let dist = (SPEED * (now - last)) / 1000;
+      let left = (SPEED * (now - last)) / 1000;
       last = now;
-      while (dist > 0 && path.length) {
+      while (left > 0 && path.length) {
         const [tx, ty] = path[0];
         const dx = tx - me.x;
         const dy = ty - me.y;
         const len = Math.hypot(dx, dy);
-        if (Math.abs(dx) > 0.5) me.dir = dx < 0 ? -1 : 1;
-        if (len <= dist) {
+        if (len > 0.5) me.angle = (Math.atan2(dx, -dy) * 180) / Math.PI; // 0° = hướng bắc
+        if (len <= left) {
           me.x = tx;
           me.y = ty;
-          dist -= len;
+          left -= len;
           path.shift();
         } else {
-          me.x += (dx / len) * dist;
-          me.y += (dy / len) * dist;
-          dist = 0;
+          me.x += (dx / len) * left;
+          me.y += (dy / len) * left;
+          left = 0;
         }
       }
       placeMe();
@@ -328,22 +432,27 @@
 
   function mount(el, o) {
     opts = o;
-    el.innerHTML = `<svg class="city-svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Bản đồ thành phố">
-      ${ground()}${park()}${roads()}${plaza()}${farm()}${casino()}${shop()}${bank()}${site()}${decorations()}${labels()}
+    el.innerHTML = `<svg class="city-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Bản đồ DCity nhìn từ trên cao">
+      ${defs()}<rect x="${-PAD}" y="${-PAD}" width="${W + 2 * PAD}" height="${H + 2 * PAD}" fill="url(#grass)"/>
+      ${[[-120, 120], [-200, 560], [-90, 880], [1720, 140], [1800, 520], [1700, 900], [300, -120], [1300, -150], [700, 1120], [1400, 1130]]
+        .map(([x, y]) => tree(x, y, 30)).join('')}
+      ${park()}${homes()}${court()}${roads()}${traffic()}
+      ${plaza()}${casino()}${bank()}${shop()}${site()}${farm()}
+      ${labels()}
       <g id="me">
-        <g id="me-tag" class="me-tag" transform="translate(0 -104)">
+        <g class="me-rot"><g class="td-char"></g></g>
+        <g id="me-tag" class="me-tag" transform="translate(0 -40)">
           <rect y="-15" height="28" rx="14"/><text class="tag-name" y="5" text-anchor="middle"></text>
           <rect class="tag-lv-bg" y="-11" width="36" height="20" rx="10"/><text class="tag-lv" y="4" text-anchor="middle"></text>
         </g>
-        <g class="flip"><g transform="translate(${-32 * SPRITE_SCALE} ${-92 * SPRITE_SCALE}) scale(${SPRITE_SCALE})"><g class="character"></g></g></g>
       </g>
     </svg>`;
     svgEl = el.querySelector('svg');
     const start = ZONES[o.at] ? o.at : 'plaza';
     const [x, y] = NODES[ZONES[start].node];
     me = {
-      node: ZONES[start].node, x, y, dir: 1, look: o.look, walking: false,
-      el: svgEl.querySelector('#me'), flip: svgEl.querySelector('#me .flip'), inner: svgEl.querySelector('#me .character'),
+      node: ZONES[start].node, x, y, angle: 180, look: o.look, walking: false,
+      el: svgEl.querySelector('#me'), rot: svgEl.querySelector('#me .me-rot'), body: svgEl.querySelector('#me .td-char'),
     };
     drawMe();
     placeMe();
@@ -362,7 +471,7 @@
     if (el) el.textContent = text;
   }
 
-  // Toạ độ x (trên bản đồ 1600 đơn vị) của khu, để đặt bảng thông tin không che khu đó.
+  // Toạ độ x của khu, để đặt bảng thông tin không che khu đó.
   const zoneX = (zone) => NODES[ZONES[zone].node][0];
 
   window.City = { ZONES, mount, walkTo, setLook, setTag, setSub, zoneX, position: () => me && [me.x, me.y] };
