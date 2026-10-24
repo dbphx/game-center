@@ -2,6 +2,7 @@ package farm
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -224,10 +225,10 @@ func TestBarnUnitsAndExpand(t *testing.T) {
 
 func TestSellAnimalAndLevel(t *testing.T) {
 	e := newEnv(t, 100_000, 0)
-	_, err := e.f.BuyBuilding(ctx, e.uid, placeBarn)
-	wantStatus(t, err, http.StatusForbidden) // chuồng cần level 2
+	s := e.ok(e.f.BuyBuilding(ctx, e.uid, placeBarn)) // chuồng mở từ level 1
+	_, err := e.f.BuyStock(ctx, e.uid, placeBarn, "pig")
+	wantStatus(t, err, http.StatusForbidden) // heo cần level 2
 	e.set(100_000, levelXP(2))
-	s := e.ok(e.f.BuyBuilding(ctx, e.uid, placeBarn))
 	_, err = e.f.BuyStock(ctx, e.uid, placeBarn, "cow")
 	wantStatus(t, err, http.StatusForbidden) // bò cần level 4
 	s = e.ok(e.f.BuyStock(ctx, e.uid, placeBarn, "pig"))
@@ -482,5 +483,145 @@ func TestExpandStores(t *testing.T) {
 	h, _ := e.w.History(ctx, e.uid, 1)
 	if h[0].Note != "Mở rộng kho sản phẩm" {
 		t.Fatalf("sổ cái: %+v", h[0])
+	}
+}
+
+func TestFeedStock(t *testing.T) {
+	e := newEnv(t, 100_000, levelXP(2))
+	e.ok(e.f.BuyBuilding(ctx, e.uid, placeBarn))
+	s := e.ok(e.f.BuyStock(ctx, e.uid, placeBarn, "pig")) // heo: 600 xu, lớn sau 3600 s
+	a := s.Barn.Animals[0]
+	if a.Hungry || a.FedAt != 0 {
+		t.Fatalf("heo mới mua chưa đói: %+v", a)
+	}
+	_, _, err := e.f.FeedStock(ctx, e.uid, placeBarn, a.ID)
+	wantStatus(t, err, http.StatusConflict) // chưa đói
+	if !strings.Contains(err.Error(), "Heo chưa đói") || !strings.Contains(err.Error(), "10 phút") {
+		t.Fatalf("thông báo: %v", err)
+	}
+	_, _, err = e.f.FeedStock(ctx, e.uid, placeBarn, 99999)
+	wantStatus(t, err, http.StatusNotFound)
+
+	e.clock = e.clock.Add(FeedCooldown * time.Second)
+	s = e.ok(e.f.State(ctx, e.uid))
+	if !s.Barn.Animals[0].Hungry {
+		t.Fatalf("sau %d s heo phải đói: %+v", FeedCooldown, s.Barn.Animals[0])
+	}
+	before := e.user()
+	now := e.clock.Unix()
+	s, g, err := e.f.FeedStock(ctx, e.uid, placeBarn, a.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	after := e.user()
+	fed := s.Barn.Animals[0]
+	wantReady := a.ReadyAt - (a.ReadyAt-now)/4 // còn 3000 s → bớt 750 s
+	if g.XP != 1 || after.Balance != before.Balance-60 || after.XP != before.XP+1 || fed.ReadyAt != wantReady ||
+		fed.ReadyAt != a.ReadyAt-750 || fed.FedAt != now || fed.Hungry {
+		t.Fatalf("cho heo ăn: %+v, con %+v, số dư %d→%d", g, fed, before.Balance, after.Balance)
+	}
+	h, _ := e.w.History(ctx, e.uid, 1)
+	if h[0].Note != "Cho Heo ăn" || h[0].Delta != -60 {
+		t.Fatalf("sổ cái: %+v", h[0])
+	}
+	e.clock = e.clock.Add(4 * time.Minute)
+	_, _, err = e.f.FeedStock(ctx, e.uid, placeBarn, a.ID)
+	if wantStatus(t, err, http.StatusConflict); !strings.Contains(err.Error(), "6 phút") {
+		t.Fatalf("chưa đói lại: %v", err)
+	}
+
+	// Đã lớn thì không cho ăn nữa.
+	e.clock = e.clock.Add(time.Hour)
+	_, _, err = e.f.FeedStock(ctx, e.uid, placeBarn, a.ID)
+	if wantStatus(t, err, http.StatusConflict); !strings.Contains(err.Error(), "đã lớn") {
+		t.Fatalf("con đã lớn: %v", err)
+	}
+	if s = e.ok(e.f.State(ctx, e.uid)); s.Barn.Animals[0].Hungry {
+		t.Fatal("con đã lớn không còn đói")
+	}
+}
+
+func TestFeedFishNotEnoughCoins(t *testing.T) {
+	e := newEnv(t, 100_000, levelXP(2))
+	e.ok(e.f.BuyBuilding(ctx, e.uid, placePond))
+	s := e.ok(e.f.BuyStock(ctx, e.uid, placePond, "catfish")) // 250 xu → thức ăn 25 xu, lớn sau 1800 s
+	id := s.Pond.Fish[0].ID
+	e.clock = e.clock.Add(FeedCooldown * time.Second)
+	e.set(24, e.user().XP)
+	_, _, err := e.f.FeedStock(ctx, e.uid, placePond, id)
+	wantStatus(t, err, http.StatusPaymentRequired)
+	if s = e.ok(e.f.State(ctx, e.uid)); s.Pond.Fish[0].FedAt != 0 || e.user().Balance != 24 {
+		t.Fatalf("thiếu xu mà vẫn cho ăn: %+v", s.Pond.Fish[0])
+	}
+	e.set(25, e.user().XP)
+	if _, _, err = e.f.FeedStock(ctx, e.uid, placePond, id); err != nil || e.user().Balance != 0 {
+		t.Fatalf("cho cá ăn 25 xu: %v, số dư %d", err, e.user().Balance)
+	}
+	_, _, err = e.f.FeedStock(ctx, e.uid, placeBarn, id)
+	wantStatus(t, err, http.StatusConflict) // chưa có chuồng
+}
+
+func TestCatalogFeed(t *testing.T) {
+	c := Catalog()
+	if c["feedCooldown"] != FeedCooldown {
+		t.Fatalf("feedCooldown: %v", c["feedCooldown"])
+	}
+	b, _ := json.Marshal(c["animals"])
+	if !strings.Contains(string(b), `"id":"cow"`) || !strings.Contains(string(b), `"feedPrice":150`) {
+		t.Fatalf("catalog vật nuôi: %s", b)
+	}
+	b, _ = json.Marshal(c["fish"])
+	if !strings.Contains(string(b), `"feedPrice":10`) || (Stock{Price: 30}).feedPrice() != 5 {
+		t.Fatalf("catalog cá: %s", b)
+	}
+}
+
+// Database từ bản cũ: farm_stock chưa có cột fed_at → New thêm cột, giữ dữ liệu cũ.
+func TestMigrateFedAt(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "old.db")
+	w, err := wallet.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, _, err := w.Register(ctx, "nongdancu", "matkhau123", wallet.Profile{Name: "Cũ"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	old := `CREATE TABLE farm_stock (
+		id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id),
+		place TEXT NOT NULL, kind TEXT NOT NULL, bought_at INTEGER NOT NULL, ready_at INTEGER NOT NULL);
+	CREATE TABLE farm_buildings (user_id INTEGER NOT NULL, place TEXT NOT NULL, capacity INTEGER NOT NULL,
+		expansions INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (user_id, place));`
+	if err := w.ExecSchema(ctx, old); err != nil {
+		t.Fatal(err)
+	}
+	tx, err := w.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx.ExecContext(ctx, `INSERT INTO farm_buildings (user_id, place, capacity) VALUES (?, 'barn', 5)`, u.ID)
+	tx.ExecContext(ctx, `INSERT INTO farm_stock (user_id, place, kind, bought_at, ready_at) VALUES (?, 'barn', 'pig', 100, 9999999999)`, u.ID)
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	w.Close()
+
+	for range 2 { // chạy hai lần: lần sau không thêm cột trùng
+		w, err = wallet.Open(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		f, err := New(ctx, w)
+		if err != nil {
+			t.Fatal(err)
+		}
+		s, err := f.State(ctx, u.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if a := s.Barn.Animals; len(a) != 1 || a[0].Kind != "pig" || a[0].FedAt != 0 || !a[0].Hungry {
+			t.Fatalf("heo cũ sau nâng cấp: %+v", a)
+		}
+		w.Close()
 	}
 }

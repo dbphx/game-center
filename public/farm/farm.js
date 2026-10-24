@@ -111,11 +111,14 @@
 
   // ---------- Topbar ----------
 
+  // Diện mạo nhân vật: giới tính, trang phục, tóc, cánh.
+  const lookOf = (u) => ({ gender: u.gender, outfit: u.outfit, hair: u.hair, wings: u.wings, face: u.face });
+
   function renderHUD() {
     if (!user) return;
     $('balance').textContent = xu(user.balance);
     $('user-name').textContent = user.name;
-    $('user-avatar').innerHTML = C.head({ gender: user.gender, outfit: user.outfit });
+    $('user-avatar').innerHTML = C.head(lookOf(user));
     const pct = Math.min(100, Math.round(((user.xp - user.levelXP) / Math.max(1, user.nextXP - user.levelXP)) * 100));
     $('level-badge').innerHTML = `<span class="lv">Lv ${user.level}</span><span class="xp-bar"><span style="width:${pct}%"></span></span>`;
     $('level-badge').title = `${user.xp - user.levelXP} / ${user.nextXP - user.levelXP} XP để lên level ${user.level + 1}`;
@@ -129,112 +132,142 @@
       pill.innerHTML = `${I.svg('heart')}<span class="hp-bar"><span style="width:${hpPct}%"></span></span><b>${user.hp}/${user.maxHp}</b>`;
     }
     $('me-tag').innerHTML = `<span class="lv">Lv ${user.level}</span>${esc(user.name)}`;
-    if (me.look.gender !== user.gender || me.look.outfit !== user.outfit) {
-      me.look = { gender: user.gender, outfit: user.outfit };
+    if (JSON.stringify(me.look) !== JSON.stringify(lookOf(user))) {
+      me.look = lookOf(user);
       me.drawn = '';
       drawMe();
     }
   }
 
   // ---------- Bố cục cảnh ----------
-  // Toạ độ "thế giới" (px): cao cố định H, rộng theo số ô đất. Cả nông trại trên một dải ngang như game Avatar:
-  // hai kho ở RÌA (góc sau bên trái, sát hàng rào); dưới là chuồng gia súc; GIỮA ao cá (sau) và lô cỏ trang trí,
-  // cổng "Vào" dưới; PHẢI khối ruộng 4 hàng (thêm cột khi mở nhiều ô). Nền là lối đất be.
+  // Toạ độ "thế giới" (px): cao cố định H. Từ trái sang phải như nông trại game Avatar:
+  // CHUỒNG gia súc ở mép trái · hai kho ở rìa sát hàng rào sau + cổng "Vào" phía dưới · QUỸ ĐẤT 4 khối ruộng
+  // (lưới 2×2, mỗi khối 12 ô = 3 hàng × 4 cột, đủ 48 ô; ô chưa mở hiện mờ) · AO CÁ ở mép phải. Nền đất be trơn.
   // Mọi vật đặt tuyệt đối, z-index = y chân để nhân vật đứng trước / sau đúng chiều sâu.
 
-  const H = 720; // phần dưới y 590 là bụi cây + cỏ (thanh công cụ nổi đè lên)
+  const H = 740; // phần dưới y 610 là bụi cây + cỏ (thanh công cụ nổi đè lên)
   const SKY = 130; // dải trời + hàng rào phía sau
-  const FY = 168; // mép trên ruộng
-  const PLOT = 80;
-  const PITCH = 84;
-  const ROWS = 4;
-  const FX = 880; // mép trái ruộng
-  const BOTTOM = 590; // mép dưới vùng đi lại
-  const CORE_W = FX + 6 * PITCH + 50; // bề rộng cảnh khi ruộng 6 cột — luôn vừa một khung nhìn
-  let W = CORE_W;
-  let OY = 0; // khoảng trời thêm phía trên khi khung nhìn cao hơn cảnh (cảnh vừa theo chiều ngang)
-  let L = { cols: 6, rowsUsed: 2, FE: FX + 6 * PITCH };
+  const BOTTOM = 610; // mép dưới vùng đi lại
+  const PLOT = 56;
+  const PITCH = 60;
+  const BLOCK_COLS = 4;
+  const BLOCK_ROWS = 3;
+  const PER_BLOCK = BLOCK_COLS * BLOCK_ROWS;
+  const BLOCK_W = BLOCK_COLS * PITCH + 16;
+  const BLOCK_H = BLOCK_ROWS * PITCH + 18;
+  const BX = [744, 744 + BLOCK_W + 48]; // cột khối ruộng (lối đất giữa đủ rộng để đi)
+  const BY = [158, 158 + BLOCK_H + 36]; // hàng khối ruộng
+  const PEN = { x1: 18, y1: 164, x2: 400, y2: 600 }; // chuồng gia súc (hàng rào)
+  const POND_BOX = { x: BX[1] + BLOCK_W + 40, y: 250, w: 320, h: 230 }; // lô cỏ có ao
+  const W = POND_BOX.x + POND_BOX.w + 30;
+  const CORE_W = W; // cả nông trại luôn vừa một khung nhìn theo chiều ngang (dọc cố định)
+  let OY = 0; // khoảng trời thêm phía trên khi khung nhìn cao hơn cảnh
   let objs = {}; // key → { x, y (chỗ đứng), face, hx, hy (gợi ý), verb, run() }
   let obstacles = []; // [x1, y1, x2, y2] chân nhân vật không được vào
 
   function tiles() {
     const owned = farm.plots.length;
     const max = farm.maxPlots || 48;
-    return { owned, max, buy: owned < max && !!farm.nextPlotPrice, left: max - owned - 1 };
+    return { owned, max, buy: owned < max && !!farm.nextPlotPrice, left: max - owned };
   }
 
   function computeLayout() {
-    const t = tiles();
-    const n = t.owned + (t.buy ? 1 : 0) + (t.left > 0 ? 1 : 0);
-    const cols = Math.max(6, Math.ceil(n / ROWS));
-    const FE = FX + cols * PITCH; // mép phải ruộng
-    W = FE + 50;
-    L = { cols, rowsUsed: Math.max(1, Math.ceil(n / cols)), FE };
     obstacles = [
-      [14, 266, 180, 298], // kho thóc (kho sản phẩm)
-      [216, 270, 314, 298], // kho giống (chòi)
-      [30, 344, 470, 586], // chuồng (hàng rào)
-      [512, 178, 790, 326], // ao
-      [560, 452, 604, 470], // giếng
-      [668, 452, 692, 470], // gốc cây ăn trái
-      [732, 572, 756, 588], // cột cổng trái
-      [840, 572, 864, 588], // cột cổng phải
+      [PEN.x1, PEN.y1, PEN.x2, PEN.y2], // chuồng (hàng rào)
+      [416, 262, 586, 296], // kho thóc
+      [592, 270, 708, 296], // kho giống
+      [522, 432, 566, 450], // giếng
+      [640, 432, 664, 450], // gốc cây ăn trái
+      [520, 592, 544, 608], // cột cổng trái
+      [628, 592, 652, 608], // cột cổng phải
+      [POND_BOX.x + 14, POND_BOX.y + 22, POND_BOX.x + POND_BOX.w - 14, POND_BOX.y + POND_BOX.h - 12], // ao
     ];
+    // 4 khối ruộng: không đi xuyên qua giữa các ô.
+    for (const by of BY) for (const bx of BX) obstacles.push([bx, by, bx + BLOCK_W, by + BLOCK_H]);
   }
 
   const pos = (x, y, z = y) => `left:${Math.round(x)}px;top:${Math.round(y)}px;z-index:${Math.round(z)}`;
   const capBar = (s) => `<span class="cap-mini"><span style="width:${Math.round((s.used / Math.max(1, s.capacity)) * 100)}%"></span></span>`;
 
   // Mỗi ô: nền đất (hoặc cỏ khi chưa mở), cây đứng trên ô, nhãn nhỏ phía dưới.
+  // Mỗi ô có 2 lớp: lớp MẶT ĐẤT (nền đất + nhãn, z thấp cố định — luôn nằm dưới nhân vật) và lớp CÂY
+  // (z theo chân ô, để nhân vật đứng sau cây cao thì bị cây che đúng chiều sâu).
   function plotHTML(p, x, y) {
-    const at = `style="${pos(x, y, y + PLOT)}"`;
+    const ground = `data-obj="plot${p.index}" style="${pos(x, y, 5)}"`;
+    const top = (cls, inner) => `<div class="plot-top ${cls}" data-obj="plot${p.index}" style="${pos(x, y, y + PLOT)}">${inner}</div>`;
     if (!p.crop) {
-      return `<div class="plot empty" data-obj="plot${p.index}" ${at} title="Gieo hạt">
+      return `<div class="plot empty" ${ground} title="Gieo hạt">
         <span class="soil"></span><span class="tag-pill add">${I.svg('plus')}Gieo hạt</span></div>`;
     }
     const c = find('crops', p.crop);
     const pr = progress(p.plantedAt, p.readyAt);
     if (pr >= 1) {
-      return `<div class="plot ripe" data-obj="plot${p.index}" ${at} title="Thu hoạch ${esc(c.name)}">
-        <span class="soil"></span><span class="crop">${art.crop(p.crop, 'ripe')}</span>
+      return `<div class="plot ripe" ${ground} title="Thu hoạch ${esc(c.name)}">
+        <span class="soil"></span><span class="tag-pill go">Thu hoạch</span></div>
+        ${top('ripe', `<span class="crop">${art.crop(p.crop, 'ripe')}</span>
         <span class="harvest-arrow">${I.svg('chevronDown')}</span>
-        <span class="twinkle t1">${I.svg('sparkles')}</span><span class="twinkle t2">${I.svg('sparkles')}</span>
-        <span class="tag-pill go">Thu hoạch</span></div>`;
+        <span class="twinkle t1">${I.svg('sparkles')}</span><span class="twinkle t2">${I.svg('sparkles')}</span>`)}`;
     }
     const stage = pr < 0.34 ? 1 : pr < 0.67 ? 2 : 3;
-    return `<div class="plot growing" data-obj="plot${p.index}" ${at} data-start="${p.plantedAt}" data-ready="${p.readyAt}" data-stage="${stage}"
+    return `<div class="plot growing" ${ground} data-start="${p.plantedAt}" data-ready="${p.readyAt}" data-stage="${stage}"
         title="${esc(c.name)}">
-      <span class="soil wet"></span><span class="crop">${art.crop(p.crop, stage)}</span>
+      <span class="soil wet"></span>
       <span class="tag-pill"><span data-left>${countdown(p.readyAt - nowS())}</span>
-        <span class="bar"><span style="width:${Math.round(pr * 100)}%"></span></span></span></div>`;
+        <span class="bar"><span style="width:${Math.round(pr * 100)}%"></span></span></span></div>
+      ${top('growing', `<span class="crop">${art.crop(p.crop, stage)}</span>`)}`;
+  }
+
+
+  // Quỹ đất: 4 khối × 12 ô. Ô đã có trồng được; ô kế tiếp là chỗ mua; còn lại là đất để dành (mờ).
+  function plotXY(i) {
+    const b = Math.floor(i / PER_BLOCK);
+    const k = i % PER_BLOCK;
+    return [BX[b % 2] + 8 + (k % BLOCK_COLS) * PITCH, BY[Math.floor(b / 2)] + 10 + Math.floor(k / BLOCK_COLS) * PITCH];
+  }
+
+  // Chỗ đứng để làm một ô: mép khối gần ô nhất (trên / dưới / trái / phải), quay mặt về phía ô.
+  function edgeSpot(i, x, y) {
+    const b = Math.floor(i / PER_BLOCK);
+    const bx = BX[b % 2];
+    const by = BY[Math.floor(b / 2)];
+    const cx = x + PLOT / 2;
+    const cy = y + PLOT / 2;
+    const c = [
+      { x: cx, y: by - 8, face: 'down' },
+      { x: cx, y: by + BLOCK_H + 10, face: 'up' },
+      { x: bx - 16, y: cy + 14, face: 'right' },
+      { x: bx + BLOCK_W + 16, y: cy + 14, face: 'left' },
+    ];
+    return c.reduce((best, s) => (Math.hypot(s.x - cx, s.y - cy) < Math.hypot(best.x - cx, best.y - cy) ? s : best));
   }
 
   function fieldHTML() {
     const t = tiles();
     const out = [];
-    const cell = (i) => [FX + (i % L.cols) * PITCH, FY + Math.floor(i / L.cols) * PITCH];
+    for (let b = 0; b < Math.ceil(t.max / PER_BLOCK); b++) {
+      const used = t.owned > b * PER_BLOCK || (t.buy && t.owned === b * PER_BLOCK);
+      const x = BX[b % 2];
+      const y = BY[Math.floor(b / 2)];
+      out.push(`<span class="field-bed${used ? '' : ' reserved'}" style="left:${x}px;top:${y}px;width:${BLOCK_W}px;height:${BLOCK_H}px;z-index:3"></span>`);
+      if (!used) out.push(`<span class="block-sign" style="${pos(x + BLOCK_W / 2, y + BLOCK_H / 2 + 12, 4)}">Đất để dành</span>`);
+    }
     farm.plots.forEach((p, i) => {
-      const [x, y] = cell(i);
+      const [x, y] = plotXY(i);
       out.push(plotHTML(p, x, y));
-      objs[`plot${p.index}`] = { x: x - 2, y: y + PLOT + 2, face: 'right', hx: x + PLOT / 2, hy: y - 6, verb: plotVerb(p), run: () => plotAction(p.index) };
+      objs[`plot${p.index}`] = { ...edgeSpot(i, x, y), hx: x + PLOT / 2, hy: y - 6, verb: plotVerb(p), run: () => plotAction(p.index) };
     });
-    let i = farm.plots.length;
-    if (t.buy) {
-      const [x, y] = cell(i++);
-      out.push(`<div class="plot buy" data-obj="buyplot" style="${pos(x, y, y + PLOT)}" title="Mở thêm ô đất">
-        <span class="soil grass"></span><span class="lock">${I.svg('lock')}</span>
-        <span class="tag-pill price">${I.svg('coins')}${xu(farm.nextPlotPrice)}</span></div>`);
-      objs.buyplot = { x: x - 2, y: y + PLOT + 2, face: 'right', hx: x + PLOT / 2, hy: y - 6, verb: 'Mở ô đất', run: buyPlot };
+    for (let i = t.owned; i < t.max; i++) {
+      const [x, y] = plotXY(i);
+      if (i === t.owned && t.buy) {
+        out.push(`<div class="plot buy" data-obj="buyplot" style="${pos(x, y, y + PLOT)}" title="Mở thêm ô đất">
+          <span class="soil grass"></span><span class="lock">${I.svg('lock')}</span>
+          <span class="tag-pill price">${I.svg('coins')}${xu(farm.nextPlotPrice)}</span></div>`);
+        objs.buyplot = { ...edgeSpot(i, x, y), hx: x + PLOT / 2, hy: y - 6, verb: 'Mở ô đất', run: buyPlot };
+      } else {
+        out.push(`<span class="plot reserved" style="${pos(x, y, y + PLOT)}"><span class="soil"></span></span>`);
+      }
     }
-    if (t.left > 0) {
-      const [x, y] = cell(i);
-      out.push(`<div class="plot locked" style="${pos(x, y, y + PLOT)}" title="Mở lần lượt từng ô">
-        <span class="soil grass"></span><span class="lock">${I.svg('lock')}</span>
-        <span class="tag-pill">Còn ${t.left} ô</span></div>`);
-    }
-    out.push(`<span class="plot-count" style="${pos(FX, FY - 30, 2000)}">${t.owned}/${t.max} ô đất</span>`);
-    // Nền ruộng: một mảnh cỏ đậm bao quanh lưới ô.
-    out.push(`<span class="field-bed" style="left:${FX - 12}px;top:${FY - 12}px;width:${L.cols * PITCH + 16}px;height:${L.rowsUsed * PITCH + 18}px;z-index:${FY - 20}"></span>`);
+    out.push(`<span class="plot-count" style="${pos(BX[0] + 4, BY[0] - 26, 2000)}">${t.owned}/${t.max} ô đất</span>`);
     return out.join('');
   }
 
@@ -253,26 +286,6 @@
       ${art.img(image, { h })}</div>`;
   }
 
-  // Vị trí ngẫu nhiên nhưng cố định theo id, để con vật không nhảy chỗ mỗi lần vẽ lại.
-  function spot(id) {
-    const r = (n) => (Math.sin(id * 9301 + n * 49297) + 1) / 2;
-    return { x: 10 + r(1) * 76, y: 30 + r(2) * 70, dx: (r(3) - 0.5) * 120, dy: (r(4) - 0.5) * 16, dur: 6 + r(5) * 8, delay: -r(6) * 8 };
-  }
-
-  function critterHTML(item, list, swim) {
-    const info = find(list, item.kind);
-    const pr = progress(item.boughtAt, item.readyAt);
-    const s = spot(item.id);
-    const cls = `critter${swim ? ' fish-swim' : ''}${pr < 1 ? ' young' : ''}${s.dx < 0 ? ' flip' : ''}`;
-    // Con nhỏ vẽ nhỏ hơn; bò / cừu vốn to nên giới hạn theo chiều cao.
-    const h = swim ? (pr < 1 ? 20 : 28) : { cow: 70, sheep: 58, pig: 50, chicken: 42 }[item.kind] * (pr < 1 ? 0.7 : 1);
-    const draw = swim ? art.fish(item.kind, h) : art.animal(item.kind, Math.round(h || 50));
-    return `<button class="${cls}" data-${swim ? 'fish' : 'animal'}="${item.id}" title="${esc(info.name)}${pr >= 1 ? ' — đã lớn, bấm để thu hoạch' : ''}"
-        style="left:${s.x}%;top:${s.y}%;--dx:${s.dx}px;--dy:${s.dy}px;--dur:${s.dur}s;--delay:${s.delay}s">
-      ${draw}${pr >= 1 ? '<span class="ready">!</span>' : `<span class="mini-bar"><span style="width:${Math.round(pr * 100)}%"></span></span>`}
-    </button>`;
-  }
-
   function penLabel(kind, pen) {
     const name = kind === 'barn' ? 'Chuồng gia súc' : 'Ao cá';
     if (!pen) {
@@ -285,25 +298,26 @@
 
   function yardHTML() {
     const pen = farm.barn;
-    const items = (pen && pen.animals) || [];
-    return `<div class="obj area yard${pen ? '' : ' ghost'}" data-obj="barn" style="left:30px;top:340px;width:440px;height:244px;z-index:584">
-      ${penLabel('barn', pen)}
-      <span class="deco" style="left:8px;top:-26px">${art.img('barn', { h: 104 })}</span>
-      <span class="deco" style="left:130px;top:24px">${art.img('hay', { h: 40 })}</span>
-      <span class="deco" style="right:24px;top:34px">${art.img('trough_feed', { h: 28 })}</span>
-      <span class="deco" style="right:140px;top:34px">${art.img('trough_water', { h: 28 })}</span>
-      <span class="fence-top"></span><span class="fence-bottom"></span>
-      <div class="roam">${items.map((it) => critterHTML(it, 'animals', false)).join('')}</div>
-    </div>`;
+    const w = PEN.x2 - PEN.x1;
+    const h = PEN.y2 - PEN.y1;
+    // Nền cỏ chuồng nằm dưới cùng; chòi + hàng rào trước là vật riêng để con vật đứng trước / sau đúng chiều sâu.
+    return `<div class="obj area yard${pen ? '' : ' ghost'}" data-obj="barn" style="left:${PEN.x1}px;top:${PEN.y1}px;width:${w}px;height:${h}px;z-index:3">
+        <span class="fence-top"></span></div>
+      <span class="pen-label" data-obj="barn" style="left:${PEN.x1 + w / 2}px;top:${PEN.y1 - 8}px;z-index:2000">${penLabel('barn', pen)}</span>
+      <span class="obj decor pen-shed${pen ? '' : ' ghost'}" data-obj="barn" style="${pos(150, 300)}">${art.img('pen_shed', { h: 140 })}</span>
+      <span class="obj decor" style="${pos(330, 300)}">${art.img('hay', { h: 44 })}</span>
+      <span class="obj decor" style="${pos(280, 300)}">${art.img('trough_water', { h: 26 })}</span>
+      <span class="fence-thick" style="left:${PEN.x1}px;top:${PEN.y2 - 52}px;width:${w}px;z-index:${PEN.y2}"></span>`;
   }
 
   function pondHTML() {
     const pen = farm.pond;
-    const items = (pen && pen.fish) || [];
-    return `<div class="obj area pond-area${pen ? '' : ' ghost'}" data-obj="pond" style="left:502px;top:168px;width:298px;height:160px;z-index:328">
+    const b = POND_BOX;
+    return `<div class="obj area pond-area${pen ? '' : ' ghost'}" data-obj="pond" style="left:${b.x}px;top:${b.y}px;width:${b.w}px;height:${b.h}px;z-index:${b.y + 40}">
       ${penLabel('pond', pen)}
-      <div class="pond-water">${art.img('pond', { cls: 'pond-img' })}
-        <div class="swim">${items.map((it) => critterHTML(it, 'fish', true)).join('')}</div></div>
+      <span class="deco" style="left:0;bottom:2px">${art.img('flowers', { h: 40 })}</span>
+      <span class="deco" style="right:0;bottom:2px">${art.img('bush_3', { h: 34 })}</span>
+      <div class="pond-water">${art.img('pond', { cls: 'pond-img' })}</div>
     </div>`;
   }
 
@@ -322,12 +336,12 @@
     world.style.transform = zoom === 1 ? '' : `scale(${zoom})`;
     world.style.setProperty('--oy', `${OY}px`);
     $('layer').style.top = `${OY}px`;
+    $('layer').style.height = `${H}px`;
     const wrap = $('world-wrap');
     wrap.style.width = `${W * zoom}px`;
     wrap.style.height = `${(H + OY) * zoom}px`;
 
     const parts = [];
-    // Trời, mây, hàng rào, cây tán to sau hàng rào; nền đất có dải cỏ lượn sóng ở mép trên, bụi cây dưới cùng.
     // Trời phía trên (khi khung cao) có thêm mây.
     if (OY > 60) {
       parts.push(`<div class="sky-top" style="top:${-OY}px;width:${W}px;height:${OY + 2}px">
@@ -339,42 +353,45 @@
       ${[0.04, 0.36, 0.7].map((k, i) => `<span class="cloud c${(i % 3) + 1}" style="left:${Math.round(W * k)}px"></span>`).join('')}
       <span class="fence-row"></span></div>`);
     parts.push(`<span class="grass-edge" style="left:0;top:${SKY}px;width:${W}px;z-index:3"></span>`);
-    for (const x of [430, 760, FX + 160, W - 110]) parts.push(`<span class="obj decor far" style="${pos(x, SKY + 10, 2)}">${art.img('tree_big', { h: 150 })}</span>`);
+    for (const x of [300, 720, BX[1] + 40, W - 120]) parts.push(`<span class="obj decor far" style="${pos(x, SKY + 10, 2)}">${art.img('tree_big', { h: 150 })}</span>`);
     parts.push(`<span class="grass-edge bottom" style="left:0;top:${BOTTOM - 4}px;width:${W}px;height:${H - BOTTOM + 4}px;z-index:4"></span>`);
     parts.push(`<span class="bush-row" style="left:0;top:${BOTTOM - 10}px;width:${W}px;z-index:${H}"></span>`);
 
-    // Hai kho ở rìa: góc sau bên trái, sát hàng rào.
-    parts.push(storeObjHTML('products', 98, 298, 'hut_rice', 150));
-    parts.push(storeObjHTML('seeds', 266, 298, 'hut_seed', 128));
-    objs.products = { x: 98, y: 318, face: 'up', hx: 98, hy: 124, verb: 'Mở kho', run: () => openStore('products') };
-    objs.seeds = { x: 266, y: 318, face: 'up', hx: 266, hy: 146, verb: 'Mở kho', run: () => openStore('seeds') };
-    parts.push(deco('wheelbarrow', 380, 300, 46, true));
+    // Chuồng gia súc ở mép trái.
+    parts.push(yardHTML());
+    objs.barn = { x: PEN.x2 + 22, y: 470, face: 'left', hx: 210, hy: PEN.y1 + 14, verb: farm.barn ? 'Xem chuồng' : 'Mua chuồng', run: () => openPen('barn') };
 
-    // Lô cỏ trang trí giữa (giếng, cây ăn trái, hoa).
-    parts.push(`<span class="patch" style="left:512px;top:372px;width:200px;height:126px;z-index:3"></span>`);
-    parts.push(deco('well', 582, 470, 76));
-    parts.push(deco('tree_med', 680, 470, 112));
-    parts.push(deco('flowers', 538, 412, 32));
-    parts.push(deco('bush_3', 700, 404, 26));
-    // Gà con đi dạo trên lối đất (trang trí).
-    for (const [x, y, k, d] of [[560, 540, 'chicken_white', 9], [620, 560, 'chicken_white', 12], [800, 330, 'chicken', 10], [860, 548, 'chicken_white', 14]]) {
+    // Hai kho ở rìa: sát hàng rào sau, cạnh chuồng.
+    parts.push(storeObjHTML('products', 500, 296, 'hut_rice', 140));
+    parts.push(storeObjHTML('seeds', 650, 296, 'hut_seed', 120));
+    objs.products = { x: 500, y: 316, face: 'up', hx: 500, hy: 128, verb: 'Mở kho', run: () => openStore('products') };
+    objs.seeds = { x: 650, y: 316, face: 'up', hx: 650, hy: 148, verb: 'Mở kho', run: () => openStore('seeds') };
+
+    // Lô cỏ nhỏ giữa (giếng, cây ăn trái, hoa) và gà con đi dạo.
+    parts.push(`<span class="patch" style="left:470px;top:350px;width:236px;height:112px;z-index:3"></span>`);
+    parts.push(deco('well', 544, 450, 72));
+    parts.push(deco('tree_med', 652, 450, 104));
+    parts.push(deco('flowers', 494, 400, 30));
+    for (const [x, y, k, d] of [[470, 520, 'chicken_white', 9], [600, 540, 'chicken_white', 12], [720, 330, 'chicken', 10]]) {
       parts.push(`<span class="obj decor stroll" style="${pos(x, y)};--dur:${d}s">${art.img(`animal_${k}`, { h: 30 })}</span>`);
     }
 
-    // Cổng "Vào" dưới, giữa chuồng và ruộng.
-    parts.push(`<div class="obj gate" data-obj="gate" style="${pos(798, 590)}" title="Về thành phố">
+    // Cổng "Vào" dưới giữa (giữa kho và ruộng).
+    parts.push(`<div class="obj gate" data-obj="gate" style="${pos(586, 610)}" title="Về thành phố">
       ${art.img('farm_gate', { h: 140 })}<span class="gate-sign">Nông trại<b>${esc(user.name)}</b></span></div>`);
-    objs.gate = { x: 798, y: 560, face: 'down', hx: 798, hy: 440, verb: 'Về thành phố', run: () => (location.href = '/') };
+    objs.gate = { x: 586, y: 580, face: 'down', hx: 586, hy: 460, verb: 'Về thành phố', run: () => (location.href = '/') };
 
     parts.push(fieldHTML());
 
-    parts.push(yardHTML(), pondHTML());
-    objs.barn = { x: 494, y: 470, face: 'left', hx: 250, hy: 356, verb: farm.barn ? 'Xem chuồng' : 'Mua chuồng', run: () => openPen('barn') };
-    objs.pond = { x: 650, y: 350, face: 'up', hx: 650, hy: 186, verb: farm.pond ? 'Xem ao' : 'Mua ao', run: () => openPen('pond') };
+    // Ao cá ở mép phải.
+    parts.push(pondHTML());
+    objs.pond = { x: POND_BOX.x - 18, y: POND_BOX.y + 130, face: 'right', hx: POND_BOX.x + POND_BOX.w / 2, hy: POND_BOX.y + 8, verb: farm.pond ? 'Xem ao' : 'Mua ao', run: () => openPen('pond') };
 
-    parts.push(deco('hay', 500, 570, 38));
+    parts.push(deco('wheelbarrow', 730, 600, 44, true));
+    parts.push(deco('hay', W - 40, 600, 38));
 
     $('objects').innerHTML = parts.join('');
+    syncPets();
     // Nhân vật có thể đang đứng chỗ mới bị chặn: đưa về chỗ trống gần nhất.
     if (blocked(me.x, me.y)) {
       const [x, y] = nearestFree(me.x, me.y);
@@ -496,14 +513,389 @@
     });
     const young = [...((farm.barn && farm.barn.animals) || []), ...((farm.pond && farm.pond.fish) || [])];
     if (young.some((a) => a.readyAt > nowS() - 1 && a.readyAt <= nowS())) changed = true;
+    pets.forEach(drawBadges);
+    if (card) renderCard();
     if (changed) render();
+  }
+
+  // ---------- Vật nuôi và cá sống động ----------
+  // Ảnh có khối (pet_<loài>.png, fish3d_<loài>.png — sprite sheet nhiều khung, gấp 2 lần cỡ hiển thị).
+  // Con vật đi lang thang trong chuồng, tránh nhau, quay đầu theo hướng đi, xa nhỏ / gần to; cá bơi trong ao.
+  // Bấm vào con → nhân vật đi tới, con dừng nhìn, nhảy + kêu + tim bay, hiện thẻ (lớn tới đâu, đói / no, cho ăn, thu hoạch).
+
+  const PET = {
+    chicken: { fw: 137, fh: 142, face: 'left', speed: 46, say: 'Cục tác!' },
+    chicken_white: { fw: 137, fh: 142, face: 'left', speed: 46, say: 'Cục tác!' },
+    pig: { fw: 172, fh: 154, face: 'left', speed: 30, say: 'Ụt ịt!' },
+    sheep: { fw: 218, fh: 162, face: 'right', speed: 26, say: 'Be be!' },
+    cow: { fw: 252, fh: 190, face: 'left', speed: 22, say: 'Ò ó!' },
+  };
+  const FISH_SHEET = {
+    tilapia: { fw: 118, fh: 80 },
+    catfish: { fw: 155, fh: 80 },
+    carp: { fw: 93, fh: 80 },
+    koi: { fw: 121, fh: 80 },
+  };
+  const FRAME = { stand: 0, step: 1, breathe: 2, peck: 3, hop: 4 };
+  const ROAM = { x1: PEN.x1 + 34, y1: 330, x2: PEN.x2 - 30, y2: PEN.y2 - 24 }; // chỗ con vật đi lại trong chuồng
+  const POND = { cx: POND_BOX.x + POND_BOX.w / 2, cy: POND_BOX.y + 104, rx: 98, ry: 42 }; // mặt nước ao
+
+  const pets = new Map(); // id → con vật / cá đang hiện
+  let card = null; // { id, fish } thẻ đang mở
+
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const isHungry = (a) => {
+    if (a.readyAt <= nowS()) return false;
+    if (typeof a.fedAt !== 'number' && typeof a.hungry === 'boolean') return a.hungry;
+    const cd = (cat && cat.feedCooldown) || 600;
+    return nowS() - Math.max(a.fedAt || 0, a.boughtAt) >= cd;
+  };
+  const sheetOf = (p) => (p.fish ? FISH_SHEET[p.kind] || FISH_SHEET.tilapia : PET[p.look] || PET.chicken);
+  // Hệ số hiển thị: ảnh gấp 2; xa (y nhỏ) thì nhỏ lại, gần thì to; con chưa lớn nhỏ hơn.
+  function scaleOf(p) {
+    const young = p.data.readyAt > nowS() ? 0.78 : 1;
+    if (p.fish) return 0.56 * young * (0.9 + 0.2 * ((p.y - (POND.cy - POND.ry)) / (2 * POND.ry)));
+    return 0.62 * young * (0.84 + 0.26 * ((p.y - ROAM.y1) / (ROAM.y2 - ROAM.y1)));
+  }
+
+  function newTarget(p) {
+    if (p.fish) {
+      const a = rnd(0, Math.PI * 2);
+      const r = Math.sqrt(Math.random());
+      p.tx = POND.cx + Math.cos(a) * POND.rx * r;
+      p.ty = POND.cy + Math.sin(a) * POND.ry * r;
+    } else {
+      p.tx = rnd(ROAM.x1, ROAM.x2);
+      p.ty = rnd(ROAM.y1, ROAM.y2);
+    }
+    p.state = 'walk';
+  }
+
+  function petHTML(p) {
+    const sh = sheetOf(p);
+    const img = p.fish ? `fish3d_${p.kind}` : `pet_${p.look}`;
+    return `<span class="pet-jump"><span class="pet-body" style="background-image:url('${IMG}${img}.png')"></span></span>
+      <span class="pet-badges"></span>`;
+  }
+
+  // Đồng bộ danh sách con vật / cá với trạng thái server, giữ nguyên vị trí con đang có.
+  function syncPets() {
+    const layer = $('pets');
+    const live = new Set();
+    const add = (a, fish) => {
+      live.add(a.id);
+      let p = pets.get(a.id);
+      if (!p) {
+        p = { id: a.id, kind: a.kind, fish, look: a.kind === 'chicken' && a.id % 2 ? 'chicken_white' : a.kind, dir: Math.random() < 0.5 ? -1 : 1, frame: 0, ft: 0, data: a };
+        if (fish) {
+          const ang = rnd(0, Math.PI * 2);
+          p.x = POND.cx + Math.cos(ang) * POND.rx * 0.6;
+          p.y = POND.cy + Math.sin(ang) * POND.ry * 0.6;
+        } else {
+          p.x = rnd(ROAM.x1, ROAM.x2);
+          p.y = rnd(ROAM.y1, ROAM.y2);
+        }
+        newTarget(p);
+        p.state = 'idle';
+        p.until = rnd(0.2, 2);
+        p.el = document.createElement('button');
+        p.el.className = `pet${fish ? ' fish' : ''}`;
+        p.el.dataset.pet = a.id;
+        p.el.innerHTML = petHTML(p);
+        p.body = p.el.querySelector('.pet-body');
+        p.badges = p.el.querySelector('.pet-badges');
+        layer.appendChild(p.el);
+        pets.set(a.id, p);
+      }
+      p.data = a;
+      p.el.title = find(fish ? 'fish' : 'animals', a.kind).name;
+      drawBadges(p);
+    };
+    ((farm.barn && farm.barn.animals) || []).forEach((a) => add(a, false));
+    ((farm.pond && farm.pond.fish) || []).forEach((a) => add(a, true));
+    for (const [id, p] of pets) {
+      if (!live.has(id)) {
+        p.el.remove();
+        pets.delete(id);
+        if (card && card.id === id) closeCard();
+      }
+    }
+    if (card) renderCard();
+  }
+
+  // Bong bóng "Đói bụng" / lấp lánh khi lớn / thanh lớn nhỏ.
+  function drawBadges(p) {
+    const a = p.data;
+    const ready = nowS() >= a.readyAt;
+    const hungry = isHungry(a);
+    const key = `${ready}|${hungry}|${Math.round(progress(a.boughtAt, a.readyAt) * 20)}`;
+    if (key === p.badgeKey) return;
+    p.badgeKey = key;
+    const pr = progress(a.boughtAt, a.readyAt);
+    p.badges.innerHTML = ready
+      ? `<span class="pet-ready">!</span><span class="twinkle t1">${I.svg('sparkles')}</span><span class="twinkle t2">${I.svg('sparkles')}</span>`
+      : `${hungry ? '<span class="bubble-hungry">Đói bụng</span>' : ''}<span class="mini-bar"><span style="width:${Math.round(pr * 100)}%"></span></span>`;
+    p.el.classList.toggle('ready', ready);
+    p.el.classList.toggle('hungry', hungry);
+  }
+
+  function setFrame(p, name) {
+    const f = FRAME[name] || 0;
+    if (p.fish) p.frame = name === 'step' || name === 'peck' ? 1 : 0;
+    else p.frame = f;
+  }
+
+  // Mỗi khung hình: di chuyển, tránh nhau, chọn khung ảnh, đặt vị trí + cỡ theo chiều sâu.
+  function stepPets(dt) {
+    const list = [...pets.values()];
+    for (const p of list) {
+      p.ft += dt;
+      p.until -= dt;
+      const sp = p.fish ? 34 : (PET[p.look] || PET.chicken).speed;
+      if (p.state === 'walk' || p.state === 'food') {
+        const dx = p.tx - p.x;
+        const dy = p.ty - p.y;
+        const d = Math.hypot(dx, dy);
+        const v = sp * (p.state === 'food' ? 1.8 : 1) * dt;
+        if (d <= v + 0.5) {
+          p.x = p.tx;
+          p.y = p.ty;
+          if (p.state === 'food') {
+            p.state = 'peck';
+            p.until = 1.6;
+          } else {
+            p.state = p.fish ? 'walk' : Math.random() < 0.55 && /chicken|pig/.test(p.look) ? 'peck' : 'idle';
+            p.until = rnd(1.2, 3.5);
+            if (p.fish) newTarget(p);
+          }
+        } else {
+          p.x += (dx / d) * v;
+          p.y += (dy / d) * v;
+          if (Math.abs(dx) > 1) p.dir = dx > 0 ? 1 : -1;
+        }
+      } else if (p.until <= 0 && p.state !== 'look') {
+        newTarget(p);
+      } else if (p.state === 'look' && p.until <= 0) {
+        p.state = 'idle';
+        p.until = rnd(0.5, 1.5);
+      }
+    }
+    // Tránh nhau: đẩy nhẹ hai con quá gần.
+    for (let i = 0; i < list.length; i++) {
+      for (let j = i + 1; j < list.length; j++) {
+        const a = list[i];
+        const b = list[j];
+        if (a.fish !== b.fish) continue;
+        const min = a.fish ? 24 : 34 * (scaleOf(a) + scaleOf(b));
+        const dx = b.x - a.x;
+        const dy = (b.y - a.y) * 1.6;
+        const d = Math.hypot(dx, dy) || 0.01;
+        if (d < min) {
+          const push = ((min - d) / 2) * Math.min(1, dt * 8);
+          a.x -= (dx / d) * push;
+          a.y -= (dy / d) * push * 0.6;
+          b.x += (dx / d) * push;
+          b.y += (dy / d) * push * 0.6;
+        }
+      }
+    }
+    for (const p of list) {
+      if (p.fish) {
+        const ex = (p.x - POND.cx) / POND.rx;
+        const ey = (p.y - POND.cy) / POND.ry;
+        const r = Math.hypot(ex, ey);
+        if (r > 1) {
+          p.x = POND.cx + (ex / r) * POND.rx;
+          p.y = POND.cy + (ey / r) * POND.ry;
+        }
+      } else {
+        p.x = Math.min(ROAM.x2, Math.max(ROAM.x1, p.x));
+        p.y = Math.min(ROAM.y2, Math.max(ROAM.y1, p.y));
+      }
+      // Khung ảnh theo trạng thái.
+      let name = 'stand';
+      if (p.state === 'walk' || p.state === 'food') name = Math.floor(p.ft / (p.fish ? 0.22 : 0.16)) % 2 ? 'step' : 'stand';
+      else if (p.state === 'peck') name = Math.floor(p.ft / 0.26) % 2 ? 'peck' : 'stand';
+      else if (p.state === 'hop') name = 'hop';
+      else name = Math.floor(p.ft / 0.7) % 2 ? 'breathe' : 'stand';
+      setFrame(p, name);
+      const sh = sheetOf(p);
+      const s = scaleOf(p);
+      const w = sh.fw * s;
+      const h = sh.fh * s;
+      const n = p.fish ? 2 : 5;
+      const el = p.el;
+      el.style.left = `${(p.x - w / 2).toFixed(1)}px`;
+      el.style.top = `${(p.y - h + (p.fish ? h / 2 : 8 * s)).toFixed(1)}px`;
+      el.style.width = `${w.toFixed(1)}px`;
+      el.style.height = `${h.toFixed(1)}px`;
+      el.style.zIndex = p.fish ? 330 + Math.round(p.y - POND.cy + 40) : Math.round(p.y);
+      const face = p.fish ? 1 : (PET[p.look] || PET.chicken).face === 'left' ? -1 : 1;
+      p.body.style.backgroundSize = `${(sh.fw * n * s).toFixed(1)}px ${h.toFixed(1)}px`;
+      p.body.style.backgroundPositionX = `${(-p.frame * sh.fw * s).toFixed(1)}px`;
+      p.body.style.transform = p.dir === face ? '' : 'scaleX(-1)';
+    }
+    if (card) placeCard();
+  }
+
+  // Phản ứng khi được bấm: dừng, quay về phía nhân vật, nhảy, kêu, tim bay.
+  function react(p) {
+    p.state = 'look';
+    p.until = 6;
+    p.dir = me.x > p.x ? 1 : -1;
+    if (p.fish) return;
+    p.el.classList.remove('hop');
+    void p.el.offsetWidth;
+    p.el.classList.add('hop');
+    p.state = 'hop';
+    setTimeout(() => {
+      if (p.state === 'hop') {
+        p.state = 'look';
+        p.until = 5;
+      }
+      p.el.classList.remove('hop');
+    }, 650);
+    const say = document.createElement('span');
+    say.className = 'pet-say';
+    say.textContent = (PET[p.look] || PET.chicken).say;
+    p.el.appendChild(say);
+    for (let i = 0; i < 3; i++) {
+      const h = document.createElement('span');
+      h.className = 'pet-heart';
+      h.style.left = `${30 + i * 20}%`;
+      h.style.animationDelay = `${i * 0.15}s`;
+      h.innerHTML = I.svg('heart');
+      p.el.appendChild(h);
+    }
+    setTimeout(() => p.el.querySelectorAll('.pet-say, .pet-heart').forEach((x) => x.remove()), 1600);
+  }
+
+  // Điểm đứng ngoài hàng rào gần con vật nhất (cạnh phải chuồng); cá thì bờ trái ao.
+  function standPoint(p) {
+    if (p.fish) return { x: POND_BOX.x - 18, y: Math.min(POND_BOX.y + 200, Math.max(POND_BOX.y + 30, p.y)), face: 'right' };
+    return { x: PEN.x2 + 22, y: Math.min(PEN.y2 - 16, Math.max(PEN.y1 + 150, p.y)), face: 'left' };
+  }
+
+  function clickPet(id) {
+    const p = pets.get(id);
+    if (!p) return;
+    // Bấm lúc đang đi thì con dừng lại nhìn nhân vật ngay.
+    p.state = 'look';
+    p.until = 8;
+    p.dir = me.x > p.x ? 1 : -1;
+    const st = standPoint(p);
+    const job = { key: '_pet', face: st.face, work: false, run: () => { react(p); openCard(p); } };
+    if (Math.hypot(me.x - st.x, me.y - st.y) < 16) return arrive(job);
+    walkTo(st.x, st.y, job);
+  }
+
+  // ---------- Thẻ thông tin con vật ----------
+
+  function openCard(p) {
+    card = { id: p.id, fish: p.fish };
+    renderCard();
+  }
+
+  function closeCard() {
+    card = null;
+    $('pet-card').classList.add('hidden');
+  }
+
+  function renderCard() {
+    const p = card && pets.get(card.id);
+    if (!p) return closeCard();
+    const a = p.data;
+    const info = find(p.fish ? 'fish' : 'animals', a.kind);
+    const ready = nowS() >= a.readyAt;
+    const hungry = isHungry(a);
+    const pr = progress(a.boughtAt, a.readyAt);
+    const price = info.feedPrice || Math.max(5, Math.round((info.price || 50) / 10));
+    const el = $('pet-card');
+    el.innerHTML = `<button class="link icon-only pc-close" data-card="close" title="Đóng">${I.svg('x')}</button>
+      <b>${esc(info.name)}</b>
+      <span class="pc-bar"><span style="width:${Math.round(pr * 100)}%"></span></span>
+      <span class="pc-time">${ready ? 'Đã lớn — thu hoạch được' : `Còn ${countdown(a.readyAt - nowS())}`}</span>
+      ${ready ? '' : `<span class="pc-state ${hungry ? 'hungry' : 'full'}">${hungry ? 'Đói bụng' : 'No'}</span>`}
+      <span class="pc-btns">${ready
+        ? `<button class="primary" data-card="collect">${I.svg('sprout')}Thu hoạch</button>`
+        : hungry
+          ? `<button class="primary" data-card="feed">${I.svg('coins')}Cho ăn (${xu(price)} xu)</button>`
+          : `<span class="muted">Cho ăn lại sau ${countdown(((cat && cat.feedCooldown) || 600) - (nowS() - Math.max(a.fedAt || 0, a.boughtAt)))}</span>`}</span>`;
+    el.classList.remove('hidden');
+    placeCard();
+  }
+
+  function placeCard() {
+    const p = pets.get(card.id);
+    if (!p) return;
+    const el = $('pet-card');
+    const s = scaleOf(p);
+    const h = sheetOf(p).fh * s;
+    el.style.left = `${Math.round(p.x)}px`;
+    el.style.top = `${Math.round(p.y - (p.fish ? 0 : h) - 10)}px`;
+  }
+
+  async function feedPet(p) {
+    const res = await call(`/api/farm/${p.fish ? 'fish' : 'animals'}/feed`, { id: p.id });
+    if (!res) return;
+    dropFood(p.fish ? 'feed_pellet' : 'feed_grain', p.x + (p.fish ? 0 : -p.dir * 6), p.y + (p.fish ? 0 : 2), p.fish);
+    p.state = 'peck';
+    p.until = 2.2;
+    floatGain(p.el, res.gained, 'Ăn ngon!');
+  }
+
+  // Thả thức ăn: thóc rải trên đất / cám rơi xuống ao, mờ dần.
+  function dropFood(img, x, y, water) {
+    const n = water ? 5 : 1;
+    for (let i = 0; i < n; i++) {
+      const f = document.createElement('span');
+      f.className = `food${water ? ' pellet' : ''}`;
+      f.innerHTML = `<img src="${IMG}${img}.png" alt="">`;
+      f.style.left = `${x + (water ? rnd(-14, 14) : 0)}px`;
+      f.style.top = `${y + (water ? rnd(-6, 6) : 0)}px`;
+      f.style.zIndex = water ? 331 : Math.round(y) - 1;
+      f.style.animationDelay = `${i * 0.08}s`;
+      $('pets').appendChild(f);
+      setTimeout(() => f.remove(), 2600);
+    }
+  }
+
+  // Bấm vào mặt ao: nhân vật ra bờ, thả cám, cá bơi tới đớp; cá đang đói được cho ăn (trả xu mỗi con).
+  async function feedPond(x, y) {
+    const ex = (x - POND.cx) / POND.rx;
+    const ey = (y - POND.cy) / POND.ry;
+    const r = Math.hypot(ex, ey);
+    if (r > 0.85) {
+      x = POND.cx + (ex / r) * POND.rx * 0.85;
+      y = POND.cy + (ey / r) * POND.ry * 0.85;
+    }
+    dropFood('feed_pellet', x, y, true);
+    const fish = [...pets.values()].filter((p) => p.fish);
+    fish.forEach((p, i) => {
+      p.tx = x + rnd(-10, 10);
+      p.ty = y + rnd(-5, 5);
+      p.state = 'food';
+      p.ft = i * 0.1;
+    });
+    const hungry = fish.filter((p) => isHungry(p.data));
+    if (!fish.length) return A.toast('Ao chưa có cá — mua cá giống ở cửa hàng');
+    if (!hungry.length) return A.toast('Cá đang no, chưa cần cho ăn');
+    let xp = 0;
+    let coins = 0;
+    for (const p of hungry) {
+      const res = await call('/api/farm/fish/feed', { id: p.id });
+      if (!res) break;
+      xp += (res.gained && res.gained.xp) || 0;
+      coins += find('fish', p.kind).feedPrice || 0;
+    }
+    if (xp) A.toast(`Đã cho ${hungry.length} con cá ăn${coins ? ` (−${xu(coins)} xu)` : ''} · +${xp} XP`);
   }
 
   // ---------- Nhân vật đi lại ----------
 
   const SPEED = 230; // px/giây
   const SPRITE = 88;
-  const me = { x: 798, y: 540, dir: 'down', walking: false, look: {}, path: [], pending: null, drawn: '' };
+  const me = { x: 586, y: 560, dir: 'down', walking: false, look: {}, path: [], pending: null, drawn: '' };
   const keys = new Set();
   let zoom = 1;
   let nearKey = null;
@@ -518,7 +910,7 @@
     el.style.left = `${Math.round(me.x)}px`;
     el.style.top = `${Math.round(me.y)}px`;
     el.style.zIndex = Math.round(me.y);
-    const key = `${me.dir}|${me.walking}|${me.look.gender}|${me.look.outfit}`;
+    const key = `${me.dir}|${me.walking}|${JSON.stringify(me.look)}`;
     if (key !== me.drawn) {
       me.drawn = key;
       $('me-body').innerHTML = C.sprite(me.look, { dir: me.dir, walking: me.walking, size: SPRITE });
@@ -544,7 +936,7 @@
         if (!blocked(nx, ny)) return [nx, ny];
       }
     }
-    return [798, 540];
+    return [586, 560];
   }
 
   // Tìm đường A* trên lưới 16px, rồi rút gọn bằng đường thẳng nhìn thấy nhau.
@@ -642,6 +1034,7 @@
   function arrive(job) {
     const o = objs[job.key];
     if (o) me.dir = o.face;
+    else if (job.face) me.dir = job.face;
     me.walking = false;
     drawMe();
     if (!job.work) return job.run();
@@ -700,7 +1093,10 @@
   function frame(ts) {
     const dt = Math.min(0.05, (ts - (last || ts)) / 1000);
     last = ts;
-    if (farm) step(dt);
+    if (farm) {
+      step(dt);
+      stepPets(dt);
+    }
     requestAnimationFrame(frame);
   }
 
@@ -847,16 +1243,30 @@
       return;
     }
     if (e.target.closest('[data-hint]')) return nearKey && goTo(nearKey);
-    const critter = e.target.closest('[data-animal], [data-fish]');
-    if (critter) {
-      const isFish = !!critter.dataset.fish;
-      const id = +(critter.dataset.fish || critter.dataset.animal);
-      return goTo(isFish ? 'pond' : 'barn', () => collect(isFish, id, critter));
+    const r = $('world-wrap').getBoundingClientRect();
+    const wx = (e.clientX - r.left) / zoom;
+    const wy = (e.clientY - r.top) / zoom - OY;
+    // Thẻ con vật: cho ăn / thu hoạch / đóng.
+    const act = e.target.closest('[data-card]');
+    if (act) {
+      const p = card && pets.get(card.id);
+      if (act.dataset.card === 'close' || !p) return closeCard();
+      if (act.dataset.card === 'feed') return feedPet(p);
+      if (act.dataset.card === 'collect') {
+        closeCard();
+        return collect(p.fish, p.id, p.el);
+      }
+      return;
     }
+    if (e.target.closest('#pet-card')) return;
+    closeCard();
+    const pet = e.target.closest('[data-pet]');
+    if (pet) return clickPet(+pet.dataset.pet);
+    // Bấm mặt ao (không phải nhãn): ra bờ thả cám cho cá.
+    if (e.target.closest('.pond-water') && farm.pond) return goTo('pond', () => feedPond(wx, wy));
     const obj = e.target.closest('[data-obj]');
     if (obj) return goTo(obj.dataset.obj);
-    const r = $('world-wrap').getBoundingClientRect();
-    walkTo((e.clientX - r.left) / zoom, (e.clientY - r.top) / zoom - OY);
+    walkTo(wx, wy);
   });
 
   // ---------- Hiệu ứng ----------
@@ -1087,9 +1497,14 @@
           const info = find(list, it.kind);
           const ready = nowS() >= it.readyAt;
           const draw = isBarn ? art.animal(it.kind, 30) : art.fish(it.kind, 18);
-          const action = ready ? `<button class="primary" data-collect-${isBarn ? 'animal' : 'fish'}="${it.id}">${I.svg('sprout')}Thu hoạch</button>` : '';
+          const hungry = !ready && isHungry(it);
+          const action = ready
+            ? `<button class="primary" data-collect-${isBarn ? 'animal' : 'fish'}="${it.id}">${I.svg('sprout')}Thu hoạch</button>`
+            : hungry
+              ? `<button data-feed-${isBarn ? 'animal' : 'fish'}="${it.id}" title="Cho ăn">${I.svg('coins')}Cho ăn ${xu(info.feedPrice || 0)}</button>`
+              : '';
           return `<li>${draw}<span class="grow"><span>${esc(info.name)}</span>
-            <span class="t" data-left-at="${it.readyAt}">${ready ? 'Đã lớn' : countdown(it.readyAt - nowS())}</span></span>${action}</li>`;
+            <span class="t"><span data-left-at="${it.readyAt}">${ready ? 'Đã lớn' : countdown(it.readyAt - nowS())}</span>${hungry ? ' · <b class="hungry-tag">Đói bụng</b>' : ''}</span></span>${action}</li>`;
         })
         .join('')
       : `<li class="empty">Chưa có ${isBarn ? 'vật nuôi' : 'cá'} — mua ở cửa hàng</li>`;
@@ -1242,6 +1657,11 @@
     }
     if (d.buyAnimal) return call('/api/farm/animals/buy', { kind: d.buyAnimal });
     if (d.buyFish) return call('/api/farm/fish/buy', { kind: d.buyFish });
+    if (d.feedAnimal || d.feedFish) {
+      const p = pets.get(+(d.feedFish || d.feedAnimal));
+      if (p) return feedPet(p);
+      return call(`/api/farm/${d.feedFish ? 'fish' : 'animals'}/feed`, { id: +(d.feedFish || d.feedAnimal) });
+    }
     if (d.collectAnimal || d.collectFish) {
       const isFish = !!d.collectFish;
       return collect(isFish, +(d.collectFish || d.collectAnimal), document.querySelector(`[data-obj="${isFish ? 'pond' : 'barn'}"]`));
@@ -1285,7 +1705,7 @@
     async (u) => {
       if (!u) return A.requireLogin();
       user = u;
-      me.look = { gender: u.gender, outfit: u.outfit };
+      me.look = lookOf(u);
       renderHUD();
       const manifest = await fetch(IMG + 'manifest.json').then((r) => r.json()).catch(() => ({}));
       for (const f of manifest.images || manifest.files || []) sizes[f.file.replace(/\.png$/, '')] = [f.w, f.h];
@@ -1294,8 +1714,8 @@
         setZoom();
         // Vừa bước qua cổng nông trại.
         // Vừa bước qua cổng "Vào".
-        me.x = 798;
-        me.y = 540;
+        me.x = 586;
+        me.y = 560;
         me.dir = 'up';
         drawMe();
         updateHint();

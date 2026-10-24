@@ -127,6 +127,9 @@ func (f *Farm) Handler() http.Handler {
 		handle("POST /api/farm/"+item+"/sell", func(r *http.Request, uid int64, b body) (State, *Gained, error) {
 			return gain(f.SellStock(r.Context(), uid, place, b.ID))
 		})
+		handle("POST /api/farm/"+item+"/feed", func(r *http.Request, uid int64, b body) (State, *Gained, error) {
+			return gain(f.FeedStock(r.Context(), uid, place, b.ID))
+		})
 		handle("POST /api/farm/"+item+"/collect", func(r *http.Request, uid int64, b body) (State, *Gained, error) {
 			return gain(f.CollectStock(r.Context(), uid, place, b.ID))
 		})

@@ -34,7 +34,8 @@ CREATE TABLE IF NOT EXISTS farm_stock (
 	place     TEXT NOT NULL,
 	kind      TEXT NOT NULL,
 	bought_at INTEGER NOT NULL,
-	ready_at  INTEGER NOT NULL
+	ready_at  INTEGER NOT NULL,
+	fed_at    INTEGER NOT NULL DEFAULT 0 -- lần cho ăn gần nhất (0 = chưa cho ăn)
 );
 CREATE INDEX IF NOT EXISTS farm_stock_user ON farm_stock(user_id, place);
 CREATE TABLE IF NOT EXISTS farm_storage (
@@ -97,6 +98,9 @@ func New(ctx context.Context, w *wallet.Wallet) (*Farm, error) {
 	if err := w.ExecSchema(ctx, schema); err != nil {
 		return nil, fmt.Errorf("tạo bảng nông trại: %w", err)
 	}
+	if err := migrate(ctx, w); err != nil {
+		return nil, fmt.Errorf("nâng cấp bảng nông trại: %w", err)
+	}
 	return &Farm{w: w, now: time.Now}, nil
 }
 
@@ -114,6 +118,8 @@ type Animal struct {
 	Kind     string `json:"kind"`
 	BoughtAt int64  `json:"boughtAt"`
 	ReadyAt  int64  `json:"readyAt"`
+	FedAt    int64  `json:"fedAt"`
+	Hungry   bool   `json:"hungry"` // chưa lớn và đã qua FeedCooldown kể từ lần ăn gần nhất (hoặc lúc mua)
 }
 
 type Pen struct {
@@ -178,7 +184,7 @@ func loadPlots(ctx context.Context, q querier, uid int64) ([]Plot, error) {
 }
 
 // loadPen đọc chuồng / ao; nil nếu chưa mua.
-func loadPen(ctx context.Context, q querier, uid int64, place string) (*Pen, error) {
+func loadPen(ctx context.Context, q querier, uid int64, place string, now int64) (*Pen, error) {
 	b := Buildings[place]
 	pen := &Pen{MaxCapacity: b.MaxCapacity}
 	err := q.QueryRowContext(ctx, `SELECT capacity, expansions FROM farm_buildings WHERE user_id = ? AND place = ?`, uid, place).
@@ -192,7 +198,7 @@ func loadPen(ctx context.Context, q querier, uid int64, place string) (*Pen, err
 	if pen.Capacity < b.MaxCapacity {
 		pen.NextExpandPrice = b.expandPrice(pen.expansions)
 	}
-	rows, err := q.QueryContext(ctx, `SELECT id, kind, bought_at, ready_at FROM farm_stock WHERE user_id = ? AND place = ? ORDER BY id`, uid, place)
+	rows, err := q.QueryContext(ctx, `SELECT id, kind, bought_at, ready_at, fed_at FROM farm_stock WHERE user_id = ? AND place = ? ORDER BY id`, uid, place)
 	if err != nil {
 		return nil, err
 	}
@@ -200,9 +206,10 @@ func loadPen(ctx context.Context, q querier, uid int64, place string) (*Pen, err
 	list := []Animal{}
 	for rows.Next() {
 		var a Animal
-		if err := rows.Scan(&a.ID, &a.Kind, &a.BoughtAt, &a.ReadyAt); err != nil {
+		if err := rows.Scan(&a.ID, &a.Kind, &a.BoughtAt, &a.ReadyAt, &a.FedAt); err != nil {
 			return nil, err
 		}
+		a.Hungry = a.hungry(now)
 		if s, ok := findStock(place, a.Kind); ok {
 			pen.Used += s.Units
 		}
@@ -228,10 +235,10 @@ func (f *Farm) load(ctx context.Context, q querier, uid int64) (State, error) {
 	if len(s.Plots) < MaxPlots {
 		s.NextPlotPrice = plotPrice(len(s.Plots))
 	}
-	if s.Barn, err = loadPen(ctx, q, uid, placeBarn); err != nil {
+	if s.Barn, err = loadPen(ctx, q, uid, placeBarn, s.Now); err != nil {
 		return State{}, err
 	}
-	if s.Pond, err = loadPen(ctx, q, uid, placePond); err != nil {
+	if s.Pond, err = loadPen(ctx, q, uid, placePond, s.Now); err != nil {
 		return State{}, err
 	}
 	// Ao trả mảng fish rỗng chứ không bỏ trường, để giao diện dễ đọc.

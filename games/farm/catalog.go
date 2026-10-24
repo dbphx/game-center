@@ -77,7 +77,7 @@ const (
 )
 
 var Buildings = map[string]Building{
-	placeBarn: {Name: "chuồng", Price: 3000, Level: 2, Capacity: 5, ExpandUnits: 5, MaxCapacity: 30, expandBase: 2000},
+	placeBarn: {Name: "chuồng", Price: 3000, Level: 1, Capacity: 5, ExpandUnits: 5, MaxCapacity: 30, expandBase: 2000},
 	placePond: {Name: "ao cá", Price: 2500, Level: 1, Capacity: 5, ExpandUnits: 5, MaxCapacity: 30, expandBase: 1500},
 }
 
@@ -145,12 +145,13 @@ func findStock(place, id string) (Stock, bool) {
 // Catalog là danh mục gửi cho giao diện (GET /api/farm/catalog).
 func Catalog() map[string]any {
 	return map[string]any{
-		"crops":   Crops,
-		"animals": Animals,
-		"fish":    Fish,
-		"plots":   map[string]int{"free": FreePlots, "max": MaxPlots, "basePrice": PlotBasePrice, "step": PlotStep},
-		"barn":    Buildings[placeBarn],
-		"pond":    Buildings[placePond],
-		"storage": Stores,
+		"crops":        Crops,
+		"animals":      withFeed(Animals),
+		"fish":         withFeed(Fish),
+		"feedCooldown": FeedCooldown,
+		"plots":        map[string]int{"free": FreePlots, "max": MaxPlots, "basePrice": PlotBasePrice, "step": PlotStep},
+		"barn":         Buildings[placeBarn],
+		"pond":         Buildings[placePond],
+		"storage":      Stores,
 	}
 }

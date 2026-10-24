@@ -72,10 +72,11 @@ func TestFarmAPI(t *testing.T) {
 		{"/api/farm/harvest", map[string]any{"plot": 0}, 409},                 // chưa chín
 		{"/api/farm/harvest-all", nil, 409},                                   // chưa có ô nào chín
 		{"/api/farm/plots/buy", nil, 402},                                     // 10.000 xu > số dư
-		{"/api/farm/barn/buy", nil, 403},                                      // chuồng cần level 2
+		{"/api/farm/barn/buy", nil, 402},                                      // chuồng Lv1 nhưng 3.000 xu > số dư
 		{"/api/farm/animals/buy", map[string]any{"kind": "chicken"}, 409},     // chưa có chuồng
 		{"/api/farm/fish/buy", map[string]any{"kind": "tilapia"}, 409},        // chưa có ao
 		{"/api/farm/fish/sell", map[string]any{"id": 1}, 409},                 // chưa có ao
+		{"/api/farm/fish/feed", map[string]any{"id": 1}, 409},                 // chưa có ao
 	}
 	for _, tc := range cases {
 		var e farmReply

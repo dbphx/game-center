@@ -924,6 +924,247 @@
    "source": [
     "DCity (vẽ / ghép bằng PIL cho dự án)"
    ]
+  },
+  {
+   "file": "pet_chicken.png",
+   "w": 685,
+   "h": 142,
+   "use": "Sprite sheet có khối (tô bóng Lambert + highlight + viền + bóng đổ), 5 khung ngang 137×142: stand, step, breathe, peck, hop; đầu quay trái; hiển thị ×0.5",
+   "anchor": "bottom-center",
+   "tile": false,
+   "frameW": 137,
+   "frameH": 142,
+   "frames": [
+    "stand",
+    "step",
+    "breathe",
+    "peck",
+    "hop"
+   ],
+   "face": "left",
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "xử lý từ animal_chicken.png.png"
+   ]
+  },
+  {
+   "file": "pet_chicken_white.png",
+   "w": 685,
+   "h": 142,
+   "use": "Sprite sheet có khối (tô bóng Lambert + highlight + viền + bóng đổ), 5 khung ngang 137×142: stand, step, breathe, peck, hop; đầu quay trái; hiển thị ×0.5",
+   "anchor": "bottom-center",
+   "tile": false,
+   "frameW": 137,
+   "frameH": 142,
+   "frames": [
+    "stand",
+    "step",
+    "breathe",
+    "peck",
+    "hop"
+   ],
+   "face": "left",
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "xử lý từ animal_chicken_white.png.png"
+   ]
+  },
+  {
+   "file": "pet_pig.png",
+   "w": 860,
+   "h": 154,
+   "use": "Sprite sheet có khối (tô bóng Lambert + highlight + viền + bóng đổ), 5 khung ngang 172×154: stand, step, breathe, peck, hop; đầu quay trái; hiển thị ×0.5",
+   "anchor": "bottom-center",
+   "tile": false,
+   "frameW": 172,
+   "frameH": 154,
+   "frames": [
+    "stand",
+    "step",
+    "breathe",
+    "peck",
+    "hop"
+   ],
+   "face": "left",
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "xử lý từ animal_pig.png.png"
+   ]
+  },
+  {
+   "file": "pet_sheep.png",
+   "w": 1090,
+   "h": 162,
+   "use": "Sprite sheet có khối (tô bóng Lambert + highlight + viền + bóng đổ), 5 khung ngang 218×162: stand, step, breathe, peck, hop; đầu quay phải; hiển thị ×0.5",
+   "anchor": "bottom-center",
+   "tile": false,
+   "frameW": 218,
+   "frameH": 162,
+   "frames": [
+    "stand",
+    "step",
+    "breathe",
+    "peck",
+    "hop"
+   ],
+   "face": "right",
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "xử lý từ animal_sheep.png.png"
+   ]
+  },
+  {
+   "file": "pet_cow.png",
+   "w": 1260,
+   "h": 190,
+   "use": "Sprite sheet có khối (tô bóng Lambert + highlight + viền + bóng đổ), 5 khung ngang 252×190: stand, step, breathe, peck, hop; đầu quay trái; hiển thị ×0.5",
+   "anchor": "bottom-center",
+   "tile": false,
+   "frameW": 252,
+   "frameH": 190,
+   "frames": [
+    "stand",
+    "step",
+    "breathe",
+    "peck",
+    "hop"
+   ],
+   "face": "left",
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "xử lý từ animal_cow.png.png"
+   ]
+  },
+  {
+   "file": "fish3d_tilapia.png",
+   "w": 236,
+   "h": 80,
+   "use": "Sprite sheet có khối (tô bóng Lambert + highlight + viền + bóng đổ), 2 khung ngang 118×80: swim, flick; đầu quay phải; hiển thị ×0.5",
+   "anchor": "bottom-center",
+   "tile": false,
+   "frameW": 118,
+   "frameH": 80,
+   "frames": [
+    "swim",
+    "flick"
+   ],
+   "face": "right",
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "xử lý từ fish_tilapia.png.png"
+   ]
+  },
+  {
+   "file": "fish3d_catfish.png",
+   "w": 310,
+   "h": 80,
+   "use": "Sprite sheet có khối (tô bóng Lambert + highlight + viền + bóng đổ), 2 khung ngang 155×80: swim, flick; đầu quay phải; hiển thị ×0.5",
+   "anchor": "bottom-center",
+   "tile": false,
+   "frameW": 155,
+   "frameH": 80,
+   "frames": [
+    "swim",
+    "flick"
+   ],
+   "face": "right",
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "xử lý từ fish_catfish.png.png"
+   ]
+  },
+  {
+   "file": "fish3d_carp.png",
+   "w": 186,
+   "h": 80,
+   "use": "Sprite sheet có khối (tô bóng Lambert + highlight + viền + bóng đổ), 2 khung ngang 93×80: swim, flick; đầu quay phải; hiển thị ×0.5",
+   "anchor": "bottom-center",
+   "tile": false,
+   "frameW": 93,
+   "frameH": 80,
+   "frames": [
+    "swim",
+    "flick"
+   ],
+   "face": "right",
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "xử lý từ fish_carp.png.png"
+   ]
+  },
+  {
+   "file": "fish3d_koi.png",
+   "w": 242,
+   "h": 80,
+   "use": "Sprite sheet có khối (tô bóng Lambert + highlight + viền + bóng đổ), 2 khung ngang 121×80: swim, flick; đầu quay phải; hiển thị ×0.5",
+   "anchor": "bottom-center",
+   "tile": false,
+   "frameW": 121,
+   "frameH": 80,
+   "frames": [
+    "swim",
+    "flick"
+   ],
+   "face": "right",
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "xử lý từ fish_koi.png.png"
+   ]
+  },
+  {
+   "file": "pen_shed.png",
+   "w": 250,
+   "h": 200,
+   "use": "Chuồng gỗ mái rơm kiểu quê Việt Nam (3/4), có máng ăn",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fence_wood.png",
+   "w": 120,
+   "h": 64,
+   "use": "Hàng rào gỗ có độ dày, lặp ngang 120×64",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "feed_grain.png",
+   "w": 48,
+   "h": 20,
+   "use": "Nắm thóc rải cho gia súc / gia cầm ăn",
+   "anchor": "top-left",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "feed_pellet.png",
+   "w": 10,
+   "h": 10,
+   "use": "Viên cám cá",
+   "anchor": "top-left",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "dirt_smooth.png",
+   "w": 256,
+   "h": 256,
+   "use": "Nền đất be trơn mịn (không sỏi), lặp liền 256×256",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
   }
  ]
 }
