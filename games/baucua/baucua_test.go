@@ -292,3 +292,21 @@ func TestHPGateInHandler(t *testing.T) {
 	}
 	_ = e
 }
+
+// Đang lắc bát thì chưa trả thưởng: số dư (trong state và ví) chỉ đổi khi mở bát, để không lộ kết quả sớm.
+func TestNoPayoutWhileRolling(t *testing.T) {
+	e := newEnv(t, 1000)
+	e.bet("cua", 100) // ra 2 lần: nhận 300
+	e.clock = e.clock.Add(BettingTime + time.Second)
+	s, err := e.g.State(ctx, e.uid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.Phase != PhaseRolling || *s.Balance != 900 || e.user(e.uid).Balance != 900 || s.Mine.Won != nil {
+		t.Fatalf("đang lắc đã trả thưởng: pha %s, số dư %d, ví %d", s.Phase, *s.Balance, e.user(e.uid).Balance)
+	}
+	e.clock = e.clock.Add(RollingTime)
+	if s, _ = e.g.State(ctx, e.uid); s.Phase != PhaseResult || *s.Balance != 1200 {
+		t.Fatalf("mở bát: pha %s, số dư %d", s.Phase, *s.Balance)
+	}
+}

@@ -202,14 +202,15 @@ func (g *Game) clockAt(t time.Time) clock {
 	return c
 }
 
-// sync quay và chốt mọi vòng đã hết giờ cược mà chưa chốt. Gọi khi đang giữ g.mu.
+// sync quay các vòng đã hết giờ cược và chốt mọi vòng đã mở bát mà chưa chốt. Gọi khi đang giữ g.mu.
 func (g *Game) sync(ctx context.Context, c clock) error {
 	// Vòng hiện tại hết giờ cược thì quay luôn (kể cả không ai đặt) để có lịch sử.
 	if c.phase != PhaseBetting {
 		g.rollRound(c.round)
 	}
+	// Chỉ trả thưởng vòng hiện tại khi đã mở bát: trả sớm lúc đang lắc thì số dư nhảy trước, lộ kết quả.
 	last := c.round - 1
-	if c.phase != PhaseBetting {
+	if c.phase == PhaseResult {
 		last = c.round
 	}
 	rows, err := g.w.Begin(ctx)
