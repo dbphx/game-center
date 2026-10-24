@@ -205,9 +205,9 @@
 @keyframes sign-blink { 0%, 100% { filter: brightness(1) drop-shadow(0 0 4px rgba(255, 220, 90, .6)); } 50% { filter: brightness(1.35) drop-shadow(0 0 14px rgba(255, 210, 60, 1)); } }
 
 /* Vùng bấm của khu và biển tên (biển gỗ kiểu game) */
-.zone { position: absolute; cursor: pointer; border-radius: 10px; transition: box-shadow .2s, background .2s; z-index: 5; }
-.zone:hover { background: rgba(255, 240, 170, .1); box-shadow: inset 0 0 0 3px rgba(255, 235, 150, .65); }
-.zone.target { box-shadow: inset 0 0 0 4px rgba(255, 190, 40, .95), 0 0 24px rgba(255, 190, 40, .6); }
+.zone { position: absolute; cursor: pointer; z-index: 5; }
+/* Không vẽ khung quanh khu khi rê chuột / đang đi tới (người chơi không muốn thấy viền giới hạn);
+   chỉ con trỏ đổi hình và biển tên sáng lên. */
 .zone-label {
   position: absolute;
   transform: translateX(-50%);
@@ -229,7 +229,7 @@
 .zone-label .zl-badge { margin-top: 3px; padding: 1px 9px; border-radius: 999px; background: linear-gradient(180deg, #ff6b6b, #e03131); color: #fff; font: 800 11px var(--font); box-shadow: 0 2px 0 #a61e1e; }
 .zone-label.soon { border-color: #b8b0a2; }
 .zone-label.soon .zl-sub { color: var(--muted); }
-.zone-label:hover, .zone-label.target { transform: translateX(-50%) translateY(-2px); background: linear-gradient(180deg, #fff8cc, #ffe08a); }
+.zone-label:hover, .zone:hover + .zone-label, .zone-label.target { transform: translateX(-50%) translateY(-2px); background: linear-gradient(180deg, #fff8cc, #ffe08a); }
 
 /* Nhân vật: chân đặt đúng toạ độ (x, y) */
 .me { position: absolute; left: 0; top: 0; pointer-events: none; }
