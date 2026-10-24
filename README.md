@@ -1,7 +1,7 @@
 # DCity
 
 Thành phố game online chơi qua trình duyệt. Mỗi người có một **nhân vật** (giới tính, trang phục, level riêng) dạo quanh
-bản đồ thành phố **nhìn từ trên cao xuống** (lưới phố, xe chạy, mái nhà đổ bóng);
+bản đồ thành phố **nhìn từ trên cao xuống** (lưới phố, xe chạy, mái nhà đổ bóng, con sông có cầu và thuyền chạy);
 mỗi khu là một game hoặc tiện ích, tất cả **dùng chung một ví xu**.
 
 | Khu | |

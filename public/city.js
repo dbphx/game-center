@@ -14,6 +14,9 @@
   const WALK = 14;
   // Phần vẽ thêm quanh bản đồ: màn hình khác tỉ lệ 16:10 vẫn thấy cỏ và đường nối tiếp, không bị viền trống.
   const PAD = 900;
+  // Sông chảy ngang phía trên thành phố (toạ độ y âm), hai trục đường dọc bắc cầu qua sông.
+  const RIVER_TOP = 200;
+  const RIVER = `M${-PAD} -110 C-500 -170 -100 -40 300 -105 S1100 -175 1500 -100 S2300 -50 ${W + PAD} -115`;
 
   const ZONES = {
     plaza: { name: 'Quảng trường', sub: 'Nhân vật của bạn', node: 'plaza' },
@@ -146,12 +149,62 @@
     return out.join('');
   }
 
+  function river() {
+    const ducks = [[180, -86], [196, -78], [210, -92], [1240, -128], [1256, -120]]
+      .map(([x, y]) => `<g class="duck"><ellipse cx="${x}" cy="${y}" rx="6" ry="4.5" fill="#fff"/><circle cx="${x + 5}" cy="${y - 2}" r="2.6" fill="#2e7d32"/><path d="M${x + 7} ${y - 2} l3 1 l-3 1 Z" fill="#f2a516"/></g>`)
+      .join('');
+    const pads = [[40, -130], [70, -118], [880, -150], [905, -138], [1700, -95]]
+      .map(([x, y]) => `<circle cx="${x}" cy="${y}" r="9" fill="#5aa64f"/><path d="M${x} ${y} l9 -3" stroke="#3fa9dd" stroke-width="2.5"/>`)
+      .join('');
+    return `<g class="river">
+      <path d="${RIVER}" fill="none" stroke="#e3d29f" stroke-width="150" stroke-linecap="round"/>
+      <path d="${RIVER}" fill="none" stroke="#2f8fc4" stroke-width="112"/>
+      <path d="${RIVER}" fill="none" stroke="#4fb3e3" stroke-width="80"/>
+      <path d="${RIVER}" fill="none" stroke="#7fd0f2" stroke-width="30" opacity=".5"/>
+      <path d="${RIVER}" fill="none" stroke="#e6f8ff" stroke-width="2.5" stroke-dasharray="18 42" class="river-wave" transform="translate(0 -22)"/>
+      <path d="${RIVER}" fill="none" stroke="#e6f8ff" stroke-width="2.5" stroke-dasharray="14 50" class="river-wave slow" transform="translate(0 20)"/>
+      ${pads}${ducks}
+      <g transform="translate(1290 -48)"><rect x="-6" y="-38" width="12" height="40" fill="#8a5a3b"/><rect x="-26" y="-44" width="52" height="12" rx="2" fill="#a1785a"/>
+        ${[-20, 0, 20].map((x) => `<rect x="${x - 1.5}" y="-46" width="3" height="16" fill="#6b4a2f"/>`).join('')}</g>
+      ${boat('#f4f4f4', '#d94b85', 24, 0)}${boat('#ffcc33', '#2f6fb0', 31, -11)}${boat('#8d6e4a', '#e5484d', 27, -6, true)}
+      </g>`;
+  }
+
+  // Thuyền nhìn từ trên xuống, mũi hướng sang phải; chạy dọc lòng sông (reverse: ngược dòng).
+  function boat(hull, cabin, dur, begin, reverse) {
+    const motion = reverse ? 'keyPoints="1;0" keyTimes="0;1" calcMode="linear"' : '';
+    return `<g><g transform="scale(1.5)${reverse ? ' rotate(180)' : ''}">
+        <path d="M-26 -10 L14 -10 Q30 0 14 10 L-26 10 Z" fill="rgba(0,0,0,.2)" transform="translate(4 4)"/>
+        <path d="M-26 -10 L14 -10 Q30 0 14 10 L-26 10 Z" fill="${hull}" stroke="rgba(0,0,0,.25)" stroke-width="2"/>
+        <rect x="-16" y="-6" width="18" height="12" rx="3" fill="${cabin}"/>
+        <path d="M-30 -6 Q-40 0 -30 6" fill="none" stroke="#e6f8ff" stroke-width="2.5"/>
+      </g><animateMotion path="${RIVER}" dur="${dur}s" begin="${begin}s" repeatCount="indefinite" rotate="auto" ${motion}/></g>`;
+  }
+
+  // Cầu: mặt cầu rộng hơn đường, lan can hai bên, đoạn qua sông.
+  function bridges() {
+    return ROADS_V.map((x) => {
+      const w = (HALF + WALK) * 2 + 16;
+      const y0 = -RIVER_TOP + 10;
+      const y1 = -24;
+      const posts = Array.from({ length: 8 }, (_, i) => y0 + 8 + i * ((y1 - y0 - 16) / 7));
+      return `<g class="bridge">
+        <rect x="${x - w / 2 + 6}" y="${y0 + 6}" width="${w}" height="${y1 - y0}" fill="rgba(0,0,0,.25)"/>
+        <rect x="${x - w / 2}" y="${y0}" width="${w}" height="${y1 - y0}" fill="#9aa3ad"/>
+        <rect x="${x - HALF}" y="${y0}" width="${HALF * 2}" height="${y1 - y0}" fill="#4b5563"/>
+        <line x1="${x}" y1="${y0 + 6}" x2="${x}" y2="${y1 - 6}" stroke="#f3e9c6" stroke-width="3" stroke-dasharray="26 20"/>
+        ${[-1, 1].map((sd) => `<rect x="${x + sd * (w / 2) - 4}" y="${y0}" width="8" height="${y1 - y0}" fill="#e8e2d5"/>` +
+          posts.map((py) => `<rect x="${x + sd * (w / 2) - 6}" y="${py - 4}" width="12" height="8" rx="2" fill="#cfc6b1"/>`).join('')).join('')}
+      </g>`;
+    }).join('');
+  }
+
   // Xe chạy vòng trên các làn đường.
   function traffic() {
     const lanes = [
       [`M-60 ${330 + 16} H${W + 60}`, 13, '#e5484d'], [`M${W + 60} ${330 - 16} H-60`, 17, '#4f8ef7'],
       [`M-60 ${700 + 16} H${W + 60}`, 15, '#f6c744'], [`M${W + 60} ${700 - 16} H-60`, 11, '#ffffff'],
-      [`M${520 + 16} -60 V${H + 60}`, 12, '#7e57c2'], [`M${1080 - 16} ${H + 60} V-60`, 14, '#26a69a'],
+      [`M${520 + 16} ${-RIVER_TOP - 80} V${H + 60}`, 13, '#7e57c2'], [`M${1080 - 16} ${H + 60} V${-RIVER_TOP - 80}`, 15, '#26a69a'],
     ];
     return lanes
       .map(([d, dur, color], i) => `<g>${car(color)}<animateMotion path="${d}" dur="${dur}s" begin="-${i * 2.3}s" repeatCount="indefinite" rotate="auto"/></g>`)
@@ -432,11 +485,11 @@
 
   function mount(el, o) {
     opts = o;
-    el.innerHTML = `<svg class="city-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Bản đồ DCity nhìn từ trên cao">
+    el.innerHTML = `<svg class="city-svg" viewBox="0 ${-RIVER_TOP} ${W} ${H + RIVER_TOP}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Bản đồ DCity nhìn từ trên cao">
       ${defs()}<rect x="${-PAD}" y="${-PAD}" width="${W + 2 * PAD}" height="${H + 2 * PAD}" fill="url(#grass)"/>
-      ${[[-120, 120], [-200, 560], [-90, 880], [1720, 140], [1800, 520], [1700, 900], [300, -120], [1300, -150], [700, 1120], [1400, 1130]]
+      ${[[-120, 120], [-200, 560], [-90, 880], [1720, 140], [1800, 520], [1700, 900], [300, -300], [1300, -320], [700, 1120], [1400, 1130], [120, -10], [980, -14], [1520, -8]]
         .map(([x, y]) => tree(x, y, 30)).join('')}
-      ${park()}${homes()}${court()}${roads()}${traffic()}
+      ${river()}${park()}${homes()}${court()}${roads()}${traffic()}${bridges()}
       ${plaza()}${casino()}${bank()}${shop()}${site()}${farm()}
       ${labels()}
       <g id="me">

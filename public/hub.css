@@ -110,6 +110,10 @@
 @keyframes spray { to { opacity: .55; } }
 .windmill { animation: spin 6s linear infinite; transform-box: fill-box; transform-origin: center; }
 @keyframes spin { to { transform: rotate(360deg); } }
+.river-wave { animation: flow 2.6s linear infinite; }
+.river-wave.slow { animation-duration: 4s; }
+@keyframes flow { to { stroke-dashoffset: -120; } }
+.duck { animation: graze 6s ease-in-out infinite alternate; }
 .sheep { animation: graze 5s ease-in-out infinite alternate; }
 .sheep:nth-child(2n) { animation-duration: 7s; }
 @keyframes graze { to { translate: 8px 3px; } }

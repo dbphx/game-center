@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+      <defs>
+        <linearGradient id="f-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a74d9"/><stop offset="1" stop-color="#8e44ad"/></linearGradient>
+        <linearGradient id="f-gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe082"/><stop offset="1" stop-color="#e0a800"/></linearGradient>
+      </defs>
+      <rect x="2" y="2" width="44" height="44" rx="12" fill="url(#f-sky)"/>
+      <circle cx="35" cy="12" r="4.5" fill="#ffe8a3"/>
+      <g fill="#ffffff" opacity=".92"><rect x="7" y="22" width="9" height="20" rx="1.5"/><rect x="29" y="25" width="8" height="17" rx="1.5"/><rect x="37.5" y="30" width="5" height="12" rx="1"/></g>
+      <rect x="16.5" y="12" width="12" height="30" rx="1.5" fill="url(#f-gold)"/>
+      <rect x="21.5" y="8" width="2" height="5" fill="#ffd766"/>
+      <g fill="#5b4bb3" opacity=".55">
+        <rect x="9" y="25" width="2" height="2"/><rect x="12.5" y="25" width="2" height="2"/><rect x="9" y="30" width="2" height="2"/><rect x="12.5" y="34" width="2" height="2"/>
+        <rect x="31" y="28" width="2" height="2"/><rect x="34" y="32" width="2" height="2"/>
+      </g>
+      <g fill="#7a5600" opacity=".55"><rect x="19" y="16" width="2.4" height="2.4"/><rect x="23.5" y="16" width="2.4" height="2.4"/><rect x="19" y="21" width="2.4" height="2.4"/><rect x="23.5" y="26" width="2.4" height="2.4"/><rect x="19" y="31" width="2.4" height="2.4"/></g>
+      <path d="M4 42 Q12 39 20 42 T36 42 T44 42 V44 Q44 46 42 46 H6 Q4 46 4 44 Z" fill="#4fb3e3"/>
+</svg>

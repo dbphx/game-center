@@ -73,13 +73,26 @@
     return `<span class="avatar" style="--avatar:${color}">${letter.toUpperCase().replace(/[&<>"']/g, '')}</span>`;
   }
 
-  // Logo DCity: hai lá bài xoè, lá trước là Át cơ.
+  // Logo DCity: huy hiệu bầu trời chiều với các toà nhà cao tầng và dòng sông.
+  let logoSeq = 0;
   function logo(size = 32) {
+    const id = 'dc' + ++logoSeq; // id gradient riêng cho mỗi logo trên trang
     return `<svg class="logo" width="${size}" height="${size}" viewBox="0 0 48 48" aria-hidden="true">
-      <defs><linearGradient id="lg-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe082"/><stop offset="1" stop-color="#e0a800"/></linearGradient></defs>
-      <rect x="9" y="7" width="22" height="31" rx="4" transform="rotate(-14 20 22)" fill="url(#lg-gold)"/>
-      <rect x="17" y="9" width="22" height="31" rx="4" transform="rotate(10 28 24)" fill="#fff" stroke="#e0a800" stroke-width="1.5"/>
-      <path transform="rotate(10 28 24) translate(28 25)" d="M0 6c-5-4-8-6.5-8-9.5a4 4 0 0 1 8-1.2a4 4 0 0 1 8 1.2C8-.5 5 2 0 6z" fill="#e53935"/>
+      <defs>
+        <linearGradient id="${id}-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a74d9"/><stop offset="1" stop-color="#8e44ad"/></linearGradient>
+        <linearGradient id="${id}-gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe082"/><stop offset="1" stop-color="#e0a800"/></linearGradient>
+      </defs>
+      <rect x="2" y="2" width="44" height="44" rx="12" fill="url(#${id}-sky)"/>
+      <circle cx="35" cy="12" r="4.5" fill="#ffe8a3"/>
+      <g fill="#ffffff" opacity=".92"><rect x="7" y="22" width="9" height="20" rx="1.5"/><rect x="29" y="25" width="8" height="17" rx="1.5"/><rect x="37.5" y="30" width="5" height="12" rx="1"/></g>
+      <rect x="16.5" y="12" width="12" height="30" rx="1.5" fill="url(#${id}-gold)"/>
+      <rect x="21.5" y="8" width="2" height="5" fill="#ffd766"/>
+      <g fill="#5b4bb3" opacity=".55">
+        <rect x="9" y="25" width="2" height="2"/><rect x="12.5" y="25" width="2" height="2"/><rect x="9" y="30" width="2" height="2"/><rect x="12.5" y="34" width="2" height="2"/>
+        <rect x="31" y="28" width="2" height="2"/><rect x="34" y="32" width="2" height="2"/>
+      </g>
+      <g fill="#7a5600" opacity=".55"><rect x="19" y="16" width="2.4" height="2.4"/><rect x="23.5" y="16" width="2.4" height="2.4"/><rect x="19" y="21" width="2.4" height="2.4"/><rect x="23.5" y="26" width="2.4" height="2.4"/><rect x="19" y="31" width="2.4" height="2.4"/></g>
+      <path d="M4 42 Q12 39 20 42 T36 42 T44 42 V44 Q44 46 42 46 H6 Q4 46 4 44 Z" fill="#4fb3e3"/>
     </svg>`;
   }
 
