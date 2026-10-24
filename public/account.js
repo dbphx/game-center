@@ -1,4 +1,4 @@
-// Tài khoản và ví dùng chung cho mọi trang trong Game Hub.
+// Tài khoản và ví dùng chung cho mọi trang trong DCity.
 // Token phiên đăng nhập lưu trong localStorage nên mọi tab cùng trình duyệt là cùng một người.
 (function () {
   'use strict';
@@ -35,8 +35,8 @@
     }
   }
 
-  async function register(username, password, name) {
-    const data = await api('/api/register', { method: 'POST', body: { username, password, name } });
+  async function register(username, password, name, look = {}) {
+    const data = await api('/api/register', { method: 'POST', body: { username, password, name, ...look } });
     save(data.token);
     return data.user;
   }

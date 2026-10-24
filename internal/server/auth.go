@@ -12,6 +12,8 @@ type credentials struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Name     string `json:"name"`
+	Gender   string `json:"gender"`
+	Outfit   string `json:"outfit"`
 }
 
 // authError đổi lỗi đăng nhập / đăng ký thành mã HTTP; lỗi khác là lỗi máy chủ.
@@ -21,7 +23,8 @@ func (s *Server) authError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusUnauthorized, err.Error())
 	case errors.Is(err, wallet.ErrUsernameTaken), errors.Is(err, wallet.ErrHasCredentials):
 		writeError(w, http.StatusConflict, err.Error())
-	case errors.Is(err, wallet.ErrInvalidUsername), errors.Is(err, wallet.ErrWeakPassword), errors.Is(err, wallet.ErrLongPassword):
+	case errors.Is(err, wallet.ErrInvalidUsername), errors.Is(err, wallet.ErrWeakPassword), errors.Is(err, wallet.ErrLongPassword),
+		errors.Is(err, wallet.ErrInvalidCharacter):
 		writeError(w, http.StatusBadRequest, err.Error())
 	default:
 		s.internal(w, err)
@@ -44,7 +47,8 @@ func (s *Server) register(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusTooManyRequests, "tạo quá nhiều tài khoản, thử lại sau")
 		return
 	}
-	u, token, err := s.wallet.Register(r.Context(), c.Username, c.Password, c.Name)
+	u, token, err := s.wallet.Register(r.Context(), c.Username, c.Password,
+		wallet.Profile{Name: c.Name, Gender: c.Gender, Outfit: c.Outfit})
 	if err != nil {
 		s.authError(w, err)
 		return
@@ -104,4 +108,16 @@ func (s *Server) changePassword(w http.ResponseWriter, r *http.Request, u wallet
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+// setCharacter đổi giới tính / trang phục nhân vật (shop thời trang).
+func (s *Server) setCharacter(w http.ResponseWriter, r *http.Request, u wallet.User) {
+	var c credentials
+	readJSON(w, r, &c)
+	u, err := s.wallet.SetCharacter(r.Context(), u.ID, c.Gender, c.Outfit)
+	if err != nil {
+		s.authError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, u)
 }

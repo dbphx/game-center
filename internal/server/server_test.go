@@ -27,7 +27,7 @@ func newTestServer(t *testing.T) (*httptest.Server, *wallet.Wallet) {
 	t.Cleanup(func() { w.Close() })
 	auth := func(ctx context.Context, token string) (online.User, error) {
 		u, err := w.UserByToken(ctx, token)
-		return online.User{ID: u.ID, Name: u.Name}, err
+		return online.User{ID: u.ID, Name: u.Name, Gender: u.Gender, Outfit: u.Outfit, Level: u.Level}, err
 	}
 	tl := online.NewHub(w, online.Options{BotDelay: time.Millisecond, TurnTimeout: time.Minute, Grace: time.Minute})
 	static := fstest.MapFS{"index.html": {Data: []byte("hub")}}
@@ -110,6 +110,14 @@ func TestRegisterLoginLogout(t *testing.T) {
 	}
 	if code := call(t, srv, "GET", "/api/me", a.Token, nil, nil); code != 200 {
 		t.Fatalf("phiên khác vẫn phải dùng được, được %d", code)
+	}
+
+	var u wallet.User
+	if code := call(t, srv, "POST", "/api/character", a.Token, map[string]string{"gender": "female", "outfit": "suit"}, &u); code != 200 || u.Outfit != "suit" {
+		t.Fatalf("đổi trang phục: %d %+v", code, u)
+	}
+	if code := call(t, srv, "POST", "/api/character", a.Token, map[string]string{"gender": "x", "outfit": "suit"}, nil); code != 400 {
+		t.Fatalf("giới tính lạ phải 400, được %d", code)
 	}
 
 	if code := call(t, srv, "POST", "/api/password", a.Token, map[string]string{"old": "sai", "new": "moi123456"}, nil); code != 401 {
@@ -276,6 +284,12 @@ func TestTienLenGameSettlesIntoWallet(t *testing.T) {
 		u, _ := w.User(context.Background(), g.User.ID)
 		if u.Balance != want || s.Players[i].Coins != want {
 			t.Fatalf("%s: ví %d, hiển thị %d, muốn %d", g.User.Name, u.Balance, s.Players[i].Coins, want)
+		}
+		if u.XP < 10 || u.XP > 30 {
+			t.Fatalf("%s: XP sau một ván phải trong 10–30, được %d", g.User.Name, u.XP)
+		}
+		if u.XP < 10 || u.XP > 30 {
+			t.Fatalf("%s: XP sau một ván phải trong 10–30, được %d", g.User.Name, u.XP)
 		}
 		hist, _ := w.History(context.Background(), g.User.ID, 5)
 		if s.Money[i] != 0 && (hist[0].Game != "tienlen" || !strings.Contains(hist[0].Note, code)) {

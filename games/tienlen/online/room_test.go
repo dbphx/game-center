@@ -45,10 +45,30 @@ func (f *fakeConn) got(t string) bool {
 type fakeBank struct {
 	mu       sync.Mutex
 	balances map[int64]int64
+	xp       map[int64]int64
 	settled  int
 }
 
-func newBank(balances map[int64]int64) *fakeBank { return &fakeBank{balances: balances} }
+func newBank(balances map[int64]int64) *fakeBank {
+	return &fakeBank{balances: balances, xp: map[int64]int64{}}
+}
+
+func (b *fakeBank) AwardXP(_ context.Context, xp map[int64]int64) (map[int64]int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	out := map[int64]int{}
+	for id, add := range xp {
+		b.xp[id] += add
+		out[id] = 1 + int(b.xp[id]/100)
+	}
+	return out, nil
+}
+
+func (b *fakeBank) getXP(id int64) int64 {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.xp[id]
+}
 
 func (b *fakeBank) Balance(_ context.Context, id int64) (int64, error) {
 	b.mu.Lock()
@@ -141,6 +161,14 @@ func TestSoloWithBotsSettlesIntoWallet(t *testing.T) {
 	st := c.lastState()
 	if want := max(0, 1000+int64(st.Money[0])); bank.get(an.ID) != want || st.Players[0].Coins != want {
 		t.Fatalf("ví sau ván: %d, hiển thị %d, muốn %d", bank.get(an.ID), st.Players[0].Coins, want)
+	}
+	// XP theo thứ hạng: 4 người thì nhất 30, nhì 23, ba 16, bét 10.
+	place := st.Players[0].Place
+	if place < 0 {
+		place = 3
+	}
+	if want := int64(10 + 20*(3-place)/3); bank.getXP(an.ID) != want {
+		t.Fatalf("XP về thứ %d: muốn %d, được %d", place+1, want, bank.getXP(an.ID))
 	}
 	for _, p := range st.Players[1:] {
 		if p.Reveal == nil && p.Cards > 0 {

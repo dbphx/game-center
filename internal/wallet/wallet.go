@@ -37,6 +37,12 @@ type User struct {
 	Name      string `json:"name"`
 	Balance   int64  `json:"balance"`
 	CanDaily  bool   `json:"canDaily"` // hôm nay còn nhận thưởng được không
+	Gender    string `json:"gender"`
+	Outfit    string `json:"outfit"`
+	XP        int64  `json:"xp"`
+	Level     int    `json:"level"`
+	LevelXP   int64  `json:"levelXP"` // XP lúc bắt đầu level hiện tại
+	NextXP    int64  `json:"nextXP"`  // XP cần để lên level tiếp
 	lastDaily string
 }
 
@@ -93,15 +99,17 @@ func addEntry(ctx context.Context, tx *sql.Tx, userID, delta, after int64, game,
 	return err
 }
 
-const userColumns = `id, coalesce(username, ''), name, balance, last_daily`
+const userColumns = `id, coalesce(username, ''), name, balance, last_daily, gender, outfit, xp`
 
 func (w *Wallet) scanUser(row *sql.Row) (User, error) {
 	var u User
-	err := row.Scan(&u.ID, &u.Username, &u.Name, &u.Balance, &u.lastDaily)
+	err := row.Scan(&u.ID, &u.Username, &u.Name, &u.Balance, &u.lastDaily, &u.Gender, &u.Outfit, &u.XP)
 	if errors.Is(err, sql.ErrNoRows) {
 		return User{}, ErrNotFound
 	}
 	u.CanDaily = u.lastDaily != w.today()
+	u.Level = LevelFor(u.XP)
+	u.LevelXP, u.NextXP = LevelStart(u.Level), LevelStart(u.Level+1)
 	return u, err
 }
 

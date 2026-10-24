@@ -70,12 +70,16 @@ func (w *Wallet) newSession(ctx context.Context, q interface {
 	return token, err
 }
 
-// Register tạo tài khoản mới (tặng StartBalance xu) và đăng nhập luôn.
-func (w *Wallet) Register(ctx context.Context, username, password, name string) (User, string, error) {
+// Register tạo tài khoản và nhân vật mới (tặng StartBalance xu) rồi đăng nhập luôn.
+func (w *Wallet) Register(ctx context.Context, username, password string, p Profile) (User, string, error) {
 	username = NormalizeUsername(username)
 	if err := checkCredentials(username, password); err != nil {
 		return User{}, "", err
 	}
+	if err := p.normalize(); err != nil {
+		return User{}, "", err
+	}
+	name := p.Name
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return User{}, "", err
@@ -90,8 +94,9 @@ func (w *Wallet) Register(ctx context.Context, username, password, name string) 
 	}
 	defer tx.Rollback()
 	now := w.now().Unix()
-	res, err := tx.ExecContext(ctx, `INSERT INTO users (username, password_hash, name, balance, created_at) VALUES (?, ?, ?, ?, ?)`,
-		username, string(hash), CleanName(name), StartBalance, now)
+	res, err := tx.ExecContext(ctx, `INSERT INTO users (username, password_hash, name, balance, gender, outfit, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		username, string(hash), CleanName(name), StartBalance, p.Gender, p.Outfit, now)
 	if isUniqueViolation(err) {
 		return User{}, "", ErrUsernameTaken
 	}

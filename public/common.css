@@ -1,4 +1,4 @@
-/* Phần dùng chung cho mọi trang trong Game Hub. */
+/* Phần dùng chung cho mọi trang trong DCity. */
 
 @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap');
 
@@ -289,3 +289,47 @@ dialog.modal .actions { display: flex; justify-content: flex-end; gap: 8px; marg
   .wallet-pill { padding: 6px 10px; font-size: 14px; }
   .panel { padding: 22px; }
 }
+
+/* ---------- Nhân vật ---------- */
+
+.character .leg, .character .arm { transform-box: fill-box; transform-origin: 50% 0; }
+.character.walking .leg-l, .character.walking .arm-r { animation: swing .36s ease-in-out infinite alternate; }
+.character.walking .leg-r, .character.walking .arm-l { animation: swing .36s ease-in-out infinite alternate-reverse; }
+.character.walking .head { animation: bob .18s ease-in-out infinite alternate; }
+@keyframes swing { from { transform: rotate(-22deg); } to { transform: rotate(22deg); } }
+@keyframes bob { to { transform: translateY(-1.5px); } }
+
+.char-avatar {
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, .45), transparent 70%), var(--avatar);
+}
+.char-avatar svg { width: 100%; height: 100%; display: block; transform: translateY(6%); }
+
+.level-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 4px;
+  border-radius: 999px;
+  background: rgba(91, 141, 239, .15);
+  border: 1px solid rgba(91, 141, 239, .35);
+  font-size: 13px;
+  font-weight: 700;
+  color: #c9d8ff;
+  white-space: nowrap;
+}
+.level-badge .lv {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #7aa7ff, #4a74d9);
+  color: #fff;
+  font-size: 12px;
+}
+.xp-bar { width: 70px; height: 6px; border-radius: 999px; background: rgba(255, 255, 255, .12); overflow: hidden; }
+.xp-bar > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #7aa7ff, #b18cff); }
+.lv-chip { display: inline-flex; padding: 1px 6px; border-radius: 999px; background: #4a74d9; color: #fff; font-size: 10px; font-weight: 800; }

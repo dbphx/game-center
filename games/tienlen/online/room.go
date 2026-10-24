@@ -37,17 +37,27 @@ const (
 	PhaseOver    = "over"
 )
 
-// User là tài khoản hub đang chơi.
+// User là tài khoản hub đang chơi, kèm nhân vật để vẽ avatar.
 type User struct {
-	ID   int64
-	Name string
+	ID     int64
+	Name   string
+	Gender string
+	Outfit string
+	Level  int
 }
 
-// Bank là ví xu dùng chung của hub.
+// Bank là ví xu và kinh nghiệm dùng chung của hub.
 type Bank interface {
 	Balance(ctx context.Context, userID int64) (int64, error)
 	Settle(ctx context.Context, game, note string, deltas map[int64]int64) (map[int64]int64, error)
+	AwardXP(ctx context.Context, xp map[int64]int64) (map[int64]int, error)
 }
+
+// XP sau mỗi ván: người về nhất được nhiều nhất, người bét vẫn có phần.
+const (
+	minXP   = 10
+	bonusXP = 20
+)
 
 // Conn là kết nối tới một người chơi. Send không được chặn vì được gọi khi đang giữ khoá phòng.
 type Conn interface {
@@ -66,6 +76,9 @@ type Player struct {
 	ID     string // id công khai trong phòng
 	UserID int64  // 0 với máy
 	Name   string
+	Gender string
+	Outfit string
+	Level  int
 	Bot    bool
 	Online bool
 	Left   bool  // rời phòng giữa ván: máy đánh thay tới hết ván rồi xoá
@@ -141,6 +154,7 @@ func (r *Room) join(u User, conn Conn) (*Player, error) {
 	}
 	for _, p := range r.players {
 		if p.UserID == u.ID && !p.Left {
+			p.Name, p.Gender, p.Outfit, p.Level = u.Name, u.Gender, u.Outfit, u.Level // có thể vừa đổi ở shop
 			r.resume(p, conn)
 			return p, nil
 		}
@@ -151,7 +165,7 @@ func (r *Room) join(u User, conn Conn) (*Player, error) {
 	if len(r.players) >= MaxPlayers {
 		return nil, errors.New("phòng đã đủ 4 người")
 	}
-	p := &Player{ID: randomID(), UserID: u.ID, Name: u.Name, Online: true, conn: conn}
+	p := &Player{ID: randomID(), UserID: u.ID, Name: u.Name, Gender: u.Gender, Outfit: u.Outfit, Level: u.Level, Online: true, conn: conn}
 	if err := r.refreshCoins(p); err != nil {
 		return nil, err
 	}
@@ -449,6 +463,32 @@ func (r *Room) settle() {
 	for _, p := range r.players {
 		if bal, ok := balances[p.UserID]; ok && !p.Bot {
 			p.Coins = bal
+		}
+	}
+	r.awardXP()
+}
+
+func (r *Room) awardXP() {
+	n := len(r.players)
+	xp := map[int64]int64{}
+	for i, p := range r.players {
+		if p.Bot {
+			continue
+		}
+		place := slices.Index(r.game.Finished, i)
+		if place < 0 { // tới trắng: người không thắng tính như về bét
+			place = n - 1
+		}
+		xp[p.UserID] += int64(minXP + bonusXP*(n-1-place)/(n-1))
+	}
+	levels, err := r.hub.bank.AwardXP(context.Background(), xp)
+	if err != nil {
+		log.Printf("tienlen: cộng XP phòng %s: %v", r.Code, err)
+		return
+	}
+	for _, p := range r.players {
+		if lv, ok := levels[p.UserID]; ok && !p.Bot {
+			p.Level = lv
 		}
 	}
 }

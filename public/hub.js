@@ -1,14 +1,22 @@
-// Trang chủ Game Hub.
+// Trang chủ DCity: đăng nhập / tạo nhân vật, HUD, bản đồ và bảng thông tin từng khu.
 (function () {
   'use strict';
   const A = window.Account;
   const I = window.Icons;
+  const C = window.Character;
+  const City = window.City;
   const $ = (id) => document.getElementById(id);
-  const ART = { tienlen: I.cardFan };
-  const GAME_ICON = { tienlen: 'layers' };
+
+  const ZONE_ICON = { plaza: 'mapPin', casino: 'layers', shop: 'shirt', bank: 'landmark', site: 'hammer', farm: 'sprout' };
+  const GAME_PATH = { tienlen: '/tienlen/' };
 
   let user = null;
   let config = { startBalance: 1000, dailyBonus: 500 }; // ghi đè bằng /api/config
+  let games = [];
+  let current = null; // khu đang mở bảng
+  let cityMounted = false;
+
+  const look = (u) => ({ gender: u.gender, outfit: u.outfit });
 
   // Sau khi đăng nhập thì quay lại trang đang mở dở (ví dụ link mời vào phòng).
   function nextPage() {
@@ -18,11 +26,39 @@
 
   function show(id) {
     $('auth').classList.toggle('hidden', id !== 'auth');
-    $('hub').classList.toggle('hidden', id !== 'hub');
-    $('topbar').classList.toggle('hidden', id !== 'hub');
+    $('city').classList.toggle('hidden', id !== 'city');
+    $('topbar').classList.toggle('hidden', id !== 'city');
+  }
+
+  // ---------- Chọn nhân vật (dùng ở đăng ký và shop) ----------
+
+  function creator(el, initial, onChange) {
+    const state = { gender: initial.gender || 'male', outfit: initial.outfit || 'casual' };
+    const draw = () => {
+      el.innerHTML = `
+        <div class="creator-preview">${C.svg(state)}</div>
+        <div class="creator-controls">
+          <span class="creator-label">Giới tính</span>
+          <div class="segmented">${Object.entries(C.GENDERS)
+            .map(([id, name]) => `<button type="button" data-gender="${id}" class="${state.gender === id ? 'active' : ''}">${name}</button>`)
+            .join('')}</div>
+          <span class="creator-label">Trang phục</span>
+          <div class="outfits">${Object.entries(C.OUTFITS)
+            .map(([id, o]) => `<button type="button" class="outfit ${state.outfit === id ? 'active' : ''}" data-outfit="${id}" title="${o.name}">
+              ${C.svg({ gender: state.gender, outfit: id })}<span>${o.name.split(' ')[0]}</span></button>`)
+            .join('')}</div>
+        </div>`;
+      el.querySelectorAll('[data-gender]').forEach((b) => (b.onclick = () => { state.gender = b.dataset.gender; draw(); }));
+      el.querySelectorAll('[data-outfit]').forEach((b) => (b.onclick = () => { state.outfit = b.dataset.outfit; draw(); }));
+      if (onChange) onChange({ ...state });
+    };
+    draw();
+    return state;
   }
 
   // ---------- Đăng nhập / đăng ký ----------
+
+  let registerLook = null;
 
   function switchTab(tab) {
     document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
@@ -36,9 +72,9 @@
     const btn = form.querySelector('button[type=submit]');
     btn.disabled = true;
     try {
-      user = await action(Object.fromEntries(new FormData(form)));
+      user = await action();
       form.reset();
-      await enterHub();
+      await enterCity();
     } catch (e) {
       A.toast(e.message);
     } finally {
@@ -46,84 +82,218 @@
     }
   }
 
-  // ---------- Hub ----------
+  // ---------- HUD ----------
 
-  function renderUser() {
-    const balance = A.xu(user.balance);
-    $('balance').textContent = balance;
-    $('welcome-balance').textContent = balance;
-    $('welcome-name').textContent = user.name;
-    $('welcome-avatar').innerHTML = I.avatar(user.name).replace('class="avatar"', 'class="avatar lg"');
-    $('menu-avatar').innerHTML = I.avatar(user.name);
+  function levelPct(u) {
+    return Math.min(100, Math.round(((u.xp - u.levelXP) / Math.max(1, u.nextXP - u.levelXP)) * 100));
+  }
+
+  function renderHUD() {
+    $('balance').textContent = A.xu(user.balance);
+    $('level-badge').innerHTML = `<span class="lv">Lv ${user.level}</span><span class="xp-bar"><span style="width:${levelPct(user)}%"></span></span>`;
+    $('level-badge').title = `${user.xp - user.levelXP} / ${user.nextXP - user.levelXP} XP để lên level ${user.level + 1}`;
+    $('menu-avatar').innerHTML = C.head(look(user));
     $('menu-name').textContent = user.name;
     $('menu-display').textContent = user.name;
     $('menu-username').textContent = user.username ? '@' + user.username : 'Tài khoản khách';
     $('btn-password').classList.toggle('hidden', !user.username);
     $('legacy').classList.toggle('hidden', !!user.username);
-
-    const daily = $('btn-daily');
-    daily.disabled = !user.canDaily;
-    daily.innerHTML = user.canDaily
-      ? `${I.svg('gift')}Nhận ${A.xu(config.dailyBonus)} xu hôm nay`
-      : `${I.svg('check')}Đã nhận thưởng hôm nay`;
+    if (cityMounted) City.setTag(user.name, user.level);
   }
 
-  async function renderGames() {
-    const games = await A.api('/api/games');
-    $('games').innerHTML = games
-      .map((g) => {
-        const n = g.online && g.online.players;
-        const live = n ? `<span class="tag live">${n} người đang chơi</span>` : '';
-        const art = ART[g.id] ? ART[g.id]() : I.svg('gamepad', 'art');
-        return `<a class="game-card" href="${A.escapeHtml(g.path)}">
-          <div class="game-cover">${art}${live}</div>
-          <div class="game-body">
-            <h3>${A.escapeHtml(g.name)}</h3>
-            <p>${A.escapeHtml(g.description)}</p>
-            <div class="game-meta">
-              <span>${I.svg('users')}${A.escapeHtml(g.players)}</span>
-              <span class="btn primary">${I.svg('play')}Chơi ngay</span>
+  // ---------- Bảng thông tin từng khu ----------
+
+  function panelHead(zone, title, sub) {
+    return `<div class="panel-head"><span class="panel-icon">${I.svg(ZONE_ICON[zone])}</span>
+      <div><h2>${A.escapeHtml(title)}</h2><div class="muted">${A.escapeHtml(sub)}</div></div></div>`;
+  }
+
+  const PANELS = {
+    plaza() {
+      return `${panelHead('plaza', 'Quảng trường', 'Trung tâm thành phố')}
+        <div class="panel-section">
+          <div class="profile">${C.svg(look(user))}
+            <div>
+              <div class="profile-name">${A.escapeHtml(user.name)}</div>
+              <div class="muted">${user.username ? '@' + A.escapeHtml(user.username) : 'Tài khoản khách'}</div>
+              <div class="xp-block">
+                <span class="level-badge"><span class="lv">Lv ${user.level}</span>${user.xp} XP</span>
+                <span class="xp-bar"><span style="width:${levelPct(user)}%"></span></span>
+                <span class="muted">Còn ${user.nextXP - user.xp} XP để lên level ${user.level + 1}</span>
+              </div>
             </div>
           </div>
-        </a>`;
-      })
-      .join('');
+          <div class="stats">
+            <div class="stat"><div class="muted">Số dư</div><b class="gold">${I.svg('coins')}${A.xu(user.balance)}</b></div>
+            <div class="stat"><div class="muted">Trang phục</div><b>${I.svg('shirt')}${C.OUTFITS[user.outfit].name}</b></div>
+          </div>
+        </div>
+        <div class="panel-section"><h3>${I.svg('mapPin')}Đi đâu tiếp?</h3>
+          <p class="muted">Bấm vào một khu trên bản đồ, nhân vật sẽ đi bộ tới đó. Chơi game để kiếm xu và lên level.</p>
+        </div>`;
+    },
+
+    casino() {
+      const g = games.find((x) => x.id === 'tienlen');
+      const online = g && g.online ? `${g.online.players} người đang chơi · ${g.online.rooms} phòng` : '';
+      return `${panelHead('casino', 'Casino', online || 'Sòng bài thành phố')}
+        <div class="panel-section">
+          <div class="panel-art">${I.cardFan()}</div>
+          <h2 style="margin:0">Tiến Lên Miền Nam</h2>
+          <p class="muted" style="margin:0">${g ? A.escapeHtml(g.description) : ''}</p>
+          <div class="stats">
+            <div class="stat"><div class="muted">Số người</div><b>${I.svg('users')}${g ? A.escapeHtml(g.players) : '2–4'}</b></div>
+            <div class="stat"><div class="muted">Thưởng mỗi ván</div><b>${I.svg('trophy')}10–30 XP</b></div>
+          </div>
+          <a class="btn primary" href="${GAME_PATH.tienlen}">${I.svg('play')}Vào sòng Tiến Lên</a>
+        </div>`;
+    },
+
+    bank() {
+      return `${panelHead('bank', 'Ngân hàng', 'Ví xu dùng chung mọi khu')}
+        <div class="panel-section">
+          <div class="muted">Số dư</div>
+          <div class="big-coins">${I.svg('coins')}${A.xu(user.balance)}</div>
+          <button class="primary daily" id="btn-daily" ${user.canDaily ? '' : 'disabled'}>
+            ${user.canDaily ? `${I.svg('gift')}Nhận ${A.xu(config.dailyBonus)} xu hôm nay` : `${I.svg('check')}Đã nhận thưởng hôm nay`}</button>
+          <p class="muted" style="margin:0">Xu chỉ để chơi cho vui, không quy đổi ra tiền thật.</p>
+        </div>
+        <div class="panel-section"><h3>${I.svg('history')}Lịch sử xu</h3><ul class="history" id="history"><li class="empty">Đang tải...</li></ul></div>`;
+    },
+
+    shop() {
+      return `${panelHead('shop', 'Shop thời trang', 'Đổi giới tính và trang phục miễn phí')}
+        <div class="panel-section">
+          <div class="creator" id="shop-creator"></div>
+          <button class="primary" id="btn-save-look">${I.svg('check')}Mặc bộ này</button>
+        </div>`;
+    },
+
+    site() {
+      return `${panelHead('site', 'Công trường', 'Đang xây dựng')}
+        <div class="soon-box">${I.svg('hammer')}<b>Game mới đang được xây</b><span>Khu này sẽ mở một game mới trong thời gian tới.</span></div>`;
+    },
+
+    farm() {
+      return `${panelHead('farm', 'Nông trại', 'Trồng trọt, chăn nuôi')}
+        <div class="soon-box">${I.svg('sprout')}<b>Nông trại sắp mở</b><span>Gieo hạt, chăm cây, thu hoạch đổi xu và XP. Đang chuẩn bị đất!</span></div>`;
+    },
+  };
+
+  function openPanel(zone) {
+    current = zone;
+    $('panel').classList.remove('hidden');
+    $('panel').classList.toggle('left', City.zoneX(zone) >= 900);
+    $('panel-body').innerHTML = PANELS[zone]();
+    document.querySelectorAll('.zone-nav button').forEach((b) => b.classList.toggle('active', b.dataset.zone === zone));
+    if (zone === 'bank') bindBank();
+    if (zone === 'shop') bindShop();
+  }
+
+  function refreshPanel() {
+    if (current && !$('panel').classList.contains('hidden')) openPanel(current);
   }
 
   function entryIcon(e) {
     if (e.game === 'hub') return e.note.includes('ngày') ? 'gift' : 'sparkles';
-    return GAME_ICON[e.game] || (e.delta > 0 ? 'trendingUp' : 'trendingDown');
+    return e.game === 'tienlen' ? 'layers' : e.delta > 0 ? 'trendingUp' : 'trendingDown';
   }
 
-  async function renderHistory() {
-    const entries = await A.api('/api/history');
-    if (!entries.length) {
-      $('history').innerHTML = '<li class="empty">Chưa có giao dịch nào</li>';
-      return;
-    }
-    $('history').innerHTML = entries
-      .map((e) => {
-        const when = new Date(e.at).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
-        const cls = e.delta > 0 ? 'plus' : 'minus';
-        return `<li>
-          <span class="kind ${cls}">${I.svg(entryIcon(e))}</span>
-          <span class="note">${A.escapeHtml(e.note)}<span class="when">${when}</span></span>
-          <span class="delta ${cls}">${e.delta > 0 ? '+' : ''}${A.xu(e.delta)}</span>
-          <span class="after">${A.xu(e.balanceAfter)} xu</span>
-        </li>`;
-      })
-      .join('');
+  async function bindBank() {
+    const daily = $('btn-daily');
+    daily.onclick = async () => {
+      try {
+        user = await A.api('/api/daily', { method: 'POST' });
+        renderHUD();
+        openPanel('bank');
+        A.toast(`Đã nhận ${A.xu(config.dailyBonus)} xu`);
+      } catch (e) {
+        A.toast(e.message);
+      }
+    };
+    const entries = await A.api('/api/history').catch(() => []);
+    const list = $('history');
+    if (!list) return;
+    list.innerHTML = entries.length
+      ? entries
+          .map((e) => {
+            const when = new Date(e.at).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
+            const cls = e.delta > 0 ? 'plus' : 'minus';
+            return `<li><span class="kind ${cls}">${I.svg(entryIcon(e))}</span>
+              <span class="note">${A.escapeHtml(e.note)}<span class="when">${when} · còn ${A.xu(e.balanceAfter)}</span></span>
+              <span class="delta ${cls}">${e.delta > 0 ? '+' : ''}${A.xu(e.delta)}</span></li>`;
+          })
+          .join('')
+      : '<li class="empty">Chưa có giao dịch nào</li>';
   }
 
-  async function enterHub() {
+  function bindShop() {
+    let picked = look(user);
+    creator($('shop-creator'), picked, (l) => {
+      picked = l;
+      City.setLook(l); // thử đồ ngay trên bản đồ
+    });
+    $('btn-save-look').onclick = async () => {
+      try {
+        user = await A.api('/api/character', { method: 'POST', body: picked });
+        renderHUD();
+        A.toast('Đã thay trang phục');
+      } catch (e) {
+        A.toast(e.message);
+      }
+    };
+  }
+
+  function closePanel() {
+    $('panel').classList.add('hidden');
+    if (current === 'shop') City.setLook(look(user)); // bỏ thử đồ chưa lưu
+    current = null;
+    document.querySelectorAll('.zone-nav button').forEach((b) => b.classList.remove('active'));
+  }
+
+  // ---------- Thành phố ----------
+
+  async function loadGames() {
+    games = await A.api('/api/games').catch(() => games);
+    const g = games.find((x) => x.id === 'tienlen');
+    if (g && g.online) City.setSub('casino', g.online.players ? `Tiến Lên · ${g.online.players} người đang chơi` : 'Tiến Lên Miền Nam');
+  }
+
+  // Màn hình hẹp: bản đồ cuộn ngang, giữ nhân vật trong tầm nhìn.
+  function follow(x) {
+    const map = $('map');
+    if (map.scrollWidth <= map.clientWidth) return;
+    const px = (x / 1600) * map.scrollWidth;
+    map.scrollLeft = px - map.clientWidth / 2;
+  }
+
+  async function enterCity() {
     const next = nextPage();
     if (next) {
       location.href = next;
       return;
     }
-    show('hub');
-    renderUser();
-    await Promise.all([renderGames(), renderHistory()]);
+    show('city');
+    if (!cityMounted) {
+      let at = 'plaza';
+      try { at = localStorage.getItem('city.at') || 'plaza'; } catch (e) { /* bỏ qua */ }
+      const start = City.mount($('map'), {
+        look: look(user), name: user.name, level: user.level, at,
+        onArrive: openPanel, onMove: follow, onDepart: closePanel,
+      });
+      cityMounted = true;
+      $('zone-nav').innerHTML = Object.entries(City.ZONES)
+        .map(([id, z]) => `<button data-zone="${id}">${I.svg(ZONE_ICON[id])}<span>${z.name}</span></button>`)
+        .join('');
+      $('zone-nav').querySelectorAll('button').forEach((b) => (b.onclick = () => City.walkTo(b.dataset.zone)));
+      requestAnimationFrame(() => follow(City.position()[0]));
+      document.querySelectorAll('.zone-nav button').forEach((b) => b.classList.toggle('active', b.dataset.zone === start));
+      await loadGames();
+      setInterval(loadGames, 15000);
+    } else {
+      City.setLook(look(user));
+    }
+    renderHUD();
   }
 
   // Mở hộp thoại; onOk trả về promise, lỗi thì giữ hộp thoại mở để sửa.
@@ -151,26 +321,18 @@
 
   $('form-login').addEventListener('submit', (e) => {
     e.preventDefault();
-    submit(e.target, (f) => A.login(f.username, f.password));
+    const f = Object.fromEntries(new FormData(e.target));
+    submit(e.target, () => A.login(f.username, f.password));
   });
 
   $('form-register').addEventListener('submit', (e) => {
     e.preventDefault();
     const f = Object.fromEntries(new FormData(e.target));
     if (f.password !== f.confirm) return A.toast('Mật khẩu nhập lại không khớp');
-    submit(e.target, () => A.register(f.username, f.password, f.name));
+    submit(e.target, () => A.register(f.username, f.password, f.name, registerLook));
   });
 
-  $('btn-daily').addEventListener('click', async () => {
-    try {
-      user = await A.api('/api/daily', { method: 'POST' });
-      renderUser();
-      renderHistory();
-      A.toast(`Đã nhận ${A.xu(config.dailyBonus)} xu`);
-    } catch (e) {
-      A.toast(e.message);
-    }
-  });
+  $('panel-close').addEventListener('click', closePanel);
 
   $('btn-menu').addEventListener('click', (e) => {
     e.stopPropagation();
@@ -183,7 +345,8 @@
       'dlg-rename',
       async (f) => {
         user = await A.api('/api/me', { method: 'POST', body: { name: f.name } });
-        renderUser();
+        renderHUD();
+        refreshPanel();
       },
       (form) => (form.elements.name.value = user.name),
     ),
@@ -196,29 +359,30 @@
     }),
   );
 
-  const openLegacy = () =>
+  $('btn-legacy').addEventListener('click', () =>
     openDialog('dlg-legacy', async (f) => {
       user = await A.api('/api/credentials', { method: 'POST', body: f });
-      renderUser();
+      renderHUD();
       A.toast('Đã đặt tên đăng nhập, từ giờ đăng nhập bằng @' + user.username);
-    });
-  $('btn-legacy').addEventListener('click', openLegacy);
+    }),
+  );
 
   $('btn-logout').addEventListener('click', async () => {
     await A.logout().catch(() => {});
-    user = null;
-    show('auth');
-    switchTab('login');
+    location.href = '/';
   });
 
-  // Quay lại trang (ví dụ từ ván bài) thì cập nhật số dư và số người online.
-  window.addEventListener('pageshow', (e) => e.persisted && user && A.me().then((u) => u && ((user = u), enterHub())));
+  // Quay lại từ ván bài: cập nhật số dư, level.
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted && user) A.me().then((u) => u && ((user = u), renderHUD(), refreshPanel()));
+  });
 
   // ---------- Khởi động ----------
 
   $('logo').innerHTML = I.logo(32);
   $('auth-logo').innerHTML = I.logo(36);
-  $('hero-art').innerHTML = I.cardFan();
+  $('hero-art').innerHTML = C.svg({ gender: 'male', outfit: 'suit' }) + C.svg({ gender: 'female', outfit: 'aodai' });
+  creator($('register-creator'), { gender: 'male', outfit: 'casual' }, (l) => (registerLook = l));
 
   const showConfig = () => {
     $('start-coins').textContent = A.xu(config.startBalance);
@@ -229,7 +393,6 @@
     .then((c) => {
       config = c;
       showConfig();
-      if (user) renderUser();
     })
     .catch(() => {});
 
@@ -239,7 +402,7 @@
     } catch (e) {
       A.toast(e.message);
     }
-    if (user) enterHub();
+    if (user) enterCity();
     else {
       show('auth');
       switchTab(nextPage() ? 'register' : 'login');

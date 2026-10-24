@@ -1,9 +1,19 @@
-# Game Hub
+# DCity
 
-Tổ hợp game online chơi qua trình duyệt, **dùng chung một ví xu** cho mọi game. Game đầu tiên: **Tiến Lên Miền Nam** (2–4 người, thiếu người thì thêm máy).
+Thành phố game online chơi qua trình duyệt. Mỗi người có một **nhân vật** (giới tính, trang phục, level riêng) dạo quanh bản đồ thành phố;
+mỗi khu là một game hoặc tiện ích, tất cả **dùng chung một ví xu**.
 
-- Server Go giữ bài và kiểm tra mọi nước đi; giao diện web được nhúng thẳng vào binary.
-- Tài khoản và ví lưu trong SQLite (driver Go thuần, không cần cgo), mọi thay đổi số dư đều ghi sổ cái.
+| Khu | |
+|---|---|
+| Casino | **Tiến Lên Miền Nam** (2–4 người, thiếu người thì thêm máy) |
+| Ngân hàng | số dư, thưởng hằng ngày, lịch sử xu |
+| Shop thời trang | đổi giới tính / trang phục |
+| Quảng trường | thông tin nhân vật, level, XP |
+| Nông trại, Công trường | sắp mở — chỗ cho các game tiếp theo |
+
+- Bấm vào một khu (hoặc thanh đi nhanh phía dưới), nhân vật đi bộ theo đường phố tới đó rồi mở bảng của khu.
+- Server Go giữ bài và kiểm tra mọi nước đi; giao diện web (HTML/CSS/JS thuần, hình vẽ SVG) được nhúng thẳng vào binary.
+- Tài khoản, nhân vật và ví lưu trong SQLite (driver Go thuần, không cần cgo), mọi thay đổi số dư đều ghi sổ cái.
 
 ## Chạy
 
@@ -30,7 +40,15 @@ Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè c
 - Tài khoản mới được **1.000 xu**, mỗi ngày nhận thêm **500 xu** (reset 0h giờ Việt Nam).
 - Số dư không bao giờ âm: thua quá số đang có thì chỉ mất hết số đang có.
 - Chơi với máy thì máy đóng vai nhà cái: thắng máy được xu thật vào ví, thua thì mất.
-- Trang hub có lịch sử xu (sổ cái) để xem xu đến / đi từ đâu.
+- Ngân hàng có lịch sử xu (sổ cái) để xem xu đến / đi từ đâu.
+
+## Nhân vật và level
+
+- Lúc đăng ký chọn **giới tính** (Nam / Nữ) và **trang phục mặc định**: thường ngày, vest, thể thao, áo dài. Đổi lại miễn phí ở Shop thời trang.
+- Mỗi tài khoản là một nhân vật có **level riêng**, lên level bằng XP kiếm được khi chơi.
+  Tiến Lên: hết mỗi ván người về nhất +30 XP, người bét +10 XP (ở giữa chia đều).
+- Level n cần tổng 50·n·(n−1) XP: level 2 ở 100 XP, level 3 ở 300, level 4 ở 600...
+- Trong game, avatar của mỗi người là mặt nhân vật của họ kèm level.
 - Xu chỉ để chơi cho vui, không nạp / rút tiền thật.
 
 ## Tiến Lên Miền Nam
@@ -78,7 +96,8 @@ internal/wallet/         tài khoản khách, ví xu, sổ cái (SQLite)
 internal/server/         API hub (/api/...), WebSocket từng game (/ws/<game>), file tĩnh
 games/tienlen/           luật, luồng ván, tiền cược, bot
 games/tienlen/online/    phòng chơi online: người vào/ra, máy, hẹn giờ, trả thưởng vào ví
-public/                  trang hub (index.html, hub.js), phần dùng chung (account.js, common.css)
+public/                  bản đồ thành phố (index.html, hub.js, city.js), nhân vật (character.js),
+                         phần dùng chung (account.js, icons.js, common.css)
 public/tienlen/          giao diện Tiến Lên
 ```
 
@@ -87,17 +106,21 @@ public/tienlen/          giao diện Tiến Lên
 1. Viết logic và server của game trong `games/<id>/`. Game nhận người chơi qua WebSocket, xác thực bằng token tài khoản
    (xem `online.Handler` của Tiến Lên), và cộng / trừ xu qua `wallet.Settle(game, ghi chú, map[userID]số xu)` — một transaction, có ghi sổ cái.
 2. Làm giao diện trong `public/<id>/`, dùng `/account.js` (`Account.me()`, `Account.token()`, `Account.requireLogin()`), `/icons.js` (icon SVG, avatar) và `/common.css`.
-3. Đăng ký game trong `games()` ở `main.go` (tên, mô tả, đường dẫn trang, handler WebSocket, số người đang chơi). Trang hub tự hiện game mới.
+3. Đăng ký game trong `games()` ở `main.go` (tên, mô tả, đường dẫn trang, handler WebSocket, số người đang chơi).
+4. Đặt game vào một khu trên bản đồ: thêm khu trong `ZONES` / `NODES` / `EDGES` và hàm vẽ tòa nhà ở `public/city.js`
+   (ví dụ thay Công trường hoặc Nông trại), rồi thêm bảng thông tin của khu trong `PANELS` ở `public/hub.js`.
+5. Cộng XP qua `wallet.AwardXP(map[userID]xp)` để người chơi lên level.
 
 ### API
 
 | | |
 |---|---|
-| `POST /api/register {username, password, name}` | đăng ký → `{token, user}` |
+| `POST /api/register {username, password, name, gender, outfit}` | đăng ký + tạo nhân vật → `{token, user}` |
 | `POST /api/login {username, password}` | đăng nhập → `{token, user}` |
 | `POST /api/logout` | đăng xuất phiên hiện tại |
 | `POST /api/password {old, new}` | đổi mật khẩu |
 | `POST /api/credentials {username, password}` | tài khoản khách cũ đặt tên đăng nhập |
+| `POST /api/character {gender, outfit}` | đổi nhân vật |
 | `GET /api/me` | thông tin + số dư (header `Authorization: Bearer <token>`) |
 | `POST /api/me {name}` | đổi tên |
 | `POST /api/daily` | nhận thưởng ngày (409 nếu đã nhận) |

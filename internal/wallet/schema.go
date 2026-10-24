@@ -10,7 +10,8 @@ import (
 //
 //	1: users giữ token tài khoản khách ngay trong bảng.
 //	2: thêm username / mật khẩu, phiên đăng nhập tách sang bảng sessions.
-const schemaVersion = 2
+//	3: thêm nhân vật (giới tính, trang phục) và điểm kinh nghiệm.
+const schemaVersion = 3
 
 const schemaV2 = `
 CREATE TABLE users (
@@ -63,6 +64,12 @@ DROP TABLE users;
 ALTER TABLE users_v2 RENAME TO users;
 `
 
+const migrateV2toV3 = `
+ALTER TABLE users ADD COLUMN gender TEXT NOT NULL DEFAULT 'male';
+ALTER TABLE users ADD COLUMN outfit TEXT NOT NULL DEFAULT 'casual';
+ALTER TABLE users ADD COLUMN xp INTEGER NOT NULL DEFAULT 0 CHECK (xp >= 0);
+`
+
 func migrate(db *sql.DB) error {
 	ctx := context.Background()
 	var version int
@@ -77,14 +84,19 @@ func migrate(db *sql.DB) error {
 		return err
 	}
 
-	var script string
-	switch {
-	case !hasUsers:
-		script = schemaV2
-	case version <= 1:
-		script = migrateV1toV2
-	default:
+	if version > schemaVersion {
 		return fmt.Errorf("database phiên bản %d mới hơn chương trình (%d)", version, schemaVersion)
+	}
+	// Database mới tạo thẳng bản v2 rồi chạy tiếp các bước như database cũ.
+	var steps []string
+	if !hasUsers {
+		steps, version = append(steps, schemaV2), 2
+	}
+	if version <= 1 {
+		steps = append(steps, migrateV1toV2)
+	}
+	if version <= 2 {
+		steps = append(steps, migrateV2toV3)
 	}
 
 	// Dựng lại bảng có khoá ngoại trỏ tới cần tắt kiểm tra khoá ngoại (không đổi được trong transaction).
@@ -98,8 +110,10 @@ func migrate(db *sql.DB) error {
 		return err
 	}
 	defer tx.Rollback()
-	if _, err := tx.ExecContext(ctx, script); err != nil {
-		return err
+	for _, script := range steps {
+		if _, err := tx.ExecContext(ctx, script); err != nil {
+			return err
+		}
 	}
 	if _, err := tx.ExecContext(ctx, fmt.Sprintf(`PRAGMA user_version = %d`, schemaVersion)); err != nil {
 		return err

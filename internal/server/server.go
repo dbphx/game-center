@@ -1,4 +1,4 @@
-// Package server ghép các phần của game hub: API tài khoản / ví, danh sách game,
+// Package server ghép các phần của DCity: API tài khoản / ví, danh sách game,
 // WebSocket của từng game và file giao diện tĩnh.
 package server
 
@@ -46,13 +46,17 @@ func New(w *wallet.Wallet, static fs.FS, games []Game) *Server {
 	s.mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
 	s.mux.HandleFunc("GET /api/games", s.listGames)
 	s.mux.HandleFunc("GET /api/config", func(w http.ResponseWriter, _ *http.Request) {
-		writeJSON(w, http.StatusOK, map[string]int{"startBalance": wallet.StartBalance, "dailyBonus": wallet.DailyBonus})
+		writeJSON(w, http.StatusOK, map[string]any{
+			"startBalance": wallet.StartBalance, "dailyBonus": wallet.DailyBonus,
+			"genders": wallet.Genders, "outfits": wallet.Outfits,
+		})
 	})
 	s.mux.HandleFunc("POST /api/register", s.register)
 	s.mux.HandleFunc("POST /api/login", s.login)
 	s.mux.HandleFunc("POST /api/logout", s.authed(s.logout))
 	s.mux.HandleFunc("POST /api/credentials", s.authed(s.setCredentials))
 	s.mux.HandleFunc("POST /api/password", s.authed(s.changePassword))
+	s.mux.HandleFunc("POST /api/character", s.authed(s.setCharacter))
 	s.mux.HandleFunc("GET /api/me", s.authed(s.me))
 	s.mux.HandleFunc("POST /api/me", s.authed(s.rename))
 	s.mux.HandleFunc("POST /api/daily", s.authed(s.daily))

@@ -23,7 +23,7 @@ func open(t *testing.T) *Wallet {
 
 func register(t *testing.T, w *Wallet, username string) (User, string) {
 	t.Helper()
-	u, token, err := w.Register(ctx, username, "matkhau123", "")
+	u, token, err := w.Register(ctx, username, "matkhau123", Profile{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,11 +32,12 @@ func register(t *testing.T, w *Wallet, username string) (User, string) {
 
 func TestRegisterAndLogin(t *testing.T) {
 	w := open(t)
-	u, token, err := w.Register(ctx, "  An.Nguyen ", "matkhau123", "  An   Nguyễn  ")
+	u, token, err := w.Register(ctx, "  An.Nguyen ", "matkhau123", Profile{Name: "  An   Nguyễn  ", Gender: "female", Outfit: "aodai"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if u.Username != "an.nguyen" || u.Name != "An Nguyễn" || u.Balance != StartBalance || !u.CanDaily {
+	if u.Username != "an.nguyen" || u.Name != "An Nguyễn" || u.Balance != StartBalance || !u.CanDaily ||
+		u.Gender != "female" || u.Outfit != "aodai" || u.Level != 1 || u.NextXP != 100 {
 		t.Fatalf("tài khoản mới sai: %+v", u)
 	}
 	if got, err := w.UserByToken(ctx, token); err != nil || got.ID != u.ID {
@@ -84,7 +85,7 @@ func TestRegisterValidation(t *testing.T) {
 		"mật khẩu ngắn":           {"binh", "12345", ErrWeakPassword},
 	}
 	for name, tc := range cases {
-		if _, _, err := w.Register(ctx, tc.username, tc.password, ""); !errors.Is(err, tc.want) {
+		if _, _, err := w.Register(ctx, tc.username, tc.password, Profile{}); !errors.Is(err, tc.want) {
 			t.Errorf("%s: muốn %v, được %v", name, tc.want, err)
 		}
 	}
@@ -174,7 +175,7 @@ INSERT INTO ledger VALUES (1, 1, 1000, 1000, 'hub', 'Quà chào mừng', 0), (2,
 	}
 	defer w.Close()
 	u, err := w.UserByToken(ctx, "token-cu")
-	if err != nil || u.Name != "Khách cũ" || u.Balance != 1700 || u.Username != "" {
+	if err != nil || u.Name != "Khách cũ" || u.Balance != 1700 || u.Username != "" || u.Gender != "male" || u.Level != 1 {
 		t.Fatalf("khách cũ sau nâng cấp: %+v %v", u, err)
 	}
 	if h, _ := w.History(ctx, u.ID, 10); len(h) != 2 {
@@ -190,7 +191,40 @@ INSERT INTO ledger VALUES (1, 1, 1000, 1000, 'hub', 'Quà chào mừng', 0), (2,
 		t.Fatalf("đăng nhập sau khi đặt: %+v %v", got, err)
 	}
 	// Tài khoản mới sau nâng cấp vẫn tạo bình thường và có id tiếp theo.
-	if nu, _, err := w.Register(ctx, "moi", "matkhau123", ""); err != nil || nu.ID != 2 {
+	if nu, _, err := w.Register(ctx, "moi", "matkhau123", Profile{}); err != nil || nu.ID != 2 {
 		t.Fatalf("đăng ký sau nâng cấp: %+v %v", nu, err)
+	}
+}
+
+func TestLevels(t *testing.T) {
+	cases := map[int64]int{0: 1, 99: 1, 100: 2, 299: 2, 300: 3, 600: 4, 1000: 5}
+	for xp, want := range cases {
+		if got := LevelFor(xp); got != want {
+			t.Errorf("%d XP: muốn level %d, được %d", xp, want, got)
+		}
+	}
+}
+
+func TestCharacterAndXP(t *testing.T) {
+	w := open(t)
+	if _, _, err := w.Register(ctx, "binh", "matkhau123", Profile{Gender: "alien"}); !errors.Is(err, ErrInvalidCharacter) {
+		t.Fatalf("giới tính lạ phải lỗi, được %v", err)
+	}
+	u, _ := register(t, w, "binh")
+	if u.Gender != "male" || u.Outfit != "casual" {
+		t.Fatalf("nhân vật mặc định sai: %+v", u)
+	}
+	if u, _ = w.SetCharacter(ctx, u.ID, "female", "sport"); u.Gender != "female" || u.Outfit != "sport" {
+		t.Fatalf("đổi trang phục: %+v", u)
+	}
+	if _, err := w.SetCharacter(ctx, u.ID, "female", "bikini"); !errors.Is(err, ErrInvalidCharacter) {
+		t.Fatalf("trang phục lạ phải lỗi, được %v", err)
+	}
+	levels, err := w.AwardXP(ctx, map[int64]int64{u.ID: 120})
+	if err != nil || levels[u.ID] != 2 {
+		t.Fatalf("cộng XP: %v %v", levels, err)
+	}
+	if u, _ = w.User(ctx, u.ID); u.XP != 120 || u.Level != 2 || u.LevelXP != 100 || u.NextXP != 300 {
+		t.Fatalf("level sau khi cộng XP: %+v", u)
 	}
 }

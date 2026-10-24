@@ -3,16 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Game Hub</title>
+  <title>DCity</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 48 48%22><rect x=%229%22 y=%227%22 width=%2222%22 height=%2231%22 rx=%224%22 transform=%22rotate(-14 20 22)%22 fill=%22%23f6c744%22/><rect x=%2217%22 y=%229%22 width=%2222%22 height=%2231%22 rx=%224%22 transform=%22rotate(10 28 24)%22 fill=%22white%22/></svg>">
   <link rel="stylesheet" href="/common.css">
   <link rel="stylesheet" href="/hub.css">
 </head>
 <body>
   <header class="topbar hidden" id="topbar">
-    <a class="brand" href="/"><span id="logo"></span><span class="brand-text">Game Hub</span></a>
+    <a class="brand" href="/"><span id="logo"></span><span class="brand-text">DCity</span></a>
     <span class="spacer"></span>
     <div class="user">
+      <span class="level-badge" id="level-badge" title="Kinh nghiệm"></span>
       <span class="wallet-pill"><i data-icon="coins"></i><span id="balance"></span></span>
       <div class="menu">
         <button class="link user-chip" id="btn-menu" aria-haspopup="true">
@@ -32,13 +33,13 @@
   <section class="center-screen hidden" id="auth">
     <div class="auth-card">
       <div class="auth-hero">
-        <div class="auth-brand"><span id="auth-logo"></span>Game Hub</div>
-        <h1>Chơi bài cùng bạn bè,<br><span class="gold">một ví xu chung</span>.</h1>
+        <div class="auth-brand"><span id="auth-logo"></span>DCity</div>
+        <h1>Một thành phố game,<br><span class="gold">một ví xu chung</span>.</h1>
         <ul class="features">
-          <li><i data-icon="users"></i><span>Mở phòng, gửi link là vào chơi</span></li>
+          <li><i data-icon="users"></i><span>Tạo nhân vật, dạo phố, vào từng khu để chơi</span></li>
           <li><i data-icon="coins"></i><span>Tặng <b id="start-coins"></b> xu khi tạo tài khoản</span></li>
-          <li><i data-icon="gift"></i><span>Thưởng <b id="daily-coins"></b> xu mỗi ngày</span></li>
-          <li><i data-icon="shield"></i><span>Xu chỉ để chơi cho vui, không quy đổi tiền thật</span></li>
+          <li><i data-icon="gift"></i><span>Thưởng <b id="daily-coins"></b> xu mỗi ngày ở Ngân hàng</span></li>
+          <li><i data-icon="trophy"></i><span>Chơi để lên level cho nhân vật</span></li>
         </ul>
         <div class="hero-art" id="hero-art"></div>
       </div>
@@ -60,57 +61,44 @@
         </form>
 
         <form id="form-register" class="stack hidden" autocomplete="on">
+          <div class="creator" id="register-creator"></div>
+          <label class="field">Tên nhân vật
+            <span class="input-icon"><i data-icon="sparkles"></i><input name="name" maxlength="16" placeholder="Bạn bè sẽ thấy tên này" required></span>
+          </label>
           <label class="field">Tên đăng nhập
             <span class="input-icon"><i data-icon="user"></i><input name="username" autocomplete="username" required autocapitalize="none" pattern="[A-Za-z0-9_.]{3,20}"></span>
             <span class="hint">3–20 ký tự: chữ không dấu, số, dấu _ hoặc .</span>
           </label>
-          <label class="field">Tên hiển thị
-            <span class="input-icon"><i data-icon="sparkles"></i><input name="name" maxlength="16" placeholder="Bạn bè sẽ thấy tên này"></span>
-          </label>
-          <label class="field">Mật khẩu
-            <span class="input-icon"><i data-icon="lock"></i><input name="password" type="password" autocomplete="new-password" minlength="6" required></span>
-          </label>
-          <label class="field">Nhập lại mật khẩu
-            <span class="input-icon"><i data-icon="lock"></i><input name="confirm" type="password" autocomplete="new-password" minlength="6" required></span>
-          </label>
-          <button class="primary wide" type="submit"><i data-icon="userPlus"></i>Tạo tài khoản</button>
+          <div class="row2">
+            <label class="field">Mật khẩu
+              <span class="input-icon"><i data-icon="lock"></i><input name="password" type="password" autocomplete="new-password" minlength="6" required></span>
+            </label>
+            <label class="field">Nhập lại
+              <span class="input-icon"><i data-icon="lock"></i><input name="confirm" type="password" autocomplete="new-password" minlength="6" required></span>
+            </label>
+          </div>
+          <button class="primary wide" type="submit"><i data-icon="userPlus"></i>Tạo nhân vật</button>
         </form>
       </div>
     </div>
   </section>
 
-  <main class="hub hidden" id="hub">
-    <!-- Tài khoản khách từ bản cũ: mời đặt tên đăng nhập để giữ xu -->
-    <div class="warn hidden" id="legacy">
+  <!-- Thành phố -->
+  <main class="city hidden" id="city">
+    <div class="city-map" id="map"></div>
+
+    <nav class="zone-nav" id="zone-nav" aria-label="Đi tới khu"></nav>
+
+    <aside class="zone-panel hidden" id="panel">
+      <button class="link icon-only panel-close" id="panel-close" title="Đóng"><i data-icon="x"></i></button>
+      <div id="panel-body"></div>
+    </aside>
+
+    <div class="warn legacy hidden" id="legacy">
       <i data-icon="shield"></i>
-      <span>Bạn đang dùng tài khoản khách. Đặt tên đăng nhập và mật khẩu để giữ xu và chơi trên máy khác.
+      <span>Bạn đang dùng tài khoản khách. Đặt tên đăng nhập và mật khẩu để giữ xu.
         <button class="link" id="btn-legacy">Đặt ngay</button></span>
     </div>
-
-    <section class="welcome-card">
-      <div class="welcome-user">
-        <span id="welcome-avatar"></span>
-        <div>
-          <div class="muted">Xin chào,</div>
-          <div class="welcome-name" id="welcome-name"></div>
-        </div>
-      </div>
-      <div class="welcome-wallet">
-        <div class="muted">Số dư ví</div>
-        <div class="big-coins"><i data-icon="coins"></i><span id="welcome-balance"></span></div>
-      </div>
-      <button class="primary daily" id="btn-daily"></button>
-    </section>
-
-    <section>
-      <h2><i data-icon="gamepad"></i>Chọn game</h2>
-      <div class="games" id="games"></div>
-    </section>
-
-    <section>
-      <h2><i data-icon="history"></i>Lịch sử xu</h2>
-      <ul class="history" id="history"></ul>
-    </section>
   </main>
 
   <dialog class="modal" id="dlg-rename">
@@ -139,7 +127,7 @@
   <dialog class="modal" id="dlg-legacy">
     <form method="dialog">
       <h2><i data-icon="shield"></i>Đặt tên đăng nhập</h2>
-      <p class="muted">Số xu và lịch sử của bạn được giữ nguyên.</p>
+      <p class="muted">Số xu, level và lịch sử của bạn được giữ nguyên.</p>
       <label class="field">Tên đăng nhập
         <span class="input-icon"><i data-icon="user"></i><input name="username" autocomplete="username" required autocapitalize="none" pattern="[A-Za-z0-9_.]{3,20}"></span>
       </label>
@@ -151,7 +139,9 @@
   </dialog>
 
   <script src="/icons.js"></script>
+  <script src="/character.js"></script>
   <script src="/account.js"></script>
+  <script src="/city.js"></script>
   <script src="/hub.js"></script>
 </body>
 </html>

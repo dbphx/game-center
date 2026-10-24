@@ -4,6 +4,10 @@
   const R = window.Rules;
   const A = window.Account;
   const I = window.Icons;
+  const C = window.Character;
+  // Avatar là mặt nhân vật của người chơi; máy dùng icon robot.
+  const face = (p) => (p.bot ? I.avatar('', { bot: true }) : C.head({ gender: p.gender, outfit: p.outfit }));
+  const lv = (p) => (p.bot || !p.level ? '' : `<span class="lv-chip">Lv ${p.level}</span>`);
   const PLACES = ['Nhất', 'Nhì', 'Ba', 'Bét'];
   // Vị trí ghế theo số người, tính từ mình (luôn ở dưới) theo chiều đánh.
   const POSITIONS = { 2: ['bottom', 'top'], 3: ['bottom', 'right', 'left'], 4: ['bottom', 'right', 'top', 'left'] };
@@ -158,7 +162,7 @@
           ? `<button class="kick link" data-kick="${p.id}" title="Mời ra">${I.svg('x')}</button>`
           : '';
       const coins = p.bot ? '' : `<span class="coins${p.coins < state.bet ? ' neg' : ''}">${I.svg('coins')}${xu(p.coins)}</span>`;
-      return `<li>${I.avatar(p.name, { bot: p.bot })}<span class="pname">${escapeHtml(p.name)}${tags}</span>${coins}${kick}</li>`;
+      return `<li>${face(p)}<span class="pname">${escapeHtml(p.name)}${lv(p)}${tags}</span>${coins}${kick}</li>`;
     });
     for (let i = state.players.length; i < 4; i++) rows.push(`<li class="empty">${I.svg('userPlus')}Ghế trống</li>`);
     $('lobby-players').innerHTML = rows.join('');
@@ -195,7 +199,7 @@
 
     const name = document.createElement('div');
     name.className = 'name';
-    name.innerHTML = `${I.avatar(p.name, { bot: p.bot })}<span>${escapeHtml(isMe ? 'Bạn' : p.name)}</span>`;
+    name.innerHTML = `${face(p)}<span>${escapeHtml(isMe ? 'Bạn' : p.name)}</span>${lv(p)}`;
     const badge = (cls, text, icon, id) => {
       const b = document.createElement('span');
       b.className = 'badge ' + cls;
@@ -268,7 +272,7 @@
     $('scores').innerHTML = state.players
       .map(
         (p) =>
-          `<tr><td>${I.avatar(p.name, { bot: p.bot })}${escapeHtml(p.id === state.you ? 'Bạn' : p.name)}</td>` +
+          `<tr><td>${face(p)}${escapeHtml(p.id === state.you ? 'Bạn' : p.name)}</td>` +
           `<td><span class="coins">${coinsText(p)}</span></td></tr>`,
       )
       .join('');
@@ -311,7 +315,7 @@
       .map(({ i, p, place, money }) => {
         const label = p.cong ? 'Cóng' : place < 4 && !state.instant ? PLACES[place] : '';
         const cls = money > 0 ? 'delta-plus' : money < 0 ? 'delta-minus' : '';
-        return `<li><span class="place">${label}</span><span class="who">${I.avatar(p.name, { bot: p.bot })}${escapeHtml(playerName(i))}</span><span class="${cls}">${signed(money)} xu</span></li>`;
+        return `<li><span class="place">${label}</span><span class="who">${face(p)}${escapeHtml(playerName(i))}</span><span class="${cls}">${signed(money)} xu</span></li>`;
       })
       .join('');
 
@@ -405,7 +409,7 @@
     (user) => {
       if (!user) return A.requireLogin();
       $('user-name').textContent = user.name;
-      $('user-avatar').innerHTML = I.avatar(user.name);
+      $('user-avatar').innerHTML = C.head({ gender: user.gender, outfit: user.outfit });
       showBalance(user.balance);
       render();
       connect();

@@ -1,4 +1,4 @@
-// Game Hub: tổ hợp game bài online dùng chung một ví xu.
+// DCity: tổ hợp game bài online dùng chung một ví xu.
 package main
 
 import (
@@ -41,7 +41,7 @@ func main() {
 func games(w *wallet.Wallet) []server.Game {
 	auth := func(ctx context.Context, token string) (online.User, error) {
 		u, err := w.UserByToken(ctx, token)
-		return online.User{ID: u.ID, Name: u.Name}, err
+		return online.User{ID: u.ID, Name: u.Name, Gender: u.Gender, Outfit: u.Outfit, Level: u.Level}, err
 	}
 	tienlen := online.NewHub(w, online.DefaultOptions)
 
@@ -68,7 +68,7 @@ func envOr(key, def string) string {
 // printAddresses in ra địa chỉ LAN để bạn bè cùng mạng vào chơi.
 func printAddresses(addr string) {
 	_, port, _ := net.SplitHostPort(addr)
-	log.Printf("Game Hub đang chạy: http://localhost:%s", port)
+	log.Printf("DCity đang chạy: http://localhost:%s", port)
 	ifaces, _ := net.InterfaceAddrs()
 	for _, a := range ifaces {
 		if ip, ok := a.(*net.IPNet); ok && !ip.IP.IsLoopback() && ip.IP.To4() != nil {
