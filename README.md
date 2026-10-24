@@ -11,7 +11,7 @@ mỗi khu là một game hoặc tiện ích, tất cả **dùng chung một ví 
 | Ngân hàng | số dư, thưởng hằng ngày, lịch sử xu |
 | Shop thời trang | mua trang phục theo level, mặc lại đồ đã mua |
 | Quảng trường | thông tin nhân vật, level, XP |
-| Nông trại | trồng trọt (6 ô miễn phí, mua thêm tới 48 ô), chuồng gia súc và ao cá theo đơn vị sức chứa |
+| Nông trại | trồng trọt (6 ô miễn phí, mua thêm tới 48 ô), chuồng gia súc và ao cá theo đơn vị sức chứa, kho giống và kho sản phẩm |
 | Công viên ven sông, bến thuyền | trang trí; đi qua cầu để sang bờ Nam |
 
 - Điều khiển nhân vật: **WASD / phím mũi tên** đi tự do (không đi xuyên sông, toà nhà), **bấm chuột** vào chỗ bất kỳ
@@ -72,6 +72,30 @@ Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè c
 | Hoàng gia (có vương miện) | 6 | 5.000 xu |
 
 - Trong game, avatar của mỗi người là mặt nhân vật của họ kèm level.
+
+## Nông trại
+
+- 6 ô đất miễn phí, ô thứ 7 giá 10.000 xu, mỗi ô sau +2.000 xu, tối đa 48 ô. Cây có thời gian chín, level tối thiểu.
+- **Chuồng** (heo 1, cừu / bò 2 đơn vị...) và **ao cá** (koi 3 đơn vị...): mặc định 5 đơn vị, mở rộng +5 tới 30.
+- **Kho giống**: mua hạt theo số lượng (1–100 hạt/lần) cất vào kho; gieo hạt lấy từ kho, hết hạt thì tự mua 1 hạt.
+  Sức chứa 50, mở rộng +25 tới 300, lần mở rộng thứ n giá 1.000 × n xu.
+- **Kho sản phẩm**: thu hoạch cây và thu vật nuôi / cá đã lớn → vào kho (cộng XP lúc thu); bán ở kho mới được xu.
+  Sức chứa 50, mở rộng +25 tới 500, lần thứ n giá 1.500 × n xu. Kho đầy thì không thu hoạch được.
+
+| API (cần token, POST trả `{farm, user, gained?}`) | Body |
+|---|---|
+| `GET /api/farm/catalog` (không cần token), `GET /api/farm` | |
+| `POST /api/farm/plots/buy` | |
+| `POST /api/farm/seeds/buy` | `{crop, qty}` |
+| `POST /api/farm/plant` | `{plot, crop}` |
+| `POST /api/farm/harvest`, `/harvest-all` | `{plot}` / — |
+| `POST /api/farm/{barn,pond}/buy`, `/{barn,pond}/expand` | |
+| `POST /api/farm/{animals,fish}/buy` | `{kind}` |
+| `POST /api/farm/{animals,fish}/collect` (vào kho), `/sell` (bán thẳng) | `{id}` |
+| `POST /api/farm/products/sell` (qty 0 = bán hết món đó), `/products/sell-all` | `{item, qty}` / — |
+| `POST /api/farm/storage/{seeds,products}/expand` | |
+
+Mã lỗi: 400 dữ liệu sai, 402 không đủ xu, 403 thiếu level / HP, 404 không tìm thấy, 409 trùng / đầy / chưa chín, 423 đang nằm viện.
 
 ## Tiến Lên Miền Nam
 

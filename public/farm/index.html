@@ -21,53 +21,48 @@
   </header>
 
   <main class="farm hidden" id="farm">
-    <div class="farm-bar">
-      <div class="farm-title">
-        <span class="farm-icon"><i data-icon="sprout"></i></span>
-        <div>
-          <h1 id="farm-name">Nông trại</h1>
-          <p class="muted">Gieo hạt, chờ cây chín rồi thu hoạch; nuôi gia súc và thả cá để bán lấy xu và XP.</p>
+    <!-- Cả nông trại là một cảnh liền rộng theo chiều ngang: cổng, 2 kho, ruộng, chuồng, ao. Chiều dọc vừa khung nhìn,
+         chiều ngang cuộn / kéo tự do; camera bám theo nhân vật. Bảng điều khiển nổi trên cảnh. -->
+    <section class="stage" id="stage">
+      <section class="scene" id="scene">
+        <div class="world-wrap" id="world-wrap">
+          <div class="world" id="world">
+            <div id="objects"></div>
+            <div class="walker" id="me"><span class="me-tag" id="me-tag"></span><span class="me-body" id="me-body"></span></div>
+            <span class="go-mark hidden" id="go-mark"></span>
+            <button class="hint hidden" id="hint" data-hint><kbd>E</kbd><span></span></button>
+          </div>
         </div>
-      </div>
-      <div class="farm-actions">
-        <button id="btn-harvest-all" class="primary hidden"><i data-icon="sprout"></i><span>Thu hoạch tất cả</span></button>
-        <button id="btn-shop"><i data-icon="gift"></i>Cửa hàng</button>
-      </div>
-    </div>
+      </section>
 
-    <!-- Cảnh ruộng: trời, đồi, hàng rào, cây, đường đất, lưới ô đất -->
-    <section class="scene" id="scene">
-      <div class="sky">
-        <span class="cloud c1"></span><span class="cloud c2"></span><span class="cloud c3"></span>
-        <span class="fence-row"></span>
-        <span class="tree t-left"></span><span class="tree t-right"></span><span class="tree t-mid"></span>
-      </div>
-      <div class="ground">
-        <div class="path-col">
-          <div class="me" id="me"></div>
-          <span class="decor wheelbarrow"></span>
-        </div>
-        <div class="field-wrap">
-          <div class="field-head"><span class="plot-count" id="plot-count"></span></div>
-          <div class="field" id="plots"></div>
+      <div class="farm-hud">
+        <div class="farm-title">
+          <span class="farm-icon"><i data-icon="sprout"></i></span>
+          <div>
+            <h1 id="farm-name">Nông trại</h1>
+            <p class="help">WASD / mũi tên hoặc bấm chuột để đi · kéo để xem ngang · E để thao tác</p>
+          </div>
         </div>
       </div>
-      <div class="path-row"></div>
-      <div class="bushes"></div>
+      <!-- Thanh công cụ kiểu game: chọn công cụ rồi bấm ô đất, nhân vật đi tới làm -->
+      <button id="btn-harvest-all" class="primary harvest-all hidden"><i data-icon="sprout"></i><span>Thu hoạch tất cả</span></button>
+      <div class="tool-tip hidden" id="tool-tip"></div>
+      <div class="seed-pick hidden" id="seed-pick"></div>
+      <nav class="toolbar" id="toolbar"></nav>
+      <div class="pan-btns">
+        <button class="icon-only" data-pan="-1" title="Xem sang trái"><i data-icon="arrowLeft"></i></button>
+        <button class="icon-only" data-pan="me" title="Về chỗ nhân vật"><i data-icon="user"></i></button>
+        <button class="icon-only flip" data-pan="1" title="Xem sang phải"><i data-icon="arrowLeft"></i></button>
+      </div>
     </section>
-
-    <div class="pens">
-      <section class="pen-card" id="barn"></section>
-      <section class="pen-card" id="pond"></section>
-    </div>
   </main>
 
-  <!-- Cửa hàng: hạt giống, vật nuôi, cá. Mở từ một ô trống thì chỉ để chọn hạt gieo vào ô đó. -->
+  <!-- Cửa hàng: hạt giống (mua vào kho giống), vật nuôi, cá. Mở từ một ô trống thì để chọn hạt gieo vào ô đó. -->
   <dialog class="modal shop-dlg" id="dlg-shop">
     <div class="shop-wrap">
       <div class="shop-head">
         <h2><i data-icon="gift"></i><span id="shop-title">Cửa hàng</span></h2>
-        <button class="link icon-only" id="shop-close" title="Đóng"><i data-icon="x"></i></button>
+        <button class="link icon-only" data-close title="Đóng"><i data-icon="x"></i></button>
       </div>
       <div class="tabs shop-tabs" role="tablist" id="shop-tabs">
         <button class="tab active" data-tab="crops">Hạt giống</button>
@@ -76,6 +71,28 @@
       </div>
       <p class="muted shop-note" id="shop-note"></p>
       <div class="shop-list" id="shop-list"></div>
+    </div>
+  </dialog>
+
+  <!-- Kho giống / kho sản phẩm -->
+  <dialog class="modal shop-dlg store-dlg" id="dlg-store">
+    <div class="shop-wrap">
+      <div class="shop-head">
+        <h2><i data-icon="landmark"></i><span id="store-title">Kho</span></h2>
+        <button class="link icon-only" data-close title="Đóng"><i data-icon="x"></i></button>
+      </div>
+      <div id="store-body"></div>
+    </div>
+  </dialog>
+
+  <!-- Chuồng / ao: sức chứa, mở rộng, danh sách con nuôi -->
+  <dialog class="modal shop-dlg" id="dlg-pen">
+    <div class="shop-wrap">
+      <div class="shop-head">
+        <h2><i data-icon="landmark"></i><span id="pen-title">Chuồng</span></h2>
+        <button class="link icon-only" data-close title="Đóng"><i data-icon="x"></i></button>
+      </div>
+      <div id="pen-body" class="pen-body"></div>
     </div>
   </dialog>
 

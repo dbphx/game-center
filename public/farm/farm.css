@@ -1,45 +1,7 @@
 /* Nông trại DCity — phong cách hoạt hình kiểu game "Avatar": trời xanh, mây, đồi, hàng rào gỗ,
    ruộng ô đất đỏ nâu viền cỏ. Ảnh hoạt hình CC0 trong public/img/toon/farm (xem manifest.json, CREDITS.csv). */
 
-:root {
-  --plot: 104px;
-  --cols: 6;
-}
-
 img.toon { display: block; user-select: none; -webkit-user-drag: none; }
-
-.farm {
-  width: 100%;
-  max-width: 1240px;
-  margin: 0 auto;
-  padding: 18px 16px 48px;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-/* ---------- Thanh tiêu đề ---------- */
-
-.farm-bar {
-  display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
-  padding: 12px 16px; border-radius: var(--radius);
-  background: var(--surface); border: 3px solid var(--border); box-shadow: var(--shadow);
-}
-.farm-title { display: flex; align-items: center; gap: 12px; }
-.farm-title h1 { margin: 0; font-size: 26px; font-weight: 800; color: var(--text); line-height: 1.1; }
-.farm-title .muted { margin: 2px 0 0; }
-.farm-icon {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 50px; height: 50px; border-radius: 16px; flex-shrink: 0;
-  background: linear-gradient(180deg, #b6ec8c, #6cc04a); color: #fff;
-  border: 2px solid #4f9a32; box-shadow: inset 0 2px 0 rgba(255, 255, 255, .5);
-}
-.farm-icon .icon { width: 26px; height: 26px; }
-.farm-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-
-.section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
-.section-head h2 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 22px; font-weight: 800; color: var(--text); }
-.section-head h2 .icon { color: var(--gold); }
 
 /* ---------- HP trên topbar ---------- */
 
@@ -56,97 +18,8 @@ img.toon { display: block; user-select: none; -webkit-user-drag: none; }
 .hp-pill.low .icon { animation: beat 1s ease-in-out infinite; }
 @keyframes beat { 50% { transform: scale(1.2); } }
 
-/* ---------- Cảnh ruộng ---------- */
-
-.scene {
-  position: relative;
-  border-radius: 26px;
-  overflow: hidden;
-  border: 4px solid #fff3d6;
-  box-shadow: var(--shadow);
-  background: url('/img/toon/farm/grass_tile.png') repeat;
-  background-size: 128px;
-}
-
-/* Trời + đồi + mây + hàng rào + cây ở đường chân trời */
-.sky {
-  position: relative;
-  height: 210px;
-  background: url('/img/toon/farm/bg_sky_hills.png') center bottom / cover no-repeat, linear-gradient(#6cc4f5, #c4ecff);
-}
-.cloud { position: absolute; background: center / contain no-repeat; opacity: .95; animation: drift linear infinite; }
-.cloud.c1 { width: 150px; height: 90px; top: 12px; left: -10%; background-image: url('/img/toon/farm/cloud_1.png'); animation-duration: 70s; }
-.cloud.c2 { width: 120px; height: 95px; top: 30px; left: 30%; background-image: url('/img/toon/farm/cloud_2.png'); animation-duration: 95s; animation-delay: -40s; }
-.cloud.c3 { width: 170px; height: 110px; top: 4px; left: 65%; background-image: url('/img/toon/farm/cloud_3.png'); animation-duration: 85s; animation-delay: -20s; }
-@keyframes drift { from { transform: translateX(-30vw); } to { transform: translateX(110vw); } }
-.fence-row {
-  position: absolute; left: 0; right: 0; bottom: -6px; height: 56px;
-  background: url('/img/toon/farm/fence_row.png') left bottom / auto 56px repeat-x;
-  z-index: 2;
-}
-.tree { position: absolute; bottom: -18px; background: center bottom / contain no-repeat; z-index: 3; pointer-events: none; }
-.tree.t-left { left: -14px; width: 200px; height: 270px; background-image: url('/img/toon/farm/tree_big.png'); }
-.tree.t-right { right: -10px; width: 170px; height: 230px; background-image: url('/img/toon/farm/tree_big.png'); transform: scaleX(-1); }
-.tree.t-mid { left: 58%; bottom: 30px; width: 90px; height: 124px; background-image: url('/img/toon/farm/tree_med.png'); z-index: 1; }
-
-/* Mặt đất: cột đường đất bên trái (nhân vật đứng), ruộng bên phải */
-.ground {
-  position: relative;
-  display: grid;
-  grid-template-columns: 210px 1fr;
-  min-height: 260px;
-}
-.path-col {
-  position: relative;
-  background: url('/img/toon/farm/dirt_path_tile.png') repeat;
-  background-size: 128px;
-  box-shadow: inset -10px 0 12px -8px rgba(90, 60, 20, .35);
-  display: flex; align-items: center; justify-content: center;
-}
-.path-row {
-  height: 64px;
-  background: url('/img/toon/farm/dirt_path_tile.png') repeat;
-  background-size: 128px;
-  box-shadow: inset 0 10px 12px -8px rgba(90, 60, 20, .35), inset 0 -10px 12px -8px rgba(90, 60, 20, .35);
-}
-.decor.wheelbarrow { position: absolute; left: 14px; bottom: 10px; width: 72px; height: 66px; background: url('/img/toon/farm/wheelbarrow.png') center / contain no-repeat; }
-
-/* Nhân vật + nhãn tên giống ảnh mẫu */
-.me { position: relative; display: flex; flex-direction: column; align-items: center; margin-top: 18px; animation: idle 2.4s ease-in-out infinite; }
-.me::after { content: ''; position: absolute; bottom: -4px; width: 60px; height: 14px; border-radius: 50%; background: rgba(60, 40, 10, .25); z-index: -1; }
-@keyframes idle { 50% { transform: translateY(-3px); } }
-.me-tag {
-  display: inline-flex; align-items: center; gap: 6px; margin-bottom: 4px; padding: 3px 10px 3px 4px; border-radius: 999px;
-  background: linear-gradient(180deg, #fffbe9, #ffe3a3); border: 2px solid #c9893f; color: #5a2c00;
-  font-family: var(--font-title); font-weight: 800; font-size: 14px; white-space: nowrap;
-  box-shadow: 0 3px 0 rgba(140, 80, 20, .3);
-}
-.me-tag .lv { padding: 0 8px; border-radius: 999px; background: linear-gradient(180deg, #ffe66b, #ff9a1a); color: #5a2800; font-size: 12px; }
-
-/* Ruộng: lưới ô đất */
-.field-wrap { position: relative; padding: 30px 26px 18px; }
-.field-head { position: absolute; left: 26px; top: 8px; z-index: 4; }
-.plot-count {
-  display: inline-block; padding: 3px 12px; border-radius: 999px; font-size: 13px; font-weight: 800;
-  background: rgba(255, 252, 240, .92); border: 2px solid #e2b874; color: var(--text);
-}
-/* Ruộng là một mảnh liền: các ô đất sát nhau trên nền cỏ đậm, như ảnh mẫu. */
-.field {
-  display: grid;
-  grid-template-columns: repeat(var(--cols), var(--plot));
-  grid-auto-rows: var(--plot);
-  gap: 4px;
-  justify-content: center;
-  width: max-content;
-  max-width: 100%;
-  margin: 18px auto 6px;
-  padding: 10px 10px 14px;
-  border-radius: 22px;
-  background: rgba(86, 160, 52, .55);
-  box-shadow: inset 0 0 0 3px rgba(60, 120, 30, .35), 0 6px 0 rgba(60, 110, 30, .35);
-}
 .plot {
-  position: relative; width: var(--plot); height: var(--plot);
+  position: absolute; width: var(--plot); height: var(--plot);
   cursor: pointer; border-radius: 16px; transition: transform .12s;
 }
 .plot:hover { transform: translateY(-3px); }
@@ -197,44 +70,10 @@ img.toon { display: block; user-select: none; -webkit-user-drag: none; }
 .plot.buy { animation: glow 2s ease-in-out infinite; }
 @keyframes glow { 50% { filter: drop-shadow(0 0 8px rgba(255, 210, 60, .9)); } }
 
-/* Hàng bụi cây phía dưới cảnh */
-.bushes {
-  height: 58px;
-  background:
-    url('/img/toon/farm/bush_1.png') 0 100% / 120px 60px repeat-x;
-  filter: hue-rotate(-12deg) saturate(1.1);
-}
-
-/* ---------- Chuồng và ao ---------- */
-
-.pens { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-.pen-card {
-  position: relative; padding: 16px; border-radius: var(--radius);
-  background: var(--surface); border: 3px solid var(--border); box-shadow: var(--shadow);
-}
 .cap { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-weight: 800; font-size: 14px; }
 .cap-bar { flex: 1; height: 12px; border-radius: 999px; background: #f3e2c0; border: 2px solid #e2c48f; overflow: hidden; }
 .cap-bar > span { display: block; height: 100%; background: linear-gradient(90deg, #8ee08a, #3aa94a); }
 .cap button { padding: 6px 12px; font-size: 13px; }
-
-.pen {
-  position: relative; height: 270px; border-radius: 18px; overflow: hidden;
-  border: 3px solid #b9dc8f;
-  background: url('/img/toon/farm/grass_tile.png') repeat; background-size: 128px;
-}
-.pen .deco { position: absolute; pointer-events: none; }
-.pen.yard .fence-top, .pen.yard .fence-bottom {
-  position: absolute; left: 0; right: 0; height: 40px;
-  background: url('/img/toon/farm/fence_row.png') left bottom / auto 40px repeat-x; pointer-events: none;
-}
-.pen.yard .fence-top { top: 36%; opacity: .95; }
-.pen.yard .fence-bottom { bottom: -6px; }
-.pen .roam { position: absolute; left: 0; right: 0; top: 62%; bottom: 26px; }
-
-.pen.pond-scene { display: flex; align-items: center; justify-content: center; }
-.pond-water { position: relative; width: 82%; max-width: 380px; }
-.pond-water .pond-img { width: 100%; height: auto; }
-.pond-water .swim { position: absolute; left: 14%; right: 14%; top: 18%; bottom: 22%; }
 
 .critter {
   position: absolute; padding: 0; border: none; background: none; box-shadow: none; cursor: pointer;
@@ -318,38 +157,331 @@ img.toon { display: block; user-select: none; -webkit-user-drag: none; }
 .gain .xp { font-size: 16px; color: #4fb3ff; -webkit-text-stroke: 1px #1d5f9c; }
 @keyframes rise { from { opacity: 0; translate: 0 10px; } 15% { opacity: 1; } to { opacity: 0; translate: 0 -70px; } }
 
+/* ---------- Sân khấu: cảnh nông trại toàn màn hình ---------- */
+
+:root { --plot: 88px; }
+body { overflow: hidden; }
+img.toon { display: block; user-select: none; -webkit-user-drag: none; }
+
+.farm { position: relative; height: calc(100dvh - 60px); }
+.stage { position: absolute; inset: 0; overflow: hidden; background: linear-gradient(#6cc4f5, #c4ecff 70%, #9fd86b 70%); }
+.scene {
+  position: absolute; inset: 0; overflow-x: auto; overflow-y: hidden;
+  display: flex; align-items: flex-start;
+  scrollbar-width: none; cursor: grab; touch-action: pan-x;
+  /* Phần dưới thế giới (sau thanh công cụ) là cỏ, cuộn cùng cảnh. */
+  background: url('/img/toon/farm/grass_tile.png') repeat local; background-size: 128px;
+}
+.scene::-webkit-scrollbar { display: none; }
+.scene.dragging { cursor: grabbing; }
+.scene.dragging * { pointer-events: none; }
+.world-wrap { position: relative; flex-shrink: 0; }
+.world {
+  position: absolute; left: 0; top: 0; transform-origin: 0 0;
+  background: url('/img/toon/farm/grass_tile.png') repeat; background-size: 128px;
+  user-select: none;
+}
+
+/* Trời + mây + hàng rào */
+.sky {
+  position: absolute; left: 0; top: 0; z-index: 1; pointer-events: none;
+  background: url('/img/toon/farm/bg_sky_hills.png') left bottom / auto 100% repeat-x, linear-gradient(#6cc4f5, #c4ecff);
+}
+.cloud { position: absolute; top: 8px; background: center / contain no-repeat; opacity: .95; animation: drift 40s ease-in-out infinite alternate; }
+.cloud.c1 { width: 150px; height: 90px; background-image: url('/img/toon/farm/cloud_1.png'); }
+.cloud.c2 { width: 120px; height: 95px; top: 24px; background-image: url('/img/toon/farm/cloud_2.png'); animation-duration: 55s; }
+.cloud.c3 { width: 170px; height: 110px; background-image: url('/img/toon/farm/cloud_3.png'); animation-duration: 47s; }
+@keyframes drift { to { transform: translateX(160px); } }
+.fence-row {
+  position: absolute; left: 0; right: 0; bottom: -4px; height: 52px;
+  background: url('/img/toon/farm/fence_row.png') left bottom / auto 52px repeat-x;
+}
+
+.dirt {
+  position: absolute; z-index: 3; border-radius: 26px;
+  background: url('/img/toon/farm/dirt_path_tile.png') repeat; background-size: 128px;
+  box-shadow: inset 0 0 14px rgba(90, 60, 20, .35);
+}
+.dirt.road { border-radius: 0; box-shadow: inset 0 10px 12px -8px rgba(90, 60, 20, .4); }
+
+/* Vật đặt theo chân: (left, top) = điểm chân giữa đáy */
+.obj { position: absolute; transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center; }
+.obj.decor { pointer-events: none; }
+.obj.decor.far { opacity: .95; }
+.obj.decor.flip img { transform: scaleX(-1); }
+.obj.building, .obj.gate { cursor: pointer; }
+.obj.building img { filter: drop-shadow(0 8px 4px rgba(40, 60, 20, .3)); transition: filter .15s; }
+.obj.building:hover img, .obj.gate:hover img { filter: drop-shadow(0 0 10px rgba(255, 225, 90, .95)); }
+.obj.building.bump img { animation: bump .5s ease-out; }
+@keyframes bump { 30% { transform: scale(1.06, .94); } 60% { transform: scale(.97, 1.04); } }
+
+/* Nhãn tên + thanh sức chứa trên công trình */
+.obj-label {
+  display: inline-flex; align-items: center; gap: 6px; margin-bottom: 4px; padding: 3px 10px; border-radius: 999px;
+  background: linear-gradient(180deg, #fffbe9, #ffe3a3); border: 2px solid #c9893f; color: #5a2c00;
+  font: 800 13px var(--font-title); white-space: nowrap; box-shadow: 0 3px 0 rgba(140, 80, 20, .3);
+}
+.obj-label em { font-style: normal; font-weight: 900; font-size: 12px; display: inline-flex; align-items: center; gap: 3px; }
+.obj-label .icon { width: 13px; height: 13px; }
+.cap-mini { display: inline-block; width: 46px; height: 8px; border-radius: 999px; background: #f3dcb0; overflow: hidden; box-shadow: inset 0 1px 2px rgba(90, 50, 0, .3); }
+.cap-mini > span { display: block; height: 100%; background: linear-gradient(90deg, #8ee08a, #3aa94a); }
+.obj.full .cap-mini > span { background: linear-gradient(90deg, #ffb36b, #e8590c); }
+.obj-label.offer { background: linear-gradient(180deg, #fffdf2, #d9f7c0); border-color: #6fb043; color: #2f6a12; }
+
+/* Cổng nông trại: tên trên biển treo */
+.obj.gate img { filter: drop-shadow(0 8px 4px rgba(40, 60, 20, .3)); }
+.gate-sign {
+  position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); width: 60%;
+  display: flex; flex-direction: column; align-items: center; line-height: 1.05; pointer-events: none;
+  font: 800 11px var(--font-title); color: #7a4210; text-transform: uppercase; letter-spacing: .5px;
+}
+.gate-sign b { font-size: 16px; text-transform: none; letter-spacing: 0; color: #5a2c00; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Ruộng */
+.field-bed {
+  position: absolute; border-radius: 22px;
+  background: rgba(86, 160, 52, .55);
+  box-shadow: inset 0 0 0 3px rgba(60, 120, 30, .35), 0 6px 0 rgba(60, 110, 30, .35);
+}
+.plot-count {
+  position: absolute; padding: 3px 12px; border-radius: 999px; font-size: 13px; font-weight: 800;
+  background: rgba(255, 252, 240, .95); border: 2px solid #e2b874; color: var(--text); white-space: nowrap;
+}
+
+/* Chuồng + ao trong cảnh */
+.obj.area { transform: none; display: block; cursor: pointer; }
+.obj.area .obj-label { position: absolute; left: 50%; top: -6px; transform: translateX(-50%); z-index: 2; }
+.obj.area .deco { position: absolute; pointer-events: none; }
+.yard .fence-top, .yard .fence-bottom {
+  position: absolute; left: 0; right: 0; height: 44px; pointer-events: none;
+  background: url('/img/toon/farm/fence_row.png') left bottom / auto 44px repeat-x;
+}
+.yard .fence-top { top: 120px; }
+.yard .fence-bottom { bottom: -4px; }
+.yard .roam { position: absolute; left: 10px; right: 10px; top: 170px; bottom: 34px; }
+.yard:hover .fence-bottom, .pond-area:hover .pond-img { filter: drop-shadow(0 0 8px rgba(255, 225, 90, .95)); }
+.pond-area .pond-water { position: absolute; left: 20px; right: 20px; top: 40px; }
+.pond-water .pond-img { width: 100%; height: auto; }
+.pond-water .swim { position: absolute; left: 14%; right: 14%; top: 18%; bottom: 22%; }
+.obj.area.ghost .deco, .obj.area.ghost .pond-water, .obj.area.ghost .fence-top { opacity: .45; filter: saturate(.6); }
+
+/* Nhân vật */
+.walker { position: absolute; transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+.walker::after { content: ''; position: absolute; bottom: -5px; width: 56px; height: 14px; border-radius: 50%; background: rgba(60, 40, 10, .28); z-index: -1; }
+.me-body { display: block; line-height: 0; }
+.me-tag {
+  display: inline-flex; align-items: center; gap: 6px; margin-bottom: 2px; padding: 2px 10px 2px 4px; border-radius: 999px;
+  background: linear-gradient(180deg, #fffbe9, #ffe3a3); border: 2px solid #c9893f; color: #5a2c00;
+  font-family: var(--font-title); font-weight: 800; font-size: 13px; white-space: nowrap;
+  box-shadow: 0 3px 0 rgba(140, 80, 20, .3);
+}
+.me-tag .lv { padding: 0 7px; border-radius: 999px; background: linear-gradient(180deg, #ffe66b, #ff9a1a); color: #5a2800; font-size: 11px; }
+.go-mark {
+  position: absolute; z-index: 4; width: 34px; height: 14px; margin: -7px 0 0 -17px; border-radius: 50%;
+  border: 3px solid rgba(255, 230, 90, .95); box-shadow: 0 0 8px rgba(255, 200, 40, .8); pointer-events: none;
+}
+.go-mark.pop { animation: mark .6s ease-out; }
+@keyframes mark { from { transform: scale(1.8); opacity: 0; } }
+
+/* Gợi ý E */
+.hint {
+  position: absolute; z-index: 5000; transform: translate(-50%, -100%);
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px 4px 5px; border-radius: 999px;
+  background: linear-gradient(180deg, #ffffff, #e3f3ff); border: 2px solid #5aa1e6; color: #1f4f8a;
+  font: 800 14px var(--font-title); white-space: nowrap; box-shadow: 0 3px 0 #2f6fae;
+  animation: bounce2 1s ease-in-out infinite;
+}
+.hint kbd {
+  display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 8px;
+  background: linear-gradient(180deg, #5cb3ff, #2f7fd6); color: #fff; font: 900 14px var(--font-title); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .2);
+}
+
+/* Bảng điều khiển nổi trên cảnh */
+.farm-hud {
+  position: absolute; left: 12px; right: 12px; top: 10px; z-index: 10;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; pointer-events: none;
+}
+.farm-hud > * { pointer-events: auto; }
+.farm-title {
+  display: flex; align-items: center; gap: 10px; padding: 6px 14px 6px 6px; border-radius: 20px;
+  background: rgba(255, 251, 236, .94); border: 3px solid var(--border); box-shadow: var(--shadow);
+}
+.farm-title h1 { margin: 0; font-size: 20px; font-weight: 800; color: var(--text); line-height: 1.1; }
+.farm-title .help { margin: 1px 0 0; font-size: 12px; color: var(--muted); font-weight: 700; }
+.farm-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 42px; height: 42px; border-radius: 14px; flex-shrink: 0;
+  background: linear-gradient(180deg, #b6ec8c, #6cc04a); color: #fff;
+  border: 2px solid #4f9a32; box-shadow: inset 0 2px 0 rgba(255, 255, 255, .5);
+}
+.farm-icon .icon { width: 24px; height: 24px; }
+.pan-btns { position: absolute; right: 12px; bottom: 12px; z-index: 10; display: flex; gap: 6px; }
+.pan-btns button { width: 42px; height: 42px; padding: 0; border-radius: 50%; box-shadow: var(--shadow); }
+.pan-btns .flip .icon { transform: scaleX(-1); }
+
+/* ---------- Hộp thoại chuồng / ao, kho ---------- */
+
+.pen-body { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+.pen-body .muted { margin: 0; }
+button.wide { width: 100%; justify-content: center; }
+.pen-offer {
+  display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; padding: 14px;
+  border-radius: 18px; background: url('/img/toon/farm/grass_tile.png') repeat; background-size: 128px; border: 3px solid #b9dc8f;
+}
+
+.store-dlg { width: min(720px, calc(100vw - 24px)); }
+#store-body { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; min-height: 0; }
+.store-hero { display: flex; align-items: center; gap: 14px; padding: 8px 12px; border-radius: 18px; background: linear-gradient(180deg, #e9f8d8, #c8ecac); border: 2px solid #a8d784; }
+.store-hero > div { flex: 1; min-width: 0; }
+.store-hero p { margin: 0 0 6px; font-size: 13px; color: var(--text); }
+.store-hero .cap { margin: 0; }
+.qty-pick { display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 14px; }
+.qty-pick button { padding: 5px 12px; font-size: 13px; }
+.qty-pick button.active { background: linear-gradient(180deg, #ffe66b, #ffbe2e); border-color: #d97706; }
+.store-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.store-card {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 8px; text-align: center;
+  border-radius: 16px; background: var(--bg-2); border: 2px solid #f0dcb0;
+}
+.store-card.has { background: linear-gradient(180deg, #fffbe6, #fff0c4); border-color: #e7c27a; }
+.store-card.locked { opacity: .55; }
+.store-card .pic { height: 62px; display: flex; align-items: flex-end; justify-content: center; }
+.store-card .pic img { max-height: 62px; width: auto; }
+.store-card .pic.water { align-items: center; padding: 0 8px; border-radius: 12px; background: linear-gradient(180deg, #d4f1ff, #9ed8f5); }
+.store-card b { font-size: 15px; }
+.store-card .sub { font-size: 12px; color: var(--muted); font-weight: 700; }
+.store-card button { padding: 6px 10px; font-size: 12px; }
+.store-card .btns { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.store-card .count {
+  position: absolute; top: 6px; right: 6px; padding: 1px 8px; border-radius: 999px;
+  background: linear-gradient(180deg, #5cb3ff, #2f7fd6); color: #fff; font: 900 13px var(--font-title);
+}
+.store-sellall { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-weight: 700; }
+.store-empty { text-align: center; padding: 20px; }
+.shop-row .have { display: inline-block; margin-left: 8px; padding: 0 8px; border-radius: 999px; background: #dff3ff; color: #1f5f9c; font-size: 12px; font-weight: 800; }
+
+/* ---------- Hiệu ứng ---------- */
+
+.gain {
+  position: fixed; z-index: 50; transform: translate(-50%, -100%); pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; white-space: nowrap;
+  font: 900 22px var(--font-title); color: #ffb21e; -webkit-text-stroke: 1px #8a4b00;
+  text-shadow: 0 3px 0 rgba(120, 60, 0, .4); animation: rise 1.6s ease-out forwards;
+}
+.gain .xp { font-size: 16px; color: #4fb3ff; -webkit-text-stroke: 1px #1d5f9c; }
+.gain .items { font-size: 16px; color: #7ad04a; -webkit-text-stroke: 1px #2d6a12; }
+@keyframes rise { from { opacity: 0; translate: 0 10px; } 15% { opacity: 1; } to { opacity: 0; translate: 0 -70px; } }
+.fly {
+  position: fixed; z-index: 60; pointer-events: none; transform: translate(0, 0);
+  margin: -20px 0 0 -20px; transition: transform .9s cubic-bezier(.5, -0.4, .6, 1), opacity .9s ease-in;
+}
+.fly img { max-height: 40px; width: auto; filter: drop-shadow(0 3px 2px rgba(0, 0, 0, .3)); }
+
 /* ---------- Điện thoại ---------- */
 
-@media (max-width: 860px) {
-  .pens { grid-template-columns: 1fr; }
-}
 @media (max-width: 600px) {
-  :root { --plot: 74px; --cols: 4; }
   /* Topbar gọn để không tràn ngang: bỏ thanh máu / XP và tên, chỉ giữ số. */
   .topbar .hp-bar, .topbar .level-badge .xp-bar, .topbar .user-chip-name, .topbar .brand-text { display: none; }
   .topbar .user { gap: 6px; }
   .hp-pill { padding: 3px 8px 3px 5px; }
-  body { overflow-x: hidden; }
-  .harvest-arrow { top: -22px; }
-  .harvest-arrow .icon { width: 22px; height: 22px; }
-  .farm { padding: 12px 10px 36px; gap: 12px; }
-  .farm-title h1 { font-size: 21px; }
-  .farm-title .muted { display: none; }
-  .farm-actions { width: 100%; }
-  .farm-actions button { flex: 1; }
-  .sky { height: 140px; }
-  .tree.t-left { width: 120px; height: 165px; }
-  .tree.t-right { width: 110px; height: 150px; }
-  .tree.t-mid { display: none; }
-  .ground { grid-template-columns: 1fr; }
-  .path-col { height: 150px; box-shadow: inset 0 -10px 12px -8px rgba(90, 60, 20, .35); }
-  .me .character, .me img { max-height: 92px; }
-  .field-wrap { padding: 26px 6px 14px; }
-  .field { gap: 10px 6px; }
-  .tag-pill { font-size: 10px; padding: 1px 6px; }
-  .tag-pill .bar { width: 20px; }
-  .pen { height: 240px; }
+  .farm-hud { flex-direction: column; left: 8px; right: 8px; top: 8px; gap: 6px; }
+  .farm-title { padding: 4px 10px 4px 4px; }
+  .farm-title h1 { font-size: 16px; }
+  .farm-title .help { display: none; }
+  .farm-icon { width: 32px; height: 32px; border-radius: 10px; }
   .critter-list { grid-template-columns: 1fr; }
   .shop-row { grid-template-columns: 52px 1fr; }
   .shop-row button { grid-column: 1 / -1; }
+  .store-grid { grid-template-columns: repeat(2, 1fr); }
+  .store-hero > img { display: none; }
+}
+
+/* ---------- Kiểu game Avatar: thanh công cụ nút tròn dưới màn hình ---------- */
+
+.toolbar {
+  position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 12;
+  display: flex; gap: 10px; padding: 8px 12px 6px; border-radius: 26px;
+  background: linear-gradient(180deg, rgba(255, 249, 228, .96), rgba(255, 232, 178, .96));
+  border: 3px solid #c9893f; box-shadow: 0 5px 0 rgba(140, 80, 20, .35), 0 10px 24px rgba(40, 60, 20, .25);
+}
+.tool {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 0; border: none; background: none; box-shadow: none; min-width: 68px; cursor: pointer;
+}
+.tool:hover:not(:disabled), .tool:active:not(:disabled) { background: none; box-shadow: none; transform: none; }
+.tool .ic {
+  display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%;
+  background: radial-gradient(circle at 50% 35%, #ffffff, #d9f2ff 70%, #a9d8f5);
+  border: 3px solid #4f97d8; box-shadow: inset 0 -4px 0 rgba(30, 90, 150, .25), 0 3px 0 #2f6fae;
+  transition: transform .12s;
+}
+.tool .ic img { max-width: 44px; max-height: 44px; width: auto; height: auto; }
+.tool:hover .ic { transform: translateY(-3px) scale(1.05); }
+.tool.on .ic {
+  background: radial-gradient(circle at 50% 35%, #fffbe0, #ffe066 70%, #ffb21e);
+  border-color: #d97706; box-shadow: inset 0 -4px 0 rgba(150, 80, 0, .25), 0 3px 0 #b45309, 0 0 0 4px rgba(255, 210, 60, .5);
+}
+.tool b { font: 800 12px var(--font-title); color: #5a2c00; white-space: nowrap; max-width: 84px; overflow: hidden; text-overflow: ellipsis; }
+.tool .badge {
+  position: absolute; top: -4px; right: 2px; min-width: 22px; padding: 0 6px; border-radius: 999px;
+  background: linear-gradient(180deg, #ff7a6b, #e03131); color: #fff; font: 900 12px/20px var(--font-title);
+  border: 2px solid #fff; box-shadow: 0 2px 0 rgba(120, 20, 20, .4);
+}
+.harvest-all { position: absolute; left: 50%; bottom: 108px; transform: translateX(-50%); z-index: 12; box-shadow: var(--shadow); }
+.tool-tip {
+  position: absolute; left: 50%; bottom: 108px; transform: translateX(-50%); z-index: 12;
+  display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 10px; border-radius: 999px; white-space: nowrap;
+  background: rgba(255, 251, 236, .96); border: 2px solid #e2b874; font-size: 13px; font-weight: 700; box-shadow: var(--shadow);
+}
+.tool-tip .link { padding: 4px 10px; font-size: 12px; }
+.harvest-all:not(.hidden) ~ .tool-tip { bottom: 156px; }
+.seed-pick {
+  position: absolute; left: 50%; bottom: 108px; transform: translateX(-50%); z-index: 13;
+  width: min(560px, calc(100% - 20px)); padding: 10px 12px; border-radius: 22px;
+  background: rgba(255, 251, 236, .98); border: 3px solid #c9893f; box-shadow: var(--shadow);
+}
+.seed-pick p { margin: 0 0 8px; font: 800 15px var(--font-title); color: #5a2c00; }
+.seed-pick .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+.seed-pick .chip {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 76px; padding: 6px 4px;
+  border-radius: 16px; background: linear-gradient(180deg, #f3fbe8, #d4f0b8); border: 2px solid #a8d784; box-shadow: 0 3px 0 rgba(70, 120, 30, .3);
+}
+.seed-pick .chip.on { background: linear-gradient(180deg, #fffbe0, #ffe066); border-color: #d97706; }
+.seed-pick .chip b { font-size: 13px; }
+.seed-pick .chip em { font-style: normal; font-size: 12px; font-weight: 800; color: #1f5f9c; }
+.pan-btns { bottom: 18px; }
+
+/* Ô hợp lệ cho công cụ đang cầm thì phát sáng */
+.scene.tool-plant .plot.empty .soil, .scene.tool-harvest .plot.ripe .soil { animation: glow 1.2s ease-in-out infinite; }
+.scene.tool-plant .plot.empty { cursor: copy; }
+.scene.tool-plant .plot.empty .tag-pill.add { opacity: 1; }
+
+/* Cây chín lấp lánh */
+.twinkle { position: absolute; z-index: 3; color: #fff7b0; pointer-events: none; filter: drop-shadow(0 0 3px #ffd43b); animation: twinkle 1.4s ease-in-out infinite; }
+.twinkle .icon { width: 18px; height: 18px; fill: #fffbe0; }
+.twinkle.t1 { left: 8%; top: -8%; }
+.twinkle.t2 { right: 6%; top: 18%; animation-delay: -.7s; }
+@keyframes twinkle { 0%, 100% { opacity: 0; transform: scale(.4) rotate(0); } 50% { opacity: 1; transform: scale(1) rotate(20deg); } }
+.plot.ripe .crop { animation: hop 1.8s ease-in-out infinite; }
+@keyframes hop { 0%, 70%, 100% { translate: 0 0; } 80% { translate: 0 -5px; } 90% { translate: 0 0; } }
+
+/* Nhân vật làm việc: nhún + nghiêng một nhịp */
+.walker.work .me-body { animation: work .42s ease-in-out; transform-origin: 50% 100%; }
+@keyframes work { 25% { transform: scale(1.08, .88) rotate(-6deg); } 55% { transform: scale(.95, 1.06) rotate(5deg); } }
+
+.fence-bottom-row {
+  position: absolute; height: 40px; pointer-events: none;
+  background: url('/img/toon/farm/fence_row.png') left bottom / auto 40px repeat-x;
+}
+
+@media (max-width: 600px) {
+  .toolbar { left: 6px; right: 6px; transform: none; gap: 2px; padding: 6px 4px 4px; justify-content: space-between; border-radius: 20px; }
+  .tool { min-width: 0; flex: 1; }
+  .tool .ic { width: 44px; height: 44px; }
+  .tool .ic img { max-width: 34px; max-height: 34px; }
+  .tool b { font-size: 10px; max-width: 58px; }
+  .harvest-all, .tool-tip, .seed-pick { bottom: 92px; }
+  .harvest-all:not(.hidden) ~ .tool-tip { bottom: 138px; }
+  .tool-tip { white-space: normal; width: calc(100% - 20px); font-size: 12px; }
+  .pan-btns { display: none; }
 }

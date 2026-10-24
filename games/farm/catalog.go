@@ -81,6 +81,41 @@ var Buildings = map[string]Building{
 	placePond: {Name: "ao cá", Price: 2500, Level: 1, Capacity: 5, ExpandUnits: 5, MaxCapacity: 30, expandBase: 1500},
 }
 
+const (
+	storeSeeds    = "seeds"
+	storeProducts = "products"
+)
+
+// StoreSpec là một kho: mỗi món chiếm 1 đơn vị; mở rộng thêm ExpandUnits mỗi lần tới MaxCapacity,
+// lần mở rộng thứ n giá ExpandBase × n.
+type StoreSpec struct {
+	Name        string `json:"-"`
+	Capacity    int    `json:"capacity"`
+	ExpandUnits int    `json:"expandUnits"`
+	MaxCapacity int    `json:"maxCapacity"`
+	ExpandBase  int64  `json:"expandBase"`
+}
+
+func (s StoreSpec) expandPrice(expansions int) int64 { return s.ExpandBase * int64(expansions+1) }
+
+var Stores = map[string]StoreSpec{
+	storeSeeds:    {Name: "kho giống", Capacity: 50, ExpandUnits: 25, MaxCapacity: 300, ExpandBase: 1000},
+	storeProducts: {Name: "kho sản phẩm", Capacity: 50, ExpandUnits: 25, MaxCapacity: 500, ExpandBase: 1500},
+}
+
+// product trả tên và giá bán của một món trong kho sản phẩm (nông sản, vật nuôi hoặc cá).
+func product(item string) (name string, price int64, ok bool) {
+	if c, ok := findCrop(item); ok {
+		return c.Name, c.SellPrice, true
+	}
+	for _, place := range []string{placeBarn, placePond} {
+		if st, ok := findStock(place, item); ok {
+			return st.Name, st.SellPrice, true
+		}
+	}
+	return "", 0, false
+}
+
 // stockOf là danh mục con nuôi được ở mỗi nơi.
 func stockOf(place string) []Stock {
 	if place == placeBarn {
@@ -116,5 +151,6 @@ func Catalog() map[string]any {
 		"plots":   map[string]int{"free": FreePlots, "max": MaxPlots, "basePrice": PlotBasePrice, "step": PlotStep},
 		"barn":    Buildings[placeBarn],
 		"pond":    Buildings[placePond],
+		"storage": Stores,
 	}
 }

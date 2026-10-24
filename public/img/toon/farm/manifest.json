@@ -767,6 +767,96 @@
     "DCity (vẽ / ghép bằng PIL cho dự án)"
    ],
    "fish": "koi"
+  },
+  {
+   "file": "farm_gate.png",
+   "w": 320,
+   "h": 270,
+   "use": "Cổng nông trại: 2 cột gỗ, xà ngang, biển treo trống (tên nông trại đặt bằng HTML lên biển, vùng biển x 62–258, y 98–152)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Vector Farm Pack (chậu hoa)"
+   ]
+  },
+  {
+   "file": "seed_carrot.png",
+   "w": 72,
+   "h": 80,
+   "use": "Túi hạt giống Cà rốt (kho giống, chọn hạt)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "carrot"
+  },
+  {
+   "file": "seed_corn.png",
+   "w": 72,
+   "h": 80,
+   "use": "Túi hạt giống Ngô (kho giống, chọn hạt)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "corn"
+  },
+  {
+   "file": "seed_tomato.png",
+   "w": 72,
+   "h": 80,
+   "use": "Túi hạt giống Cà chua (kho giống, chọn hạt)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "tomato"
+  },
+  {
+   "file": "seed_rice.png",
+   "w": 72,
+   "h": 80,
+   "use": "Túi hạt giống Lúa (kho giống, chọn hạt)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "rice"
+  },
+  {
+   "file": "seed_strawberry.png",
+   "w": 72,
+   "h": 80,
+   "use": "Túi hạt giống Dâu tây (kho giống, chọn hạt)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "strawberry"
+  },
+  {
+   "file": "seed_watermelon.png",
+   "w": 72,
+   "h": 80,
+   "use": "Túi hạt giống Dưa hấu (kho giống, chọn hạt)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "watermelon"
   }
  ]
 }

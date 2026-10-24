@@ -54,6 +54,8 @@ func (f *Farm) Handler() http.Handler {
 		Crop string `json:"crop"`
 		Kind string `json:"kind"`
 		ID   int64  `json:"id"`
+		Qty  int    `json:"qty"`
+		Item string `json:"item"`
 	}
 	// handle bọc xác thực, đọc body và gọi thao tác; thao tác trả State và (tuỳ chọn) phần thưởng.
 	handle := func(pattern string, op func(r *http.Request, uid int64, b body) (State, *Gained, error)) {
@@ -124,6 +126,25 @@ func (f *Farm) Handler() http.Handler {
 		})
 		handle("POST /api/farm/"+item+"/sell", func(r *http.Request, uid int64, b body) (State, *Gained, error) {
 			return gain(f.SellStock(r.Context(), uid, place, b.ID))
+		})
+		handle("POST /api/farm/"+item+"/collect", func(r *http.Request, uid int64, b body) (State, *Gained, error) {
+			return gain(f.CollectStock(r.Context(), uid, place, b.ID))
+		})
+	}
+
+	// Kho giống và kho sản phẩm.
+	handle("POST /api/farm/seeds/buy", func(r *http.Request, uid int64, b body) (State, *Gained, error) {
+		return noGain(f.BuySeeds(r.Context(), uid, b.Crop, b.Qty))
+	})
+	handle("POST /api/farm/products/sell", func(r *http.Request, uid int64, b body) (State, *Gained, error) {
+		return gain(f.SellProduct(r.Context(), uid, b.Item, b.Qty))
+	})
+	handle("POST /api/farm/products/sell-all", func(r *http.Request, uid int64, _ body) (State, *Gained, error) {
+		return gain(f.SellAllProducts(r.Context(), uid))
+	})
+	for _, store := range []string{storeSeeds, storeProducts} {
+		handle("POST /api/farm/storage/"+store+"/expand", func(r *http.Request, uid int64, _ body) (State, *Gained, error) {
+			return noGain(f.ExpandStore(r.Context(), uid, store))
 		})
 	}
 	return mux

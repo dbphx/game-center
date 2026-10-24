@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"sort"
-	"strings"
 	"time"
 
 	"github.com/dbphx/game-center/internal/wallet"
@@ -39,6 +37,20 @@ CREATE TABLE IF NOT EXISTS farm_stock (
 	ready_at  INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS farm_stock_user ON farm_stock(user_id, place);
+CREATE TABLE IF NOT EXISTS farm_storage (
+	user_id    INTEGER NOT NULL REFERENCES users(id),
+	store      TEXT NOT NULL,           -- 'seeds' (kho giống) hoặc 'products' (kho sản phẩm)
+	capacity   INTEGER NOT NULL,
+	expansions INTEGER NOT NULL DEFAULT 0,
+	PRIMARY KEY (user_id, store)
+);
+CREATE TABLE IF NOT EXISTS farm_items (
+	user_id INTEGER NOT NULL REFERENCES users(id),
+	store   TEXT NOT NULL,
+	item    TEXT NOT NULL,              -- id cây (hạt / nông sản) hoặc id vật nuôi / cá
+	qty     INTEGER NOT NULL,
+	PRIMARY KEY (user_id, store, item)
+);
 `
 
 const GameID = "farm"
@@ -115,19 +127,21 @@ type Pen struct {
 }
 
 type State struct {
-	Now           int64  `json:"now"`
-	Plots         []Plot `json:"plots"`
-	NextPlotPrice int64  `json:"nextPlotPrice"`
-	MaxPlots      int    `json:"maxPlots"`
-	Barn          *Pen   `json:"barn"`
-	Pond          *Pen   `json:"pond"`
+	Now           int64   `json:"now"`
+	Plots         []Plot  `json:"plots"`
+	NextPlotPrice int64   `json:"nextPlotPrice"`
+	MaxPlots      int     `json:"maxPlots"`
+	Barn          *Pen    `json:"barn"`
+	Pond          *Pen    `json:"pond"`
+	Storage       Storage `json:"storage"`
 }
 
 // Gained là phần thưởng của một lần thu hoạch / bán.
 type Gained struct {
-	Coins int64 `json:"coins"`
-	XP    int64 `json:"xp"`
-	Count int   `json:"count,omitempty"`
+	Coins int64          `json:"coins"`
+	XP    int64          `json:"xp"`
+	Count int            `json:"count,omitempty"`
+	Items map[string]int `json:"items,omitempty"` // nông sản / sản phẩm vừa vào kho
 }
 
 type querier interface {
@@ -227,6 +241,12 @@ func (f *Farm) load(ctx context.Context, q querier, uid int64) (State, error) {
 	if s.Pond != nil && s.Pond.Fish == nil {
 		s.Pond.Fish = []Animal{}
 	}
+	if s.Storage.Seeds, err = loadStore(ctx, q, uid, storeSeeds); err != nil {
+		return State{}, err
+	}
+	if s.Storage.Products, err = loadStore(ctx, q, uid, storeProducts); err != nil {
+		return State{}, err
+	}
 	return s, nil
 }
 
@@ -311,7 +331,12 @@ func (f *Farm) Plant(ctx context.Context, uid int64, plot int, cropID string) (S
 		if err := requireLevel(tx, uid, c.Level); err != nil {
 			return err
 		}
-		if err := tx.Charge(uid, c.SeedPrice, GameID, "Mua hạt "+c.Name); err != nil {
+		// Có hạt trong kho giống thì dùng, hết thì mua luôn một hạt.
+		if s.Storage.Seeds.Items[c.ID] > 0 {
+			if err := addItem(ctx, tx, uid, storeSeeds, c.ID, -1); err != nil {
+				return err
+			}
+		} else if err := tx.Charge(uid, c.SeedPrice, GameID, "Mua hạt "+c.Name); err != nil {
 			return err
 		}
 		now := f.now().Unix()
@@ -326,7 +351,7 @@ func clearPlot(ctx context.Context, tx *wallet.Tx, uid int64, plot int) error {
 	return err
 }
 
-// Harvest thu hoạch một ô đã chín: bán được xu và cộng XP.
+// Harvest thu hoạch một ô đã chín: nông sản vào kho sản phẩm và cộng XP (bán sau ở kho).
 func (f *Farm) Harvest(ctx context.Context, uid int64, plot int) (State, Gained, error) {
 	var g Gained
 	s, err := f.do(ctx, uid, func(tx *wallet.Tx, s State) error {
@@ -341,47 +366,55 @@ func (f *Farm) Harvest(ctx context.Context, uid int64, plot int) (State, Gained,
 		if p.ReadyAt > f.now().Unix() {
 			return conflict(c.Name + " chưa chín")
 		}
-		if err := tx.Credit(uid, c.SellPrice, GameID, "Thu hoạch "+c.Name); err != nil {
+		if s.Storage.Products.free() < 1 {
+			return productsFull(s.Storage.Products)
+		}
+		if err := addItem(ctx, tx, uid, storeProducts, c.ID, 1); err != nil {
 			return err
 		}
 		if err := tx.AddXP(uid, c.XP); err != nil {
 			return err
 		}
-		g = Gained{Coins: c.SellPrice, XP: c.XP}
+		g = Gained{XP: c.XP, Count: 1, Items: map[string]int{c.ID: 1}}
 		return clearPlot(ctx, tx, uid, plot)
 	})
 	return s, g, err
 }
 
-// HarvestAll thu hoạch mọi ô đã chín, ghi một dòng sổ cái cho cả lượt.
+// HarvestAll thu hoạch các ô đã chín cho tới khi kho sản phẩm đầy.
 func (f *Farm) HarvestAll(ctx context.Context, uid int64) (State, Gained, error) {
 	var g Gained
 	s, err := f.do(ctx, uid, func(tx *wallet.Tx, s State) error {
 		now := f.now().Unix()
-		counts := map[string]int{}
+		free := s.Storage.Products.free()
+		g.Items = map[string]int{}
+		ripe := 0
 		for _, p := range s.Plots {
 			c, ok := findCrop(p.Crop)
 			if !ok || p.ReadyAt > now {
 				continue
 			}
-			g.Coins += c.SellPrice
+			ripe++
+			if g.Count >= free {
+				continue
+			}
 			g.XP += c.XP
 			g.Count++
-			counts[c.Name]++
+			g.Items[c.ID]++
 			if err := clearPlot(ctx, tx, uid, p.Index); err != nil {
 				return err
 			}
 		}
-		if g.Count == 0 {
+		if ripe == 0 {
 			return conflict("chưa có ô nào chín")
 		}
-		names := make([]string, 0, len(counts))
-		for name, n := range counts {
-			names = append(names, fmt.Sprintf("%d %s", n, name))
+		if g.Count == 0 {
+			return productsFull(s.Storage.Products)
 		}
-		sort.Strings(names)
-		if err := tx.Credit(uid, g.Coins, GameID, "Thu hoạch "+strings.Join(names, ", ")); err != nil {
-			return err
+		for item, n := range g.Items {
+			if err := addItem(ctx, tx, uid, storeProducts, item, n); err != nil {
+				return err
+			}
 		}
 		return tx.AddXP(uid, g.XP)
 	})
