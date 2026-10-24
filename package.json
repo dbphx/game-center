@@ -1,0 +1,9 @@
+{
+  "name": "tien-len-mien-nam",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Game bài Tiến Lên Miền Nam 4 người (1 người + 3 máy) chạy trên trình duyệt",
+  "scripts": {
+    "test": "node --test test/"
+  }
+}
