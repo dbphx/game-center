@@ -69,6 +69,11 @@ func (f *Farm) Handler() http.Handler {
 			}
 			var b body
 			if r.Method == http.MethodPost {
+				// Làm nông cần đủ máu và không nằm viện; xem nông trại (GET) thì luôn được.
+				if err := wallet.CheckZone(u, GameID); err != nil {
+					writeErr(w, err)
+					return
+				}
 				json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&b)
 			}
 			s, g, err := op(r, u.ID, b)

@@ -12,7 +12,8 @@ import (
 //	2: thêm username / mật khẩu, phiên đăng nhập tách sang bảng sessions.
 //	3: thêm nhân vật (giới tính, trang phục) và điểm kinh nghiệm.
 //	4: trang phục phải mua ở shop; bảng user_outfits lưu các món đã có.
-const schemaVersion = 4
+//	5: máu (HP), nằm viện, thời điểm va chạm xe gần nhất.
+const schemaVersion = 5
 
 const schemaV2 = `
 CREATE TABLE users (
@@ -82,6 +83,14 @@ CREATE TABLE user_outfits (
 INSERT INTO user_outfits (user_id, outfit, created_at) SELECT id, outfit, created_at FROM users;
 `
 
+// Người chơi cũ được đầy máu (hp_at NULL nghĩa là chưa tính lần nào, coi như đầy).
+const migrateV4toV5 = `
+ALTER TABLE users ADD COLUMN hp INTEGER NOT NULL DEFAULT 100;
+ALTER TABLE users ADD COLUMN hp_at INTEGER;
+ALTER TABLE users ADD COLUMN hospital_until INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN last_hit_ms INTEGER NOT NULL DEFAULT 0;
+`
+
 func migrate(db *sql.DB) error {
 	ctx := context.Background()
 	var version int
@@ -112,6 +121,9 @@ func migrate(db *sql.DB) error {
 	}
 	if version <= 3 {
 		steps = append(steps, migrateV3toV4)
+	}
+	if version <= 4 {
+		steps = append(steps, migrateV4toV5)
 	}
 
 	// Dựng lại bảng có khoá ngoại trỏ tới cần tắt kiểm tra khoá ngoại (không đổi được trong transaction).

@@ -35,6 +35,9 @@ func (h *Hub) Create(u User, conn Conn, bet int) (*Session, error) {
 	if !slices.Contains(BetOptions, bet) {
 		bet = DefaultBet
 	}
+	if err := h.opts.gate(u); err != nil {
+		return nil, err
+	}
 	h.mu.Lock()
 	r := &Room{hub: h, opts: h.opts, phase: PhaseLobby, bet: bet}
 	for {

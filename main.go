@@ -42,9 +42,12 @@ func main() {
 func games(w *wallet.Wallet) []server.Game {
 	auth := func(ctx context.Context, token string) (online.User, error) {
 		u, err := w.UserByToken(ctx, token)
-		return online.User{ID: u.ID, Name: u.Name, Gender: u.Gender, Outfit: u.Outfit, Level: u.Level}, err
+		return online.User{ID: u.ID, Name: u.Name, Gender: u.Gender, Outfit: u.Outfit, Level: u.Level,
+			HP: u.HP, HospitalUntil: u.HospitalUntil}, err
 	}
-	tienlen := online.NewHub(w, online.DefaultOptions)
+	opts := online.DefaultOptions
+	opts.MinHP = wallet.ZoneMinHP["casino"]
+	tienlen := online.NewHub(w, opts)
 	farmGame, err := farm.New(context.Background(), w)
 	if err != nil {
 		log.Fatalf("nông trại: %v", err)

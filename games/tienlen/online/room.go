@@ -39,11 +39,13 @@ const (
 
 // User là tài khoản hub đang chơi, kèm nhân vật để vẽ avatar.
 type User struct {
-	ID     int64
-	Name   string
-	Gender string
-	Outfit string
-	Level  int
+	ID            int64
+	Name          string
+	Gender        string
+	Outfit        string
+	Level         int
+	HP            int   // máu hiện tại
+	HospitalUntil int64 // > 0 khi đang nằm viện
 }
 
 // Bank là ví xu và kinh nghiệm dùng chung của hub.
@@ -68,9 +70,24 @@ type Options struct {
 	BotDelay    time.Duration // thời gian máy "suy nghĩ"
 	TurnTimeout time.Duration // hết giờ thì máy đánh thay
 	Grace       time.Duration // chờ người mất kết nối quay lại trước khi xoá khỏi phòng
+	MinHP       int           // máu tối thiểu để tạo / vào bàn mới (0 = không kiểm tra)
 }
 
 var DefaultOptions = Options{BotDelay: 900 * time.Millisecond, TurnTimeout: 30 * time.Second, Grace: 30 * time.Second}
+
+// gate kiểm tra người chơi đủ máu và không nằm viện để vào Casino.
+func (o Options) gate(u User) error {
+	if o.MinHP <= 0 {
+		return nil
+	}
+	if u.HospitalUntil > 0 {
+		return errors.New("bạn đang nằm viện")
+	}
+	if u.HP < o.MinHP {
+		return fmt.Errorf("cần ít nhất %d HP để vào Casino", o.MinHP)
+	}
+	return nil
+}
 
 type Player struct {
 	ID     string // id công khai trong phòng
@@ -164,6 +181,10 @@ func (r *Room) join(u User, conn Conn) (*Player, error) {
 	}
 	if len(r.players) >= MaxPlayers {
 		return nil, errors.New("phòng đã đủ 4 người")
+	}
+	// Chỉ kiểm tra máu khi ngồi ghế mới; người đang có ghế vào lại (mất mạng, tải lại trang) luôn được.
+	if err := r.opts.gate(u); err != nil {
+		return nil, err
 	}
 	p := &Player{ID: randomID(), UserID: u.ID, Name: u.Name, Gender: u.Gender, Outfit: u.Outfit, Level: u.Level, Online: true, conn: conn}
 	if err := r.refreshCoins(p); err != nil {

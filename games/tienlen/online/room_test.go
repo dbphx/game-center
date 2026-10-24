@@ -408,3 +408,24 @@ func TestRoomsSummary(t *testing.T) {
 		}
 	}
 }
+
+// Casino chặn người thiếu máu / đang nằm viện khi tạo hoặc ngồi ghế mới,
+// nhưng người đã có ghế vẫn vào lại được (mất mạng, tải lại trang).
+func TestHPGate(t *testing.T) {
+	opts := slowOptions
+	opts.MinHP = 30
+	h := NewHub(richBank(), opts)
+	weak := User{ID: 1, Name: "An", HP: 20}
+	if _, err := h.Create(weak, &fakeConn{}, 0); err == nil || err.Error() != "cần ít nhất 30 HP để vào Casino" {
+		t.Fatalf("thiếu máu phải bị chặn, được %v", err)
+	}
+	host, _ := mustCreate(t, h, User{ID: 1, Name: "An", HP: 100})
+	if _, err := h.Join(host.Room.Code, User{ID: 2, Name: "Bình", HP: 100, HospitalUntil: 99}, &fakeConn{}); err == nil ||
+		err.Error() != "bạn đang nằm viện" {
+		t.Fatalf("nằm viện phải bị chặn, được %v", err)
+	}
+	again, err := h.Join(host.Room.Code, weak, &fakeConn{})
+	if err != nil || again.Player != host.Player {
+		t.Fatalf("người đã có ghế phải vào lại được dù thiếu máu: %v", err)
+	}
+}

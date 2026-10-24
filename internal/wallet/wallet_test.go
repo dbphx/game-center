@@ -177,7 +177,7 @@ INSERT INTO ledger VALUES (1, 1, 1000, 1000, 'hub', 'Quà chào mừng', 0), (2,
 	}
 	defer w.Close()
 	u, err := w.UserByToken(ctx, "token-cu")
-	if err != nil || u.Name != "Khách cũ" || u.Balance != 1700 || u.Username != "" || u.Gender != "male" || u.Level != 1 {
+	if err != nil || u.Name != "Khách cũ" || u.Balance != 1700 || u.Username != "" || u.Gender != "male" || u.Level != 1 || u.HP != MaxHP {
 		t.Fatalf("khách cũ sau nâng cấp: %+v %v", u, err)
 	}
 	if h, _ := w.History(ctx, u.ID, 10); len(h) != 2 {
@@ -302,7 +302,7 @@ func TestMigrateFromV3KeepsWornOutfit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = db.Exec(`DROP TABLE user_outfits; UPDATE users SET outfit = 'aodai'; PRAGMA user_version = 3;`)
+	_, err = db.Exec(`DROP TABLE user_outfits; UPDATE users SET outfit = 'aodai';` + dropV5 + `PRAGMA user_version = 3;`)
 	db.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -319,5 +319,43 @@ func TestMigrateFromV3KeepsWornOutfit(t *testing.T) {
 	}
 	if _, err := w.WearOutfit(ctx, u.ID, "aodai"); err != nil {
 		t.Fatalf("vẫn mặc được áo dài: %v", err)
+	}
+}
+
+// dropV5 bỏ các cột máu để đưa database về dạng trước v5.
+const dropV5 = `ALTER TABLE users DROP COLUMN hp; ALTER TABLE users DROP COLUMN hp_at;
+ALTER TABLE users DROP COLUMN hospital_until; ALTER TABLE users DROP COLUMN last_hit_ms;`
+
+// Người chơi từ database v4 được đầy máu, không nằm viện.
+func TestMigrateFromV4FullHP(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "v4.db")
+	w, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, _ := register(t, w, "binh")
+	w.Close()
+
+	db, err := sql.Open("sqlite", "file:"+path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = db.Exec(dropV5 + `PRAGMA user_version = 4;`)
+	db.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	w, err = Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer w.Close()
+	got, err := w.User(ctx, u.ID)
+	if err != nil || got.HP != MaxHP || got.HospitalUntil != 0 || got.Balance != StartBalance {
+		t.Fatalf("sau nâng cấp v5: %+v %v", got, err)
+	}
+	if got, err = w.Hit(ctx, u.ID, "car"); err != nil || got.HP != MaxHP-CarDamage {
+		t.Fatalf("va chạm sau nâng cấp: %+v %v", got, err)
 	}
 }

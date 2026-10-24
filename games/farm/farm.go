@@ -65,6 +65,10 @@ func errStatus(err error) int {
 		return fe.Status
 	case errors.Is(err, wallet.ErrNotEnoughCoins):
 		return http.StatusPaymentRequired
+	case errors.Is(err, wallet.ErrInHospital):
+		return http.StatusLocked
+	case errors.Is(err, wallet.ErrLowHP):
+		return http.StatusForbidden
 	case errors.Is(err, wallet.ErrNotFound):
 		return http.StatusUnauthorized
 	}

@@ -21,14 +21,17 @@ func (s *Server) authError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, wallet.ErrBadCredentials), errors.Is(err, wallet.ErrWrongPassword):
 		writeError(w, http.StatusUnauthorized, err.Error())
-	case errors.Is(err, wallet.ErrNotOwned), errors.Is(err, wallet.ErrLevelTooLow):
+	case errors.Is(err, wallet.ErrNotOwned), errors.Is(err, wallet.ErrLevelTooLow), errors.Is(err, wallet.ErrLowHP):
 		writeError(w, http.StatusForbidden, err.Error())
+	case errors.Is(err, wallet.ErrInHospital):
+		writeError(w, http.StatusLocked, err.Error())
 	case errors.Is(err, wallet.ErrNotEnoughCoins):
 		writeError(w, http.StatusPaymentRequired, err.Error())
-	case errors.Is(err, wallet.ErrUsernameTaken), errors.Is(err, wallet.ErrHasCredentials), errors.Is(err, wallet.ErrAlreadyOwned):
+	case errors.Is(err, wallet.ErrUsernameTaken), errors.Is(err, wallet.ErrHasCredentials), errors.Is(err, wallet.ErrAlreadyOwned),
+		errors.Is(err, wallet.ErrFullHP):
 		writeError(w, http.StatusConflict, err.Error())
 	case errors.Is(err, wallet.ErrInvalidUsername), errors.Is(err, wallet.ErrWeakPassword), errors.Is(err, wallet.ErrLongPassword),
-		errors.Is(err, wallet.ErrInvalidCharacter):
+		errors.Is(err, wallet.ErrInvalidCharacter), errors.Is(err, wallet.ErrBadSource):
 		writeError(w, http.StatusBadRequest, err.Error())
 	default:
 		s.internal(w, err)
@@ -116,6 +119,10 @@ func (s *Server) changePassword(w http.ResponseWriter, r *http.Request, u wallet
 
 // wearOutfit mặc một trang phục đã có. Giới tính không đổi được nên trường gender (nếu gửi) bị bỏ qua.
 func (s *Server) wearOutfit(w http.ResponseWriter, r *http.Request, u wallet.User) {
+	if err := wallet.CheckZone(u, "shop"); err != nil {
+		s.authError(w, err)
+		return
+	}
 	var c credentials
 	readJSON(w, r, &c)
 	u, err := s.wallet.WearOutfit(r.Context(), u.ID, c.Outfit)
@@ -128,9 +135,37 @@ func (s *Server) wearOutfit(w http.ResponseWriter, r *http.Request, u wallet.Use
 
 // buyOutfit mua trang phục ở shop thời trang (đủ level, trừ xu).
 func (s *Server) buyOutfit(w http.ResponseWriter, r *http.Request, u wallet.User) {
+	if err := wallet.CheckZone(u, "shop"); err != nil {
+		s.authError(w, err)
+		return
+	}
 	var c credentials
 	readJSON(w, r, &c)
 	u, err := s.wallet.BuyOutfit(r.Context(), u.ID, c.Outfit)
+	if err != nil {
+		s.authError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, u)
+}
+
+// hit trừ máu khi nhân vật bị xe đụng trên bản đồ.
+func (s *Server) hit(w http.ResponseWriter, r *http.Request, u wallet.User) {
+	var body struct {
+		Source string `json:"source"`
+	}
+	readJSON(w, r, &body)
+	u, err := s.wallet.Hit(r.Context(), u.ID, body.Source)
+	if err != nil {
+		s.authError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, u)
+}
+
+// heal chữa ở bệnh viện: xuất viện ngay hoặc chữa phần HP thiếu.
+func (s *Server) heal(w http.ResponseWriter, r *http.Request, u wallet.User) {
+	u, err := s.wallet.Heal(r.Context(), u.ID)
 	if err != nil {
 		s.authError(w, err)
 		return
