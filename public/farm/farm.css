@@ -723,3 +723,13 @@ button.danger { background: linear-gradient(180deg, #ff8a7a, #e03131); border-co
 
 /* Hàng rào hoa (ảnh lặp ngang hedge_flower.png) */
 .hedge { position: absolute; height: 60px; pointer-events: none; background: url('/img/toon/farm/hedge_flower.png') left bottom / 128px 60px repeat-x; filter: drop-shadow(0 3px 2px rgba(60, 40, 10, .2)); }
+
+/* Ổ rơm chung */
+.obj.nest.big .nest-eggs { position: absolute; left: 0; right: 0; top: 0; bottom: 0; transform: none; display: block; }
+.obj.nest.big .nest-front { position: absolute; left: 0; top: 0; pointer-events: none; }
+.obj.nest.big .egg { position: absolute; transform: translate(-50%, -50%); }
+.obj.nest.big .egg img { height: 22px; width: auto; filter: drop-shadow(0 2px 1px rgba(60, 30, 0, .35)); }
+.egg-more {
+  position: absolute; right: -6px; top: 4px; padding: 1px 7px; border-radius: 999px; z-index: 2;
+  background: linear-gradient(180deg, #fffbe9, #ffe3a3); border: 2px solid #c9893f; color: #5a2c00; font: 900 12px var(--font-title);
+}

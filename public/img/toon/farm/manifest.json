@@ -1956,6 +1956,28 @@
    "source": [
     "DCity (vẽ bằng PIL)"
    ]
+  },
+  {
+   "file": "nest_big.png",
+   "w": 240,
+   "h": 148,
+   "use": "Ổ rơm chung (3/4): vành rơm bện dày, lòng ổ trũng; trứng đặt bằng HTML",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "nest_big_front.png",
+   "w": 240,
+   "h": 148,
+   "use": "Nửa vành trước của ổ rơm chung (đặt trên trứng)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
   }
  ]
 }

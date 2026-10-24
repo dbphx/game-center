@@ -201,7 +201,7 @@
     Object.assign(ROAM, { x1: PEN.x1 + 34, y1: 330, x2: PEN.x2 - 30, y2: PEN.y2 - 24 });
     const ww = POND_BOX.w - 30;
     Object.assign(POND, { cx: POND_BOX.x + POND_BOX.w / 2, cy: POND_BOX.y + 18 + ww * 0.305, rx: ww * 0.34, ry: ww * 0.15 });
-    NESTS.splice(0, NESTS.length, [584 + OX, 330], [620 + OX, 342], [656 + OX, 330]);
+    NESTS.splice(0, NESTS.length, [584 + OX, 446]); // một ổ rơm chung giữa lô cỏ
   }
   let OY = 0; // khoảng trời thêm phía trên khi khung nhìn cao hơn cảnh
   let objs = {}; // key → { x, y (chỗ đứng), face, hx, hy (gợi ý), verb, run() }
@@ -245,7 +245,7 @@
       [X(560), 212, X(664), 238], // đống rơm sau hai kho
       [POND_BOX.x + 14, POND_BOX.y - 24, POND_BOX.x + 70, POND_BOX.y - 6], // giếng (cạnh cây đa sau ao)
       [POND_BOX.x + POND_BOX.w / 2 - 20, POND_BOX.y - 14, POND_BOX.x + POND_BOX.w / 2 + 40, POND_BOX.y + 4], // gốc cây đa
-      [X(588), 476, X(612), 490], // gốc cây mai lô giữa
+      [X(548), 426, X(620), 446], // ổ rơm chung
       [X(520), 592, X(544), 608], // cột cổng trái
       [X(628), 592, X(652), 608], // cột cổng phải
       [POND_BOX.x + 14, POND_BOX.y + 22, POND_BOX.x + POND_BOX.w - 14, POND_BOX.y + POND_BOX.h - 12], // ao
@@ -421,20 +421,26 @@
   const deco = (name, x, y, h, flip = false, cls = '') =>
     `<span class="obj decor${flip ? ' flip' : ''}${cls ? ' ' + cls : ''}" data-tree="${/^tree_(mai|dao)/.test(name) ? name.slice(5) : ''}" style="${pos(x, y)}">${art.img(name, { h })}</span>`;
 
+  // Ổ rơm chung: trứng (gà nâu, vịt trắng xanh) chất trong lòng ổ theo số đang có — tối đa 8 quả, nhiều hơn hiện "+n".
+  // Hai lớp ảnh: cả ổ ở dưới, nửa vành trước ở trên trứng để trứng nằm trong lòng ổ.
+  const NEST_H = 74;
+  const EGG_SLOTS = [[-26, -12], [-9, -15], [9, -15], [26, -12], [-30, -2], [-11, -1], [10, -1], [29, -2]];
+  const laidEggs = () => [...pets.values()].filter((p) => LAYERS.has(p.kind) && p.laid && prodReady(p.data));
+  function eggsHTML() {
+    const eggs = laidEggs();
+    const shown = eggs.slice(0, EGG_SLOTS.length);
+    return shown
+      .map((p, i) => `<span class="egg" style="left:calc(50% + ${EGG_SLOTS[i][0]}px);top:calc(43% + ${EGG_SLOTS[i][1]}px)">${art.item(p.kind === 'duck' ? 'duck_egg' : 'egg', 22)}</span>`)
+      .join('') + (eggs.length > EGG_SLOTS.length ? `<span class="egg-more">+${eggs.length - EGG_SLOTS.length}</span>` : '');
+  }
   function nestsHTML() {
-    const eggs = NESTS.map(() => []);
-    for (const p of pets.values()) {
-      if (LAYERS.has(p.kind) && prodReady(p.data)) eggs[p.id % NESTS.length].push(p.kind === 'duck' ? 'duck_egg' : 'egg');
-    }
-    return NESTS.map(([x, y], i) => `<span class="obj nest" data-obj="nest" style="${pos(x, y, 6)}">${art.img('nest', { h: 30 })}
-      <span class="nest-eggs">${eggs[i].slice(0, 4).map((e) => art.item(e, 15)).join('')}</span></span>`).join('');
+    const [x, y] = NESTS[0];
+    return `<span class="obj nest big" data-obj="nest" style="${pos(x, y, y)}" title="Ổ trứng chung">${art.img('nest_big', { h: NEST_H })}
+      <span class="nest-eggs">${eggsHTML()}</span>${art.img('nest_big_front', { h: NEST_H, cls: 'nest-front' })}</span>`;
   }
   function refreshNests() {
-    const el = document.querySelectorAll('.obj.nest');
-    if (!el.length) return;
-    const wrap = document.createElement('div');
-    wrap.innerHTML = nestsHTML();
-    el.forEach((n, i) => wrap.children[i] && n.replaceWith(wrap.children[i].cloneNode(true)));
+    const el = document.querySelector('.obj.nest .nest-eggs');
+    if (el) el.innerHTML = eggsHTML();
   }
 
   // Khóm hoa nhỏ nhiều màu rải trên các mảng cỏ (ngẫu nhiên cố định theo seed) — lớp mặt đất dưới nhân vật.
@@ -550,12 +556,11 @@
 
     // Lô cỏ nhỏ giữa (giếng, cây ăn trái, hoa) và gà con đi dạo.
     parts.push(`<span class="patch" style="left:${X(458)}px;top:340px;width:250px;height:156px;z-index:3"></span>`);
-    parts.push(deco('tree_mai', X(600), 490, 196, false, 'sway blossom'));
     parts.push(deco('flowers', X(470), 488, 30));
 
     // Ổ rơm (ổ đẻ) trên lô cỏ giữa: trứng của gà / vịt đã lớn hiện trong ổ.
     parts.push(nestsHTML());
-    objs.nest = { x: X(620), y: 360, face: 'up', hx: X(620), hy: 300, verb: 'Ổ đẻ · gia cầm', run: nestAction };
+    objs.nest = { x: X(584), y: 470, face: 'up', hx: X(584), hy: 372, verb: 'Ổ trứng · gia cầm', run: nestAction };
 
     // Cổng "Vào" dưới giữa (giữa kho và ruộng).
     // z của cổng thấp hơn chỗ đứng trước cổng (y 604) để nhân vật đứng TRƯỚC biển cổng.
@@ -870,7 +875,7 @@
     const young = [...((farm.barn && farm.barn.animals) || []), ...((farm.pond && farm.pond.fish) || [])];
     if (young.some((a) => a.readyAt > nowS() - 1 && a.readyAt <= nowS())) changed = true;
     pets.forEach(drawBadges);
-    const eggSig = [...pets.values()].filter((p) => LAYERS.has(p.kind) && prodReady(p.data)).map((p) => p.id).join(',');
+    const eggSig = laidEggs().map((p) => p.id).join(',');
     if (eggSig !== tick.eggs) {
       tick.eggs = eggSig;
       refreshNests();
@@ -951,11 +956,11 @@
       const r = Math.sqrt(Math.random());
       p.tx = POND.cx + Math.cos(a) * POND.rx * r;
       p.ty = POND.cy + Math.sin(a) * POND.ry * r;
-    } else if (p.free && LAYERS.has(p.kind) && prodReady(p.data)) {
-      // Có trứng: về ổ rơm ngồi đẻ.
-      const [nx, ny] = NESTS[p.id % NESTS.length];
-      p.tx = nx + rnd(-6, 6);
-      p.ty = ny - 2;
+    } else if (p.free && LAYERS.has(p.kind) && prodReady(p.data) && !p.laid && !nestBusy(p)) {
+      // Đến giờ đẻ: về ổ rơm chung ngồi đẻ (mỗi lúc một con), đẻ xong rời đi.
+      const [nx, ny] = NESTS[0];
+      p.tx = nx + rnd(-4, 4);
+      p.ty = ny - 14;
       p.goal = 'nest';
     } else if (p.free) {
       // Thả rông: chỗ trống bất kỳ ngoài chuồng, không quá xa chỗ đang đứng; vịt hay ra mép ao (bơi được).
@@ -987,11 +992,16 @@
     p.state = 'walk';
   }
 
+  // Ổ đang có con khác ngồi / đang đi tới thì đợi lượt.
+  const nestBusy = (p) => [...pets.values()].some((q) => q !== p && (q.state === 'nest' || q.goal === 'nest'));
+
   // Gà / vịt đứng được ở đâu: trong cảnh, ngoài chuồng, không vào vật cản (kho, gốc cây, ao — riêng vịt được xuống nước).
   const inPond = (x, y) => ((x - POND.cx) / POND.rx) ** 2 + ((y - POND.cy) / POND.ry) ** 2 < 1;
   const inPen = (x, y) => x > PEN.x1 - 14 && x < PEN.x2 + 14 && y > PEN.y1 - 10 && y < PEN.y2 + 6;
   function canStand(p, x, y) {
     if (x < 24 || x > W - 24 || y < SKY + 20 || y > BOTTOM - 8 || inPen(x, y)) return false;
+    // Con đang về ổ / ngồi ổ được vào trong ổ rơm.
+    if ((p.goal === 'nest' || p.state === 'nest') && Math.abs(x - NESTS[0][0]) < 50 && Math.abs(y - NESTS[0][1]) < 40) return true;
     if (p.look === 'duck' && inPond(x, y)) return true;
     return !blocked(x, y);
   }
@@ -1022,6 +1032,7 @@
       if (!p) {
         p = { id: a.id, kind: a.kind, fish, look: a.kind === 'chicken' && a.id % 2 ? 'chicken_white' : PET[a.kind] ? a.kind : 'chicken', dir: Math.random() < 0.5 ? -1 : 1, frame: 0, ft: 0, data: a };
         p.yard = !!yard;
+        p.laid = LAYERS.has(a.kind) && prodReady(a);
         p.free = !fish && (p.yard || FREE.has(a.kind) || a.kind === 'dog');
         if (p.free) [p.x, p.y] = freeSpawn(p);
         else if (fish) {
@@ -1045,6 +1056,7 @@
         pets.set(a.id, p);
       }
       p.data = a;
+      if (!prodReady(a)) p.laid = false;
       if (a.kind !== 'dog') {
         p.el.title = find(fish ? 'fish' : 'animals', a.kind).name;
         drawBadges(p);
@@ -1167,7 +1179,7 @@
           } else if (p.goal === 'nest') {
             p.goal = null;
             p.state = 'nest';
-            p.until = 9999; // ngồi ổ tới khi được nhặt trứng
+            p.until = rnd(3, 5); // ngồi đẻ một lúc rồi đi
           } else {
             p.state = p.fish ? 'walk' : Math.random() < 0.55 && /chicken|pig/.test(p.look) ? 'peck' : 'idle';
             p.until = rnd(1.2, 3.5);
@@ -1185,9 +1197,11 @@
           if (Math.abs(dx) > 1) p.dir = dx > 0 ? 1 : -1;
         }
       } else if (p.state === 'nest') {
-        if (!prodReady(p.data)) {
+        if (p.until <= 0 || !prodReady(p.data)) {
+          if (prodReady(p.data)) p.laid = true; // trứng nằm lại trong ổ
+          refreshNests();
           p.state = 'idle';
-          p.until = rnd(0.5, 1.5);
+          p.until = rnd(0.3, 1);
         }
       } else if (p.until <= 0 && p.state !== 'look') {
         newTarget(p);
@@ -1422,15 +1436,17 @@
 
   // Ổ rơm: có trứng thì nhặt, không thì mở bảng đàn gia cầm.
   function nestAction() {
-    const any = [...pets.values()].some((p) => LAYERS.has(p.kind) && prodReady(p.data));
-    if (any) return collectEggs();
+    if (laidEggs().length) return collectEggs();
+    if ([...pets.values()].some((p) => LAYERS.has(p.kind) && prodReady(p.data))) return A.toast('Gà / vịt đang về ổ đẻ — chờ chút nhé');
     return openPen(farm.yard ? 'yard' : 'barn');
   }
 
   // Nhặt trứng ở ổ rơm: mọi gà / vịt đang có trứng.
   async function collectEggs() {
-    const layers = [...pets.values()].filter((p) => LAYERS.has(p.kind) && prodReady(p.data));
+    const layers = laidEggs();
     if (!layers.length) return A.toast('Ổ chưa có trứng — gà / vịt đã lớn sẽ về ổ đẻ');
+    // Chỉ còn trứng (không có sữa / lông chờ lấy) và mọi trứng đã nằm trong ổ → lấy hàng loạt một lần.
+    const others = [...pets.values()].some((p) => !p.fish && prodReady(p.data) && (!LAYERS.has(p.kind) || !p.laid));
     const me0 = $('me');
     me0.classList.remove('work');
     void me0.offsetWidth;
@@ -1438,12 +1454,20 @@
     const nestEl = document.querySelector('[data-obj="nest"]');
     let xp = 0;
     const got = {};
-    for (const p of layers) {
-      const res = await producePet(p, true);
-      if (!res) break;
-      xp += (res.gained && res.gained.xp) || 0;
-      for (const [k, v] of Object.entries((res.gained && res.gained.items) || {})) got[k] = (got[k] || 0) + v;
+    const bulkRes = others ? null : await bulk('/api/farm/produce-all');
+    if (bulkRes) {
+      xp = (bulkRes.gained && bulkRes.gained.xp) || 0;
+      Object.assign(got, (bulkRes.gained && bulkRes.gained.items) || {});
+    } else if (bulkRes !== false) {
+      for (const p of layers) {
+        const res = await producePet(p, true);
+        if (!res) break;
+        xp += (res.gained && res.gained.xp) || 0;
+        for (const [k, v] of Object.entries((res.gained && res.gained.items) || {})) got[k] = (got[k] || 0) + v;
+      }
     }
+    layers.forEach((p) => (p.laid = false));
+    refreshNests();
     if (Object.keys(got).length) {
       flyToStore(nestEl, got);
       floatGain(nestEl, { xp }, itemsText(got));
@@ -2819,6 +2843,13 @@
     goTo,
     walkTo,
     blocked: (x, y) => blocked(x, y),
+    debugUnlay: (id) => {
+      const p = pets.get(id);
+      if (p) {
+        p.laid = false;
+        newTarget(p);
+      }
+    },
     pets: () => [...pets.values()].map((p) => ({ id: p.id, kind: p.kind, free: !!p.free, x: Math.round(p.x), y: Math.round(p.y), grown: nowS() >= p.data.readyAt, product: prodReady(p.data), state: p.state })),
     // Đặt con vật đứng yên tại (x, y) — cho kiểm thử sắp lớp.
     placePet: (id, x, y) => {
