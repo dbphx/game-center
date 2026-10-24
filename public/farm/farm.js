@@ -1,4 +1,4 @@
-// Nông trại DCity: ruộng ô đất, kho giống, kho sản phẩm, chuồng gia súc, ao cá trong cùng một cảnh; nhân vật đi lại
+// Nông trại DCity: ruộng ô đất, kho giống, kho thóc (kho sản phẩm), chuồng gia súc, ao cá trong cùng một cảnh; nhân vật đi lại
 // bằng phím (WASD / mũi tên) hoặc chuột, tới nơi mới thao tác — giống game "Avatar". Mọi luật do server quyết định
 // (/api/farm/...), trang này chỉ hiển thị, đếm ngược và gửi thao tác.
 (function () {
@@ -137,20 +137,23 @@
   }
 
   // ---------- Bố cục cảnh ----------
-  // Toạ độ "thế giới" (px): cao cố định H, rộng theo số ô đất. Từ trái sang: cổng nông trại, kho sản phẩm, kho giống,
-  // ruộng (4 hàng, thêm cột khi mở ô), chuồng, ao. Mọi vật đặt tuyệt đối, z-index = y chân để nhân vật đứng trước /
-  // sau đúng chiều sâu.
+  // Toạ độ "thế giới" (px): cao cố định H, rộng theo số ô đất. Cả nông trại trên một dải ngang như game Avatar:
+  // hai kho ở RÌA (góc sau bên trái, sát hàng rào); dưới là chuồng gia súc; GIỮA ao cá (sau) và lô cỏ trang trí,
+  // cổng "Vào" dưới; PHẢI khối ruộng 4 hàng (thêm cột khi mở nhiều ô). Nền là lối đất be.
+  // Mọi vật đặt tuyệt đối, z-index = y chân để nhân vật đứng trước / sau đúng chiều sâu.
 
-  const H = 660;
-  const SKY = 170; // dải trời + hàng rào phía trên
-  const ROAD = 586; // đường đất chạy dọc chân cảnh
-  const FY = 198; // mép trên ruộng
-  const PLOT = 88;
-  const PITCH = 96;
+  const H = 720; // phần dưới y 590 là bụi cây + cỏ (thanh công cụ nổi đè lên)
+  const SKY = 130; // dải trời + hàng rào phía sau
+  const FY = 168; // mép trên ruộng
+  const PLOT = 80;
+  const PITCH = 84;
   const ROWS = 4;
-  const FX = 760; // mép trái ruộng
-  let W = 2400;
-  let L = { cols: 6, FE: FX + 6 * PITCH, YX: 0, PX: 0 };
+  const FX = 880; // mép trái ruộng
+  const BOTTOM = 590; // mép dưới vùng đi lại
+  const CORE_W = FX + 6 * PITCH + 50; // bề rộng cảnh khi ruộng 6 cột — luôn vừa một khung nhìn
+  let W = CORE_W;
+  let OY = 0; // khoảng trời thêm phía trên khi khung nhìn cao hơn cảnh (cảnh vừa theo chiều ngang)
+  let L = { cols: 6, rowsUsed: 2, FE: FX + 6 * PITCH };
   let objs = {}; // key → { x, y (chỗ đứng), face, hx, hy (gợi ý), verb, run() }
   let obstacles = []; // [x1, y1, x2, y2] chân nhân vật không được vào
 
@@ -165,19 +168,17 @@
     const n = t.owned + (t.buy ? 1 : 0) + (t.left > 0 ? 1 : 0);
     const cols = Math.max(6, Math.ceil(n / ROWS));
     const FE = FX + cols * PITCH; // mép phải ruộng
-    const YX = FE + 90; // chuồng
-    const PX = YX + 600; // ao
-    W = PX + 540 + 260;
-    L = { cols, rowsUsed: Math.ceil(n / cols), FE, YX, PX };
+    W = FE + 50;
+    L = { cols, rowsUsed: Math.max(1, Math.ceil(n / cols)), FE };
     obstacles = [
-      [18, 636, 50, 652], // cột cổng trái
-      [212, 636, 244, 652], // cột cổng phải
-      [302, 404, 498, 470], // kho sản phẩm (nhà)
-      [556, 420, 644, 470], // kho giống (silo)
-      [YX, 196, YX + 560, 566], // chuồng (hàng rào)
-      [PX + 20, 250, PX + 520, 560], // ao
-      [W - 150, 462, W - 110, 478], // gốc cây cuối
-      [W - 260, 374, W - 208, 392], // giếng
+      [14, 266, 180, 298], // kho thóc (kho sản phẩm)
+      [216, 270, 314, 298], // kho giống (chòi)
+      [30, 344, 470, 586], // chuồng (hàng rào)
+      [512, 178, 790, 326], // ao
+      [560, 452, 604, 470], // giếng
+      [668, 452, 692, 470], // gốc cây ăn trái
+      [732, 572, 756, 588], // cột cổng trái
+      [840, 572, 864, 588], // cột cổng phải
     ];
   }
 
@@ -245,7 +246,7 @@
   // Kho: ảnh công trình, nhãn tên + thanh sức chứa phía trên (giống bảng tên trong game).
   function storeObjHTML(kind, x, footY, image, h) {
     const s = store(kind);
-    const name = kind === 'seeds' ? 'Kho giống' : 'Kho sản phẩm';
+    const name = kind === 'seeds' ? 'Kho giống' : 'Kho thóc';
     const full = s.capacity && s.used >= s.capacity;
     return `<div class="obj building${full ? ' full' : ''}" data-obj="${kind}" style="${pos(x, footY)}" title="${name}">
       <span class="obj-label"><b>${name}</b>${capBar(s)}<em>${s.used}/${s.capacity}</em></span>
@@ -285,12 +286,12 @@
   function yardHTML() {
     const pen = farm.barn;
     const items = (pen && pen.animals) || [];
-    return `<div class="obj area yard${pen ? '' : ' ghost'}" data-obj="barn" style="left:${L.YX}px;top:196px;width:560px;height:370px;z-index:566">
+    return `<div class="obj area yard${pen ? '' : ' ghost'}" data-obj="barn" style="left:30px;top:340px;width:440px;height:244px;z-index:584">
       ${penLabel('barn', pen)}
-      <span class="deco" style="left:14px;top:-36px">${art.img('barn', { h: 170 })}</span>
-      <span class="deco" style="left:200px;top:40px">${art.img('hay', { h: 52 })}</span>
-      <span class="deco" style="left:44%;bottom:12px">${art.img('trough_feed', { h: 34 })}</span>
-      <span class="deco" style="left:18%;bottom:12px">${art.img('trough_water', { h: 34 })}</span>
+      <span class="deco" style="left:8px;top:-26px">${art.img('barn', { h: 104 })}</span>
+      <span class="deco" style="left:130px;top:24px">${art.img('hay', { h: 40 })}</span>
+      <span class="deco" style="right:24px;top:34px">${art.img('trough_feed', { h: 28 })}</span>
+      <span class="deco" style="right:140px;top:34px">${art.img('trough_water', { h: 28 })}</span>
       <span class="fence-top"></span><span class="fence-bottom"></span>
       <div class="roam">${items.map((it) => critterHTML(it, 'animals', false)).join('')}</div>
     </div>`;
@@ -299,10 +300,8 @@
   function pondHTML() {
     const pen = farm.pond;
     const items = (pen && pen.fish) || [];
-    return `<div class="obj area pond-area${pen ? '' : ' ghost'}" data-obj="pond" style="left:${L.PX}px;top:196px;width:540px;height:370px;z-index:566">
+    return `<div class="obj area pond-area${pen ? '' : ' ghost'}" data-obj="pond" style="left:502px;top:168px;width:298px;height:160px;z-index:328">
       ${penLabel('pond', pen)}
-      <span class="deco" style="left:4px;bottom:10px">${art.img('flowers', { h: 52 })}</span>
-      <span class="deco" style="right:6px;bottom:8px">${art.img('bush_3', { h: 44 })}</span>
       <div class="pond-water">${art.img('pond', { cls: 'pond-img' })}
         <div class="swim">${items.map((it) => critterHTML(it, 'fish', true)).join('')}</div></div>
     </div>`;
@@ -316,53 +315,67 @@
     computeLayout();
     objs = {};
     const world = $('world');
+    const sh = $('scene').clientHeight;
+    OY = sh ? Math.max(0, Math.floor(sh / zoom - H)) : 0;
     world.style.width = `${W}px`;
-    world.style.height = `${H}px`;
+    world.style.height = `${H + OY}px`;
     world.style.transform = zoom === 1 ? '' : `scale(${zoom})`;
+    world.style.setProperty('--oy', `${OY}px`);
+    $('layer').style.top = `${OY}px`;
     const wrap = $('world-wrap');
     wrap.style.width = `${W * zoom}px`;
-    wrap.style.height = `${H * zoom}px`;
+    wrap.style.height = `${(H + OY) * zoom}px`;
 
     const parts = [];
-    // Trời, mây, hàng rào, cây xa ở đường chân trời.
-    parts.push(`<div class="sky" style="width:${W}px;height:${SKY + 10}px">
-      ${[0.04, 0.3, 0.55, 0.8].map((k, i) => `<span class="cloud c${(i % 3) + 1}" style="left:${Math.round(W * k)}px"></span>`).join('')}
-      <span class="fence-row"></span></div>`);
-    for (let x = 300; x < W - 200; x += 520) {
-      parts.push(`<span class="obj decor far" style="${pos(x + ((x / 520) % 2 ? 140 : 0), SKY + 16, 2)}">${art.img('tree_big', { h: 190 })}</span>`);
+    // Trời, mây, hàng rào, cây tán to sau hàng rào; nền đất có dải cỏ lượn sóng ở mép trên, bụi cây dưới cùng.
+    // Trời phía trên (khi khung cao) có thêm mây.
+    if (OY > 60) {
+      parts.push(`<div class="sky-top" style="top:${-OY}px;width:${W}px;height:${OY + 2}px">
+        ${[0.12, 0.5, 0.83].map((k, i) => `<span class="cloud c${((i + 1) % 3) + 1}" style="left:${Math.round(W * k)}px;top:${Math.round(OY * 0.25 + i * 14)}px"></span>`).join('')}</div>`);
     }
-    // Đường đất: sân trước hai kho và đường dọc chân cảnh qua cổng.
-    parts.push(`<span class="dirt" style="left:280px;top:440px;width:420px;height:${ROAD - 430}px"></span>`);
-    parts.push(`<span class="dirt road" style="left:0;top:${ROAD}px;width:${W}px;height:${H - ROAD}px"></span>`);
+    // Dải nền xa (đồi cây + đồng ruộng) kéo lên phần trời thừa, cao tối đa 170px.
+    const E = Math.min(OY, 170);
+    parts.push(`<div class="sky" style="top:${-E}px;width:${W}px;height:${SKY + 6 + E}px;--far:${Math.min(210, Math.round(E * 0.75 + 96))}px">
+      ${[0.04, 0.36, 0.7].map((k, i) => `<span class="cloud c${(i % 3) + 1}" style="left:${Math.round(W * k)}px"></span>`).join('')}
+      <span class="fence-row"></span></div>`);
+    parts.push(`<span class="grass-edge" style="left:0;top:${SKY}px;width:${W}px;z-index:3"></span>`);
+    for (const x of [430, 760, FX + 160, W - 110]) parts.push(`<span class="obj decor far" style="${pos(x, SKY + 10, 2)}">${art.img('tree_big', { h: 150 })}</span>`);
+    parts.push(`<span class="grass-edge bottom" style="left:0;top:${BOTTOM - 4}px;width:${W}px;height:${H - BOTTOM + 4}px;z-index:4"></span>`);
+    parts.push(`<span class="bush-row" style="left:0;top:${BOTTOM - 10}px;width:${W}px;z-index:${H}"></span>`);
 
-    // Cổng nông trại + biển tên.
-    parts.push(`<div class="obj gate" data-obj="gate" style="${pos(130, 652)}" title="Về thành phố">
-      ${art.img('farm_gate', { h: 230 })}<span class="gate-sign">Nông trại<b>${esc(user.name)}</b></span></div>`);
-    objs.gate = { x: 130, y: 616, face: 'left', hx: 130, hy: 440, verb: 'Về thành phố', run: () => (location.href = '/') };
+    // Hai kho ở rìa: góc sau bên trái, sát hàng rào.
+    parts.push(storeObjHTML('products', 98, 298, 'hut_rice', 150));
+    parts.push(storeObjHTML('seeds', 266, 298, 'hut_seed', 128));
+    objs.products = { x: 98, y: 318, face: 'up', hx: 98, hy: 124, verb: 'Mở kho', run: () => openStore('products') };
+    objs.seeds = { x: 266, y: 318, face: 'up', hx: 266, hy: 146, verb: 'Mở kho', run: () => openStore('seeds') };
+    parts.push(deco('wheelbarrow', 380, 300, 46, true));
 
-    parts.push(storeObjHTML('products', 400, 470, 'farmhouse', 210));
-    parts.push(storeObjHTML('seeds', 600, 470, 'silo', 196));
-    objs.products = { x: 400, y: 492, face: 'up', hx: 400, hy: 250, verb: 'Mở kho', run: () => openStore('products') };
-    objs.seeds = { x: 600, y: 492, face: 'up', hx: 600, hy: 262, verb: 'Mở kho', run: () => openStore('seeds') };
+    // Lô cỏ trang trí giữa (giếng, cây ăn trái, hoa).
+    parts.push(`<span class="patch" style="left:512px;top:372px;width:200px;height:126px;z-index:3"></span>`);
+    parts.push(deco('well', 582, 470, 76));
+    parts.push(deco('tree_med', 680, 470, 112));
+    parts.push(deco('flowers', 538, 412, 32));
+    parts.push(deco('bush_3', 700, 404, 26));
+    // Gà con đi dạo trên lối đất (trang trí).
+    for (const [x, y, k, d] of [[560, 540, 'chicken_white', 9], [620, 560, 'chicken_white', 12], [800, 330, 'chicken', 10], [860, 548, 'chicken_white', 14]]) {
+      parts.push(`<span class="obj decor stroll" style="${pos(x, y)};--dur:${d}s">${art.img(`animal_${k}`, { h: 30 })}</span>`);
+    }
+
+    // Cổng "Vào" dưới, giữa chuồng và ruộng.
+    parts.push(`<div class="obj gate" data-obj="gate" style="${pos(798, 590)}" title="Về thành phố">
+      ${art.img('farm_gate', { h: 140 })}<span class="gate-sign">Nông trại<b>${esc(user.name)}</b></span></div>`);
+    objs.gate = { x: 798, y: 560, face: 'down', hx: 798, hy: 440, verb: 'Về thành phố', run: () => (location.href = '/') };
 
     parts.push(fieldHTML());
 
     parts.push(yardHTML(), pondHTML());
-    objs.barn = { x: L.YX + 280, y: 592, face: 'up', hx: L.YX + 280, hy: 214, verb: farm.barn ? 'Xem chuồng' : 'Mua chuồng', run: () => openPen('barn') };
-    objs.pond = { x: L.PX + 270, y: 592, face: 'up', hx: L.PX + 270, hy: 214, verb: farm.pond ? 'Xem ao' : 'Mua ao', run: () => openPen('pond') };
+    objs.barn = { x: 494, y: 470, face: 'left', hx: 250, hy: 356, verb: farm.barn ? 'Xem chuồng' : 'Mua chuồng', run: () => openPen('barn') };
+    objs.pond = { x: 650, y: 350, face: 'up', hx: 650, hy: 186, verb: farm.pond ? 'Xem ao' : 'Mua ao', run: () => openPen('pond') };
 
-    parts.push(deco('wheelbarrow', 700, 560, 64, true));
-    parts.push(deco('flowers', 300, 560, 48));
-    parts.push(deco('hay', L.FE + 46, 560, 54));
-    parts.push(deco('tractor', L.PX - 30, 250, 90));
-    parts.push(deco('well', W - 234, 392, 110));
-    parts.push(deco('tree_big', W - 130, 478, 250));
-    parts.push(deco('bush_2', W - 40, 560, 44));
-    parts.push(deco('fence_piece', 24, 560, 50));
-    parts.push(`<span class="fence-bottom-row" style="left:0;top:${H - 34}px;width:${W}px;z-index:${H}"></span>`);
+    parts.push(deco('hay', 500, 570, 38));
 
     $('objects').innerHTML = parts.join('');
-    // Nhân vật có thể đang đứng chỗ mới bị chặn (ruộng rộng ra đẩy chuồng sang phải): đưa về chỗ trống gần nhất.
+    // Nhân vật có thể đang đứng chỗ mới bị chặn: đưa về chỗ trống gần nhất.
     if (blocked(me.x, me.y)) {
       const [x, y] = nearestFree(me.x, me.y);
       me.x = x;
@@ -385,8 +398,8 @@
     $('toolbar').innerHTML = [
       btn('data-tool="plant"', seedPic, tool === 'plant' && seedSel ? find('crops', seedSel).name : 'Gieo hạt', '', tool === 'plant'),
       btn('data-tool="harvest"', art.item('corn', 40), 'Thu hoạch', badge(ripe), tool === 'harvest'),
-      btn('data-go="seeds"', art.img('silo', { h: 42 }), 'Kho giống', badge(seeds.used)),
-      btn('data-go="products"', art.img('farmhouse', { h: 38 }), 'Kho sản phẩm', badge(prods.used)),
+      btn('data-go="seeds"', art.img('hut_seed', { h: 42 }), 'Kho giống', badge(seeds.used)),
+      btn('data-go="products"', art.img('hut_rice', { h: 36 }), 'Kho thóc', badge(prods.used)),
       btn('data-shop', art.img('wheelbarrow', { h: 36 }), 'Cửa hàng'),
       btn('data-go="gate"', art.img('farm_gate', { h: 38 }), 'Về thành phố'),
     ].join('');
@@ -489,15 +502,15 @@
   // ---------- Nhân vật đi lại ----------
 
   const SPEED = 230; // px/giây
-  const SPRITE = 100;
-  const me = { x: 320, y: 616, dir: 'down', walking: false, look: {}, path: [], pending: null, drawn: '' };
+  const SPRITE = 88;
+  const me = { x: 798, y: 540, dir: 'down', walking: false, look: {}, path: [], pending: null, drawn: '' };
   const keys = new Set();
   let zoom = 1;
   let nearKey = null;
 
   const YMIN = SKY + 14;
   const blocked = (x, y) =>
-    x < 18 || x > W - 18 || y < YMIN || y > H - 30 ||
+    x < 18 || x > W - 18 || y < YMIN || y > BOTTOM - 6 ||
     obstacles.some((r) => x > r[0] - 12 && x < r[2] + 12 && y > r[1] - 4 && y < r[3] + 6);
 
   function drawMe() {
@@ -531,7 +544,7 @@
         if (!blocked(nx, ny)) return [nx, ny];
       }
     }
-    return [260, 616];
+    return [798, 540];
   }
 
   // Tìm đường A* trên lưới 16px, rồi rút gọn bằng đường thẳng nhìn thấy nhau.
@@ -649,24 +662,38 @@
   };
   const dialogOpen = () => !!document.querySelector('dialog[open]');
   const KEYMAP = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' };
+  // Dự phòng theo e.key (bàn phím / bộ gõ không báo e.code chuẩn).
+  const KEYNAME = { w: 'up', s: 'down', a: 'left', d: 'right', Up: 'up', Down: 'down', Left: 'left', Right: 'right' };
+  const dirKey = (e) => KEYMAP[e.code] || KEYNAME[e.key] || KEYNAME[String(e.key).toLowerCase()];
+  const isAct = (e) => e.code === 'KeyE' || e.code === 'Enter' || e.code === 'Space' || /^[eE ]$/.test(e.key);
 
-  document.addEventListener('keydown', (e) => {
+  // Bắt ở pha capture trên window: đi lại được ngay khi mở trang, không cần bấm vào cảnh trước,
+  // dù focus đang ở nút nào (trừ ô nhập liệu / hộp thoại).
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Escape' && !dialogOpen() && (tool || !$('seed-pick').classList.contains('hidden'))) return pickTool('none');
     if (typing(e) || dialogOpen() || e.ctrlKey || e.metaKey || e.altKey || !farm) return;
-    if (KEYMAP[e.code]) {
+    const dir = dirKey(e);
+    if (dir) {
       e.preventDefault();
-      keys.add(KEYMAP[e.code]);
+      keys.add(dir);
       me.path = [];
       me.pending = null;
       $('go-mark').classList.add('hidden');
-    } else if ((e.code === 'KeyE' || e.code === 'Enter' || e.code === 'Space') && nearKey) {
+    } else if (isAct(e) && nearKey) {
       e.preventDefault();
       if (!e.repeat) goTo(nearKey);
     }
-  });
-  document.addEventListener('keyup', (e) => KEYMAP[e.code] && keys.delete(KEYMAP[e.code]));
-  document.addEventListener('keydown', (e) => {
-    if (e.code === 'Escape' && !dialogOpen() && (tool || !$('seed-pick').classList.contains('hidden'))) pickTool('none');
-  });
+  }, true);
+  window.addEventListener('keyup', (e) => {
+    const dir = dirKey(e);
+    if (dir) keys.delete(dir);
+  }, true);
+  document.addEventListener('visibilitychange', () => keys.clear());
+  // Đóng hộp thoại: bỏ focus khỏi nút để phím Space / Enter không bấm lại nút cũ.
+  // (Không xoá phím đang giữ ở đây: sự kiện close đến muộn, có thể sau khi người chơi đã bấm đi tiếp.)
+  document.querySelectorAll('dialog').forEach((d) => d.addEventListener('close', () => {
+    if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+  }));
   window.addEventListener('blur', () => keys.clear());
 
   let last = 0;
@@ -772,8 +799,11 @@
   // Phóng cảnh cho chiều cao thế giới vừa khung nhìn (điện thoại giữ ≤ 1 để thấy rộng hơn; phần dư phía trên là trời).
   function setZoom() {
     // Chừa chỗ cho thanh công cụ dưới cùng (phần đó là cỏ).
-    const sh = ($('scene').clientHeight || innerHeight - 60) - (innerWidth < 600 ? 80 : 92);
-    zoom = Math.max(0.55, Math.min(sh / H, innerWidth < 600 ? 1 : 1.35));
+    const sc = $('scene');
+    const sh = sc.clientHeight || innerHeight - 60;
+    // Máy tính: cả cổng, kho, ruộng 6 cột, chuồng, ao phải vừa một khung nhìn (theo cả chiều ngang).
+    const fitW = innerWidth < 600 ? Infinity : (sc.clientWidth || innerWidth) / CORE_W;
+    zoom = Math.max(0.5, Math.min(sh / H, fitW, innerWidth < 600 ? 1 : 1.35));
     if (farm) renderWorld();
   }
 
@@ -826,7 +856,7 @@
     const obj = e.target.closest('[data-obj]');
     if (obj) return goTo(obj.dataset.obj);
     const r = $('world-wrap').getBoundingClientRect();
-    walkTo((e.clientX - r.left) / zoom, (e.clientY - r.top) / zoom);
+    walkTo((e.clientX - r.left) / zoom, (e.clientY - r.top) / zoom - OY);
   });
 
   // ---------- Hiệu ứng ----------
@@ -973,8 +1003,8 @@
     const kind = storeMode;
     const s = store(kind);
     const units = (cat && cat.storage && cat.storage[kind] && cat.storage[kind].expandUnits) || 25;
-    $('store-title').textContent = kind === 'seeds' ? 'Kho giống' : 'Kho sản phẩm';
-    const head = `<div class="store-hero">${kind === 'seeds' ? art.img('silo', { h: 74 }) : art.img('farmhouse', { h: 74 })}
+    $('store-title').textContent = kind === 'seeds' ? 'Kho giống' : 'Kho thóc';
+    const head = `<div class="store-hero">${kind === 'seeds' ? art.img('hut_seed', { h: 74 }) : art.img('hut_rice', { h: 74 })}
       <div><p class="muted">${kind === 'seeds'
         ? 'Hạt mua sẵn để gieo; gieo vào ô trống sẽ lấy hạt trong kho trước. Mỗi hạt chiếm 1 chỗ.'
         : 'Nông sản thu hoạch, gia súc và cá đã lớn được cất ở đây — bán lấy xu. Mỗi món chiếm 1 chỗ.'}</p>
@@ -1065,7 +1095,7 @@
       : `<li class="empty">Chưa có ${isBarn ? 'vật nuôi' : 'cá'} — mua ở cửa hàng</li>`;
     $('pen-body').innerHTML = `
       <div class="cap"><span>${pen.used}/${pen.capacity} đơn vị</span><span class="cap-bar"><span style="width:${pct}%"></span></span>${expand}</div>
-      <p class="muted">Con đã lớn bấm "Thu hoạch" để cất vào kho sản phẩm (+XP), rồi bán ở kho.</p>
+      <p class="muted">Con đã lớn bấm "Thu hoạch" để cất vào kho thóc (+XP), rồi bán ở kho.</p>
       <ul class="critter-list">${rows}</ul>
       <button class="primary wide" data-open-shop="${list}">${I.svg('plus')}Mua ${isBarn ? 'con giống' : 'cá giống'}</button>`;
   }
@@ -1158,6 +1188,7 @@
     if (e.target.closest('#world')) return; // cảnh xử lý riêng
     const t = e.target.closest('button');
     if (!t) return;
+    if (t.closest('.toolbar, .pan-btns')) t.blur(); // để Space / Enter về sau dùng cho nhân vật
     const d = t.dataset;
     if (d.close !== undefined) return t.closest('dialog').close();
     if (d.go) {
@@ -1186,7 +1217,7 @@
     if (d.storeExpand) {
       const s = store(d.storeExpand);
       const units = (cat && cat.storage && cat.storage[d.storeExpand] && cat.storage[d.storeExpand].expandUnits) || 25;
-      if (!confirm(`Mở rộng ${d.storeExpand === 'seeds' ? 'kho giống' : 'kho sản phẩm'} thêm ${units} chỗ với giá ${xu(s.nextExpandPrice)} xu?`)) return;
+      if (!confirm(`Mở rộng ${d.storeExpand === 'seeds' ? 'kho giống' : 'kho thóc'} thêm ${units} chỗ với giá ${xu(s.nextExpandPrice)} xu?`)) return;
       return call(`/api/farm/storage/${d.storeExpand}/expand`, {});
     }
     if (d.sellItem) {
@@ -1262,9 +1293,10 @@
       if (await load()) {
         setZoom();
         // Vừa bước qua cổng nông trại.
-        me.x = 320;
-        me.y = 616;
-        me.dir = 'right';
+        // Vừa bước qua cổng "Vào".
+        me.x = 798;
+        me.y = 540;
+        me.dir = 'up';
         drawMe();
         updateHint();
         requestAnimationFrame(() => follow(true));
@@ -1277,5 +1309,16 @@
   );
 
   // Cho kiểm thử tự động / gỡ lỗi.
-  window.FarmScene = { position: () => ({ x: Math.round(me.x), y: Math.round(me.y), dir: me.dir }), objects: () => objs, goTo, walkTo };
+  window.FarmScene = {
+    position: () => ({ x: Math.round(me.x), y: Math.round(me.y), dir: me.dir }),
+    objects: () => objs,
+    goTo,
+    walkTo,
+    blocked: (x, y) => blocked(x, y),
+    // Toạ độ thế giới → toạ độ màn hình.
+    screen: (x, y) => {
+      const r = $('world-wrap').getBoundingClientRect();
+      return { x: r.left + x * zoom, y: r.top + (y + OY) * zoom };
+    },
+  };
 })();

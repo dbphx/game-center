@@ -27,10 +27,13 @@
       <section class="scene" id="scene">
         <div class="world-wrap" id="world-wrap">
           <div class="world" id="world">
-            <div id="objects"></div>
-            <div class="walker" id="me"><span class="me-tag" id="me-tag"></span><span class="me-body" id="me-body"></span></div>
-            <span class="go-mark hidden" id="go-mark"></span>
-            <button class="hint hidden" id="hint" data-hint><kbd>E</kbd><span></span></button>
+            <!-- Lớp nội dung; đẩy xuống dưới khi khung cao hơn cảnh (phần trên là trời) -->
+            <div class="layer" id="layer">
+              <div id="objects"></div>
+              <div class="walker" id="me"><span class="me-tag" id="me-tag"></span><span class="me-body" id="me-body"></span></div>
+              <span class="go-mark hidden" id="go-mark"></span>
+              <button class="hint hidden" id="hint" data-hint><kbd>E</kbd><span></span></button>
+            </div>
           </div>
         </div>
       </section>

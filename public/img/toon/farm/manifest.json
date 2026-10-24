@@ -857,6 +857,73 @@
     "Cooking & Farming Game Pack"
    ],
    "crop": "watermelon"
+  },
+  {
+   "file": "grass_edge.png",
+   "w": 256,
+   "h": 44,
+   "use": "Dải cỏ viền lượn sóng (lặp ngang) giữa hàng rào và nền đất; lật dọc cho mép dưới",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án, từ grass_tile.png)"
+   ]
+  },
+  {
+   "file": "hut_seed.png",
+   "w": 200,
+   "h": 196,
+   "use": "Kho giống: chòi mái rơm vách tre, bao hạt, nong tre (kiểu miền quê Việt Nam)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "hut_rice.png",
+   "w": 280,
+   "h": 226,
+   "use": "Kho thóc (kho sản phẩm): kho mái rơm vách gỗ, bao tải thóc, đống rơm",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Vector Farm Pack (đống rơm hay.png)"
+   ]
+  },
+  {
+   "file": "far_farmland.png",
+   "w": 768,
+   "h": 210,
+   "use": "Nền xa: đồi cây + đồng ruộng vàng / xanh, lặp ngang sau hàng rào",
+   "anchor": "bottom-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "soil_plot_light.png",
+   "w": 96,
+   "h": 96,
+   "use": "Ô ruộng đất sáng màu (trống / đang trồng)",
+   "anchor": "top-left",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "soil_plot_light_wet.png",
+   "w": 96,
+   "h": 96,
+   "use": "Ô ruộng đất sáng màu, đã tưới (cây đang lớn)",
+   "anchor": "top-left",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
   }
  ]
 }
