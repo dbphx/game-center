@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/dbphx/game-center/games/farm"
 	"github.com/dbphx/game-center/games/tienlen/online"
 	"github.com/dbphx/game-center/internal/server"
 	"github.com/dbphx/game-center/internal/wallet"
@@ -44,6 +45,10 @@ func games(w *wallet.Wallet) []server.Game {
 		return online.User{ID: u.ID, Name: u.Name, Gender: u.Gender, Outfit: u.Outfit, Level: u.Level}, err
 	}
 	tienlen := online.NewHub(w, online.DefaultOptions)
+	farmGame, err := farm.New(context.Background(), w)
+	if err != nil {
+		log.Fatalf("nông trại: %v", err)
+	}
 
 	return []server.Game{
 		{
@@ -54,6 +59,15 @@ func games(w *wallet.Wallet) []server.Game {
 			Path:        "/tienlen/",
 			Stats:       func() any { return tienlen.Stats() },
 			WS:          tienlen.Handler(auth),
+			Rooms:       tienlen.RoomsHandler(),
+		},
+		{
+			ID:          farm.GameID,
+			Name:        "Nông trại",
+			Description: "Trồng cây, nuôi gia súc, nuôi cá; thu hoạch đổi xu và XP.",
+			Players:     "1 người",
+			Path:        "/farm/",
+			API:         farmGame.Handler(),
 		},
 	}
 }

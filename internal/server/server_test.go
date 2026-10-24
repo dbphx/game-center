@@ -34,7 +34,7 @@ func newTestServer(t *testing.T) (*httptest.Server, *wallet.Wallet) {
 	static := fstest.MapFS{"index.html": {Data: []byte("hub")}}
 	srv := httptest.NewServer(New(w, static, []Game{{
 		ID: online.GameID, Name: "Tiến Lên", Path: "/tienlen/",
-		Stats: func() any { return tl.Stats() }, WS: tl.Handler(auth),
+		Stats: func() any { return tl.Stats() }, WS: tl.Handler(auth), Rooms: tl.RoomsHandler(),
 	}}))
 	t.Cleanup(srv.Close)
 	return srv, w
@@ -342,5 +342,25 @@ func TestTienLenGameSettlesIntoWallet(t *testing.T) {
 		if s.Money[i] != 0 && (hist[0].Game != "tienlen" || !strings.Contains(hist[0].Note, code)) {
 			t.Fatalf("%s: sổ cái thiếu ván Tiến Lên: %+v", g.User.Name, hist)
 		}
+	}
+}
+
+func TestTienLenRoomsAPI(t *testing.T) {
+	srv, _ := newTestServer(t)
+	var rooms []online.RoomSummary
+	if code := call(t, srv, "GET", "/api/tienlen/rooms", "", nil, &rooms); code != 200 || len(rooms) != 0 {
+		t.Fatalf("chưa có bàn: %d %+v", code, rooms)
+	}
+	a := newAccount(t, srv, "an.nguyen")
+	host := dial(t, srv)
+	host.send(online.Message{T: "create", Token: a.Token, Bet: 200})
+	code := host.next("session")["code"].(string)
+
+	if status := call(t, srv, "GET", "/api/tienlen/rooms", "", nil, &rooms); status != 200 || len(rooms) != 1 {
+		t.Fatalf("danh sách bàn: %d %+v", status, rooms)
+	}
+	r := rooms[0]
+	if r.Code != code || r.Bet != 200 || r.Phase != online.PhaseLobby || len(r.Players) != 1 || !r.Players[0].Host || r.Players[0].Name != "an.nguyen" {
+		t.Fatalf("bàn sai: %+v", r)
 	}
 }

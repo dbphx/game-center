@@ -122,7 +122,7 @@ func waitFor(t *testing.T, what string, cond func() bool) {
 func mustCreate(t *testing.T, h *Hub, u User) (*Session, *fakeConn) {
 	t.Helper()
 	c := &fakeConn{}
-	s, err := h.Create(u, c)
+	s, err := h.Create(u, c, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -335,5 +335,76 @@ func TestBetRules(t *testing.T) {
 	bank.mu.Unlock()
 	if err := host.Room.Handle(host.Player, Message{T: "start"}); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestCreateWithBet(t *testing.T) {
+	h := NewHub(richBank(), slowOptions)
+	c := &fakeConn{}
+	if _, err := h.Create(an, c, 100); err != nil {
+		t.Fatal(err)
+	}
+	if c.lastState().Bet != 100 {
+		t.Fatalf("bàn mới phải có mức cược 100, được %d", c.lastState().Bet)
+	}
+	s2, _ := h.Create(binh, &fakeConn{}, 7)
+	if s2.Room.bet != DefaultBet {
+		t.Fatalf("mức cược lạ phải về mặc định, được %d", s2.Room.bet)
+	}
+}
+
+func TestRoomsSummary(t *testing.T) {
+	h := NewHub(richBank(), slowOptions)
+	if got := h.Rooms(); len(got) != 0 {
+		t.Fatalf("chưa có bàn nào, được %+v", got)
+	}
+	lan := User{ID: 1, Name: "Lan", Gender: "female", Outfit: "aodai", Level: 3}
+	a, _ := mustCreate(t, h, lan)
+	mustJoin(t, h, a.Room.Code, binh)
+	a.Room.Handle(a.Player, Message{T: "addBot"})
+	a.Room.Handle(a.Player, Message{T: "setBet", Bet: 50})
+	// Bàn thứ hai đang chơi phải xếp sau bàn còn vào được.
+	b, _ := mustCreate(t, h, chi)
+	b.Room.Handle(b.Player, Message{T: "addBot"})
+	for b.Room.phase != PhasePlaying {
+		if err := b.Room.Handle(b.Player, Message{T: "start"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	rooms := h.Rooms()
+	if len(rooms) != 2 || rooms[0].Code != a.Room.Code || rooms[1].Phase != PhasePlaying {
+		t.Fatalf("thứ tự bàn sai: %+v", rooms)
+	}
+	r := rooms[0]
+	if r.Phase != PhaseLobby || r.Bet != 50 || r.Max != MaxPlayers || len(r.Players) != 3 {
+		t.Fatalf("thông tin bàn sai: %+v", r)
+	}
+	want := SeatSummary{Name: "Lan", Gender: "female", Outfit: "aodai", Level: 3, Host: true, Online: true}
+	if r.Players[0] != want || r.Players[1].Name != "Bình" || r.Players[1].Host || !r.Players[2].Bot {
+		t.Fatalf("ghế sai: %+v", r.Players)
+	}
+	if rooms[1].GameNo != 1 {
+		t.Fatalf("bàn đang chơi phải có ván 1, được %d", rooms[1].GameNo)
+	}
+
+	// Người rời giữa ván không còn hiện ở ghế.
+	mustJoin(t, h, a.Room.Code, chi)
+	for a.Room.phase != PhasePlaying {
+		a.Room.Handle(a.Player, Message{T: "start"})
+	}
+	var guest *Player
+	a.Room.mu.Lock()
+	guest = a.Room.players[1]
+	a.Room.mu.Unlock()
+	a.Room.Handle(guest, Message{T: "leave"})
+	for _, rs := range h.Rooms() {
+		if rs.Code == a.Room.Code {
+			for _, p := range rs.Players {
+				if p.Name == "Bình" {
+					t.Fatal("người đã rời không được hiện ở ghế")
+				}
+			}
+		}
 	}
 }

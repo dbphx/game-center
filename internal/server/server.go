@@ -23,8 +23,12 @@ type Game struct {
 	Players     string     `json:"players"` // ví dụ "2–4 người"
 	Path        string     `json:"path"`    // trang của game, ví dụ "/tienlen/"
 	Stats       func() any `json:"-"`       // số phòng / người đang chơi, hiện ở trang hub
-	// WS là handler WebSocket của game, gắn ở /ws/<ID>.
+	// WS (tuỳ chọn) là handler WebSocket của game, gắn ở /ws/<ID>.
 	WS http.Handler `json:"-"`
+	// Rooms (tuỳ chọn) trả danh sách bàn công khai, gắn ở GET /api/<ID>/rooms.
+	Rooms http.Handler `json:"-"`
+	// API (tuỳ chọn) là API HTTP riêng của game, gắn ở /api/<ID> và /api/<ID>/...
+	API http.Handler `json:"-"`
 }
 
 type Server struct {
@@ -63,7 +67,16 @@ func New(w *wallet.Wallet, static fs.FS, games []Game) *Server {
 	s.mux.HandleFunc("POST /api/daily", s.authed(s.daily))
 	s.mux.HandleFunc("GET /api/history", s.authed(s.history))
 	for _, g := range games {
-		s.mux.Handle("/ws/"+g.ID, g.WS)
+		if g.WS != nil {
+			s.mux.Handle("/ws/"+g.ID, g.WS)
+		}
+		if g.API != nil {
+			s.mux.Handle("/api/"+g.ID, g.API)
+			s.mux.Handle("/api/"+g.ID+"/", g.API)
+		}
+		if g.Rooms != nil {
+			s.mux.Handle("GET /api/"+g.ID+"/rooms", g.Rooms)
+		}
 	}
 	return s
 }

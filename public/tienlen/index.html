@@ -18,20 +18,37 @@
     </div>
   </header>
 
-  <!-- Màn hình đầu: tạo hoặc vào phòng -->
-  <section class="screen center-screen hidden" id="home">
-    <div class="panel home-panel">
-      <div class="home-art" id="home-art"></div>
-      <h1>Tiến Lên Miền Nam</h1>
-      <p class="muted">Chơi 2–4 người, thiếu người thì thêm máy. Thắng thua tính bằng xu trong ví chung của DCity.</p>
-      <button id="btn-create" class="primary wide"><i data-icon="plus"></i>Tạo phòng mới</button>
-      <div class="divider">hoặc vào phòng có sẵn</div>
-      <div class="row">
-        <span class="input-icon grow"><i data-icon="hash"></i><input id="code" maxlength="4" placeholder="Mã phòng" autocomplete="off"></span>
-        <button id="btn-join"><i data-icon="logIn"></i>Vào phòng</button>
+  <!-- Sảnh casino: các bàn đang mở, chọn ghế để vào hoặc tạo bàn mới -->
+  <section class="screen hall hidden" id="home">
+    <div class="hall-bar">
+      <div class="hall-title">
+        <span class="hall-icon" id="home-art"></span>
+        <div>
+          <h1>Sảnh Tiến Lên</h1>
+          <p class="muted">Chọn ghế trống để ngồi vào bàn, hoặc mở bàn mới. 2–4 người, thiếu người thì thêm máy.</p>
+        </div>
+      </div>
+      <div class="hall-actions">
+        <div class="row code-row">
+          <span class="input-icon grow"><i data-icon="hash"></i><input id="code" maxlength="4" placeholder="Mã bàn" autocomplete="off"></span>
+          <button id="btn-join"><i data-icon="logIn"></i>Vào</button>
+        </div>
+        <button id="btn-create" class="primary"><i data-icon="plus"></i>Tạo bàn mới</button>
       </div>
     </div>
+    <div class="hall-floor">
+      <div class="tables" id="tables"></div>
+    </div>
   </section>
+
+  <dialog class="modal" id="dlg-create">
+    <form method="dialog">
+      <h2><i data-icon="coins"></i>Mở bàn mới</h2>
+      <p class="muted" style="margin:0">Chọn mức cược. Thắng thua mỗi ván tính bằng mức × số xu này.</p>
+      <div class="bet-grid" id="bet-grid"></div>
+      <div class="actions"><button value="cancel" formnovalidate>Huỷ</button><button class="primary" value="ok"><i data-icon="plus"></i>Mở bàn</button></div>
+    </form>
+  </dialog>
 
   <!-- Phòng chờ -->
   <section class="screen center-screen hidden" id="lobby">
