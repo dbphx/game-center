@@ -1,0 +1,60 @@
+{
+  "source": "Kenney RPG Urban Pack (CC0), tô lại màu theo trang phục",
+  "pixelated": true,
+  "sheet": {
+    "file": "<gender>_<outfit>.png",
+    "w": 64,
+    "h": 48,
+    "frame": 16,
+    "cols": [
+      "down",
+      "left",
+      "right",
+      "up"
+    ],
+    "rows": [
+      "idle",
+      "walk1",
+      "walk2"
+    ],
+    "scale": 4
+  },
+  "still": {
+    "file": "<gender>_<outfit>_<dir>.png",
+    "w": 12,
+    "h": 15,
+    "desc": "khung đứng yên đã cắt sát"
+  },
+  "head": {
+    "file": "<gender>_<outfit>_head.png",
+    "w": 12,
+    "h": 12,
+    "desc": "đầu + vai cho avatar"
+  },
+  "genders": [
+    "male",
+    "female"
+  ],
+  "outfits": [
+    "casual",
+    "sport",
+    "hoodie",
+    "suit",
+    "aodai",
+    "royal"
+  ],
+  "looks": [
+    "male_casual",
+    "male_sport",
+    "male_hoodie",
+    "male_suit",
+    "male_aodai",
+    "male_royal",
+    "female_casual",
+    "female_sport",
+    "female_hoodie",
+    "female_suit",
+    "female_aodai",
+    "female_royal"
+  ]
+}

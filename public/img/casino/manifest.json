@@ -1,0 +1,106 @@
+{
+  "source": "Kenney Roguelike Indoors (CC0) — https://kenney.nl/assets/roguelike-indoors",
+  "tileSize": 16,
+  "images": [
+    {
+      "file": "table_felt.png",
+      "w": 80,
+      "h": 56,
+      "desc": "Bàn bài mặt nỉ xanh viền gỗ, có chân",
+      "use": "mặt bàn ở sảnh casino",
+      "scale": 3,
+      "pixelated": true,
+      "tile": false
+    },
+    {
+      "file": "chair_front.png",
+      "w": 16,
+      "h": 16,
+      "desc": "Ghế gỗ đệm cam front",
+      "use": "ghế quanh bàn",
+      "scale": 3,
+      "pixelated": true,
+      "tile": false
+    },
+    {
+      "file": "chair_back.png",
+      "w": 16,
+      "h": 16,
+      "desc": "Ghế gỗ đệm cam back",
+      "use": "ghế quanh bàn",
+      "scale": 3,
+      "pixelated": true,
+      "tile": false
+    },
+    {
+      "file": "chair_right.png",
+      "w": 16,
+      "h": 16,
+      "desc": "Ghế gỗ đệm cam right",
+      "use": "ghế quanh bàn",
+      "scale": 3,
+      "pixelated": true,
+      "tile": false
+    },
+    {
+      "file": "chair_left.png",
+      "w": 16,
+      "h": 16,
+      "desc": "Ghế gỗ đệm cam left",
+      "use": "ghế quanh bàn",
+      "scale": 3,
+      "pixelated": true,
+      "tile": false
+    },
+    {
+      "file": "rug_red.png",
+      "w": 128,
+      "h": 96,
+      "desc": "Thảm đỏ thẫm viền xám, tua vàng trên dưới",
+      "use": "nền mỗi bàn",
+      "scale": 3,
+      "pixelated": true,
+      "tile": false
+    },
+    {
+      "file": "floor_carpet.png",
+      "w": 16,
+      "h": 16,
+      "desc": "Thảm tím than sọc nhẹ, lặp làm sàn",
+      "use": "nền sảnh casino",
+      "scale": 3,
+      "pixelated": true,
+      "tile": true
+    },
+    {
+      "file": "felt_tile.png",
+      "w": 16,
+      "h": 16,
+      "desc": "Nỉ xanh sọc nhẹ, lặp làm nền bàn chơi",
+      "use": "nền khu bàn chơi trong ván",
+      "scale": 3,
+      "pixelated": true,
+      "tile": true
+    },
+    {
+      "file": "plant.png",
+      "w": 16,
+      "h": 16,
+      "desc": "Chậu cây xanh",
+      "use": "trang trí góc thảm",
+      "scale": 3,
+      "pixelated": true,
+      "tile": false
+    },
+    {
+      "file": "candelabra.png",
+      "w": 16,
+      "h": 16,
+      "desc": "Chân nến vàng",
+      "use": "trang trí góc thảm",
+      "scale": 3,
+      "pixelated": true,
+      "tile": false
+    }
+  ]
+}

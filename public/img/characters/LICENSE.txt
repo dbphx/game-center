@@ -1,0 +1,9 @@
+Nhân vật DCity được ghép và tô lại màu từ:
+
+  RPG Urban Pack (1.0) — Kenney (www.kenney.nl)
+  https://kenney.nl/assets/rpg-urban-pack
+  License: Creative Commons Zero (CC0) — http://creativecommons.org/publicdomain/zero/1.0/
+
+Template: nhân vật nam tóc ngắn (hàng 0–2) và nữ tóc dài băng đô (hàng 15–17) trong Tilemap/tilemap_packed.png,
+cột 24 (xuống), 23 (trái; phải = lật ngang), 25 (lên). Màu áo / quần / tóc / giày và chi tiết (cà vạt, dây rút,
+cúc áo dài, vương miện) được đổi bằng script ghép sprite.

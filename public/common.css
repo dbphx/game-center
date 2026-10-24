@@ -290,20 +290,44 @@ dialog.modal .actions { display: flex; justify-content: flex-end; gap: 8px; marg
   .panel { padding: 22px; }
 }
 
-/* ---------- Nhân vật ---------- */
+/* ---------- Nhân vật (ảnh pixel art, xem public/character.js) ---------- */
 
-.character .leg, .character .arm { transform-box: fill-box; transform-origin: 50% 0; }
-.character.walking .leg-l, .character.walking .arm-r { animation: swing .36s ease-in-out infinite alternate; }
-.character.walking .leg-r, .character.walking .arm-l { animation: swing .36s ease-in-out infinite alternate-reverse; }
-.character.walking .head { animation: bob .18s ease-in-out infinite alternate; }
-@keyframes swing { from { transform: rotate(-22deg); } to { transform: rotate(22deg); } }
-@keyframes bob { to { transform: translateY(-1.5px); } }
+.character.char-img { display: block; width: auto; image-rendering: pixelated; }
+
+/* Sprite động: --s là hệ số phóng (số nguyên), cột theo hướng, hàng 0 đứng / hàng 1–2 bước đi. */
+.char-sprite {
+  --col: 0;
+  display: inline-block;
+  width: calc(16px * var(--s));
+  height: calc(16px * var(--s));
+  background-image: var(--sheet);
+  background-repeat: no-repeat;
+  background-size: calc(64px * var(--s)) calc(48px * var(--s));
+  background-position: calc(-16px * var(--s) * var(--col)) 0;
+  image-rendering: pixelated;
+}
+.char-sprite[data-dir="left"] { --col: 1; }
+.char-sprite[data-dir="right"] { --col: 2; }
+.char-sprite[data-dir="up"] { --col: 3; }
+.char-sprite.walking { animation: char-walk .36s steps(1) infinite; }
+@keyframes char-walk {
+  0% { background-position-y: calc(-16px * var(--s)); }
+  50% { background-position-y: calc(-32px * var(--s)); }
+}
+/* Nằm (ví dụ nằm viện): khung đứng xoay ngang. */
+.char-sprite.lying { transform: rotate(-90deg); }
+/* Bị mất HP: nháy đỏ bằng filter trên ảnh. */
+.char-sprite.hurt, .char-img.hurt { animation: char-hurt .5s steps(1) infinite; }
+.char-sprite.walking.hurt { animation: char-walk .36s steps(1) infinite, char-hurt .5s steps(1) infinite; }
+@keyframes char-hurt {
+  50% { filter: sepia(1) saturate(9) hue-rotate(-45deg) brightness(.95) drop-shadow(0 0 3px rgba(255, 40, 40, .9)); }
+}
 
 .char-avatar {
   overflow: hidden;
   background: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, .45), transparent 70%), var(--avatar);
 }
-.char-avatar svg { width: 100%; height: 100%; display: block; transform: translateY(6%); }
+.char-avatar img { width: 100%; height: 100%; display: block; image-rendering: pixelated; transform: translateY(8%); }
 
 .level-badge {
   display: inline-flex;
@@ -334,7 +358,3 @@ dialog.modal .actions { display: flex; justify-content: flex-end; gap: 8px; marg
 .xp-bar > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #7aa7ff, #b18cff); }
 .lv-chip { display: inline-flex; padding: 1px 6px; border-radius: 999px; background: #4a74d9; color: #fff; font-size: 10px; font-weight: 800; }
 
-/* Nhân vật nhìn từ trên xuống: chân bước tới lui, tay vung ngược chiều. */
-.td-char.walking .td-foot-l, .td-char.walking .td-arm-r { animation: td-step .32s ease-in-out infinite alternate; }
-.td-char.walking .td-foot-r, .td-char.walking .td-arm-l { animation: td-step .32s ease-in-out infinite alternate-reverse; }
-@keyframes td-step { from { transform: translateY(-5px); } to { transform: translateY(5px); } }

@@ -160,41 +160,15 @@
 
   // ---------- Sảnh casino ----------
 
-  // Hình của sảnh gom một chỗ để thay bằng ảnh thật: khi null thì dùng hình tạm vẽ bằng CSS
-  // (thảm hoa văn, bàn nỉ, ghế gỗ). loadArt() tự lấy ảnh hợp tên trong /img/city/manifest.json nếu có.
-  const ART = { floor: null, table: null, chair: null, pixelated: false };
-
-  async function loadArt() {
-    try {
-      const res = await fetch('/img/city/manifest.json');
-      if (!res.ok) return;
-      const m = await res.json();
-      const list = Array.isArray(m) ? m : m.images || m.files || Object.values(m);
-      const pick = (re) => list.find((e) => e && e.file && re.test(e.file));
-      const floor = pick(/carpet|casino.*floor|floor.*casino/i);
-      const table = pick(/(casino|poker|card).*table|table.*(casino|poker|card)/i) || pick(/table/i);
-      const chair = pick(/chair|stool|seat/i);
-      if (floor) ART.floor = '/img/city/' + floor.file;
-      if (table) ART.table = '/img/city/' + table.file;
-      if (chair) ART.chair = '/img/city/' + chair.file;
-      ART.pixelated = [floor, table, chair].some((e) => e && e.pixelated);
-      applyFloor();
-      if (!state) renderHall();
-    } catch (e) {
-      /* chưa có bộ hình: giữ hình tạm */
-    }
-  }
-
-  function applyFloor() {
-    const floor = document.querySelector('.hall-floor');
-    floor.classList.toggle('pixelated', ART.pixelated);
-    if (ART.floor) floor.style.backgroundImage = `url("${ART.floor}")`;
-  }
-
-  const art = {
-    table: () => (ART.table ? `<img class="art-img art-table" src="${ART.table}" alt="">` : ''),
-    chair: () => (ART.chair ? `<img class="art-img art-chair" src="${ART.chair}" alt="">` : ''),
-  };
+  // Hình sảnh là ảnh pixel art trong /img/casino/ (xem manifest.json ở đó): thảm, bàn nỉ, ghế 4 hướng, trang trí.
+  // Toạ độ trong cảnh tính theo pixel gốc của thảm 128x96; CSS nhân với --px (3 trên máy tính, 2 trên điện thoại).
+  const IMG = '/img/casino/';
+  const CHAIR = { top: 'chair_front', bottom: 'chair_back', left: 'chair_right', right: 'chair_left' };
+  const img = (name, cls) => `<img class="art ${cls}" src="${IMG}${name}.png" alt="" draggable="false">`;
+  const scene = (inner, cls = '') => `<div class="tscene${cls}">
+      ${img('rug_red', 'art-rug')}${img('plant', 'art-deco deco-l')}${img('candelabra', 'art-deco deco-r')}${img('table_felt', 'art-table')}
+      ${inner}
+    </div>`;
 
   let rooms = null; // null: chưa tải lần nào
   let hallTimer = null;
@@ -219,19 +193,19 @@
   }
 
   function seatHtml(p, pos, room, open) {
+    const chair = img(CHAIR[pos], 'art-chair');
     if (p) {
       const face = p.bot ? I.avatar('', { bot: true }) : C.head({ gender: p.gender, outfit: p.outfit });
       const crown = p.host ? `<span class="seat-crown" title="Chủ bàn">${I.svg('crown')}</span>` : '';
       const lvl = p.bot || !p.level ? '<span class="lv-chip bot-chip">Máy</span>' : `<span class="lv-chip">Lv ${p.level}</span>`;
       return `<div class="tseat ${pos} filled${p.online === false && !p.bot ? ' away' : ''}" title="${escapeHtml(p.name)}">
-          <span class="seat-face${ART.chair ? ' has-art' : ''}">${art.chair()}${face}${crown}</span>
+          ${chair}<span class="seat-face">${face}${crown}</span>
           <span class="seat-label"><span class="seat-name">${escapeHtml(p.name)}</span>${lvl}</span>
         </div>`;
     }
-    const chairCls = 'seat-chair' + (ART.chair ? ' has-art' : '');
-    if (!open) return `<div class="tseat ${pos} empty closed"><span class="${chairCls}">${art.chair()}</span></div>`;
+    if (!open) return `<div class="tseat ${pos} empty closed">${chair}</div>`;
     return `<button class="tseat ${pos} empty" data-join="${room.code}" title="Ngồi vào bàn ${room.code}">
-        <span class="${chairCls}">${art.chair()}${I.svg('plus')}</span><span class="seat-label"><span class="seat-name">Ngồi</span></span>
+        ${chair}<span class="seat-plus">${I.svg('plus')}</span><span class="seat-label"><span class="seat-name">Ngồi</span></span>
       </button>`;
   }
 
@@ -244,14 +218,14 @@
     const status = playing ? `Đang chơi · ván ${room.gameNo || 1}` : full ? 'Đủ người' : `Đang chờ · ${players.length}/${max}`;
     const note = playing ? 'Đợi hết ván để vào' : full ? 'Bàn đã đủ 4 người' : '';
     const seats = SEATS.map((pos, i) => (i < max ? seatHtml(players[i], pos, room, open) : '')).join('');
-    return `<div class="ttable${open ? '' : ' busy'}${playing ? ' playing' : ''}${ART.pixelated ? ' pixelated' : ''}"${note ? ` title="${note}"` : ''}>
-        ${art.table()}${seats}
-        <div class="tfelt${ART.table ? ' has-art' : ''}">
-          <span class="tcode">${escapeHtml(room.code)}</span>
-          <span class="tbet">${I.svg('coins')}${xu(room.bet || 10)} xu/mức</span>
-          <span class="tstatus${playing ? ' live' : ''}">${status}</span>
-          ${note ? `<span class="tnote">${note}</span>` : ''}
-        </div>
+    return `<div class="ttable${open ? '' : ' busy'}${playing ? ' playing' : ''}"${note ? ` title="${note}"` : ''}>
+        ${scene(`${seats}
+          <div class="tfelt">
+            <span class="tcode">${escapeHtml(room.code)}</span>
+            <span class="tbet">${I.svg('coins')}${xu(room.bet || 10)} xu/mức</span>
+            <span class="tstatus${playing ? ' live' : ''}">${status}</span>
+            ${note ? `<span class="tnote">${note}</span>` : ''}
+          </div>`)}
       </div>`;
   }
 
@@ -264,10 +238,10 @@
     // Bàn còn ghế trống lên trước, rồi tới bàn đang chơi.
     const order = (r) => (r.phase === 'playing' ? 2 : (r.players || []).length >= (r.max || 4) ? 1 : 0);
     const list = rooms.slice().sort((a, b) => order(a) - order(b));
-    const invite = `<div class="ttable invite${ART.pixelated ? ' pixelated' : ''}">
-        ${art.table()}${SEATS.map((pos) => `<div class="tseat ${pos} empty closed"><span class="seat-chair${ART.chair ? ' has-art' : ''}">${art.chair()}</span></div>`).join('')}
-        <div class="tfelt${ART.table ? ' has-art' : ''}"><button class="primary" data-create>${I.svg('plus')}${list.length ? 'Mở thêm bàn' : 'Tạo bàn đầu tiên'}</button>
-          <span class="tnote">${list.length ? 'Chọn mức cược tuỳ ý' : 'Chưa có bàn nào, mở bàn và mời bạn bè'}</span></div>
+    const invite = `<div class="ttable invite">
+        ${scene(`${SEATS.map((pos) => `<div class="tseat ${pos} empty closed">${img(CHAIR[pos], 'art-chair')}</div>`).join('')}
+          <div class="tfelt"><button class="primary" data-create>${I.svg('plus')}${list.length ? 'Mở thêm bàn' : 'Tạo bàn đầu tiên'}</button>
+            <span class="tnote">${list.length ? 'Chọn mức cược tuỳ ý' : 'Chưa có bàn nào, mở bàn và mời bạn bè'}</span></div>`)}
       </div>`;
     el.innerHTML = list.map(tableHtml).join('') + invite;
   }
@@ -551,8 +525,7 @@
   // ---------- Khởi động ----------
 
   $('logo').innerHTML = I.logo(28);
-  $('home-art').innerHTML = I.cardFan();
-  loadArt();
+  $('home-art').innerHTML = img('table_felt', 'hall-art');
 
   // Chưa đăng nhập thì về hub, xong quay lại đúng link phòng này.
   A.me().then(
