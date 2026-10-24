@@ -423,9 +423,10 @@
     }
 
     // Cổng "Vào" dưới giữa (giữa kho và ruộng).
-    parts.push(`<div class="obj gate" data-obj="gate" style="${pos(586, 610)}" title="Về thành phố">
+    // z của cổng thấp hơn chỗ đứng trước cổng (y 604) để nhân vật đứng TRƯỚC biển cổng.
+    parts.push(`<div class="obj gate" data-obj="gate" style="${pos(586, 610, 592)}" title="Về thành phố">
       ${art.img('farm_gate', { h: 140 })}<span class="gate-sign">Nông trại<b>${esc(user.name)}</b></span></div>`);
-    objs.gate = { x: 586, y: 580, face: 'down', hx: 586, hy: 460, verb: 'Về thành phố', run: () => (location.href = '/') };
+    objs.gate = { x: 586, y: 604, face: 'down', hx: 586, hy: 460, verb: 'Về thành phố', run: () => (location.href = '/') };
 
     parts.push(fieldHTML());
 
@@ -435,7 +436,7 @@
 
     // Cây kiểu Việt ở rìa: mai, đào hai bên cổng, đào trong chuồng, chuối + tre sau ao, mai góc phải.
     parts.push(deco('tree_mai', 448, 606, 150, false, 'sway blossom'));
-    parts.push(deco('tree_dao', 704, 606, 128, true, 'sway blossom'));
+    parts.push(deco('tree_dao', 688, 606, 112, true, 'sway blossom'));
     parts.push(deco('tree_dao', 352, 322, 150, false, 'sway blossom'));
     parts.push(deco('tree_chuoi', POND_BOX.x + 60, 246, 136, false, 'sway'));
     parts.push(deco('tree_tre', POND_BOX.x + POND_BOX.w - 30, 246, 160, false, 'sway slow'));
@@ -957,11 +958,33 @@
     x < 18 || x > W - 18 || y < YMIN || y > BOTTOM - 6 ||
     obstacles.some((r) => x > r[0] - 12 && x < r[2] + 12 && y > r[1] - 4 && y < r[3] + 6);
 
+  // Vật cao (kho, chuồng, cổng, cây, cây trồng) đứng TRƯỚC nhân vật và che hơn 40% thân → làm mờ như game Avatar.
+  let fadeKey = '';
+  function updateFade() {
+    const key = `${Math.round(me.x)}|${Math.round(me.y)}|${zoom}`;
+    if (key === fadeKey) return;
+    fadeKey = key;
+    const body = $('me-body').getBoundingClientRect();
+    const area = Math.max(1, body.width * body.height);
+    document.querySelectorAll('.obj.building, .obj.gate, .obj.decor, .pen-shed, .plot-top').forEach((el) => {
+      let hide = false;
+      if ((+el.style.zIndex || 0) > me.y) {
+        const r = (el.querySelector('img') || el).getBoundingClientRect();
+        const w = Math.min(r.right, body.right) - Math.max(r.left, body.left);
+        const h = Math.min(r.bottom, body.bottom) - Math.max(r.top, body.top);
+        hide = w > 0 && h > 0 && (w * h) / area > 0.4;
+      }
+      el.classList.toggle('see-through', hide);
+    });
+  }
+
   function drawMe() {
     const el = $('me');
     el.style.left = `${Math.round(me.x)}px`;
     el.style.top = `${Math.round(me.y)}px`;
     el.style.zIndex = Math.round(me.y);
+    fadeKey = '';
+    requestAnimationFrame(updateFade);
     const key = `${me.dir}|${me.walking}|${JSON.stringify(me.look)}`;
     if (key !== me.drawn) {
       me.drawn = key;

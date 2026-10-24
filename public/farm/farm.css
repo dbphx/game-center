@@ -637,3 +637,7 @@ button.wide { width: 100%; justify-content: center; }
   85% { opacity: 1; }
   100% { opacity: 0; transform: translate(var(--dx), var(--fall)) rotate(400deg); }
 }
+
+/* Vật che nhân vật quá nhiều thì mờ đi */
+.see-through { opacity: .55; transition: opacity .2s; }
+.obj.gate, .obj.building, .obj.decor, .pen-shed, .plot-top { transition: opacity .2s; }
