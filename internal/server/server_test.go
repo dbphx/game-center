@@ -222,13 +222,21 @@ func TestHairWingsShopAPI(t *testing.T) {
 	if code := item("wear", "outfit", "sport", &u); code != 200 || u.Outfit != "sport" {
 		t.Fatalf("mặc quần áo qua items: %d %+v", code, u)
 	}
+	if code := item("buy", "face", "smile", &u); code != 200 || u.Face != "smile" || !slices.Equal(u.OwnedFace, []string{"default", "smile"}) {
+		t.Fatalf("mua mặt: %d %+v", code, u)
+	}
+	if code := item("wear", "face", "default", &u); code != 200 || u.Face != "default" {
+		t.Fatalf("về mặt mặc định: %d %+v", code, u)
+	}
 
 	var cfg struct {
 		Hair  []wallet.ItemInfo `json:"hair"`
 		Wings []wallet.ItemInfo `json:"wings"`
+		Face  []wallet.ItemInfo `json:"face"`
 	}
 	call(t, srv, "GET", "/api/config", "", nil, &cfg)
-	if len(cfg.Hair) != 7 || !cfg.Hair[0].Starter || len(cfg.Wings) != 5 || cfg.Wings[4].ID != "dragon" || cfg.Wings[4].Price != 10000 {
+	if len(cfg.Hair) != 7 || !cfg.Hair[0].Starter || len(cfg.Wings) != 5 || cfg.Wings[4].ID != "dragon" || cfg.Wings[4].Price != 10000 ||
+		len(cfg.Face) != 7 || !cfg.Face[0].Starter || cfg.Face[6].ID != "star" {
 		t.Fatalf("catalog tóc / cánh: %+v", cfg)
 	}
 }

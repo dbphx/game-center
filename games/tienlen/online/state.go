@@ -14,6 +14,7 @@ type PlayerView struct {
 	Outfit string `json:"outfit,omitempty"`
 	Hair   string `json:"hair,omitempty"`
 	Wings  string `json:"wings,omitempty"`
+	Face   string `json:"face,omitempty"`
 	Level  int    `json:"level,omitempty"`
 	Bot    bool   `json:"bot"`
 	Online bool   `json:"online"`
@@ -78,7 +79,7 @@ func (r *Room) stateFor(viewer *Player) State {
 		}
 	}
 	for i, p := range r.players {
-		v := PlayerView{ID: p.ID, Name: p.Name, Gender: p.Gender, Outfit: p.Outfit, Hair: p.Hair, Wings: p.Wings, Level: p.Level, Bot: p.Bot, Online: p.Online, Left: p.Left, Host: p.ID == r.hostID, Coins: p.Coins, Place: -1}
+		v := PlayerView{ID: p.ID, Name: p.Name, Gender: p.Gender, Outfit: p.Outfit, Hair: p.Hair, Wings: p.Wings, Face: p.Face, Level: p.Level, Bot: p.Bot, Online: p.Online, Left: p.Left, Host: p.ID == r.hostID, Coins: p.Coins, Place: -1}
 		if inGame {
 			v.Cards = len(g.Hands[i])
 			v.Passed = g.Passed[i] && g.LastPlay != nil

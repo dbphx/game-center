@@ -123,6 +123,7 @@ type SeatSummary struct {
 	Outfit string `json:"outfit,omitempty"`
 	Hair   string `json:"hair,omitempty"`
 	Wings  string `json:"wings,omitempty"`
+	Face   string `json:"face,omitempty"`
 	Level  int    `json:"level,omitempty"`
 	Bot    bool   `json:"bot"`
 	Host   bool   `json:"host"`
@@ -160,7 +161,7 @@ func (h *Hub) Rooms() []RoomSummary {
 				continue
 			}
 			s.Players = append(s.Players, SeatSummary{
-				Name: p.Name, Gender: p.Gender, Outfit: p.Outfit, Hair: p.Hair, Wings: p.Wings, Level: p.Level,
+				Name: p.Name, Gender: p.Gender, Outfit: p.Outfit, Hair: p.Hair, Wings: p.Wings, Face: p.Face, Level: p.Level,
 				Bot: p.Bot, Host: p.ID == r.hostID, Online: p.Online,
 			})
 		}

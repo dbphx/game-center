@@ -45,6 +45,7 @@ type User struct {
 	Outfit        string
 	Hair          string // kiểu tóc, "default" là tóc mặc định
 	Wings         string // cánh, rỗng là không cánh
+	Face          string // gương mặt, "default" là mặt mặc định
 	Level         int
 	HP            int   // máu hiện tại
 	HospitalUntil int64 // > 0 khi đang nằm viện
@@ -99,6 +100,7 @@ type Player struct {
 	Outfit string
 	Hair   string
 	Wings  string
+	Face   string
 	Level  int
 	Bot    bool
 	Online bool
@@ -176,7 +178,7 @@ func (r *Room) join(u User, conn Conn) (*Player, error) {
 	}
 	for _, p := range r.players {
 		if p.UserID == u.ID && !p.Left {
-			p.Name, p.Gender, p.Outfit, p.Hair, p.Wings, p.Level = u.Name, u.Gender, u.Outfit, u.Hair, u.Wings, u.Level // có thể vừa đổi ở shop
+			p.Name, p.Gender, p.Outfit, p.Hair, p.Wings, p.Face, p.Level = u.Name, u.Gender, u.Outfit, u.Hair, u.Wings, u.Face, u.Level // có thể vừa đổi ở shop
 			r.resume(p, conn)
 			return p, nil
 		}
@@ -191,7 +193,7 @@ func (r *Room) join(u User, conn Conn) (*Player, error) {
 	if err := r.opts.gate(u); err != nil {
 		return nil, err
 	}
-	p := &Player{ID: randomID(), UserID: u.ID, Name: u.Name, Gender: u.Gender, Outfit: u.Outfit, Hair: u.Hair, Wings: u.Wings, Level: u.Level, Online: true, conn: conn}
+	p := &Player{ID: randomID(), UserID: u.ID, Name: u.Name, Gender: u.Gender, Outfit: u.Outfit, Hair: u.Hair, Wings: u.Wings, Face: u.Face, Level: u.Level, Online: true, conn: conn}
 	if err := r.refreshCoins(p); err != nil {
 		return nil, err
 	}

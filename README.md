@@ -9,7 +9,7 @@ mỗi khu là một game hoặc tiện ích, tất cả **dùng chung một ví 
 | Casino | **Tiến Lên Miền Nam** (2–4 người, thiếu người thì thêm máy) — sảnh có bàn ghế để chọn bàn / tạo bàn |
 | Bệnh viện | hồi máu, nằm viện khi hết HP |
 | Ngân hàng | số dư, thưởng hằng ngày, lịch sử xu |
-| Shop thời trang | mua quần áo, tóc, cánh theo level; mặc lại đồ đã mua |
+| Shop thời trang | mua quần áo, tóc, cánh, gương mặt theo level; mặc lại đồ đã mua |
 | Quảng trường | thông tin nhân vật, level, XP |
 | Nông trại | trồng trọt (6 ô miễn phí, mua thêm tới 48 ô), chuồng gia súc và ao cá theo đơn vị sức chứa, kho giống và kho sản phẩm |
 | Công viên ven sông, bến thuyền | trang trí; đi qua cầu để sang bờ Nam |
@@ -81,12 +81,26 @@ Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè c
 | Mohican | 3 | 1.200 xu | | Cánh dơi | 6 | 6.000 xu |
 | Hai bím hồng | 4 | 2.000 xu | | Cánh rồng | 8 | 10.000 xu |
 
+- **Gương mặt** (dùng chung hai giới, ai cũng có sẵn mặt mặc định):
+
+| Gương mặt | Level | Giá |
+|---|---|---|
+| Mặt mặc định | 1 | có sẵn |
+| Cười tươi | 1 | 200 xu |
+| Nháy mắt | 1 | 300 xu |
+| Má hồng | 2 | 600 xu |
+| Kính râm | 2 | 800 xu |
+| Mèo con | 3 | 1.200 xu |
+| Mắt lấp lánh | 4 | 2.000 xu |
+
 - Trong game, avatar của mỗi người là mặt nhân vật của họ kèm level.
 
 ## Nông trại
 
 - 6 ô đất miễn phí, ô thứ 7 giá 10.000 xu, mỗi ô sau +2.000 xu, tối đa 48 ô. Cây có thời gian chín, level tối thiểu.
-- **Chuồng** (heo 1, cừu / bò 2 đơn vị...) và **ao cá** (koi 3 đơn vị...): mặc định 5 đơn vị, mở rộng +5 tới 30.
+- **Chuồng** (heo 1, cừu / bò 2 đơn vị...) và **ao cá** (koi 3 đơn vị...): đều mở từ level 1, mặc định 5 đơn vị, mở rộng +5 tới 30.
+- **Cho ăn**: con chưa lớn đói lại sau 10 phút kể từ lúc mua / lần ăn trước. Cho ăn tốn 1/10 giá mua (ít nhất 5 xu),
+  +1 XP và rút ngắn 25% thời gian còn lại tới lúc lớn.
 - **Kho giống**: mua hạt theo số lượng (1–100 hạt/lần) cất vào kho; gieo hạt lấy từ kho, hết hạt thì tự mua 1 hạt.
   Sức chứa 50, mở rộng +25 tới 300, lần mở rộng thứ n giá 1.000 × n xu.
 - **Kho sản phẩm**: thu hoạch cây và thu vật nuôi / cá đã lớn → vào kho (cộng XP lúc thu); bán ở kho mới được xu.
@@ -101,7 +115,7 @@ Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè c
 | `POST /api/farm/harvest`, `/harvest-all` | `{plot}` / — |
 | `POST /api/farm/{barn,pond}/buy`, `/{barn,pond}/expand` | |
 | `POST /api/farm/{animals,fish}/buy` | `{kind}` |
-| `POST /api/farm/{animals,fish}/collect` (vào kho), `/sell` (bán thẳng) | `{id}` |
+| `POST /api/farm/{animals,fish}/feed` (cho ăn), `/collect` (vào kho), `/sell` (bán thẳng) | `{id}` |
 | `POST /api/farm/products/sell` (qty 0 = bán hết món đó), `/products/sell-all` | `{item, qty}` / — |
 | `POST /api/farm/storage/{seeds,products}/expand` | |
 
@@ -200,14 +214,14 @@ public/tienlen/          giao diện Tiến Lên
 | `POST /api/credentials {username, password}` | tài khoản khách cũ đặt tên đăng nhập |
 | `POST /api/character {outfit}` | mặc trang phục đã có |
 | `POST /api/outfits/buy {outfit}` | mua trang phục (403 thiếu level, 402 thiếu xu, 409 đã có) |
-| `POST /api/me/items/buy {kind, id}` | mua quần áo / tóc / cánh (`kind`: `outfit`, `hair`, `wings`) và mặc luôn; lỗi như trên, 400 món lạ |
-| `POST /api/me/items/wear {kind, id}` | mặc / đeo món đã có (403 chưa có); tóc `default` luôn được, cánh `""` là tháo cánh |
-| `GET /api/me` | thông tin + số dư, nhân vật (`outfit`, `owned`, `hair`, `ownedHair`, `wings`, `ownedWings`) (header `Authorization: Bearer <token>`) |
+| `POST /api/me/items/buy {kind, id}` | mua quần áo / tóc / cánh / gương mặt (`kind`: `outfit`, `hair`, `wings`, `face`) và mặc luôn; lỗi như trên, 400 món lạ |
+| `POST /api/me/items/wear {kind, id}` | mặc / đeo món đã có (403 chưa có); tóc / mặt `default` luôn được, cánh `""` là tháo cánh |
+| `GET /api/me` | thông tin + số dư, nhân vật (`outfit`, `owned`, `hair`, `ownedHair`, `wings`, `ownedWings`, `face`, `ownedFace`) (header `Authorization: Bearer <token>`) |
 | `POST /api/me {name}` | đổi tên |
 | `POST /api/daily` | nhận thưởng ngày (409 nếu đã nhận) |
 | `GET /api/history` | 30 giao dịch gần nhất |
 | `GET /api/games` | danh sách game và số người đang chơi |
-| `GET /api/config` | số xu tặng ban đầu, thưởng ngày, danh mục trang phục (`catalog`), tóc (`hair`), cánh (`wings`) |
+| `GET /api/config` | số xu tặng ban đầu, thưởng ngày, danh mục trang phục (`catalog`), tóc (`hair`), cánh (`wings`), gương mặt (`face`) |
 
 WebSocket Tiến Lên (`/ws/tienlen`, JSON): client gửi `create {token}`, `join {code, token}`, `addBot`, `kick`, `setBet`, `start`, `play`, `pass`, `hint`, `leave`;
 server gửi `session`, `state` (riêng từng người, chỉ có bài của chính họ), `hint`, `error`, `left`, `auth`.

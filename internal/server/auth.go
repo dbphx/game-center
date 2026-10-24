@@ -149,7 +149,7 @@ func (s *Server) buyOutfit(w http.ResponseWriter, r *http.Request, u wallet.User
 	writeJSON(w, http.StatusOK, u)
 }
 
-// shopItem mua (buy = true) hoặc mặc / đeo một món ở shop thời trang: {kind: outfit|hair|wings, id}.
+// shopItem mua (buy = true) hoặc mặc / đeo một món ở shop thời trang: {kind: outfit|hair|wings|face, id}.
 func (s *Server) shopItem(buy bool) func(http.ResponseWriter, *http.Request, wallet.User) {
 	return func(w http.ResponseWriter, r *http.Request, u wallet.User) {
 		if err := wallet.CheckZone(u, "shop"); err != nil {

@@ -5,8 +5,9 @@
 //   <look>_<dir>.png ảnh đứng từng hướng (cùng cỡ khung)
 //   <look>_full.png  ảnh toàn thân chính diện cắt sát (xem trước ở đăng ký / shop / quảng trường)
 //   <look>_head.png  chân dung đầu-vai 128×128 (avatar)
-//   hair/, wings/, crown/ — lớp tóc, cánh, vương miện chồng lên nhân vật (cùng bố cục khung, xem manifest "layers")
-// look = { gender, outfit, hair, wings } — thiếu hair / wings thì vẽ như cũ (tóc mặc định, không cánh);
+//   face/, hair/, wings/, crown/ — lớp mặt, tóc, cánh, vương miện chồng lên nhân vật (cùng bố cục khung, xem manifest "layers")
+//   Thứ tự lớp: cánh sau → thân → mặt → tóc → vương miện → cánh trước (nhìn sau lưng).
+// look = { gender, outfit, hair, wings, face } — thiếu hair / wings / face thì vẽ như cũ;
 // truyền thẳng object user cũng được.
 //   Character.sprite(look, { dir, walking, scale, size, pose, hurt, cls }) — sprite động
 //     size = chiều cao hiển thị (px); không có size thì 24 × scale (tương thích bản pixel cũ: scale 3 → 72px)
@@ -14,7 +15,7 @@
 //   Character.url(look, dir)      — URL ảnh đứng theo hướng (chỉ thân, không có lớp tóc / cánh)
 //   Character.svg(look, opts)     — ảnh toàn thân hoạt hình (tên cũ, giữ tương thích); opts.size = chiều cao px
 //   Character.head(look, opts)    — avatar tròn chân dung
-//   Character.HAIR / WINGS        — tên hiển thị các kiểu tóc / cánh (id khớp internal/wallet)
+//   Character.HAIR / WINGS / FACES — tên hiển thị các kiểu tóc / cánh / gương mặt (id khớp internal/wallet)
 // window.Portrait (cùng file): full(look, {size}), head(look, {size}), url(look, 'full'|'head').
 (function () {
   'use strict';
@@ -48,6 +49,16 @@
     bat: { name: 'Cánh dơi' },
     dragon: { name: 'Cánh rồng' },
   };
+  // Gương mặt ("default" là mặt gốc, không có lớp).
+  const FACES = {
+    default: { name: 'Mặt mặc định' },
+    smile: { name: 'Cười tươi' },
+    wink: { name: 'Nháy mắt' },
+    blush: { name: 'Má hồng' },
+    cool: { name: 'Kính râm' },
+    cat: { name: 'Mèo con' },
+    star: { name: 'Mắt lấp lánh' },
+  };
   const GENDERS = { male: 'Nam', female: 'Nữ' };
   const DIRS = ['down', 'left', 'right', 'up'];
   // Ảnh toàn thân của mỗi giới tính (px) và lề trên của lớp tóc / cánh toàn thân; đồ Hoàng gia nữ cao hơn vì tiara.
@@ -59,13 +70,15 @@
     const o = OUTFITS[look.outfit] ? look.outfit : 'casual';
     return `${genderOf(look)}_${o}`;
   };
-  // Lớp chồng của một look: tóc (bỏ qua tóc mặc định), cánh, vương miện (đồ Hoàng gia đội trên tóc mới).
+  // Lớp chồng của một look: mặt, tóc (bỏ qua mặc định), cánh, vương miện (đồ Hoàng gia đội trên tóc mới).
   function layers(look = {}) {
     const g = genderOf(look);
     const hair = look.hair && look.hair !== 'default' && HAIR[look.hair] ? look.hair : '';
     const wings = look.wings && WINGS[look.wings] ? look.wings : '';
+    const face = look.face && look.face !== 'default' && FACES[look.face] ? look.face : '';
     return {
       g,
+      face: face && `${BASE}face/${face}_${g}`,
       hair: hair && `${BASE}hair/${hair}_${g}`,
       crown: hair && look.outfit === 'royal' ? `${BASE}crown/${g}` : '',
       wings: wings && `${BASE}wings/${wings}_${g}`,
@@ -85,8 +98,8 @@
     const w = Math.round((h * FRAME_W) / FRAME_H);
     const lying = opts.pose === 'lie';
     const L = layers(look);
-    // Tóc và vương miện cùng bố cục khung với thân → xếp chồng nhiều ảnh nền trên cùng một phần tử.
-    const sheet = [L.crown, L.hair].filter(Boolean).map((u) => `url('${u}.png')`)
+    // Mặt, tóc, vương miện cùng bố cục khung với thân → xếp chồng nhiều ảnh nền trên cùng một phần tử (trên cùng trước).
+    const sheet = [L.crown, L.hair, L.face].filter(Boolean).map((u) => `url('${u}.png')`)
       .concat(`url('${BASE}${key(look)}.png')`).join(',');
     const cls = 'char-sprite' + (opts.walking && !lying ? ' walking' : '') + (lying ? ' lying' : '') +
       (opts.hurt ? ' hurt' : '') + (L.wings ? ' has-wings' : '') + (opts.cls ? ' ' + opts.cls : '');
@@ -103,15 +116,19 @@
     const size = opts.size ? ` style="height:${opts.size}px"` : '';
     const src = `${BASE}${key(look)}_full.png`;
     const L = layers(look);
-    if (!L.hair && !L.wings) return `<img class="${cls}" src="${src}" alt="" draggable="false"${size}>`;
+    if (!L.hair && !L.wings && !L.face) return `<img class="${cls}" src="${src}" alt="" draggable="false"${size}>`;
     // Lớp tóc / cánh có lề trên và căn đáy theo ảnh thân của giới tính; tính theo % để hợp mọi cỡ hiển thị.
     const f = FULL[L.g];
     const baseH = FULL_H[key(look)] || f.h;
     const top = (((baseH - f.h - f.pad) / baseH) * 100).toFixed(2);
     const hgt = (((f.h + f.pad) / baseH) * 100).toFixed(2);
+    // Lớp mặt cùng cỡ ảnh thân của giới tính (không có lề trên).
+    const ftop = (((baseH - f.h) / baseH) * 100).toFixed(2);
+    const fhgt = ((f.h / baseH) * 100).toFixed(2);
     const lay = (u, extra = '') => `<img class="char-layer${extra}" src="${u}" alt="" draggable="false" style="top:${top}%;height:${hgt}%">`;
     return `<span class="${cls} char-stack"${size}><span class="char-stack-in">${
       L.wings ? lay(`${L.wings}_full.png`, ' wing') : ''}<img class="char-base" src="${src}" alt="" draggable="false">${
+      L.face ? `<img class="char-layer face" src="${L.face}_full.png" alt="" draggable="false" style="top:${ftop}%;height:${fhgt}%">` : ''}${
       L.hair ? lay(`${L.hair}_full.png`) : ''}${
       L.crown ? `<img class="char-layer crown" src="${L.crown}_full.png" alt="" draggable="false">` : ''}</span></span>`;
   }
@@ -120,7 +137,7 @@
     const cls = 'avatar char-avatar portrait-avatar' + (opts.cls ? ' ' + opts.cls : '');
     const size = opts.size ? `;width:${opts.size}px;height:${opts.size}px` : '';
     const L = layers(look);
-    const extra = [L.hair, L.crown].filter(Boolean)
+    const extra = [L.face, L.hair, L.crown].filter(Boolean)
       .map((u) => `<img class="char-layer" src="${u}_head.png" alt="" draggable="false">`).join('');
     return `<span class="${cls}" style="--avatar:${tint(look)}${size}"><img src="${BASE}${key(look)}_head.png" alt="" draggable="false">${extra}</span>`;
   }
@@ -130,7 +147,7 @@
     return `<image href="${url(look, dir)}" x="-24" y="-74" width="48" height="74"/>`;
   }
 
-  window.Character = { sprite, url, svg: full, head, topdown, group: topdown, OUTFITS, HAIR, WINGS, GENDERS, DIRS, FRAME_W, FRAME_H };
+  window.Character = { sprite, url, svg: full, head, topdown, group: topdown, OUTFITS, HAIR, WINGS, FACES, GENDERS, DIRS, FRAME_W, FRAME_H };
   window.Portrait = {
     full: (look, opts = {}) => full(look, { size: 140, ...opts }),
     head,

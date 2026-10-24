@@ -7,15 +7,17 @@ import (
 	"slices"
 )
 
-// Shop thời trang có 3 nhóm: quần áo (Catalog), tóc (HairCatalog), cánh (WingsCatalog).
-// Tóc và cánh dùng chung cho cả hai giới; giao diện vẽ chồng lên nhân vật theo id.
+// Shop thời trang có 4 nhóm: quần áo (Catalog), tóc (HairCatalog), cánh (WingsCatalog), gương mặt (FaceCatalog).
+// Tóc, cánh, gương mặt dùng chung cho cả hai giới; giao diện vẽ chồng lên nhân vật theo id.
 
 const (
 	KindOutfit = "outfit"
 	KindHair   = "hair"
 	KindWings  = "wings"
+	KindFace   = "face"
 
 	DefaultHair = "default" // tóc mặc định, ai cũng có
+	DefaultFace = "default" // gương mặt mặc định, ai cũng có
 	NoWings     = ""        // không đeo cánh
 )
 
@@ -48,6 +50,16 @@ var (
 		{ID: "dragon", Name: "Cánh rồng", Kind: KindWings, Level: 8, Price: 10000},
 	}
 
+	FaceCatalog = []ItemInfo{
+		{ID: DefaultFace, Name: "Mặt mặc định", Kind: KindFace, Level: 1, Starter: true},
+		{ID: "smile", Name: "Cười tươi", Kind: KindFace, Level: 1, Price: 200},
+		{ID: "wink", Name: "Nháy mắt", Kind: KindFace, Level: 1, Price: 300},
+		{ID: "blush", Name: "Má hồng", Kind: KindFace, Level: 2, Price: 600},
+		{ID: "cool", Name: "Kính râm", Kind: KindFace, Level: 2, Price: 800},
+		{ID: "cat", Name: "Mèo con", Kind: KindFace, Level: 3, Price: 1200},
+		{ID: "star", Name: "Mắt lấp lánh", Kind: KindFace, Level: 4, Price: 2000},
+	}
+
 	ErrInvalidItem = errors.New("món đồ không hợp lệ")
 )
 
@@ -57,11 +69,13 @@ func itemCatalog(kind string) []ItemInfo {
 		return HairCatalog
 	case KindWings:
 		return WingsCatalog
+	case KindFace:
+		return FaceCatalog
 	}
 	return nil
 }
 
-// itemInfo tra một món tóc / cánh; quần áo tra trong Catalog qua outfitInfo.
+// itemInfo tra một món tóc / cánh / gương mặt; quần áo tra trong Catalog qua outfitInfo.
 func itemInfo(kind, id string) (ItemInfo, bool) {
 	list := itemCatalog(kind)
 	i := slices.IndexFunc(list, func(it ItemInfo) bool { return it.ID == id })
@@ -71,7 +85,7 @@ func itemInfo(kind, id string) (ItemInfo, bool) {
 	return list[i], true
 }
 
-// ownedItems trả về tóc / cánh người chơi có: món starter và món đã mua, theo thứ tự catalog.
+// ownedItems trả về tóc / cánh / gương mặt người chơi có: món starter và món đã mua, theo thứ tự catalog.
 func ownedItems(ctx context.Context, q queryer, id int64, kind string) ([]string, error) {
 	rows, err := q.QueryContext(ctx, `SELECT item FROM user_items WHERE user_id = ? AND kind = ?`, id, kind)
 	if err != nil {
@@ -98,7 +112,7 @@ func ownedItems(ctx context.Context, q queryer, id int64, kind string) ([]string
 	return out, nil
 }
 
-// BuyItem mua một món ở shop thời trang (kind: outfit, hair, wings): đủ level, đủ xu thì trừ xu,
+// BuyItem mua một món ở shop thời trang (kind: outfit, hair, wings, face): đủ level, đủ xu thì trừ xu,
 // ghi sổ cái và mặc / đeo luôn.
 func (w *Wallet) BuyItem(ctx context.Context, id int64, kind, item string) (User, error) {
 	if kind == KindOutfit {
@@ -137,7 +151,7 @@ func (w *Wallet) BuyItem(ctx context.Context, id int64, kind, item string) (User
 
 	now := w.now().Unix()
 	balance -= it.Price
-	// kind chỉ là "hair" hoặc "wings" (đã kiểm ở itemInfo) nên ghép thẳng tên cột được.
+	// kind chỉ là "hair", "wings" hoặc "face" (đã kiểm ở itemInfo) nên ghép thẳng tên cột được.
 	if _, err := tx.ExecContext(ctx, `UPDATE users SET balance = ?, `+kind+` = ? WHERE id = ?`, balance, item, id); err != nil {
 		return User{}, err
 	}
@@ -155,7 +169,7 @@ func (w *Wallet) BuyItem(ctx context.Context, id int64, kind, item string) (User
 	return w.User(ctx, id)
 }
 
-// WearItem mặc / đeo một món đã có. Tóc "default" luôn để được, cánh "" là tháo cánh.
+// WearItem mặc / đeo một món đã có. Tóc, mặt "default" luôn dùng được, cánh "" là tháo cánh.
 func (w *Wallet) WearItem(ctx context.Context, id int64, kind, item string) (User, error) {
 	switch {
 	case kind == KindOutfit:

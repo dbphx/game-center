@@ -28,14 +28,15 @@
   let current = null; // khu đang mở bảng
   let cityMounted = false;
 
-  // Ngoại hình nhân vật: tóc / cánh đọc ở đây (user.hair, user.wings) để các chỗ vẽ dùng chung.
-  const look = (u) => ({ gender: u.gender, outfit: u.outfit, hair: u.hair || 'default', wings: u.wings || '' });
+  // Ngoại hình nhân vật: tóc / cánh / mặt đọc ở đây (user.hair, user.wings, user.face) để các chỗ vẽ dùng chung.
+  const look = (u) => ({ gender: u.gender, outfit: u.outfit, hair: u.hair || 'default', wings: u.wings || '', face: u.face || 'default' });
 
   // Ba nhóm của shop thời trang: danh mục (từ /api/config), đồ đã có, đồ đang mặc.
   let shopTab = 'outfit';
   const SHOP_KINDS = {
     outfit: { name: 'Đồ', icon: 'shirt', list: () => config.catalog, owned: () => user.owned || [], worn: () => user.outfit },
     hair: { name: 'Tóc', icon: 'sparkles', list: () => config.hair || [], owned: () => user.ownedHair || ['default'], worn: () => user.hair || 'default' },
+    face: { name: 'Mặt', icon: 'eye', list: () => config.face || [], owned: () => user.ownedFace || ['default'], worn: () => user.face || 'default' },
     wings: { name: 'Cánh', icon: 'crown', list: () => config.wings || [], owned: () => user.ownedWings || [], worn: () => user.wings || '' },
   };
 
@@ -407,13 +408,13 @@
       const tabs = Object.entries(SHOP_KINDS)
         .map(([k, t]) => `<button class="tab${k === kind ? ' active' : ''}" data-shop-tab="${k}" role="tab">${I.svg(t.icon)}${t.name}</button>`)
         .join('');
-      return `${panelHead('shop', 'Shop thời trang', 'Quần áo, tóc, cánh: đủ level thì mua bằng xu, đồ đã mua mặc lúc nào cũng được')}
+      return `${panelHead('shop', 'Shop thời trang', 'Quần áo, tóc, mặt, cánh: đủ level thì mua bằng xu, đồ đã mua mặc lúc nào cũng được')}
         <div class="panel-section">
           <div class="stats">
             <div class="stat"><div class="muted">Level</div><b>${I.svg('trophy')}Lv ${user.level}</b></div>
             <div class="stat"><div class="muted">Số dư</div><b class="gold">${I.svg('coins')}${A.xu(user.balance)}</b></div>
           </div>
-          <div class="tabs" role="tablist" style="grid-template-columns:repeat(3,1fr)">${tabs}</div>
+          <div class="tabs" role="tablist" style="grid-template-columns:repeat(4,1fr)">${tabs}</div>
           <p class="muted" style="margin:0">Bấm vào một món để mặc thử trên bản đồ.</p>
           <div class="shop-grid">${items.join('')}</div>
         </div>`;
@@ -547,7 +548,7 @@
     body.querySelectorAll('[data-wear]').forEach((b) => (b.onclick = () => {
       const id = b.dataset.wear;
       if (kind === 'outfit') return act('/api/character', { outfit: id }, 'Đã thay trang phục');
-      const done = kind === 'wings' ? (id ? 'Đã đeo cánh' : 'Đã tháo cánh') : 'Đã đổi kiểu tóc';
+      const done = kind === 'wings' ? (id ? 'Đã đeo cánh' : 'Đã tháo cánh') : kind === 'face' ? 'Đã đổi gương mặt' : 'Đã đổi kiểu tóc';
       act('/api/me/items/wear', { kind, id }, done);
     }));
     body.querySelectorAll('[data-buy]').forEach((b) => (b.onclick = () => {

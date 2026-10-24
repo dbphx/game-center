@@ -156,7 +156,7 @@
   }
  },
  "layers": {
-  "note": "Lớp chồng lên nhân vật (vẽ PIL, CC0). Tóc: sheet cùng khung 96×148 chồng trên thân; _full có lề trên fullPad px, căn đáy theo ảnh full của giới tính; _head 128×128. Cánh: khung rộng 192×148 (gấp đôi, căn giữa), _back nằm SAU thân (hàng down/left/right), _front nằm TRƯỚC thân (hàng up, đã chừa đầu); _full rộng gấp đôi, cùng lề trên. crown/: vương miện / tiara của đồ Hoàng gia, đặt trên lớp tóc.",
+  "note": "Lớp chồng lên nhân vật (vẽ PIL, CC0). Tóc: sheet cùng khung 96×148 chồng trên thân; _full có lề trên fullPad px, căn đáy theo ảnh full của giới tính; _head 128×128. Cánh: khung rộng 192×148 (gấp đôi, căn giữa), _back nằm SAU thân (hàng down/left/right), _front nằm TRƯỚC thân (hàng up, đã chừa đầu); _full rộng gấp đôi, cùng lề trên. crown/: vương miện / tiara của đồ Hoàng gia, đặt trên lớp tóc. Mặt (face/): che mắt / lông mày / miệng gốc bằng màu da rồi vẽ nét mặt mới, cùng khung sprite (hàng up để trống), _full cùng cỡ ảnh full của giới tính, _head 128×128; đặt trên thân, dưới tóc.",
   "hair": {
    "short_spiky": {
     "name": "Tóc dựng",
@@ -337,6 +337,86 @@
   "fullPad": {
    "male": 73,
    "female": 65
+  },
+  "face": {
+   "smile": {
+    "name": "Cười tươi",
+    "male": {
+     "sheet": "face/smile_male.png",
+     "full": "face/smile_male_full.png",
+     "head": "face/smile_male_head.png"
+    },
+    "female": {
+     "sheet": "face/smile_female.png",
+     "full": "face/smile_female_full.png",
+     "head": "face/smile_female_head.png"
+    }
+   },
+   "wink": {
+    "name": "Nháy mắt",
+    "male": {
+     "sheet": "face/wink_male.png",
+     "full": "face/wink_male_full.png",
+     "head": "face/wink_male_head.png"
+    },
+    "female": {
+     "sheet": "face/wink_female.png",
+     "full": "face/wink_female_full.png",
+     "head": "face/wink_female_head.png"
+    }
+   },
+   "blush": {
+    "name": "Má hồng",
+    "male": {
+     "sheet": "face/blush_male.png",
+     "full": "face/blush_male_full.png",
+     "head": "face/blush_male_head.png"
+    },
+    "female": {
+     "sheet": "face/blush_female.png",
+     "full": "face/blush_female_full.png",
+     "head": "face/blush_female_head.png"
+    }
+   },
+   "cool": {
+    "name": "Kính râm",
+    "male": {
+     "sheet": "face/cool_male.png",
+     "full": "face/cool_male_full.png",
+     "head": "face/cool_male_head.png"
+    },
+    "female": {
+     "sheet": "face/cool_female.png",
+     "full": "face/cool_female_full.png",
+     "head": "face/cool_female_head.png"
+    }
+   },
+   "cat": {
+    "name": "Mèo con",
+    "male": {
+     "sheet": "face/cat_male.png",
+     "full": "face/cat_male_full.png",
+     "head": "face/cat_male_head.png"
+    },
+    "female": {
+     "sheet": "face/cat_female.png",
+     "full": "face/cat_female_full.png",
+     "head": "face/cat_female_head.png"
+    }
+   },
+   "star": {
+    "name": "Mắt lấp lánh",
+    "male": {
+     "sheet": "face/star_male.png",
+     "full": "face/star_male_full.png",
+     "head": "face/star_male_head.png"
+    },
+    "female": {
+     "sheet": "face/star_female.png",
+     "full": "face/star_female_full.png",
+     "head": "face/star_female_head.png"
+    }
+   }
   }
  }
 }

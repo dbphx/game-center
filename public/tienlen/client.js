@@ -6,7 +6,7 @@
   const I = window.Icons;
   const C = window.Character;
   // Avatar là mặt nhân vật của người chơi; máy dùng icon robot.
-  const face = (p) => (p.bot ? I.avatar('', { bot: true }) : C.head({ gender: p.gender, outfit: p.outfit, hair: p.hair, wings: p.wings }));
+  const face = (p) => (p.bot ? I.avatar('', { bot: true }) : C.head({ gender: p.gender, outfit: p.outfit, hair: p.hair, wings: p.wings, face: p.face }));
   const lv = (p) => (p.bot || !p.level ? '' : `<span class="lv-chip">Lv ${p.level}</span>`);
   const PLACES = ['Nhất', 'Nhì', 'Ba', 'Bét'];
   // Vị trí ghế theo số người, tính từ mình (luôn ở dưới) theo chiều đánh.
@@ -215,7 +215,7 @@
   function seatHtml(p, pos, room, open) {
     const chair = img(CHAIR[pos], 'art-chair');
     if (p) {
-      const look = p.bot ? BOT_LOOK : { gender: p.gender, outfit: p.outfit, hair: p.hair, wings: p.wings };
+      const look = p.bot ? BOT_LOOK : { gender: p.gender, outfit: p.outfit, hair: p.hair, wings: p.wings, face: p.face };
       const body = C.sprite(look, { dir: FACE[pos], size: 88, cls: 'seat-char' });
       const crown = p.host ? `<span class="seat-crown" title="Chủ bàn">${I.svg('crown')}</span>` : '';
       const lvl = p.bot || !p.level ? '<span class="lv-chip bot-chip">Máy</span>' : `<span class="lv-chip">Lv ${p.level}</span>`;
@@ -556,7 +556,7 @@
     (user) => {
       if (!user) return A.requireLogin();
       $('user-name').textContent = user.name;
-      $('user-avatar').innerHTML = C.head({ gender: user.gender, outfit: user.outfit, hair: user.hair, wings: user.wings });
+      $('user-avatar').innerHTML = C.head({ gender: user.gender, outfit: user.outfit, hair: user.hair, wings: user.wings, face: user.face });
       showBalance(user.balance);
       showLevel(user);
       render();

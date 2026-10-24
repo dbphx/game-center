@@ -14,7 +14,8 @@ import (
 //	4: trang phục phải mua ở shop; bảng user_outfits lưu các món đã có.
 //	5: máu (HP), nằm viện, thời điểm va chạm xe gần nhất.
 //	6: tóc và cánh mua ở shop thời trang; bảng user_items lưu các món đã có.
-const schemaVersion = 6
+//	7: gương mặt mua ở shop thời trang (lưu chung bảng user_items, kind 'face').
+const schemaVersion = 7
 
 const schemaV2 = `
 CREATE TABLE users (
@@ -98,11 +99,16 @@ ALTER TABLE users ADD COLUMN hair TEXT NOT NULL DEFAULT 'default';
 ALTER TABLE users ADD COLUMN wings TEXT NOT NULL DEFAULT '';
 CREATE TABLE user_items (
 	user_id    INTEGER NOT NULL REFERENCES users(id),
-	kind       TEXT NOT NULL, -- 'hair' hoặc 'wings'
+	kind       TEXT NOT NULL, -- 'hair', 'wings' hoặc 'face'
 	item       TEXT NOT NULL,
 	created_at INTEGER NOT NULL,
 	PRIMARY KEY (user_id, kind, item)
 );
+`
+
+// Người chơi cũ để gương mặt mặc định.
+const migrateV6toV7 = `
+ALTER TABLE users ADD COLUMN face TEXT NOT NULL DEFAULT 'default';
 `
 
 func migrate(db *sql.DB) error {
@@ -141,6 +147,9 @@ func migrate(db *sql.DB) error {
 	}
 	if version <= 5 {
 		steps = append(steps, migrateV5toV6)
+	}
+	if version <= 6 {
+		steps = append(steps, migrateV6toV7)
 	}
 
 	// Dựng lại bảng có khoá ngoại trỏ tới cần tắt kiểm tra khoá ngoại (không đổi được trong transaction).

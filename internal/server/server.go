@@ -59,7 +59,7 @@ func New(w *wallet.Wallet, static fs.FS, games []Game) *Server {
 		writeJSON(w, http.StatusOK, map[string]any{
 			"startBalance": wallet.StartBalance, "dailyBonus": wallet.DailyBonus,
 			"genders": wallet.Genders, "outfits": wallet.Outfits, "catalog": wallet.Catalog,
-			"hair": wallet.HairCatalog, "wings": wallet.WingsCatalog,
+			"hair": wallet.HairCatalog, "wings": wallet.WingsCatalog, "face": wallet.FaceCatalog,
 			"zoneMinHP": wallet.ZoneMinHP,
 			"hospital": map[string]int{
 				"dischargePrice": wallet.DischargePrice, "healPerHP": wallet.HealPerHP, "stayMinutes": wallet.HospitalStay / 60,

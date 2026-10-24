@@ -44,6 +44,8 @@ type User struct {
 	Wings         string   `json:"wings"`      // cánh đang đeo, rỗng là không cánh
 	OwnedHair     []string `json:"ownedHair"`  // kiểu tóc đã có ("default" + đã mua)
 	OwnedWings    []string `json:"ownedWings"` // cánh đã mua
+	Face          string   `json:"face"`       // gương mặt, "default" là mặt mặc định
+	OwnedFace     []string `json:"ownedFace"`  // gương mặt đã có ("default" + đã mua)
 	XP            int64    `json:"xp"`
 	Level         int      `json:"level"`
 	LevelXP       int64    `json:"levelXP"` // XP lúc bắt đầu level hiện tại
@@ -108,12 +110,12 @@ func addEntry(ctx context.Context, tx *sql.Tx, userID, delta, after int64, game,
 	return err
 }
 
-const userColumns = `id, coalesce(username, ''), name, balance, last_daily, gender, outfit, xp, hp, coalesce(hp_at, 0), hospital_until, hair, wings`
+const userColumns = `id, coalesce(username, ''), name, balance, last_daily, gender, outfit, xp, hp, coalesce(hp_at, 0), hospital_until, hair, wings, face`
 
 func (w *Wallet) scanUser(row *sql.Row) (User, error) {
 	var u User
 	var s hpState
-	err := row.Scan(&u.ID, &u.Username, &u.Name, &u.Balance, &u.lastDaily, &u.Gender, &u.Outfit, &u.XP, &s.hp, &s.hpAt, &s.hospitalUntil, &u.Hair, &u.Wings)
+	err := row.Scan(&u.ID, &u.Username, &u.Name, &u.Balance, &u.lastDaily, &u.Gender, &u.Outfit, &u.XP, &s.hp, &s.hpAt, &s.hospitalUntil, &u.Hair, &u.Wings, &u.Face)
 	if errors.Is(err, sql.ErrNoRows) {
 		return User{}, ErrNotFound
 	}
@@ -130,7 +132,7 @@ func (w *Wallet) User(ctx context.Context, id int64) (User, error) {
 	return w.withOwned(ctx)(w.scanUser(w.db.QueryRowContext(ctx, `SELECT `+userColumns+` FROM users WHERE id = ?`, id)))
 }
 
-// withOwned nạp danh sách trang phục, tóc, cánh đã có cho người dùng vừa đọc.
+// withOwned nạp danh sách trang phục, tóc, cánh, gương mặt đã có cho người dùng vừa đọc.
 func (w *Wallet) withOwned(ctx context.Context) func(User, error) (User, error) {
 	return func(u User, err error) (User, error) {
 		if err != nil {
@@ -142,7 +144,10 @@ func (w *Wallet) withOwned(ctx context.Context) func(User, error) (User, error) 
 		if u.OwnedHair, err = ownedItems(ctx, w.db, u.ID, KindHair); err != nil {
 			return u, err
 		}
-		u.OwnedWings, err = ownedItems(ctx, w.db, u.ID, KindWings)
+		if u.OwnedWings, err = ownedItems(ctx, w.db, u.ID, KindWings); err != nil {
+			return u, err
+		}
+		u.OwnedFace, err = ownedItems(ctx, w.db, u.ID, KindFace)
 		return u, err
 	}
 }

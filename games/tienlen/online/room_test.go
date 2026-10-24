@@ -458,14 +458,14 @@ func TestZeroBetIsFreePlay(t *testing.T) {
 	}
 }
 
-// Tóc và cánh của người chơi gửi ra bàn chơi và danh sách bàn ở sảnh để người khác thấy.
+// Tóc, cánh, gương mặt của người chơi gửi ra bàn chơi và danh sách bàn ở sảnh để người khác thấy.
 func TestHairAndWingsVisible(t *testing.T) {
 	h := NewHub(richBank(), slowOptions)
-	_, c := mustCreate(t, h, User{ID: 1, Name: "An", Hair: "bun", Wings: "angel"})
-	if p := c.lastState().Players[0]; p.Hair != "bun" || p.Wings != "angel" {
+	_, c := mustCreate(t, h, User{ID: 1, Name: "An", Hair: "bun", Wings: "angel", Face: "wink"})
+	if p := c.lastState().Players[0]; p.Hair != "bun" || p.Wings != "angel" || p.Face != "wink" {
 		t.Fatalf("bàn chơi: %+v", p)
 	}
-	if s := h.Rooms()[0].Players[0]; s.Hair != "bun" || s.Wings != "angel" {
+	if s := h.Rooms()[0].Players[0]; s.Hair != "bun" || s.Wings != "angel" || s.Face != "wink" {
 		t.Fatalf("sảnh: %+v", s)
 	}
 }

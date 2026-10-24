@@ -8,7 +8,8 @@ tô lại màu quần áo theo 6 trang phục, vẽ thêm chi tiết bằng thao
 tà áo dài, áo choàng, cổ lông, vương miện / tiara), dựng sprite sheet 4 hướng × 5 khung.
 Script dựng lại: build.py (lưu ngoài repo, trong thư mục làm việc của agent).
 
-Lớp tóc / cánh / vương miện (hair/, wings/, crown/, layers.json) — vẽ bằng PIL cho DCity, phát hành CC0 1.0.
+Lớp tóc / cánh / vương miện / gương mặt (hair/, wings/, crown/, face/) — vẽ bằng PIL cho DCity, phát hành CC0 1.0.
 Tóc: tô lại màu tóc gốc của nhân vật + vẽ thêm chỏm / đuôi / búi / bím; cánh: vẽ hình vector bằng PIL.
+Gương mặt: tô màu da che mắt / miệng gốc rồi vẽ nét mặt mới (mắt, miệng, má, kính, râu mèo) bằng PIL.
 Vương miện: cắt từ ảnh trang phục Hoàng gia (CC0 ở trên) để đội lên trên tóc mới.
 Mỗi lớp cùng bố cục khung với sprite nhân vật (xem manifest.json mục "layers").

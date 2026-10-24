@@ -43,7 +43,7 @@ func main() {
 func games(w *wallet.Wallet) []server.Game {
 	auth := func(ctx context.Context, token string) (online.User, error) {
 		u, err := w.UserByToken(ctx, token)
-		return online.User{ID: u.ID, Name: u.Name, Gender: u.Gender, Outfit: u.Outfit, Hair: u.Hair, Wings: u.Wings, Level: u.Level,
+		return online.User{ID: u.ID, Name: u.Name, Gender: u.Gender, Outfit: u.Outfit, Hair: u.Hair, Wings: u.Wings, Face: u.Face, Level: u.Level,
 			HP: u.HP, HospitalUntil: u.HospitalUntil}, err
 	}
 	opts := online.DefaultOptions
