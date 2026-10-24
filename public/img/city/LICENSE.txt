@@ -1,0 +1,27 @@
+Hình trong thư mục này được ghép / cắt từ các gói của Kenney (www.kenney.nl):
+
+- Roguelike Modern City 2.0 (https://kenney.nl/assets/roguelike-modern-city)
+- RPG Urban Pack 1.0 (https://kenney.nl/assets/rpg-urban-pack) — các ô nước có bờ cát (water_*, river_strip)
+
+Giấy phép: Creative Commons Zero (CC0 1.0) — http://creativecommons.org/publicdomain/zero/1.0/
+Dùng tự do cho dự án cá nhân, giáo dục và thương mại; ghi công Kenney là không bắt buộc nhưng được khuyến khích.
+
+Các file building_*.png, house_*.png, river_strip.png được ghép từ nhiều ô gốc (9-slice mái, mặt tiền, cửa, mái hiên, biển hiệu).
+
+Hình tự vẽ (pixel art bằng Python PIL, theo bảng màu Roguelike Modern City; phát hành cùng giấy phép CC0 1.0):
+- boat_motor.png: Ca nô trắng sọc cam có cabin kính, nhìn chéo 3/4, mũi hướng PHẢI
+- boat_row.png: Thuyền chèo gỗ có hai mái chèo, mũi hướng PHẢI
+- bridge_rail_h.png: Lan can cầu bằng đá (tay vịn + con tiện), lặp ngang
+- bridge_rail_v.png: Lan can cầu xoay dọc, lặp dọc
+- bridge_post.png: Trụ đầu cầu bằng đá
+- bridge_side.png: Thành cầu (mặt tường đá nhìn bên hông, ngay dưới mặt cầu)
+- sign_casino.png: Biển neon CASINO: nền tím than, khung hồng, chữ vàng có quầng cam
+- sign_casino_off.png: Biển CASINO lúc tắt đèn (chữ tối)
+
+Khu Bệnh viện (ghép / tô lại từ Kenney Roguelike Modern City và Roguelike Indoors bằng Python PIL, phần thêm tự vẽ; CC0 1.0):
+- building_hospital.png: Bệnh viện: mái phẳng trắng xám có bãi đáp chữ H, biển chữ thập đỏ lớn, tường trắng sọc đỏ, cửa kính đôi có mái che đỏ
+- ambulance_side.png: Xe cứu thương trắng sọc đỏ nhìn bên hông, đèn ưu tiên đỏ-xanh trên nóc (tô lại từ car_grey_side)
+- ambulance_front.png: Xe cứu thương nhìn đầu xe (tô lại từ car_grey_front)
+- ambulance_back.png: Xe cứu thương nhìn đuôi xe (tô lại từ car_grey_back)
+- hospital_bed.png: Giường bệnh khung kim loại, chăn xanh nhạt, có cọc truyền dịch (tô lại từ giường Kenney Roguelike Indoors)
+- Roguelike Indoors (https://kenney.nl/assets/roguelike-indoors): giường gốc của hospital_bed.png.
