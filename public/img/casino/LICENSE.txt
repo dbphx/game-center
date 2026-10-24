@@ -1,6 +1,0 @@
-Ảnh trong thư mục này được cắt / ghép / đổi màu từ:
-
-  Roguelike Indoor pack — Kenney Vleugels (https://kenney.nl/assets/roguelike-indoors)
-  License: Creative Commons Zero (CC0) — http://creativecommons.org/publicdomain/zero/1.0/
-
-Bàn nỉ (table_felt.png) và thảm (rug_red.png) ghép 9-slice từ tile gốc; thảm và sàn được đổi màu.

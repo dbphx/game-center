@@ -1,0 +1,150 @@
+{
+ "style": "Hoạt hình 2D tươi sáng (định hướng giống game Avatar), không pixel",
+ "images": [
+  {
+   "file": "floor_carpet.png",
+   "w": 96,
+   "h": 96,
+   "use": "Sàn thảm đỏ hoa văn vàng (lặp)",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "table_felt.png",
+   "w": 220,
+   "h": 150,
+   "use": "Bàn bài nỉ xanh viền gỗ (nhìn từ trên)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "chair_down.png",
+   "w": 64,
+   "h": 72,
+   "use": "Ghế đệm đỏ, người ngồi nhìn down",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "chair_up.png",
+   "w": 64,
+   "h": 72,
+   "use": "Ghế đệm đỏ, người ngồi nhìn up",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "chair_left.png",
+   "w": 64,
+   "h": 72,
+   "use": "Ghế đệm đỏ, người ngồi nhìn left",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "chair_right.png",
+   "w": 64,
+   "h": 72,
+   "use": "Ghế đệm đỏ, người ngồi nhìn right",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "plant.png",
+   "w": 70,
+   "h": 100,
+   "use": "Chậu cây cảnh",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Background Elements Remastered",
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "chip_1.png",
+   "w": 40,
+   "h": 45,
+   "use": "Phỉnh casino (trang trí)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "2D Poker Pack"
+   ]
+  },
+  {
+   "file": "chip_2.png",
+   "w": 40,
+   "h": 45,
+   "use": "Phỉnh casino (trang trí)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "2D Poker Pack"
+   ]
+  },
+  {
+   "file": "chip_3.png",
+   "w": 40,
+   "h": 45,
+   "use": "Phỉnh casino (trang trí)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "2D Poker Pack"
+   ]
+  },
+  {
+   "file": "chip_4.png",
+   "w": 40,
+   "h": 45,
+   "use": "Phỉnh casino (trang trí)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "2D Poker Pack"
+   ]
+  },
+  {
+   "file": "roulette.png",
+   "w": 180,
+   "h": 255,
+   "use": "Vòng quay roulette (trang trí)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "Roulette Casino"
+   ],
+   "note": "ảnh promo gốc, có thể kèm nền"
+  },
+  {
+   "file": "felt_tile.png",
+   "w": 128,
+   "h": 128,
+   "use": "Nền nỉ xanh lặp cho bàn chơi trong ván",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  }
+ ]
+}

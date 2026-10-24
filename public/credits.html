@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ghi công hình ảnh · DCity</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/common.css">
+  <style>
+    .credits { width: 100%; max-width: 980px; margin: 0 auto; padding: 24px 16px 48px; display: flex; flex-direction: column; gap: 18px; }
+    .credits-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .credits-head h1 { margin: 0; font-size: 32px; color: #fff; text-shadow: 0 3px 0 #2a86c9, 0 0 10px rgba(0, 60, 120, .25); flex: 1; }
+    .credits-intro { margin: 0; }
+    .folder { gap: 12px; max-width: none; }
+    .folder h2 { margin: 0; display: flex; align-items: center; gap: 10px; font-size: 22px; }
+    .folder h2 code { font-family: ui-monospace, Menlo, monospace; font-size: 13px; padding: 2px 8px; border-radius: 8px; background: var(--surface-2); color: var(--muted); }
+    .license { margin: 0; padding: 12px 14px; border-radius: 14px; background: #fff; border: 2px solid var(--border); white-space: pre-wrap; font: 600 13px/1.6 var(--font); color: var(--text); }
+    .license a { color: var(--blue); }
+    table.csv { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; border-radius: 14px; overflow: hidden; border: 2px solid var(--border); }
+    table.csv th, table.csv td { padding: 7px 10px; text-align: left; border-bottom: 1px solid #f3e2c2; vertical-align: top; }
+    table.csv th { background: var(--surface-2); font-weight: 900; }
+    table.csv a { color: var(--blue); word-break: break-all; }
+    .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+    .thumb { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; border-radius: 14px; background: #fff; border: 2px solid #f3e2c2; font-size: 11px; font-weight: 700; color: var(--muted); text-align: center; }
+    .thumb img { width: 64px; height: 64px; object-fit: contain; }
+    .thumb img.px { image-rendering: pixelated; }
+    .thumb span { word-break: break-all; line-height: 1.2; }
+    .thumb em { font-style: normal; color: #b45309; }
+    details summary { cursor: pointer; font-weight: 800; color: var(--gold); }
+    .empty-note { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"><i data-icon="arrowLeft"></i><span id="logo"></span><span class="brand-text">DCity</span></a>
+  </header>
+
+  <main class="credits">
+    <div class="credits-head">
+      <h1>Ghi công hình ảnh</h1>
+      <a class="btn primary" href="/"><i data-icon="mapPin"></i>Về thành phố</a>
+    </div>
+    <div class="panel folder">
+      <p class="credits-intro">DCity dùng hình ảnh mở từ cộng đồng. Cảm ơn các tác giả! Mỗi mục dưới đây liệt kê nguồn, giấy phép
+        và các file hình đang dùng. Hình theo giấy phép CC-BY / CC-BY-SA / GPL được ghi tên tác giả đầy đủ; hình chỉnh sửa từ
+        CC-BY-SA giữ cùng giấy phép.</p>
+    </div>
+    <div id="folders"><p class="empty-note">Đang tải...</p></div>
+  </main>
+
+  <script src="/icons.js"></script>
+  <script>
+    (function () {
+      'use strict';
+      // Các thư mục hình đã biết; thư mục chưa có (404) sẽ được bỏ qua.
+      const FOLDERS = [
+        ['toon/city', 'Thành phố (hoạt hình)'],
+        ['toon/farm', 'Nông trại (hoạt hình)'],
+        ['toon/casino', 'Casino (hoạt hình)'],
+        ['toon/hospital', 'Bệnh viện (hoạt hình)'],
+        ['characters', 'Nhân vật'],
+        ['city', 'Thành phố'],
+        ['farm', 'Nông trại'],
+        ['casino', 'Casino'],
+      ];
+      const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+      const linkify = (s) => esc(s).replace(/https?:\/\/[^\s)<]+/g, (u) => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
+
+      async function get(url, kind) {
+        try {
+          const r = await fetch(url);
+          if (!r.ok) return null;
+          return kind === 'json' ? await r.json() : await r.text();
+        } catch (e) {
+          return null;
+        }
+      }
+
+      // CSV đơn giản: hỗ trợ trường có dấu ngoặc kép.
+      function parseCSV(text) {
+        const rows = [];
+        let row = [], cell = '', q = false;
+        for (let i = 0; i < text.length; i++) {
+          const c = text[i];
+          if (q) {
+            if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+            else if (c === '"') q = false;
+            else cell += c;
+          } else if (c === '"') q = true;
+          else if (c === ',') { row.push(cell); cell = ''; }
+          else if (c === '\n' || c === '\r') {
+            if (c === '\r' && text[i + 1] === '\n') i++;
+            row.push(cell); cell = '';
+            if (row.some((x) => x.trim())) rows.push(row);
+            row = [];
+          } else cell += c;
+        }
+        row.push(cell);
+        if (row.some((x) => x.trim())) rows.push(row);
+        return rows;
+      }
+
+      // Lấy danh sách file hình từ manifest (nhiều định dạng khác nhau giữa các thư mục).
+      function imagesOf(m) {
+        if (!m) return [];
+        if (Array.isArray(m)) return m;
+        if (Array.isArray(m.images)) return m.images;
+        if (Array.isArray(m.files)) return m.files;
+        if (m.looks && typeof m.looks === 'object') {
+          return Object.entries(m.looks).map(([id, v]) => ({ file: v.full || v.sheet, desc: id }));
+        }
+        if (m.images && typeof m.images === 'object') return Object.entries(m.images).map(([file, v]) => ({ file, ...v }));
+        return [];
+      }
+
+      function csvTable(text) {
+        const rows = parseCSV(text);
+        if (!rows.length) return '';
+        const [head, ...body] = rows;
+        return `<table class="csv"><thead><tr>${head.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead>
+          <tbody>${body.map((r) => `<tr>${r.map((c) => `<td>${linkify(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+      }
+
+      // Danh sách file trong một thư mục (server liệt kê thư mục dạng HTML); null nếu thư mục chưa có.
+      // Đi từng cấp từ /img/ để không gọi tới thư mục không tồn tại (tránh lỗi 404).
+      const hrefs = (html) => new Set([...html.matchAll(/href="([^"]+)"/g)].map((m) => decodeURIComponent(m[1])));
+      async function listing(dir) {
+        let path = '/img/';
+        let files = hrefs((await get(path)) || '');
+        for (const part of dir.split('/')) {
+          if (!files.has(part + '/')) return null;
+          path += part + '/';
+          files = hrefs((await get(path)) || '');
+        }
+        return files;
+      }
+
+      async function folder([dir, title]) {
+        const base = `/img/${dir}/`;
+        const files = await listing(dir);
+        if (!files) return '';
+        const want = (f, kind) => (files.has(f) ? get(base + f, kind) : null);
+        const [manifest, license, credits] = await Promise.all([
+          want('manifest.json', 'json'),
+          want('LICENSE.txt'),
+          want('CREDITS.csv'),
+        ]);
+        if (!manifest && !license && !credits) return '';
+        const imgs = imagesOf(manifest).filter((x) => x && x.file);
+        const px = manifest && (manifest.pixelated || /pixel/i.test(manifest.style || ''));
+        const thumbs = imgs.map((x) => {
+          const pixel = x.pixelated || px;
+          const src = x.source ? `<em>${esc(x.source)}</em>` : '';
+          return `<div class="thumb"><img class="${pixel ? 'px' : ''}" src="${base}${esc(x.file)}" alt="" loading="lazy"><span>${esc(x.file)}</span>${src}</div>`;
+        }).join('');
+        return `<section class="panel folder">
+          <h2><i data-icon="scroll"></i>${esc(title)} <code>${esc(base)}</code></h2>
+          ${license ? `<pre class="license">${linkify(license.trim())}</pre>` : ''}
+          ${credits ? `<details open><summary>Tác giả từng file (CREDITS.csv)</summary>${csvTable(credits)}</details>` : ''}
+          ${thumbs ? `<details><summary>${imgs.length} hình đang dùng</summary><div class="thumbs">${thumbs}</div></details>` : ''}
+        </section>`;
+      }
+
+      (async () => {
+        if (window.Icons && Icons.logo) document.getElementById('logo').innerHTML = Icons.logo(32);
+        const parts = await Promise.all(FOLDERS.map(folder));
+        const html = parts.filter(Boolean).join('');
+        const el = document.getElementById('folders');
+        el.style.display = 'flex';
+        el.style.flexDirection = 'column';
+        el.style.gap = '18px';
+        el.innerHTML = html || '<p class="empty-note">Chưa có thông tin ghi công.</p>';
+        if (window.Icons) Icons.render(el);
+      })();
+    })();
+  </script>
+</body>
+</html>

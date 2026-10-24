@@ -35,13 +35,17 @@
 
 ## Hiện trạng
 
+Toàn game theo phong cách hoạt hình Avatar (bộ pixel cũ đã xoá, còn trong lịch sử git):
+
 | Chỗ | Hình |
 |---|---|
-| `public/city.js` bản đồ | canvas + ảnh `public/img/city/` (Kenney Roguelike Modern City / RPG Urban + vài hình tự vẽ cùng bảng màu: thuyền, cầu, biển CASINO, bệnh viện, xe cứu thương) |
-| `public/character.js` nhân vật | sprite `public/img/characters/` (RPG Urban, 2 giới tính × 6 trang phục, 4 hướng, bước đi, nằm, nháy đỏ) |
-| `public/tienlen/` sảnh casino + bàn chơi | `public/img/casino/` (Roguelike Indoors) |
-| `public/farm/` nông trại | `public/img/farm/` (Tiny Farm / Tiny Town / RPG Urban / Fish Pack) |
+| `public/city.js` bản đồ | canvas + ảnh `public/img/toon/city/` (+ nông trại dùng `toon/farm/`) |
+| `public/character.js` nhân vật | `public/img/characters/` — chibi hoạt hình (Kenney Toon Characters, đầu phóng to), 4 hướng, bước, nằm, nháy đỏ, avatar, toàn thân |
+| `public/farm/` nông trại | `public/img/toon/farm/` |
+| `public/tienlen/` sảnh casino + bàn chơi | `public/img/toon/casino/` |
+| Bệnh viện | `public/img/toon/hospital/`, xe cứu thương ở `toon/city/` |
+| `/credits.html` | tổng hợp ghi công từ manifest / CREDITS.csv / LICENSE.txt |
 | `public/icons.js` | icon giao diện SVG nhỏ trong nút — ngoại lệ, giữ |
 
-Hình còn tạm (thiếu trong gói Kenney): heo (bò đổi màu), lúa (lúa mì), dưa hấu (bắp cải), dâu tây (bụi quả mọng), cá vẽ đơn giản.
-Muốn thay thì vẽ pixel PNG cùng phong cách và cập nhật manifest.
+Nguồn hiện tại đều CC0 (Kenney, OpenGameArt; phần tự ghép bằng PIL phát hành CC0).
+Hạn chế: xe chỉ có ảnh nghiêng (chỉ chạy đường ngang); nhân vật hướng lên/xuống nhún thay vì bước; nằm = xoay 90°.

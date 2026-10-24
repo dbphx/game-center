@@ -340,7 +340,7 @@
       const online = g && g.online ? `${g.online.players} người đang chơi · ${g.online.rooms} phòng` : '';
       return `${panelHead('casino', 'Casino', online || 'Sòng bài thành phố')}
         <div class="panel-section">
-          <div class="panel-art">${I.cardFan()}</div>
+          <div class="panel-art">${C.svg({ gender: 'male', outfit: 'suit' }, { cls: 'art' })}${C.svg({ gender: 'female', outfit: 'royal' }, { cls: 'art' })}</div>
           <h2 style="margin:0">Tiến Lên Miền Nam</h2>
           <p class="muted" style="margin:0">${g ? A.escapeHtml(g.description) : ''}</p>
           <div class="stats">

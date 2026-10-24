@@ -1,0 +1,38 @@
+{
+ "style": "Hoạt hình 2D tươi sáng (định hướng giống game Avatar), không pixel",
+ "images": [
+  {
+   "file": "bed.png",
+   "w": 120,
+   "h": 170,
+   "use": "Giường bệnh (nhìn từ trên, đầu giường ở trên)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "red_cross.png",
+   "w": 64,
+   "h": 64,
+   "use": "Biển chữ thập đỏ",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "floor_tile.png",
+   "w": 96,
+   "h": 96,
+   "use": "Sàn gạch bệnh viện (lặp)",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  }
+ ]
+}

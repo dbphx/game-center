@@ -1,352 +1,355 @@
-/* Nông trại DCity: ruộng ô đất, chuồng gia súc, ao cá, cửa hàng.
-   Nền đất / cỏ / hàng rào / mái / nước là pixel art Kenney (public/img/farm, CC0) phóng to 3 lần. */
+/* Nông trại DCity — phong cách hoạt hình kiểu game "Avatar": trời xanh, mây, đồi, hàng rào gỗ,
+   ruộng ô đất đỏ nâu viền cỏ. Ảnh hoạt hình CC0 trong public/img/toon/farm (xem manifest.json, CREDITS.csv). */
 
-:root { --tile: 48px; }
+:root {
+  --plot: 104px;
+  --cols: 6;
+}
 
-.pixel, .pixel img, img.pixel { image-rendering: pixelated; image-rendering: crisp-edges; }
+img.toon { display: block; user-select: none; -webkit-user-drag: none; }
 
 .farm {
   width: 100%;
   max-width: 1240px;
   margin: 0 auto;
-  padding: 22px 18px 48px;
+  padding: 18px 16px 48px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
 }
 
 /* ---------- Thanh tiêu đề ---------- */
 
-.farm-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-.farm-title { display: flex; align-items: center; gap: 14px; }
-.farm-title h1 { margin: 0; font-size: 24px; font-weight: 800; }
+.farm-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  padding: 12px 16px; border-radius: var(--radius);
+  background: var(--surface); border: 3px solid var(--border); box-shadow: var(--shadow);
+}
+.farm-title { display: flex; align-items: center; gap: 12px; }
+.farm-title h1 { margin: 0; font-size: 26px; font-weight: 800; color: var(--text); line-height: 1.1; }
 .farm-title .muted { margin: 2px 0 0; }
 .farm-icon {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 52px; height: 52px; border-radius: 14px;
-  background: rgba(124, 197, 118, .18); color: #9ee6a0; flex-shrink: 0;
+  width: 50px; height: 50px; border-radius: 16px; flex-shrink: 0;
+  background: linear-gradient(180deg, #b6ec8c, #6cc04a); color: #fff;
+  border: 2px solid #4f9a32; box-shadow: inset 0 2px 0 rgba(255, 255, 255, .5);
 }
 .farm-icon .icon { width: 26px; height: 26px; }
 .farm-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
-.section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
-.section-head h2 { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 18px; font-weight: 800; color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, .35); }
+.section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.section-head h2 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 22px; font-weight: 800; color: var(--text); }
 .section-head h2 .icon { color: var(--gold); }
-.section-head .muted { color: #eaf6ea; text-shadow: 0 1px 0 rgba(0, 0, 0, .4); font-weight: 600; }
 
-/* ---------- Ruộng ---------- */
+/* ---------- HP trên topbar ---------- */
 
-.field-card, .pen-card {
-  position: relative;
-  padding: 18px;
-  border-radius: 18px;
-  border: 4px solid #3f6b2f;
-  background-color: #6fbf4a;
-  background-image: url('/img/farm/grass.png');
-  background-size: var(--tile) var(--tile);
-  image-rendering: pixelated;
-  box-shadow: var(--shadow), inset 0 0 0 2px rgba(255, 255, 255, .15);
+.hp-pill {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 7px; border-radius: 999px;
+  background: linear-gradient(180deg, #fff, #ffe9e9); border: 2px solid #f3a6a6; font-size: 13px; white-space: nowrap;
 }
+.hp-pill:empty { display: none; }
+.hp-pill .icon { width: 17px; height: 17px; fill: #ff4d4d; color: #c92a2a; }
+.hp-pill b { color: #7a1d1d; font-variant-numeric: tabular-nums; }
+.hp-pill .hp-bar { display: inline-block; width: 56px; height: 8px; border-radius: 999px; background: #f6d0d0; overflow: hidden; }
+.hp-pill .hp-bar > span { display: block; height: 100%; background: linear-gradient(180deg, #8ee08a, #3aa94a); }
+.hp-pill.low .hp-bar > span { background: linear-gradient(180deg, #ffb3b3, #e03131); }
+.hp-pill.low .icon { animation: beat 1s ease-in-out infinite; }
+@keyframes beat { 50% { transform: scale(1.2); } }
 
-.field { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
+/* ---------- Cảnh ruộng ---------- */
 
-.plot {
+.scene {
   position: relative;
-  aspect-ratio: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 6px;
-  border: 4px solid #6b4a2f;
-  border-radius: 8px;
-  background-color: #c98b4f;
-  background-image: url('/img/farm/bed_v.png'), url('/img/farm/soil.png');
-  background-size: var(--tile) calc(var(--tile) * 4), var(--tile) var(--tile);
-  background-position: center top, 0 0;
-  image-rendering: pixelated;
-  box-shadow: 0 4px 0 rgba(0, 0, 0, .25);
-  cursor: pointer;
+  border-radius: 26px;
   overflow: hidden;
-  font-family: var(--font);
-  color: #fff;
-  transition: transform .12s, box-shadow .12s;
+  border: 4px solid #fff3d6;
+  box-shadow: var(--shadow);
+  background: url('/img/toon/farm/grass_tile.png') repeat;
+  background-size: 128px;
 }
-.plot:hover { transform: translateY(-2px); box-shadow: 0 7px 0 rgba(0, 0, 0, .22); }
-.plot .crop {
-  position: absolute;
-  inset: 8px 8px 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-.plot .crop img { image-rendering: pixelated; filter: drop-shadow(0 3px 0 rgba(0, 0, 0, .25)); }
-.plot .plot-label {
+
+/* Trời + đồi + mây + hàng rào + cây ở đường chân trời */
+.sky {
   position: relative;
-  z-index: 1;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 4px 6px;
-  border-radius: 6px;
-  background: rgba(30, 18, 8, .62);
-  font-size: 12px;
-  font-weight: 700;
-  text-align: center;
-  line-height: 1.2;
+  height: 210px;
+  background: url('/img/toon/farm/bg_sky_hills.png') center bottom / cover no-repeat, linear-gradient(#6cc4f5, #c4ecff);
 }
-.plot .plot-label .sub { font-weight: 600; color: #ffe7a8; font-variant-numeric: tabular-nums; }
-.plot .bar { height: 5px; border-radius: 999px; background: rgba(255, 255, 255, .2); overflow: hidden; }
-.plot .bar > span { display: block; height: 100%; background: linear-gradient(90deg, #8bd36a, #f6c744); }
-
-.plot.empty .crop { color: rgba(255, 255, 255, .85); font-weight: 800; font-size: 34px; text-shadow: 0 2px 0 rgba(0, 0, 0, .35); }
-.plot.empty .plot-label { background: rgba(30, 18, 8, .45); }
-.plot.ripe { border-color: #e0a800; box-shadow: 0 0 0 3px rgba(246, 199, 68, .6), 0 4px 0 rgba(0, 0, 0, .25); }
-.plot.ripe .crop { animation: sway 1.4s ease-in-out infinite; }
-.plot.ripe .plot-label { background: linear-gradient(180deg, #ffd766, #e0a800); color: #2a1d00; }
-@keyframes sway { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg) translateY(-2px); } }
-
-.plot.buy, .plot.locked {
-  background-color: #8a8a7a;
-  background-image: url('/img/farm/grass_tuft.png');
-  background-size: var(--tile) var(--tile);
-  border-style: dashed;
-  border-color: rgba(60, 40, 20, .7);
-  filter: saturate(.55);
+.cloud { position: absolute; background: center / contain no-repeat; opacity: .95; animation: drift linear infinite; }
+.cloud.c1 { width: 150px; height: 90px; top: 12px; left: -10%; background-image: url('/img/toon/farm/cloud_1.png'); animation-duration: 70s; }
+.cloud.c2 { width: 120px; height: 95px; top: 30px; left: 30%; background-image: url('/img/toon/farm/cloud_2.png'); animation-duration: 95s; animation-delay: -40s; }
+.cloud.c3 { width: 170px; height: 110px; top: 4px; left: 65%; background-image: url('/img/toon/farm/cloud_3.png'); animation-duration: 85s; animation-delay: -20s; }
+@keyframes drift { from { transform: translateX(-30vw); } to { transform: translateX(110vw); } }
+.fence-row {
+  position: absolute; left: 0; right: 0; bottom: -6px; height: 56px;
+  background: url('/img/toon/farm/fence_row.png') left bottom / auto 56px repeat-x;
+  z-index: 2;
 }
-.plot.buy { filter: none; border-color: #e0a800; }
-.plot.locked { cursor: default; opacity: .75; }
+.tree { position: absolute; bottom: -18px; background: center bottom / contain no-repeat; z-index: 3; pointer-events: none; }
+.tree.t-left { left: -14px; width: 200px; height: 270px; background-image: url('/img/toon/farm/tree_big.png'); }
+.tree.t-right { right: -10px; width: 170px; height: 230px; background-image: url('/img/toon/farm/tree_big.png'); transform: scaleX(-1); }
+.tree.t-mid { left: 58%; bottom: 30px; width: 90px; height: 124px; background-image: url('/img/toon/farm/tree_med.png'); z-index: 1; }
+
+/* Mặt đất: cột đường đất bên trái (nhân vật đứng), ruộng bên phải */
+.ground {
+  position: relative;
+  display: grid;
+  grid-template-columns: 210px 1fr;
+  min-height: 260px;
+}
+.path-col {
+  position: relative;
+  background: url('/img/toon/farm/dirt_path_tile.png') repeat;
+  background-size: 128px;
+  box-shadow: inset -10px 0 12px -8px rgba(90, 60, 20, .35);
+  display: flex; align-items: center; justify-content: center;
+}
+.path-row {
+  height: 64px;
+  background: url('/img/toon/farm/dirt_path_tile.png') repeat;
+  background-size: 128px;
+  box-shadow: inset 0 10px 12px -8px rgba(90, 60, 20, .35), inset 0 -10px 12px -8px rgba(90, 60, 20, .35);
+}
+.decor.wheelbarrow { position: absolute; left: 14px; bottom: 10px; width: 72px; height: 66px; background: url('/img/toon/farm/wheelbarrow.png') center / contain no-repeat; }
+
+/* Nhân vật + nhãn tên giống ảnh mẫu */
+.me { position: relative; display: flex; flex-direction: column; align-items: center; margin-top: 18px; animation: idle 2.4s ease-in-out infinite; }
+.me::after { content: ''; position: absolute; bottom: -4px; width: 60px; height: 14px; border-radius: 50%; background: rgba(60, 40, 10, .25); z-index: -1; }
+@keyframes idle { 50% { transform: translateY(-3px); } }
+.me-tag {
+  display: inline-flex; align-items: center; gap: 6px; margin-bottom: 4px; padding: 3px 10px 3px 4px; border-radius: 999px;
+  background: linear-gradient(180deg, #fffbe9, #ffe3a3); border: 2px solid #c9893f; color: #5a2c00;
+  font-family: var(--font-title); font-weight: 800; font-size: 14px; white-space: nowrap;
+  box-shadow: 0 3px 0 rgba(140, 80, 20, .3);
+}
+.me-tag .lv { padding: 0 8px; border-radius: 999px; background: linear-gradient(180deg, #ffe66b, #ff9a1a); color: #5a2800; font-size: 12px; }
+
+/* Ruộng: lưới ô đất */
+.field-wrap { position: relative; padding: 30px 26px 18px; }
+.field-head { position: absolute; left: 26px; top: 8px; z-index: 4; }
+.plot-count {
+  display: inline-block; padding: 3px 12px; border-radius: 999px; font-size: 13px; font-weight: 800;
+  background: rgba(255, 252, 240, .92); border: 2px solid #e2b874; color: var(--text);
+}
+/* Ruộng là một mảnh liền: các ô đất sát nhau trên nền cỏ đậm, như ảnh mẫu. */
+.field {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), var(--plot));
+  grid-auto-rows: var(--plot);
+  gap: 4px;
+  justify-content: center;
+  width: max-content;
+  max-width: 100%;
+  margin: 18px auto 6px;
+  padding: 10px 10px 14px;
+  border-radius: 22px;
+  background: rgba(86, 160, 52, .55);
+  box-shadow: inset 0 0 0 3px rgba(60, 120, 30, .35), 0 6px 0 rgba(60, 110, 30, .35);
+}
+.plot {
+  position: relative; width: var(--plot); height: var(--plot);
+  cursor: pointer; border-radius: 16px; transition: transform .12s;
+}
+.plot:hover { transform: translateY(-3px); }
+.plot .soil { position: absolute; inset: 0; background: url('/img/toon/farm/soil_plot.png') center / 100% 100% no-repeat; filter: drop-shadow(0 4px 0 rgba(70, 120, 30, .45)); }
+.plot .soil.wet { background-image: url('/img/toon/farm/soil_plot_wet.png'); }
+.plot .soil.grass { background-image: url('/img/toon/farm/grass_plot.png'); }
+.plot .crop {
+  position: absolute; left: 50%; bottom: 24%; transform: translateX(-50%);
+  pointer-events: none; z-index: 1;
+}
+.plot .crop img { width: calc(var(--plot) * .95); height: auto; transform-origin: 50% 100%; }
+.plot .crop img.big { width: calc(var(--plot) * 1.06); }
+.plot.ripe .crop img { animation: sway 1.6s ease-in-out infinite; }
+@keyframes sway { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+.plot.growing .crop img { animation: sway 4s ease-in-out infinite; }
+
+.tag-pill {
+  position: absolute; left: 50%; bottom: -10px; transform: translateX(-50%); z-index: 2;
+  display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+  font-size: 11px; font-weight: 900; color: #5a2c00;
+  background: linear-gradient(180deg, #fffdf2, #ffe9b8); border: 2px solid #d9a85a;
+  box-shadow: 0 2px 0 rgba(120, 70, 20, .25);
+}
+.tag-pill .icon { width: 12px; height: 12px; }
+.tag-pill.add { color: #2f7a1e; border-color: #7cc04f; background: linear-gradient(180deg, #fbfff3, #d9f7c0); opacity: 0; transition: opacity .15s; }
+.plot.empty:hover .tag-pill.add, .plot.empty .tag-pill.add:focus { opacity: 1; }
+.plot.empty .soil::after {
+  content: '+'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font: 900 30px var(--font-title); color: rgba(255, 255, 255, .7); text-shadow: 0 2px 0 rgba(120, 40, 20, .35);
+}
+.tag-pill.go { color: #fff; background: linear-gradient(180deg, #ffd34d, #ff8a00); border-color: #c76b00; text-shadow: 0 1px 0 rgba(120, 50, 0, .5); }
+.tag-pill.price { color: #8a4b00; }
+.tag-pill .bar { display: inline-block; width: 30px; height: 6px; border-radius: 999px; background: #f3dcb0; overflow: hidden; }
+.tag-pill .bar > span { display: block; height: 100%; background: linear-gradient(90deg, #8ee08a, #3aa94a); }
+.harvest-arrow {
+  position: absolute; left: 50%; top: -34px; transform: translateX(-50%); z-index: 3;
+  color: #ffcf2e; filter: drop-shadow(0 2px 0 #b06a00); animation: bounce .8s ease-in-out infinite;
+}
+.harvest-arrow .icon { width: 30px; height: 30px; stroke-width: 4; }
+@keyframes bounce { 50% { transform: translate(-50%, -6px); } }
+.plot.buy .lock, .plot.locked .lock {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #6d5a3a;
+}
+.plot.buy .lock .icon, .plot.locked .lock .icon { width: 30px; height: 30px; padding: 6px; border-radius: 50%; background: rgba(255, 255, 255, .85); box-shadow: 0 2px 0 rgba(0, 0, 0, .15); }
+.plot.locked { cursor: default; opacity: .62; }
 .plot.locked:hover { transform: none; }
-.plot.buy .crop, .plot.locked .crop { color: #fff; }
-.plot.buy .crop .icon, .plot.locked .crop .icon { width: 34px; height: 34px; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, .4)); }
+.plot.buy .soil { filter: drop-shadow(0 4px 0 rgba(70, 120, 30, .45)) saturate(1.1); }
+.plot.buy { animation: glow 2s ease-in-out infinite; }
+@keyframes glow { 50% { filter: drop-shadow(0 0 8px rgba(255, 210, 60, .9)); } }
+
+/* Hàng bụi cây phía dưới cảnh */
+.bushes {
+  height: 58px;
+  background:
+    url('/img/toon/farm/bush_1.png') 0 100% / 120px 60px repeat-x;
+  filter: hue-rotate(-12deg) saturate(1.1);
+}
 
 /* ---------- Chuồng và ao ---------- */
 
-.pens { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-
-.cap { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; color: #fff; font-weight: 700; font-size: 13px; text-shadow: 0 1px 0 rgba(0, 0, 0, .4); }
-.cap .cap-bar { flex: 1; height: 10px; border-radius: 999px; background: rgba(0, 0, 0, .3); overflow: hidden; }
-.cap .cap-bar > span { display: block; height: 100%; background: linear-gradient(90deg, #8bd36a, #f6c744); }
+.pens { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.pen-card {
+  position: relative; padding: 16px; border-radius: var(--radius);
+  background: var(--surface); border: 3px solid var(--border); box-shadow: var(--shadow);
+}
+.cap { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-weight: 800; font-size: 14px; }
+.cap-bar { flex: 1; height: 12px; border-radius: 999px; background: #f3e2c0; border: 2px solid #e2c48f; overflow: hidden; }
+.cap-bar > span { display: block; height: 100%; background: linear-gradient(90deg, #8ee08a, #3aa94a); }
 .cap button { padding: 6px 12px; font-size: 13px; }
 
-/* Bãi nhốt: cỏ, hàng rào gỗ bốn phía. */
 .pen {
-  position: relative;
-  height: 230px;
-  border-radius: 6px;
-  background-color: #7cc54f;
-  background-image: url('/img/farm/grass_tuft.png'), url('/img/farm/grass.png');
-  background-size: var(--tile) var(--tile), var(--tile) var(--tile);
-  background-position: 0 0, 0 0;
-  background-repeat: space, repeat;
-  image-rendering: pixelated;
-  overflow: hidden;
+  position: relative; height: 270px; border-radius: 18px; overflow: hidden;
+  border: 3px solid #b9dc8f;
+  background: url('/img/toon/farm/grass_tile.png') repeat; background-size: 128px;
 }
-.pen::before, .pen::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: var(--tile);
-  background-image: url('/img/farm/fence_mid.png');
-  background-size: var(--tile) var(--tile);
-  background-repeat: repeat-x;
-  image-rendering: pixelated;
-  z-index: 2;
-  pointer-events: none;
+.pen .deco { position: absolute; pointer-events: none; }
+.pen.yard .fence-top, .pen.yard .fence-bottom {
+  position: absolute; left: 0; right: 0; height: 40px;
+  background: url('/img/toon/farm/fence_row.png') left bottom / auto 40px repeat-x; pointer-events: none;
 }
-.pen::before { top: -14px; }
-.pen::after { bottom: -18px; }
-.pen .post-l, .pen .post-r {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: var(--tile);
-  background-image: url('/img/farm/fence_post_mid.png');
-  background-size: var(--tile) var(--tile);
-  background-repeat: repeat-y;
-  image-rendering: pixelated;
-  z-index: 2;
-  pointer-events: none;
-}
-.pen .post-l { left: -16px; }
-.pen .post-r { right: -16px; }
-.pen .deco { position: absolute; display: flex; z-index: 1; pointer-events: none; }
+.pen.yard .fence-top { top: 36%; opacity: .95; }
+.pen.yard .fence-bottom { bottom: -6px; }
+.pen .roam { position: absolute; left: 0; right: 0; top: 62%; bottom: 26px; }
 
-/* Ao: mặt nước Kenney, bờ đá, sóng nhẹ. */
-.pen.water {
-  background: none;
-  border: var(--tile) solid transparent;
-  border-image: url('/img/farm/pond_9slice.png') 16 fill / var(--tile) round;
-  border-radius: 0;
-}
-.pen.water::before, .pen.water::after, .pen.water .post-l, .pen.water .post-r { display: none; }
-.pen.water .ripple-ring {
-  position: absolute;
-  width: 60px;
-  height: 22px;
-  border: 2px solid rgba(255, 255, 255, .55);
-  border-radius: 50%;
-  animation: ring 3s ease-out infinite;
-  pointer-events: none;
-}
-@keyframes ring { from { transform: scale(.3); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
+.pen.pond-scene { display: flex; align-items: center; justify-content: center; }
+.pond-water { position: relative; width: 82%; max-width: 380px; }
+.pond-water .pond-img { width: 100%; height: auto; }
+.pond-water .swim { position: absolute; left: 14%; right: 14%; top: 18%; bottom: 22%; }
 
 .critter {
-  position: absolute;
-  z-index: 1;
-  width: 64px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  animation: wander var(--dur, 9s) ease-in-out infinite alternate;
-  animation-delay: var(--delay, 0s);
+  position: absolute; padding: 0; border: none; background: none; box-shadow: none; cursor: pointer;
+  transform: translate(-50%, -100%);
+  animation: wander var(--dur) ease-in-out var(--delay) infinite alternate;
 }
-.critter img { display: block; filter: drop-shadow(0 3px 0 rgba(0, 0, 0, .25)); }
-.critter .mini-bar { width: 40px; height: 5px; border-radius: 999px; background: rgba(0, 0, 0, .35); overflow: hidden; }
-.critter .mini-bar > span { display: block; height: 100%; background: #f6c744; }
+.critter:hover:not(:disabled) { filter: drop-shadow(0 0 6px rgba(255, 220, 80, .9)); }
+.critter:active:not(:disabled) { transform: translate(-50%, -100%); box-shadow: none; }
+.critter img { filter: drop-shadow(0 4px 2px rgba(40, 60, 20, .3)); }
+.critter.flip img { transform: scaleX(-1); }
+.critter.fish-swim { transform: translate(-50%, -50%); animation-name: swim; }
+.critter.fish-swim img { filter: drop-shadow(0 2px 0 rgba(20, 60, 120, .25)); opacity: .95; }
+@keyframes wander { from { translate: 0 0; } to { translate: var(--dx) var(--dy); } }
+@keyframes swim { from { translate: 0 0; } to { translate: calc(var(--dx) * .7) calc(var(--dy) * .5); } }
 .critter .ready {
-  position: absolute;
-  top: -6px;
-  right: 4px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--gold);
-  color: #2a1d00;
-  font-weight: 900;
-  font-size: 13px;
-  animation: pulse 1s infinite;
+  position: absolute; top: -10px; right: -8px; width: 20px; height: 20px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: linear-gradient(180deg, #ffe66b, #ff9a1a); border: 2px solid #c76b00; color: #5a2800;
+  font: 900 13px var(--font-title); animation: bounce2 .9s ease-in-out infinite;
 }
-@keyframes wander { from { translate: 0 0; } to { translate: var(--dx, 40px) var(--dy, 10px); } }
-.fish-swim { animation-name: swim; }
-.fish-swim img { filter: drop-shadow(0 4px 0 rgba(0, 40, 80, .3)); }
-@keyframes swim { from { translate: 0 0; } to { translate: var(--dx, 80px) var(--dy, 6px); } }
-.critter.flip img { scale: -1 1; }
+@keyframes bounce2 { 50% { transform: translateY(-4px); } }
+.critter .mini-bar { position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%); width: 36px; height: 6px; border-radius: 999px; background: rgba(255, 255, 255, .85); overflow: hidden; }
+.critter .mini-bar > span { display: block; height: 100%; background: linear-gradient(90deg, #8ee08a, #3aa94a); }
 
-.critter-list { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.critter-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .critter-list li {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: 10px;
-  background: rgba(16, 30, 22, .82);
-  font-size: 12px;
-  font-weight: 600;
+  display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 14px;
+  background: var(--bg-2); border: 2px solid #f0dcb0; font-size: 14px;
 }
 .critter-list li img { flex-shrink: 0; }
-.critter-list li .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.critter-list li .t { color: var(--muted); font-variant-numeric: tabular-nums; }
-.critter-list li button { padding: 4px 8px; font-size: 12px; }
+.critter-list .grow { flex: 1; display: flex; flex-direction: column; min-width: 0; font-weight: 800; }
+.critter-list .t { font-size: 12px; color: var(--muted); font-weight: 700; }
+.critter-list li button { padding: 5px 10px; font-size: 12px; }
 .critter-list .empty { grid-column: 1 / -1; justify-content: center; color: var(--muted); }
 
-/* Chưa có chuồng / ao: bảng mời mua. */
 .pen-offer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 18px;
-  border-radius: 12px;
-  background: rgba(16, 30, 22, .86);
-  text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; padding: 14px;
+  border-radius: 18px; background: url('/img/toon/farm/grass_tile.png') repeat; background-size: 128px; border: 3px solid #b9dc8f;
 }
-.pen-offer h3 { margin: 0; font-size: 18px; }
-.pen-offer .muted { margin: 0; }
-.barn-img { filter: drop-shadow(0 6px 0 rgba(0, 0, 0, .25)); }
-.pond-art {
-  width: calc(var(--tile) * 4);
-  height: calc(var(--tile) * 2);
-  border: var(--tile) solid transparent;
-  border-image: url('/img/farm/pond_9slice.png') 16 fill / var(--tile) round;
-  box-sizing: border-box;
-  image-rendering: pixelated;
-}
+.pen-offer .offer-art { display: flex; align-items: flex-end; gap: 6px; }
+.pen-offer h3 { margin: 4px 0 0; padding: 2px 14px; border-radius: 999px; background: rgba(255, 252, 240, .92); }
+.pen-offer .muted { margin: 0; max-width: 420px; padding: 6px 10px; border-radius: 12px; background: rgba(255, 252, 240, .9); color: var(--text); }
 
 /* ---------- Cửa hàng ---------- */
 
-dialog.shop-dlg { width: min(560px, calc(100vw - 24px)); }
-.shop-wrap { display: flex; flex-direction: column; gap: 12px; padding: 22px; max-height: min(80vh, 760px); }
+.shop-dlg { width: min(580px, calc(100vw - 24px)); }
+.shop-wrap { display: flex; flex-direction: column; gap: 10px; padding: 18px; max-height: min(82vh, 760px); }
 .shop-head { display: flex; align-items: center; justify-content: space-between; }
-.shop-head h2 { margin: 0; font-size: 20px; display: flex; align-items: center; gap: 10px; }
+.shop-head h2 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 22px; }
 .shop-head h2 .icon { color: var(--gold); }
-.shop-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 12px; background: var(--bg-2); border: 1px solid var(--border); }
-.shop-tabs .tab { background: none; border: none; color: var(--muted); padding: 9px; }
-.shop-tabs .tab:hover:not(:disabled) { background: var(--surface-2); color: var(--text); }
-.shop-tabs .tab.active { background: var(--surface-3); color: var(--text); box-shadow: 0 2px 8px rgba(0, 0, 0, .25); }
+.shop-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.shop-tabs .tab.active { background: linear-gradient(180deg, #ffe66b, #ffbe2e); border-color: #d97706; }
 .shop-note { margin: 0; }
-.shop-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; padding-right: 2px; }
+.shop-list { overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 2px 2px 6px; }
 .shop-row {
-  display: grid;
-  grid-template-columns: 56px 1fr auto;
-  gap: 12px;
-  align-items: center;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  display: grid; grid-template-columns: 64px 1fr auto; align-items: center; gap: 12px; padding: 8px 10px;
+  border-radius: 16px; background: var(--bg-2); border: 2px solid #f0dcb0;
 }
+.shop-row.feature { background: linear-gradient(180deg, #fffbe6, #fff0c4); border-color: #e7c27a; }
 .shop-row.locked { opacity: .6; }
-.shop-row.feature { background: linear-gradient(180deg, var(--gold-soft), var(--surface-2)); border-color: rgba(246, 199, 68, .4); }
 .shop-row .thumb {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 10px;
-  background: url('/img/farm/grass.png') 0 0 / 28px 28px;
-  image-rendering: pixelated;
+  width: 64px; height: 56px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(180deg, #e9f8d8, #c8ecac); border: 2px solid #a8d784; overflow: hidden;
 }
-.shop-row .thumb img { image-rendering: pixelated; max-width: 52px; height: auto; }
-.shop-row .thumb.water { background-image: url('/img/farm/pond_c.png'); }
-.shop-row b { display: block; font-size: 15px; }
-.shop-row .meta { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 3px; font-size: 12px; color: var(--muted); }
-.shop-row .meta span { display: inline-flex; align-items: center; gap: 4px; }
-.shop-row .meta .icon { width: 12px; height: 12px; }
-.shop-row button { padding: 8px 12px; font-size: 13px; white-space: nowrap; }
+.shop-row .thumb.water { background: linear-gradient(180deg, #d4f1ff, #9ed8f5); border-color: #79c1e6; }
+.shop-row .thumb img { max-width: 56px; max-height: 48px; width: auto; height: auto; }
+.shop-row b { font-size: 16px; }
+.meta { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 2px; font-size: 12px; color: var(--muted); font-weight: 700; }
+.meta span { display: inline-flex; align-items: center; gap: 3px; }
+.meta .icon { width: 13px; height: 13px; }
+.shop-row button { padding: 7px 12px; font-size: 13px; white-space: nowrap; }
 
-/* Chữ "+90 xu +2 XP" bay lên khi thu hoạch / bán. */
+/* ---------- Hiệu ứng nhận thưởng ---------- */
+
 .gain {
-  position: fixed;
-  z-index: 200;
-  transform: translate(-50%, 0);
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: rgba(16, 30, 22, .9);
-  border: 1px solid rgba(246, 199, 68, .5);
-  color: var(--gold);
-  font-weight: 800;
-  white-space: nowrap;
-  pointer-events: none;
-  animation: float-up 1.6s ease-out forwards;
+  position: fixed; z-index: 50; transform: translate(-50%, -100%); pointer-events: none;
+  display: flex; flex-direction: column; align-items: center;
+  font: 900 22px var(--font-title); color: #ffb21e; -webkit-text-stroke: 1px #8a4b00;
+  text-shadow: 0 3px 0 rgba(120, 60, 0, .4); animation: rise 1.6s ease-out forwards;
 }
-.gain .xp { color: #a9c3ff; margin-left: 6px; }
-@keyframes float-up { from { opacity: 0; translate: 0 10px; } 15% { opacity: 1; } to { opacity: 0; translate: 0 -70px; } }
+.gain .xp { font-size: 16px; color: #4fb3ff; -webkit-text-stroke: 1px #1d5f9c; }
+@keyframes rise { from { opacity: 0; translate: 0 10px; } 15% { opacity: 1; } to { opacity: 0; translate: 0 -70px; } }
+
+/* ---------- Điện thoại ---------- */
 
 @media (max-width: 860px) {
   .pens { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {
-  .farm { padding: 14px 10px 32px; gap: 14px; }
-  .farm-title h1 { font-size: 20px; }
+  :root { --plot: 74px; --cols: 4; }
+  /* Topbar gọn để không tràn ngang: bỏ thanh máu / XP và tên, chỉ giữ số. */
+  .topbar .hp-bar, .topbar .level-badge .xp-bar, .topbar .user-chip-name, .topbar .brand-text { display: none; }
+  .topbar .user { gap: 6px; }
+  .hp-pill { padding: 3px 8px 3px 5px; }
+  body { overflow-x: hidden; }
+  .harvest-arrow { top: -22px; }
+  .harvest-arrow .icon { width: 22px; height: 22px; }
+  .farm { padding: 12px 10px 36px; gap: 12px; }
+  .farm-title h1 { font-size: 21px; }
   .farm-title .muted { display: none; }
-  .field-card, .pen-card { padding: 12px; }
-  .field { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .plot .plot-label { font-size: 10px; padding: 3px 4px; }
-  .plot .crop img { width: 48px; height: 48px; }
+  .farm-actions { width: 100%; }
+  .farm-actions button { flex: 1; }
+  .sky { height: 140px; }
+  .tree.t-left { width: 120px; height: 165px; }
+  .tree.t-right { width: 110px; height: 150px; }
+  .tree.t-mid { display: none; }
+  .ground { grid-template-columns: 1fr; }
+  .path-col { height: 150px; box-shadow: inset 0 -10px 12px -8px rgba(90, 60, 20, .35); }
+  .me .character, .me img { max-height: 92px; }
+  .field-wrap { padding: 26px 6px 14px; }
+  .field { gap: 10px 6px; }
+  .tag-pill { font-size: 10px; padding: 1px 6px; }
+  .tag-pill .bar { width: 20px; }
+  .pen { height: 240px; }
   .critter-list { grid-template-columns: 1fr; }
-  .shop-row { grid-template-columns: 48px 1fr; }
+  .shop-row { grid-template-columns: 52px 1fr; }
   .shop-row button { grid-column: 1 / -1; }
 }

@@ -8,27 +8,28 @@
   const $ = (id) => document.getElementById(id);
   const esc = A.escapeHtml;
 
-  const IMG = '/img/farm/';
+  const IMG = '/img/toon/farm/';
 
   // ---------- Hình ----------
-  // Toàn bộ là ảnh pixel art CC0 trong public/img/farm (xem manifest.json, LICENSE.txt), phóng to số nguyên lần.
+  // Ảnh hoạt hình CC0 trong public/img/toon/farm (xem manifest.json, CREDITS.csv) — phong cách game "Avatar".
   let sizes = {}; // tên file (không đuôi) → [w, h], đọc từ manifest.json
 
   const art = {
-    img(name, scale = 3, cls = '') {
-      const [w, h] = sizes[name] || [16, 16];
-      return `<img class="pixel ${cls}" src="${IMG}${name}.png" width="${w * scale}" height="${h * scale}" alt="">`;
+    // Ảnh theo chiều cao mong muốn (giữ tỉ lệ gốc). k = hệ số phóng so với kích thước gốc khi không truyền h.
+    img(name, { h, k = 1, cls = '' } = {}) {
+      const [w0, h0] = sizes[name] || [64, 64];
+      const hh = h || Math.round(h0 * k);
+      const ww = Math.round((w0 / h0) * hh);
+      return `<img class="toon ${cls}" src="${IMG}${name}.png" width="${ww}" height="${hh}" alt="" draggable="false">`;
     },
-    // Cây theo giai đoạn: 1 mầm, 2 đang lớn, 3 sắp chín (to hơn), 'ripe' chín.
+    // Cây theo giai đoạn: 1 mầm, 2 đang lớn (3 = sắp chín, cùng hình 2 nhưng to hơn), 'ripe' chín.
     crop(id, stage) {
-      if (stage === 'ripe') return art.img(`crop_${id}_ripe`, 4);
-      return art.img(`crop_${id}_${stage === 1 ? 1 : 2}`, stage === 3 ? 4 : 3);
+      if (stage === 'ripe') return art.img(`crop_${id}_ripe`, { cls: 'crop-img' });
+      return art.img(`crop_${id}_${stage === 1 ? 1 : 2}`, { cls: `crop-img${stage === 3 ? ' big' : ''}` });
     },
-    item: (id, scale = 3) => art.img(`item_${id}`, scale),
-    animal: (kind, scale = 3) => art.img(`animal_${kind}`, scale),
-    fish: (kind, scale = 3) => art.img(`fish_${kind}`, scale),
-    barn: () => art.img('barn', 2, 'barn-img'),
-    pond: () => '<div class="pond-art"></div>',
+    item: (id, h = 44) => art.img(`item_${id}`, { h }),
+    animal: (kind, h = 56) => art.img(`animal_${kind}`, { h }),
+    fish: (kind, h = 26) => art.img(`fish_${kind}`, { h }),
   };
 
   // ---------- Trạng thái ----------
@@ -74,7 +75,10 @@
       return data;
     } catch (e) {
       if (e.status === 401) return A.requireLogin();
-      A.toast(e.message);
+      // Thiếu máu (403 "cần ít nhất 40 HP") hoặc đang nằm viện (423): chỉ đường về Bệnh viện.
+      const hp = e.status === 423 || (e.status === 403 && /HP/.test(e.message));
+      A.toast(hp ? `${e.message} — ghé Bệnh viện trên bản đồ để hồi máu` : e.message);
+      if (hp) A.me().then((u) => u && ((user = u), renderHUD())).catch(() => {});
       return null;
     }
   }
@@ -96,27 +100,41 @@
     $('level-badge').innerHTML = `<span class="lv">Lv ${user.level}</span><span class="xp-bar"><span style="width:${pct}%"></span></span>`;
     $('level-badge').title = `${user.xp - user.levelXP} / ${user.nextXP - user.levelXP} XP để lên level ${user.level + 1}`;
     $('farm-name').textContent = `Nông trại của ${user.name}`;
+    if (user.maxHp) {
+      const hpPct = Math.round((user.hp / user.maxHp) * 100);
+      const sick = user.hospitalUntil && user.hospitalUntil > user.now;
+      const pill = $('hp-pill');
+      pill.className = `hp-pill${hpPct < 40 || sick ? ' low' : ''}`;
+      pill.title = sick ? 'Đang nằm viện' : 'Làm nông cần ít nhất 40 HP';
+      pill.innerHTML = `${I.svg('heart')}<span class="hp-bar"><span style="width:${hpPct}%"></span></span><b>${user.hp}/${user.maxHp}</b>`;
+    }
+    // Nhân vật đứng trên đường đất cạnh ruộng, nhãn tên + level như trong game.
+    $('me').innerHTML = `<span class="me-tag"><span class="lv">Lv ${user.level}</span>${esc(user.name)}</span>
+      ${C.sprite({ gender: user.gender, outfit: user.outfit }, { dir: 'down', size: 104 })}`;
   }
 
   // ---------- Ruộng ----------
 
+  // Mỗi ô: nền đất (hoặc cỏ khi chưa mở), cây đứng trên ô, nhãn nhỏ phía dưới.
   function plotHTML(p) {
     if (!p.crop) {
       return `<div class="plot empty" data-plot="${p.index}" title="Gieo hạt">
-        <div class="crop">+</div><div class="plot-label">Gieo hạt</div></div>`;
+        <span class="soil"></span><span class="tag-pill add">${I.svg('plus')}Gieo hạt</span></div>`;
     }
     const c = find('crops', p.crop);
     const pr = progress(p.plantedAt, p.readyAt);
     if (pr >= 1) {
       return `<div class="plot ripe" data-plot="${p.index}" title="Thu hoạch ${esc(c.name)}">
-        <div class="crop">${art.crop(p.crop, 'ripe')}</div>
-        <div class="plot-label">${esc(c.name)}<span class="sub">Thu hoạch</span></div></div>`;
+        <span class="soil"></span><span class="crop">${art.crop(p.crop, 'ripe')}</span>
+        <span class="harvest-arrow">${I.svg('chevronDown')}</span>
+        <span class="tag-pill go">Thu hoạch</span></div>`;
     }
     const stage = pr < 0.34 ? 1 : pr < 0.67 ? 2 : 3;
-    return `<div class="plot growing" data-plot="${p.index}" data-start="${p.plantedAt}" data-ready="${p.readyAt}" data-stage="${stage}">
-      <div class="crop stage-${stage}">${art.crop(p.crop, stage)}</div>
-      <div class="plot-label">${esc(c.name)}<span class="sub" data-left>${countdown(p.readyAt - nowS())}</span>
-        <span class="bar"><span style="width:${Math.round(pr * 100)}%"></span></span></div></div>`;
+    return `<div class="plot growing" data-plot="${p.index}" data-start="${p.plantedAt}" data-ready="${p.readyAt}" data-stage="${stage}"
+        title="${esc(c.name)}">
+      <span class="soil wet"></span><span class="crop">${art.crop(p.crop, stage)}</span>
+      <span class="tag-pill"><span data-left>${countdown(p.readyAt - nowS())}</span>
+        <span class="bar"><span style="width:${Math.round(pr * 100)}%"></span></span></span></div>`;
   }
 
   function renderPlots() {
@@ -125,14 +143,14 @@
     const parts = farm.plots.map(plotHTML);
     if (owned < max && farm.nextPlotPrice) {
       parts.push(`<div class="plot buy" data-buy-plot title="Mở thêm ô đất">
-        <div class="crop">${I.svg('lock')}</div>
-        <div class="plot-label">Mở ô ${owned + 1}<span class="sub">${xu(farm.nextPlotPrice)} xu</span></div></div>`);
+        <span class="soil grass"></span><span class="lock">${I.svg('lock')}</span>
+        <span class="tag-pill price">${I.svg('coins')}${xu(farm.nextPlotPrice)}</span></div>`);
     }
     const left = max - owned - 1;
     if (left > 0) {
       parts.push(`<div class="plot locked" title="Mở lần lượt từng ô">
-        <div class="crop">${I.svg('lock')}</div>
-        <div class="plot-label">Còn ${left} ô<span class="sub">mở lần lượt</span></div></div>`);
+        <span class="soil grass"></span><span class="lock">${I.svg('lock')}</span>
+        <span class="tag-pill">Còn ${left} ô</span></div>`);
     }
     $('plots').innerHTML = parts.join('');
     $('plot-count').textContent = `${owned}/${max} ô đất`;
@@ -146,7 +164,7 @@
   // Vị trí ngẫu nhiên nhưng cố định theo id, để con vật không nhảy chỗ mỗi lần vẽ lại.
   function spot(id, i) {
     const r = (n) => ((Math.sin(id * 9301 + n * 49297) + 1) / 2);
-    return { x: 6 + r(1) * 74, y: 8 + r(2) * 58, dx: (r(3) - 0.5) * 120, dy: (r(4) - 0.5) * 40, dur: 6 + r(5) * 8, delay: -r(6) * 8, i };
+    return { x: 10 + r(1) * 76, y: 30 + r(2) * 70, dx: (r(3) - 0.5) * 120, dy: (r(4) - 0.5) * 16, dur: 6 + r(5) * 8, delay: -r(6) * 8, i };
   }
 
   function critterHTML(item, kind, list, swim) {
@@ -154,7 +172,9 @@
     const pr = progress(item.boughtAt, item.readyAt);
     const s = spot(item.id, 0);
     const cls = `critter${swim ? ' fish-swim' : ''}${pr < 1 ? ' young' : ''}${s.dx < 0 ? ' flip' : ''}`;
-    const draw = swim ? art.fish(kind, pr < 1 ? 2 : 3) : art.animal(kind, pr < 1 ? 2 : 3);
+    // Con nhỏ vẽ nhỏ hơn; bò / cừu vốn to nên giới hạn theo chiều cao.
+    const h = swim ? (pr < 1 ? 20 : 28) : { cow: 70, sheep: 58, pig: 50, chicken: 42 }[kind] * (pr < 1 ? 0.7 : 1);
+    const draw = swim ? art.fish(kind, h) : art.animal(kind, Math.round(h || 50));
     return `<button class="${cls}" data-${swim ? 'fish' : 'animal'}="${item.id}" title="${esc(info.name)}"
         style="left:${s.x}%;top:${s.y}%;--dx:${s.dx}px;--dy:${s.dy}px;--dur:${s.dur}s;--delay:${s.delay}s">
       ${draw}${pr >= 1 ? '<span class="ready">!</span>' : `<span class="mini-bar"><span style="width:${Math.round(pr * 100)}%"></span></span>`}
@@ -167,7 +187,7 @@
       .map((it) => {
         const info = find(list, it.kind);
         const ready = nowS() >= it.readyAt;
-        const draw = swim ? art.fish(it.kind, 2) : art.animal(it.kind, 2);
+        const draw = swim ? art.fish(it.kind, 18) : art.animal(it.kind, 30);
         const action = ready
           ? `<button class="primary" data-sell-${swim ? 'fish' : 'animal'}="${it.id}">${I.svg('coins')}Bán ${info.sellPrice ? xu(info.sellPrice) : ''}</button>`
           : '';
@@ -185,7 +205,8 @@
     const head = `<div class="section-head"><h2>${I.svg(isBarn ? 'landmark' : 'sparkles')}${title}</h2>`;
     if (!pen) {
       const locked = user.level < cfg.level;
-      return `${head}</div><div class="pen-offer">${isBarn ? art.barn() : art.pond()}
+      return `${head}</div><div class="pen-offer">
+        <div class="offer-art">${isBarn ? art.img('barn', { h: 150 }) + art.img('hay', { h: 56 }) : art.img('pond', { h: 120 })}</div>
         <h3>${isBarn ? 'Chưa có chuồng' : 'Chưa có ao'}</h3>
         <p class="muted">${isBarn
           ? `Nuôi gà, heo, cừu, bò. Mỗi con chiếm chỗ theo đơn vị (gà, heo 1 · cừu, bò 2); chuồng chứa ${cfg.capacity || 5} đơn vị, mở rộng được.`
@@ -199,16 +220,27 @@
     const expand = pen.nextExpandPrice
       ? `<button data-expand="${kind}" title="Thêm ${cfg.expandUnits || 5} đơn vị">${I.svg('plus')}+${cfg.expandUnits || 5} · ${xu(pen.nextExpandPrice)}</button>`
       : '<span class="tag">Tối đa</span>';
-    const deco = isBarn
-      ? `<span class="deco" style="right:34px;top:20px">${art.img('hay_bale')}</span>
-         <span class="deco" style="left:36px;top:20px">${art.img('trough_feed')}</span>
-         <span class="deco" style="left:36px;bottom:20px">${art.img('trough_water')}</span>
-         <span class="deco" style="right:34px;bottom:20px">${art.img('sunflower')}${art.img('sunflower')}</span>`
-      : `<span class="ripple-ring" style="left:20%;top:30%"></span><span class="ripple-ring" style="left:62%;top:58%;animation-delay:1.4s"></span>`;
+    // Cảnh chuồng: nhà kho phía sau, máng, rơm, hàng rào; cảnh ao: mặt nước ảnh ao.
+    const scene = isBarn
+      ? `<div class="pen yard">
+          <span class="deco" style="left:10px;bottom:62%">${art.img('barn', { h: 150 })}</span>
+          <span class="deco" style="right:12px;bottom:58%">${art.img('silo', { h: 130 })}</span>
+          <span class="deco" style="right:120px;bottom:60%">${art.img('hay', { h: 52 })}</span>
+          <span class="deco" style="left:44%;bottom:8px">${art.img('trough_feed', { h: 34 })}</span>
+          <span class="deco" style="left:18%;bottom:8px">${art.img('trough_water', { h: 34 })}</span>
+          <span class="fence-top"></span><span class="fence-bottom"></span>
+          <div class="roam">${items.map((it) => critterHTML(it, it.kind, list, false)).join('')}</div>
+        </div>`
+      : `<div class="pen pond-scene">
+          <span class="deco" style="left:8px;bottom:6px">${art.img('flowers', { h: 52 })}</span>
+          <span class="deco" style="right:10px;bottom:6px">${art.img('bush_3', { h: 44 })}</span>
+          <span class="deco" style="right:16px;top:14px">${art.img('tree_med', { h: 110 })}</span>
+          <div class="pond-water">${art.img('pond', { cls: 'pond-img' })}
+            <div class="swim">${items.map((it) => critterHTML(it, it.kind, list, true)).join('')}</div></div>
+        </div>`;
     return `${head}<button data-open-shop="${list}">${I.svg('plus')}Mua ${isBarn ? 'con giống' : 'cá giống'}</button></div>
       <div class="cap"><span>${pen.used}/${pen.capacity} đơn vị</span><span class="cap-bar"><span style="width:${pct}%"></span></span>${expand}</div>
-      <div class="pen${isBarn ? '' : ' water'}"><span class="post-l"></span><span class="post-r"></span>${deco}
-        ${items.map((it) => critterHTML(it, it.kind, list, !isBarn)).join('')}</div>
+      ${scene}
       ${listHTML(items, list, !isBarn)}`;
   }
 
@@ -286,7 +318,7 @@
         const btn = locked
           ? `<button disabled>${I.svg('lock')}Cần Lv ${c.level}</button>`
           : `<button class="primary" data-plant="${c.id}" ${poor || (plot === null && !empty) ? 'disabled' : ''}>${I.svg('sprout')}Gieo · ${xu(c.seedPrice)}</button>`;
-        rows.push(`<div class="shop-row${locked ? ' locked' : ''}"><span class="thumb">${art.item(c.id)}</span>
+        rows.push(`<div class="shop-row${locked ? ' locked' : ''}"><span class="thumb">${art.item(c.id, 40)}</span>
           <div><b>${esc(c.name)}</b>${metaLine([['timer', fmtDur(c.growSeconds)], ['coins', `bán ${xu(c.sellPrice)}`], ['trophy', `+${c.xp} XP`], ['sparkles', `Lv ${c.level}`]])}</div>${btn}</div>`);
       }
     } else {
@@ -300,11 +332,11 @@
       // Dòng đầu: mua chuồng / ao, hoặc mở rộng.
       if (!pen) {
         const locked = user.level < cfg.level;
-        rows.push(`<div class="shop-row feature${locked ? ' locked' : ''}"><span class="thumb${isBarn ? '' : ' water'}">${isBarn ? art.img('hay_bale') : art.img('bucket_water')}</span>
+        rows.push(`<div class="shop-row feature${locked ? ' locked' : ''}"><span class="thumb">${isBarn ? art.img('barn', { h: 46 }) : art.img('pond', { h: 34 })}</span>
           <div><b>${isBarn ? 'Chuồng gia súc' : 'Ao cá'}</b>${metaLine([['users', `chứa ${cfg.capacity} đơn vị`], ['plus', `mở rộng tới ${cfg.maxCapacity}`], ['sparkles', `Lv ${cfg.level}`]])}</div>
           ${locked ? `<button disabled>${I.svg('lock')}Cần Lv ${cfg.level}</button>` : `<button class="primary" data-buy-pen="${kind}">${I.svg('coins')}${xu(cfg.price)}</button>`}</div>`);
       } else if (pen.nextExpandPrice) {
-        rows.push(`<div class="shop-row feature"><span class="thumb${isBarn ? '' : ' water'}">${isBarn ? art.img('fence_mid') : art.img('bucket_water')}</span>
+        rows.push(`<div class="shop-row feature"><span class="thumb">${isBarn ? art.img('fence_piece', { h: 34 }) : art.img('pond', { h: 34 })}</span>
           <div><b>Mở rộng ${isBarn ? 'chuồng' : 'ao'} +${cfg.expandUnits}</b>${metaLine([['users', `${pen.capacity} → ${pen.capacity + cfg.expandUnits} đơn vị`], ['layers', `tối đa ${pen.maxCapacity}`]])}</div>
           <button class="primary" data-expand="${kind}">${I.svg('coins')}${xu(pen.nextExpandPrice)}</button></div>`);
       }
@@ -316,7 +348,7 @@
         else if (!pen) btn = `<button disabled>Cần ${isBarn ? 'chuồng' : 'ao'}</button>`;
         else if (full) btn = `<button disabled>Hết chỗ</button>`;
         else btn = `<button class="primary" data-buy-${isBarn ? 'animal' : 'fish'}="${a.id}" ${user.balance < a.price ? 'disabled' : ''}>${I.svg('coins')}${xu(a.price)}</button>`;
-        rows.push(`<div class="shop-row${locked ? ' locked' : ''}"><span class="thumb${isBarn ? '' : ' water'}">${isBarn ? art.animal(a.id) : art.fish(a.id)}</span>
+        rows.push(`<div class="shop-row${locked ? ' locked' : ''}"><span class="thumb${isBarn ? '' : ' water'}">${isBarn ? art.animal(a.id, 40) : art.fish(a.id, 24)}</span>
           <div><b>${esc(a.name)}</b>${metaLine([['users', `${a.units} đơn vị`], ['timer', fmtDur(a.growSeconds)], ['coins', `bán ${xu(a.sellPrice)}`], ['trophy', `+${a.xp} XP`], ['sparkles', `Lv ${a.level}`]])}</div>${btn}</div>`);
       }
     }

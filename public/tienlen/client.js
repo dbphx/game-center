@@ -160,13 +160,15 @@
 
   // ---------- Sảnh casino ----------
 
-  // Hình sảnh là ảnh pixel art trong /img/casino/ (xem manifest.json ở đó): thảm, bàn nỉ, ghế 4 hướng, trang trí.
-  // Toạ độ trong cảnh tính theo pixel gốc của thảm 128x96; CSS nhân với --px (3 trên máy tính, 2 trên điện thoại).
-  const IMG = '/img/casino/';
-  const CHAIR = { top: 'chair_front', bottom: 'chair_back', left: 'chair_right', right: 'chair_left' };
+  // Hình sảnh là ảnh hoạt hình trong /img/toon/casino/ (xem manifest.json ở đó): sàn thảm, bàn nỉ, ghế 4 hướng,
+  // chậu cây. Mỗi bàn là một cảnh 360x300 (CSS nhân --s); người ngồi là nhân vật chibi (Character.sprite).
+  const IMG = '/img/toon/casino/';
+  // Ghế quay lưng ra ngoài bàn; nhân vật ngồi nhìn vào bàn.
+  const CHAIR = { top: 'chair_down', bottom: 'chair_up', left: 'chair_left', right: 'chair_right' };
+  const FACE = { top: 'down', bottom: 'up', left: 'right', right: 'left' };
   const img = (name, cls) => `<img class="art ${cls}" src="${IMG}${name}.png" alt="" draggable="false">`;
   const scene = (inner, cls = '') => `<div class="tscene${cls}">
-      ${img('rug_red', 'art-rug')}${img('plant', 'art-deco deco-l')}${img('candelabra', 'art-deco deco-r')}${img('table_felt', 'art-table')}
+      ${img('plant', 'art-plant')}${img('table_felt', 'art-table')}
       ${inner}
     </div>`;
 
@@ -192,20 +194,24 @@
     if (!state) renderHall();
   }
 
+  // Máy chưa có nhân vật riêng: dùng nhân vật vest để ngồi bàn, kèm chip "Máy".
+  const BOT_LOOK = { gender: 'male', outfit: 'suit' };
+
   function seatHtml(p, pos, room, open) {
     const chair = img(CHAIR[pos], 'art-chair');
     if (p) {
-      const face = p.bot ? I.avatar('', { bot: true }) : C.head({ gender: p.gender, outfit: p.outfit });
+      const look = p.bot ? BOT_LOOK : { gender: p.gender, outfit: p.outfit };
+      const body = C.sprite(look, { dir: FACE[pos], size: 88, cls: 'seat-char' });
       const crown = p.host ? `<span class="seat-crown" title="Chủ bàn">${I.svg('crown')}</span>` : '';
       const lvl = p.bot || !p.level ? '<span class="lv-chip bot-chip">Máy</span>' : `<span class="lv-chip">Lv ${p.level}</span>`;
       return `<div class="tseat ${pos} filled${p.online === false && !p.bot ? ' away' : ''}" title="${escapeHtml(p.name)}">
-          ${chair}<span class="seat-face">${face}${crown}</span>
-          <span class="seat-label"><span class="seat-name">${escapeHtml(p.name)}</span>${lvl}</span>
+          ${chair}<span class="seat-body">${body}</span>
+          <span class="seat-label">${crown}<span class="seat-name">${escapeHtml(p.name)}</span>${lvl}</span>
         </div>`;
     }
     if (!open) return `<div class="tseat ${pos} empty closed">${chair}</div>`;
     return `<button class="tseat ${pos} empty" data-join="${room.code}" title="Ngồi vào bàn ${room.code}">
-        ${chair}<span class="seat-plus">${I.svg('plus')}</span><span class="seat-label"><span class="seat-name">Ngồi</span></span>
+        ${chair}<span class="seat-join">${I.svg('plus')}Ngồi</span>
       </button>`;
   }
 
@@ -525,7 +531,8 @@
   // ---------- Khởi động ----------
 
   $('logo').innerHTML = I.logo(28);
-  $('home-art').innerHTML = img('table_felt', 'hall-art');
+  // Biển hiệu CASINO hoạt hình (bộ hình bản đồ) làm biểu tượng sảnh.
+  $('home-art').innerHTML = `<img class="art hall-art" src="/img/toon/city/sign_casino.png" alt="" draggable="false">`;
 
   // Chưa đăng nhập thì về hub, xong quay lại đúng link phòng này.
   A.me().then(

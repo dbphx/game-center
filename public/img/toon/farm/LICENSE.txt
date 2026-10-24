@@ -1,0 +1,13 @@
+Hình trong thư mục này đều dùng giấy phép CC0 1.0 (public domain) — không bắt buộc ghi công, nhưng DCity vẫn ghi nguồn:
+
+- Background Elements Remastered — Kenney — CC0 https://kenney.nl/assets/background-elements-remastered
+- Cartoon Trees — Belohlavek — CC0 https://opengameart.org/content/cartoon-trees
+- Cooking & Farming Game Pack — Arcade Dream — CC0 https://opengameart.org/content/cooking-farming-game-pack
+- DCity (vẽ / ghép bằng PIL cho dự án) — DCity — CC0 
+- Fish Pack — Kenney — CC0 https://kenney.nl/assets/fish-pack
+- Free Fence Game Background — bevouliin.com — CC0 https://opengameart.org/content/bevouliin-free-fence-game-background-for-game-developers
+- Vector Dog & Sheep — ChiliGames — CC0 https://opengameart.org/content/vector-dog-sheep
+- Vector Farm Pack — cemkalyoncu — CC0 https://opengameart.org/content/vector-farm-pack
+
+Hình "DCity" là vẽ / ghép / tô màu lại bằng PIL cho dự án, phát hành CC0.
+Chi tiết từng file: CREDITS.csv.

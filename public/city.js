@@ -1,6 +1,7 @@
-// Bản đồ DCity: lưới phố pixel art (ảnh Kenney CC0 trong /img/city/), mỗi ô phố là một khu (game / tiện ích / trang trí).
-// Nền tĩnh (mặt đất, đường, sông, cầu, toà nhà, đồ vật) vẽ một lần lên <canvas>; xe, nước gợn, biển tên khu và nhân vật
-// là phần tử HTML đặt chồng lên. Không vẽ hình minh hoạ bằng SVG (xem docs/ART.md).
+// Bản đồ DCity phong cách hoạt hình (giống game Avatar): ảnh trong /img/toon/city/ và /img/toon/farm/ (CC0, xem docs/ART.md).
+// Mặt đất (cỏ, đường, vỉa hè, bờ sông, cầu, ruộng) vẽ một lần lên <canvas>; trời + đồi xa ở dải phía trên; toà nhà, cây, đèn,
+// gia súc, xe, thuyền, biển tên khu và nhân vật là ảnh HTML xếp lớp theo chiều sâu (y) để nhân vật đi trước / sau đúng.
+// Không vẽ hình minh hoạ bằng SVG.
 //
 // Điều khiển: WASD / phím mũi tên đi tự do (va chạm theo lưới đi được), bấm chuột / chạm để đi tới điểm đó (A*),
 // bấm toà nhà / biển tên để đi tới cửa khu, đứng trước cửa nhấn E / Enter để vào; điện thoại có cần điều khiển ảo.
@@ -12,13 +13,15 @@
   'use strict';
   const C = window.Character;
 
-  const IMG = '/img/city/';
-  const PX = 2; // ảnh pixel phóng to 2 lần
-  const T = 16 * PX; // một ô lưới = 32 đơn vị bản đồ
+  const IMG = '/img/toon/city/';
+  const FARM_IMG = '/img/toon/farm/';
+  const T = 32; // một ô lưới = 32 đơn vị bản đồ
   const COLS = 50;
   const ROWS = 32;
   const W = COLS * T; // 1600
   const H = ROWS * T; // 1024
+  const SKY = 96; // dải trời + đồi xa phía trên bản đồ (toạ độ y âm), biển tên các toà bờ Bắc nằm ở đây
+  const HORIZON = 150; // đường chân đồi: trên đó là trời / đồi, dưới là cỏ
 
   // Lưới phố (theo ô): hai trục ngang, hai trục dọc rộng 3 ô, vỉa hè 1 ô mỗi bên; sông 4 ô chảy ngang giữa,
   // sát vỉa hè hai bờ.
@@ -38,9 +41,9 @@
     hospital: [0, 22, 14, 10], plaza: [19, 22, 13, 10], farm: [37, 22, 13, 10],
   };
   // Vật cản trong các khu bờ Nam (cột, hàng, rộng, cao): đài phun nước, nhà kho nông trại, toà bệnh viện.
-  const FOUNTAIN = [BLOCKS.plaza[0] + 4, BLOCKS.plaza[1] + 3, 5, 3];
-  const BARN = [BLOCKS.farm[0] + 8, BLOCKS.farm[1] + 2, 3, 3];
-  const HOSPITAL = [1, 22, 12, 8]; // ảnh 384×256 ở cột 1–12, cửa giữa đáy (x 224, y 960); sân trước hàng 30–31
+  const FOUNTAIN = [22, 25, 7, 4];
+  const BARN = [44, 24, 5, 3];
+  const HOSPITAL = [3, 22, 8, 8]; // toà 242×240, cửa giữa đáy (x 224, y 960); sân trước hàng 30–31
 
   const ZONES = {
     plaza: { name: 'Quảng trường', sub: 'Nhân vật của bạn', node: 'plaza' },
@@ -57,7 +60,7 @@
     plaza: [816, 736], hospital: [224, 984], farm: [1392, 736],
   };
   const SPEED = 240; // đơn vị bản đồ / giây
-  const SPRITE_SCALE = 3; // nhân vật 16px × 3 = 48 đơn vị, to hơn ô lưới một chút cho dễ nhìn
+  const SPRITE_SIZE = 96; // chiều cao nhân vật chibi (khung 96×148, neo chân giữa đáy)
   const HURT_MS = 1500;
   const DOOR_RADIUS = T * 1.6; // đứng trong bán kính này quanh cửa thì gợi ý "vào khu"
 
@@ -70,7 +73,7 @@
   function cellWalkable(c, r) {
     if (c < 0 || r < 0 || c >= COLS || r >= ROWS) return false;
     if (RIVER_ROWS.includes(r)) return onBridge(c);
-    if (r < 8) return WALK_COLS.includes(c) || inRoadCol(c); // bờ Bắc: chỉ vỉa hè / đường giữa các toà nhà
+    if (r < 8) return r >= 5 && (WALK_COLS.includes(c) || inRoadCol(c)); // bờ Bắc: chỉ vỉa hè / đường giữa các toà nhà, tới chân đồi
     if (inRect(c, r, FOUNTAIN) || inRect(c, r, BARN) || inRect(c, r, HOSPITAL)) return false;
     return true;
   }
@@ -169,250 +172,232 @@
 
   // ---------- Ảnh ----------
 
+  // Kích thước gốc của mọi ảnh (đọc từ manifest.json của hai thư mục); khoá "farm/x" cho ảnh nông trại.
+  const sizes = {};
   const images = {};
-  // Lọc theo manifest.json: chỉ nạp ảnh đã có; manifest lỗi thì thử nạp hết.
-  async function loadAvailable(names) {
-    try {
-      const m = await (await fetch(IMG + 'manifest.json')).json();
-      const have = new Set((m.images || []).map((it) => it.file.replace(/\.png$/, '')));
-      names = names.filter((n) => have.has(n));
-    } catch (e) { /* bỏ qua */ }
-    return loadImages(names);
+  const srcOf = (name) => (name.startsWith('farm/') ? FARM_IMG + name.slice(5) : IMG + name) + '.png';
+
+  async function loadManifests() {
+    await Promise.all([[IMG, ''], [FARM_IMG, 'farm/']].map(async ([dir, prefix]) => {
+      try {
+        const m = await (await fetch(dir + 'manifest.json')).json();
+        for (const it of m.images || []) sizes[prefix + it.file.replace(/\.png$/, '')] = [it.w, it.h];
+      } catch (e) { /* bỏ qua */ }
+    }));
   }
+
   function loadImages(names) {
-    return Promise.all(names.map((n) => new Promise((resolve) => {
+    return Promise.all(names.filter((n) => sizes[n]).map((n) => new Promise((resolve) => {
       if (images[n]) return resolve();
       const img = new Image();
       img.onload = () => { images[n] = img; resolve(); };
       img.onerror = () => resolve(); // thiếu ảnh thì bỏ qua, không vẽ thay bằng hình khối
-      img.src = IMG + n + '.png';
+      img.src = srcOf(n);
     })));
   }
 
-  // Bộ sinh số giả ngẫu nhiên cố định để cỏ lần nào cũng như nhau.
-  function rng(seed) {
-    let s = seed;
-    return () => ((s = (s * 1103515245 + 12345) % 2147483648) / 2147483648);
-  }
+  // ---------- Mặt đất trên canvas ----------
 
-  // ---------- Bản đồ tĩnh trên canvas ----------
-
-  // Ảnh nền của từng ô lưới.
-  function groundTile(c, r, rand) {
-    const roadR = inRoadRow(r);
-    const roadC = inRoadCol(c);
-    const walkR = WALK_ROWS.includes(r);
-    const walkC = WALK_COLS.includes(c);
-    if (roadR && roadC) return 'road_asphalt';
-    if (roadR) {
-      if (walkC) return 'crosswalk_v';
-      return r === 10 || r === 19 ? 'road_dash_h' : 'road_asphalt';
-    }
-    if (roadC) {
-      if (walkR) return 'crosswalk_h';
-      return c === 16 || c === 34 ? 'road_dash_v' : 'road_asphalt';
-    }
-    if (walkC && RIVER_ROWS.includes(r)) return 'paving_light'; // vỉa hè trên cầu
-    if (walkR || walkC) return 'paving_grey';
-    if (RIVER_ROWS.includes(r)) return 'river';
-    return rand() < 0.22 ? 'ground_grass_2' : 'ground_grass';
-  }
-
-  // Nền riêng của từng khu (vẽ đè lên cỏ).
-  function blockGround(id, c, r) {
-    switch (id) {
-      case 'plaza':
-      case 'shop':
-        return 'paving_beige';
-      case 'hospital':
-        return c === 0 || c === 13 ? null : 'paving_light';
-      case 'farm':
-        return r % 2 === 1 && c > 37 && c < 45 && r > 24 ? 'ground_dirt' : 'ground_grass_2';
-      default:
-        return null;
-    }
-  }
-
-  // Đồ vật: [ảnh, x giữa đáy, y đáy] theo đơn vị bản đồ; vẽ theo thứ tự y để vật ở trước che vật ở sau.
-  function props() {
-    const list = [];
-    const at = (img, x, y) => list.push([img, x, y]);
-    const B = (id) => BLOCKS[id].map((v) => v * T);
-
-    // Toà nhà bờ Bắc, cửa ở đáy giữa ảnh.
-    const [cx, cy, cw, ch] = B('casino');
-    at('building_casino', cx + cw / 2, cy + ch);
-    const [bx, by, bw, bh] = B('bank');
-    at('building_bank', bx + bw / 2, by + bh);
-    const [sx, sy, sw, sh] = B('shop');
-    at('building_shop', sx + sw / 2, sy + sh);
-    at('planter_teal', sx + 24, sy + sh);
-    at('planter_orange', sx + sw - 24, sy + sh);
-    at('planter_green', bx + 20, by + bh);
-    at('planter_green', bx + bw - 20, by + bh);
-
-    // Vỉa hè: đèn đường, thùng rác, trụ cứu hoả.
-    for (const x of [96, 400, 688, 944, 1248, 1536]) {
-      at('lamp_street', x, 9 * T - 2);
-      at('lamp_street', x, 22 * T - 2);
-    }
-    at('bin', 320, 9 * T - 4);
-    at('hydrant', 1000, 9 * T - 4);
-    at('bin', 1480, 22 * T - 4);
-    at('hydrant', 464, 22 * T - 4);
-
-    // Vỉa hè ven sông: chậu cây, bụi, ghế (đồ thấp để không che mặt đường), chừa chỗ hai cây cầu.
-    const free = (x) => !(x > 13 * T && x < 19 * T) && !(x > 31 * T && x < 37 * T);
-    const treeKinds = ['planter_green', 'planter_teal', 'bush_green', 'planter_orange', 'planter_green', 'bush_teal'];
-    let k = 0;
-    for (let x = 48; x < W; x += 112) {
-      if (!free(x) || !free(x + 56)) continue;
-      at(treeKinds[k++ % treeKinds.length], x, 13 * T - 6);
-      at(treeKinds[(k + 2) % treeKinds.length], x + 56, 18 * T - 6);
-    }
-    for (const x of [200, 760, 1300]) {
-      at('bench', x, 13 * T - 2);
-      at('bench', x + 60, 18 * T - 2);
-    }
-    for (const x of [376, 960, 1520]) {
-      at('bush_green', x, 13 * T - 2);
-      at('bush_teal', x - 40, 18 * T - 2);
-    }
-
-    // Quảng trường: đài phun nước ở giữa, ghế, chậu cây, cây ở bốn góc.
-    const [px0, py0, pw, ph] = B('plaza');
-    at('bench', px0 + 2 * T, py0 + 5 * T);
-    at('bench', px0 + pw - 2 * T, py0 + 5 * T);
-    at('bench', px0 + pw / 2, py0 + ph - 8);
-    at('planter_orange', px0 + 3 * T, py0 + 3 * T);
-    at('planter_teal', px0 + pw - 3 * T, py0 + 3 * T);
-    at('tree_green', px0 + T, py0 + 2 * T);
-    at('tree_teal', px0 + pw - T, py0 + 2 * T);
-    at('tree_small_green', px0 + T, py0 + ph - 4);
-    at('tree_small_teal', px0 + pw - T, py0 + ph - 4);
-    at('food_cart', px0 + 3 * T, py0 + 7 * T);
-
-    // Bệnh viện: toà nhà (ảnh building_hospital nếu có, chưa có thì tạm ghép hai nhà sáng màu), xe cứu thương, ghế chờ.
-    const hx = (HOSPITAL[0] + HOSPITAL[2] / 2) * T;
-    const hy = (HOSPITAL[1] + HOSPITAL[3]) * T;
-    if (images.building_hospital) at('building_hospital', hx, hy);
-    else {
-      at('house_grey', hx - 80, hy);
-      at('house_grey', hx + 80, hy);
-    }
-    if (images.ambulance_side) at('ambulance_side', hx + 5 * T, hy + 58);
-    at('bench', hx - 4 * T, hy + 54);
-    at('planter_green', hx - 2 * T, hy + 12);
-    at('planter_green', hx + 2 * T, hy + 12);
-    at('tree_small_green', T / 2 + 4, (BLOCKS.hospital[1] + 3) * T);
-    at('tree_small_teal', 13 * T + T / 2 - 4, (BLOCKS.hospital[1] + 3) * T);
-
-    // Nông trại: nhà kho, hàng rào gỗ, thùng nông sản dọc các luống đất.
-    const [fx, fy] = B('farm');
-    at('building_barn', (BARN[0] + BARN[2] / 2) * T, (BARN[1] + BARN[3]) * T);
-    for (let x = fx + 16; x < fx + 7 * T; x += 80) at('fence_wood', x + 40, fy + T - 2);
-    const crates = ['crate_tomato', 'crate_greens', 'crate_fruit', 'crate_veg'];
-    for (let i = 0; i < 4; i++) at(crates[i], fx + (2 + i * 2) * T, fy + 8 * T - 4);
-    at('tree_orange', fx + 12 * T + 16, fy + 7 * T);
-    at('bush_orange', fx + 11 * T, fy + 7 * T + 20);
-
-    return list.sort((a, b) => a[2] - b[2]);
-  }
-
-  // Tên mọi ảnh cần nạp.
-  const ALL_IMAGES = [
-    'ground_grass', 'ground_grass_2', 'ground_dirt', 'ground_gravel', 'paving_grey', 'paving_beige', 'paving_light',
-    'road_asphalt', 'road_dash_h', 'road_dash_v', 'crosswalk_h', 'crosswalk_v', 'road_manhole', 'river_strip',
-    'water_tl', 'water_t', 'water_tr', 'water_l', 'water_c', 'water_r', 'water_bl', 'water_b', 'water_br',
-    'tree_green', 'tree_orange', 'tree_teal', 'tree_small_green', 'tree_small_teal', 'planter_green', 'planter_orange', 'planter_teal',
-    'bush_green', 'bush_orange', 'bush_teal', 'lamp_street', 'lamp_small', 'bench', 'fence_wood', 'fence_chain',
-    'crate_tomato', 'crate_greens', 'crate_fruit', 'crate_veg', 'food_cart', 'bin', 'hydrant', 'house_grey',
-    'building_casino', 'building_bank', 'building_shop', 'building_barn', 'bridge_rail_v', 'bridge_post',
-    // Có thể chưa có (agent bổ sung hình đang làm): thiếu thì bỏ qua.
-    'building_hospital', 'ambulance_side',
+  const GROUND_IMAGES = [
+    'grass_tile', 'road_h', 'road_v', 'road_plain', 'road_crosswalk_h', 'road_crosswalk_v', 'sidewalk_tile',
+    'river_bank_top', 'river_bank_bottom', 'bridge_deck', 'bridge_rail_v', 'farm/bg_sky_hills', 'farm/soil_plot',
+    'farm/soil_plot_wet', 'farm/dirt_path_tile', 'farm/grass_plot',
   ];
 
   function drawStatic(canvas) {
     const g = canvas.getContext('2d');
-    g.imageSmoothingEnabled = false;
-    const tile = (name, c, r) => {
-      if (name === 'river') {
-        const img = images.river_strip;
-        if (img) g.drawImage(img, 0, (r - RIVER_ROWS[0]) * 16, 16, 16, c * T, r * T, T, T);
-        return;
-      }
-      if (images[name]) g.drawImage(images[name], c * T, r * T, T, T);
-    };
-    const rand = rng(7);
-    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) tile(groundTile(c, r, rand), c, r);
-    for (const [c, r] of [[6, 9], [26, 11], [44, 18], [10, 20], [16, 4], [34, 28]]) tile('road_manhole', c, r);
-
-    for (const [id, [bc, br, bw, bh]] of Object.entries(BLOCKS)) {
-      for (let r = br; r < br + bh; r++) for (let c = bc; c < bc + bw; c++) {
-        const name = blockGround(id, c, r);
-        if (name) tile(name, c, r);
-      }
-    }
-
-    // Đài phun nước: hồ ghép từ 9 mảnh nước có viền.
-    const [fc, fr, fw, fh] = FOUNTAIN;
-    for (let r = 0; r < fh; r++) for (let c = 0; c < fw; c++) {
-      const v = r === 0 ? 't' : r === fh - 1 ? 'b' : '';
-      const h = c === 0 ? 'l' : c === fw - 1 ? 'r' : '';
-      tile('water_' + (v + h || 'c'), fc + c, fr + r);
-    }
-
-    // Lan can hai mép cầu (cột vỉa hè ngoài cùng), trụ ở đầu cầu.
-    for (const c of [14, 18, 32, 36]) {
-      for (const r of RIVER_ROWS) tile('bridge_rail_v', c, r);
-      tile('bridge_post', c, 12);
-      tile('bridge_post', c, 17);
-    }
-
-    for (const [name, x, y] of props()) {
+    g.imageSmoothingEnabled = true;
+    g.imageSmoothingQuality = 'high';
+    // Lấp hình chữ nhật bằng ảnh lặp, phóng to / thu nhỏ theo k.
+    const fill = (name, x, y, w, h, k = 1, ox = 0, oy = 0) => {
       const img = images[name];
-      if (!img) continue;
-      const w = img.width * PX;
-      const h = img.height * PX;
-      g.drawImage(img, Math.round(x - w / 2), Math.round(y - h), w, h);
+      if (!img) return;
+      const pat = g.createPattern(img, 'repeat');
+      pat.setTransform(new DOMMatrix([k, 0, 0, k, x + ox, y + oy]));
+      g.fillStyle = pat;
+      g.fillRect(x, y, w, h);
+    };
+    const put = (name, x, y, w, h) => images[name] && g.drawImage(images[name], x, y, w, h);
+    g.save();
+    g.translate(0, SKY);
+
+    // Trời + đồi xa: chân ảnh nằm ở đường chân đồi.
+    const sky = images['farm/bg_sky_hills'];
+    if (sky) {
+      const k = W / sky.width;
+      g.drawImage(sky, 0, HORIZON - sky.height * k, W, sky.height * k);
     }
+    // Cỏ toàn bản đồ dưới chân đồi.
+    fill('grass_tile', 0, HORIZON, W, H - HORIZON, 0.5);
+
+    // Vỉa hè (hàng / cột vỉa hè), mặt đường ngang và dọc, ngã tư, vạch qua đường.
+    const top = 5 * T; // đường dọc bờ Bắc bắt đầu từ chân đồi
+    for (const r of WALK_ROWS) fill('sidewalk_tile', 0, r * T, W, T, 0.5);
+    for (const c of WALK_COLS) fill('sidewalk_tile', c * T, top, T, H - top, 0.5);
+    for (const g3 of ROAD_ROWS) fill('road_h', 0, g3[0] * T, W, 3 * T, 0.75);
+    for (const g3 of ROAD_COLS) fill('road_v', g3[0] * T, top, 3 * T, H - top, 0.75);
+    for (const r3 of ROAD_ROWS) for (const c3 of ROAD_COLS) fill('road_plain', c3[0] * T, r3[0] * T, 3 * T, 3 * T, 0.75);
+    for (const r3 of ROAD_ROWS) for (const c of WALK_COLS) put('road_crosswalk_h', c * T - 14, r3[0] * T + 4, T + 28, 3 * T - 8);
+    for (const c3 of ROAD_COLS) for (const r of [8, 21]) put('road_crosswalk_v', c3[0] * T + 4, r * T - 14, 3 * T - 8, T + 28);
+
+    // Sông: bờ trên / dưới (nước ở giữa là lớp HTML gợn sóng), cầu gỗ có lan can.
+    const ry = RIVER_ROWS[0] * T;
+    const rh = RIVER_ROWS.length * T;
+    fill('water_tile', 0, ry, W, rh, 0.75);
+    fill('river_bank_top', 0, ry, W, 36, 0.75);
+    fill('river_bank_bottom', 0, ry + rh - 36, W, 36, 0.75);
+    for (const [a, b] of [[14, 19], [32, 37]]) {
+      fill('bridge_deck', a * T, ry - 6, (b - a) * T, rh + 12, 0.75);
+      g.fillStyle = 'rgba(70, 40, 10, .25)';
+      g.fillRect(a * T, ry + rh + 6, (b - a) * T, 6);
+      fill('bridge_rail_v', a * T - 6, ry - 18, 20, rh + 30, 1);
+      fill('bridge_rail_v', b * T - 14, ry - 18, 20, rh + 30, 1);
+    }
+
+    // Nền riêng các khu bờ Nam: quảng trường và sân bệnh viện lát gạch, nông trại có đường đất + ruộng.
+    const [pc, pr, pw, ph] = BLOCKS.plaza;
+    fill('sidewalk_tile', pc * T, pr * T, pw * T, ph * T, 0.75);
+    fill('sidewalk_tile', 3 * T, 29 * T, 8 * T, 3 * T, 0.75);
+    const [fc, fr] = BLOCKS.farm;
+    fill('farm/dirt_path_tile', fc * T, 23 * T, 13 * T, 40, 0.5);
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) {
+      put(j ? 'farm/soil_plot_wet' : 'farm/soil_plot', (fc + 1) * T + i * 60, (fr + 3) * T + j * 60, 58, 58);
+    }
+    g.restore();
+  }
+
+  // ---------- Toà nhà, cây, đồ vật (ảnh HTML xếp theo chiều sâu) ----------
+
+  // Mỗi món: [ảnh, x giữa đáy, y đáy, tỉ lệ, lật ngang?, class thêm].
+  function props() {
+    const list = [];
+    const at = (img, x, y, k = 1, flip = false, cls = '') => list.push([img, x, y, k, flip, cls]);
+
+    // Hàng cây / bụi dọc chân đồi, che chỗ đường dọc biến mất vào xa.
+    for (let x = 30; x < W; x += 92) at(['bush_1', 'farm/bush_1', 'bush_3'][(x / 92) % 3 | 0], x, HORIZON + 6, 0.7);
+    for (const c3 of ROAD_COLS) at('tree_big', (c3[0] + 1.5) * T, HORIZON + 14, 0.75);
+
+    // Toà nhà bờ Bắc, cửa ở đáy (sát vỉa hè hàng 8).
+    at('building_casino', 224, 8 * T, 1);
+    at('building_bank', 816, 8 * T, 0.86);
+    at('building_shop', 1392 - (165 - 105.5) * 1, 8 * T, 1);
+    at('house_2', 1532, 8 * T, 0.72);
+    at('tree_1', 40, 8 * T + 2, 0.8);
+    at('tree_1', 410, 8 * T + 2, 0.72);
+    at('farm/flowers', 150, 8 * T + 4, 0.6);
+    at('farm/flowers', 300, 8 * T + 4, 0.6);
+
+    // Vỉa hè: đèn đường hai bên đường ngang.
+    for (const x of [96, 400, 700, 940, 1250, 1540]) {
+      at('lamp', x, 9 * T - 2, 0.75);
+      at('lamp', x + 30, 22 * T - 2, 0.75);
+    }
+
+    // Công viên ven sông (vỉa hè hai bờ): cây nhỏ, bụi, ghế; chừa chỗ hai cây cầu.
+    const free = (x) => !(x > 13 * T && x < 20 * T) && !(x > 31 * T && x < 38 * T);
+    const kinds = ['tree_4', 'bush_2', 'tree_3', 'bush_3', 'tree_4', 'bush_4'];
+    let k = 0;
+    for (let x = 40; x < W; x += 104) {
+      if (!free(x)) continue;
+      const kind = kinds[k++ % kinds.length];
+      at(kind, x, 13 * T - 4, kind.startsWith('tree') ? 1.3 : 0.9);
+      if (free(x + 52)) at(kinds[(k + 2) % kinds.length], x + 52, 18 * T - 4, 1.1);
+    }
+    for (const x of [200, 760, 1300]) {
+      at('bench', x, 13 * T - 2, 0.6);
+      at('bench', x + 60, 18 * T - 2, 0.6);
+    }
+
+    // Bệnh viện: toà nhà, xe cứu thương đậu trước sân, cây, ghế chờ.
+    at('building_hospital', 224, 30 * T, 1);
+    at('ambulance_side', 392, 31 * T + 8, 0.75);
+    at('bench', 70, 31 * T + 4, 0.6);
+    at('tree_1', 36, 26 * T, 0.8);
+    at('tree_1', 412, 26 * T, 0.7);
+    at('farm/flowers', 110, 30 * T, 0.55);
+    at('farm/flowers', 340, 30 * T, 0.55);
+
+    // Quảng trường: đài phun nước ở giữa, ghế, cây và chậu hoa ở góc.
+    at('fountain', 816, 900, 1.2);
+    at('bench', 690, 960, 0.65);
+    at('bench', 942, 960, 0.65);
+    at('tree_big', 640, 800, 0.62);
+    at('tree_big', 992, 800, 0.62);
+    at('tree_1', 628, 1010, 0.6);
+    at('tree_1', 1004, 1010, 0.6);
+    at('farm/flowers', 720, 780, 0.6);
+    at('farm/flowers', 912, 780, 0.6);
+
+    // Nông trại: hàng rào, nhà kho, rơm, cây, cây trồng trên ruộng, gia súc thả rông.
+    for (let x = 1190; x < 1430; x += 64) at('farm/fence_piece', x + 32, 23 * T + 46, 0.9);
+    at('farm/barn', 1500, 27 * T, 0.75);
+    at('farm/hay', 1420, 27 * T + 10, 0.6);
+    at('farm/silo', 1584, 27 * T - 6, 0.5);
+    at('farm/tree_big', 1582, 31 * T + 18, 0.55);
+    const crops = ['corn_ripe', 'tomato_ripe', 'carrot_2', 'watermelon_ripe', 'strawberry_2', 'rice_ripe', 'corn_2', 'tomato_2'];
+    crops.forEach((c, i) => at('farm/crop_' + c, 38 * T + (i % 4) * 60 + 29, 25 * T + Math.floor(i / 4) * 60 + 50, 0.55));
+    at('farm/animal_cow', 1300, 31 * T + 14, 0.6, true);
+    at('farm/animal_sheep', 1220, 30 * T + 10, 0.55);
+    at('farm/animal_pig', 1440, 31 * T + 12, 0.6, true);
+    at('farm/animal_chicken', 1380, 30 * T + 4, 0.6);
+    at('farm/animal_chicken_white', 1410, 30 * T + 16, 0.6, true);
+
+    return list;
   }
 
   // ---------- Phần động (HTML) ----------
 
   const px = (n) => `${Math.round(n)}px`;
-  const spriteImg = (name) => `<img class="pix" src="${IMG}${name}.png" alt="" draggable="false">`;
 
-  // Nước gợn: các đoạn sông giữa hai cây cầu, nền ảnh dòng sông trôi dần; mặt hồ đài phun cũng gợn.
-  function waterHtml() {
-    const segs = [[0, 14], [19, 32], [37, COLS]];
-    const [fc, fr, fw, fh] = FOUNTAIN;
-    return segs
-      .map(([a, b]) => `<div class="river-flow" style="left:${px(a * T)};top:${px(RIVER_ROWS[0] * T)};width:${px((b - a) * T)};height:${px(4 * T)}"></div>`)
-      .join('') +
-      `<div class="fountain-water" style="left:${px((fc + 1) * T)};top:${px((fr + 1) * T)};width:${px((fw - 2) * T)};height:${px((fh - 2) * T)}"></div>`;
+  // Ảnh đồ vật đặt theo giữa đáy, z-index theo y để nhân vật đi trước / sau đúng.
+  function propHtml([name, x, y, k, flip, cls]) {
+    const sz = sizes[name];
+    if (!sz) return '';
+    const w = sz[0] * k;
+    const h = sz[1] * k;
+    return `<img class="prop${flip ? ' flip' : ''}${cls ? ' ' + cls : ''}" src="${srcOf(name)}" alt="" draggable="false"
+      style="left:${px(x - w / 2)};top:${px(y - h)};width:${px(w)};height:${px(h)};z-index:${100 + Math.round(y)}">`;
   }
 
-  // Xe chạy vòng: đường ngang dùng ảnh nhìn ngang, đường dọc dùng ảnh nhìn đầu / đuôi xe.
+  // Mây trôi trên trời.
+  function cloudsHtml() {
+    return [['farm/cloud_1', 40, -88, 0.5, 70], ['farm/cloud_2', 520, -92, 0.42, 95], ['farm/cloud_3', 1080, -80, 0.46, 80]]
+      .filter(([n]) => sizes[n])
+      .map(([n, x, y, k, dur]) => `<img class="cloud" src="${srcOf(n)}" alt="" draggable="false"
+        style="left:${px(x)};top:${px(y)};width:${px(sizes[n][0] * k)};animation-duration:${dur}s">`)
+      .join('');
+  }
+
+  // Nước sông gợn: các đoạn giữa hai cây cầu, nền ảnh mặt nước trôi dần.
+  function waterHtml() {
+    const segs = [[0, 14], [19, 32], [37, COLS]];
+    return segs
+      .map(([a, b]) => `<div class="river-flow" style="left:${px(a * T)};top:${px(RIVER_ROWS[0] * T + 34)};width:${px((b - a) * T)};height:${px(RIVER_ROWS.length * T - 68)}"></div>`)
+      .join('');
+  }
+
+  // Xe chạy vòng trên các làn đường ngang (ảnh nghiêng, lật theo hướng). Đường dọc dành cho người đi bộ qua cầu.
   // Vị trí tính bằng JS (không dùng CSS animation) để phát hiện va chạm với nhân vật.
   const CARS = [
-    { img: 'car_green_side', dir: 'east', y: roadCenter(11), speed: 115, at: 0 },
-    { img: 'car_grey_side', dir: 'west', y: roadCenter(9), speed: 95, at: 700 },
-    { img: 'car_orange_side', dir: 'east', y: roadCenter(20), speed: 130, at: 400 },
-    { img: 'car_green_side', dir: 'west', y: roadCenter(18), speed: 90, at: 1200 },
-    { img: 'car_orange_front', dir: 'south', x: roadCenter(15), speed: 105, at: 300 },
-    { img: 'car_grey_back', dir: 'north', x: roadCenter(17), speed: 100, at: 800 },
-    { img: 'car_green_front', dir: 'south', x: roadCenter(33), speed: 90, at: 100 },
-    { img: 'car_orange_back', dir: 'north', x: roadCenter(35), speed: 120, at: 600 },
+    { img: 'car_red_side', dir: 'east', y: roadCenter(11), speed: 115, at: 0 },
+    { img: 'car_blue_side', dir: 'west', y: roadCenter(9), speed: 95, at: 700 },
+    { img: 'car_yellow_side', dir: 'east', y: roadCenter(11), speed: 115, at: 950 },
+    { img: 'car_green_side', dir: 'east', y: roadCenter(20), speed: 130, at: 400 },
+    { img: 'ambulance_side', dir: 'west', y: roadCenter(18), speed: 105, at: 1200 },
+    { img: 'car_red_side', dir: 'west', y: roadCenter(18), speed: 105, at: 300 },
   ];
-  // Hộp va chạm quanh tâm xe (đơn vị bản đồ, nhỏ hơn hình một chút): [nửa rộng, trên, dưới].
-  // Hình xe vẽ lệch lên trên tâm (translate -60%) nên phần trên dài hơn phần dưới.
-  const CAR_BOX = { h: [30, 24, 14], v: [16, 30, 18] };
-  const YIELD_DIST = 150; // xe dừng nhường khi nhân vật đi tự động băng qua đường phía trước trong khoảng này
+  // Hộp va chạm quanh tâm làn (đơn vị bản đồ): [nửa rộng, trên, dưới].
+  const CAR_BOX = { h: [44, 34, 34], v: [0, 0, 0] };
+  const CAR_SCALE = 0.8;
+  const YIELD_DIST = 170; // xe dừng nhường khi nhân vật đi tự động băng qua đường phía trước trong khoảng này
   const carHorizontal = (car) => car.dir === 'east' || car.dir === 'west';
 
   function trafficHtml() {
-    return CARS.map((car, i) => `<div class="car car-${car.dir}" data-car="${i}">${spriteImg(car.img)}</div>`).join('');
+    return CARS.map((car, i) => {
+      const [w, h] = sizes[car.img] || [120, 52];
+      return `<div class="car car-${car.dir}" data-car="${i}"><img src="${srcOf(car.img)}" alt="" draggable="false"
+        style="width:${px(w * CAR_SCALE)};height:${px(h * CAR_SCALE)}"></div>`;
+    }).join('');
   }
 
   // Vị trí tâm xe hiện tại.
@@ -427,27 +412,34 @@
 
   // Thuyền: mỗi chiếc chạy qua lại trong một đoạn sông giữa hai cây cầu.
   const BOATS = [
-    { img: 'boat_motor', from: 1 * T, to: 13 * T, y: 14 * T + 24, speed: 60, at: 0 },
-    { img: 'boat_row', from: 20 * T, to: 31 * T, y: 15 * T + 20, speed: 28, at: 120 },
-    { img: 'boat_motor', from: 38 * T, to: 49 * T, y: 14 * T + 30, speed: 50, at: 260 },
+    { img: 'boat_1', from: 2 * T, to: 12 * T, y: 14 * T + 30, speed: 55, at: 0 },
+    { img: 'boat_2', from: 21 * T, to: 30 * T, y: 15 * T + 10, speed: 28, at: 120 },
+    { img: 'boat_3', from: 39 * T, to: 48 * T, y: 14 * T + 34, speed: 45, at: 260 },
   ];
   function boatsHtml() {
-    return BOATS.map((b, i) => `<div class="boat" data-boat="${i}">${spriteImg(b.img)}</div>`).join('');
+    return BOATS.map((b, i) => {
+      const [w, h] = sizes[b.img] || [80, 42];
+      return `<div class="boat" data-boat="${i}"><img src="${srcOf(b.img)}" alt="" draggable="false" style="width:${px(w * 0.85)};height:${px(h * 0.85)}"></div>`;
+    }).join('');
   }
 
-  // Biển neon CASINO đè lên biển hiệu trên mái (ảnh bật / tắt xen kẽ).
+  // Biển CASINO nhấp nháy đè đúng lên biển trên nóc toà Casino.
   function signHtml() {
-    return `<div class="casino-sign" style="left:${px(224)};top:${px(140)}">${spriteImg('sign_casino_off')}<span class="sign-on">${spriteImg('sign_casino')}</span></div>`;
+    const [bw, bh] = sizes.building_casino || [262, 260];
+    const [sw, sh] = sizes.sign_casino || [170, 44];
+    return `<img class="casino-sign" src="${srcOf('sign_casino')}" alt="" draggable="false"
+      style="left:${px(224 - sw / 2)};top:${px(8 * T - bh + 4)};width:${px(sw)};height:${px(sh)};z-index:${100 + 8 * T + 1}">`;
   }
 
   // Vùng bấm của từng khu và biển tên (HTML).
   function zonesHtml() {
-    const labelAt = { casino: [224, 10], bank: [816, 10], shop: [1392, 10], plaza: [690, 712], hospital: [224, 712], farm: [1240, 712] };
+    const labelAt = { casino: [224, -84], bank: [816, -84], shop: [1392, -84], plaza: [700, 712], hospital: [78, 742], farm: [1290, 712] };
     return Object.entries(ZONES)
       .map(([id, z]) => {
         const [c, r, w, h] = BLOCKS[id];
         const [lx, ly] = labelAt[id];
-        return `<div class="zone${z.soon ? ' soon' : ''}" data-zone="${id}" style="left:${px(c * T)};top:${px(r * T)};width:${px(w * T)};height:${px(h * T)}"></div>
+        const top = r * T - (r === 0 ? SKY : 0);
+        return `<div class="zone${z.soon ? ' soon' : ''}" data-zone="${id}" style="left:${px(c * T)};top:${px(top)};width:${px(w * T)};height:${px(h * T + (r === 0 ? SKY : 0))}"></div>
           <div class="zone-label${z.soon ? ' soon' : ''}" data-zone="${id}" style="left:${px(lx)};top:${px(ly)}">
             <span class="zl-name">${z.name}</span><span class="zl-sub" id="zl-sub-${id}">${z.sub}</span>
             <span class="zl-badge hidden" id="zl-badge-${id}"></span>
@@ -482,10 +474,9 @@
     const look = me.look || {};
     const hurt = performance.now() < hurtUntil;
     if (C && typeof C.sprite === 'function') {
-      me.body.innerHTML = C.sprite(look, { dir: me.dir, walking: me.walking && !locked, scale: SPRITE_SCALE, pose: locked ? 'lie' : undefined, hurt });
+      me.body.innerHTML = C.sprite(look, { dir: me.dir, walking: me.walking && !locked, size: SPRITE_SIZE, pose: locked ? 'lie' : undefined, hurt });
     } else if (C && typeof C.svg === 'function') {
-      // Tạm dùng hình nhân vật cũ cho tới khi có ảnh nhân vật pixel (Character.sprite).
-      me.body.innerHTML = `<div class="me-fallback">${C.svg(look, { walking: me.walking })}</div>`;
+      me.body.innerHTML = `<div class="me-fallback">${C.svg(look, { size: SPRITE_SIZE })}</div>`;
     }
     me.body.className = 'me-body dir-' + me.dir + (me.walking ? ' walking' : '') + (hurt ? ' hurt' : '');
   }
@@ -667,13 +658,14 @@
       if (!mustYield(car)) car.at += car.speed * dt;
       const [x, y] = carPos(car);
       car.el = car.el || world.querySelector(`[data-car="${i}"]`);
+      if (!car.el) return; // ảnh chưa dựng xong
       car.el.style.transform = `translate(${x}px, ${y}px)`;
       car.el.style.zIndex = String(100 + Math.round(y));
       // Đi tự động thì xe đã nhường, không tính va chạm (tránh bị gián đoạn khi đi bằng thanh đi nhanh).
       if (!me || locked || path || now < hurtUntil) return;
       const [hw, up, down] = carHorizontal(car) ? CAR_BOX.h : CAR_BOX.v;
-      // Hộp nhân vật: rộng ±10 quanh chân, cao 28 phía trên chân.
-      if (Math.abs(me.x - x) < hw + 10 && me.y > y - up && me.y - 28 < y + down) hit('car', car);
+      // Chân nhân vật nằm trong làn xe (quanh tâm làn) và trùng thân xe theo chiều ngang.
+      if (Math.abs(me.x - x) < hw + 12 && me.y > y - up && me.y < y + down) hit('car', car);
     });
     BOATS.forEach((b, i) => {
       b.at += b.speed * dt;
@@ -681,6 +673,7 @@
       const k = b.at % (2 * span);
       const x = k < span ? b.from + k : b.to - (k - span);
       b.el = b.el || world.querySelector(`[data-boat="${i}"]`);
+      if (!b.el) return;
       b.el.style.transform = `translate(${x}px, ${b.y}px)`;
       b.el.classList.toggle('back', k >= span);
     });
@@ -812,32 +805,49 @@
     const cw = root.clientWidth;
     const ch = root.clientHeight;
     if (!cw || !ch) return;
-    scale = cw < 860 ? ch / H : Math.min(cw / W, ch / H);
+    const HH = H + SKY;
+    scale = cw < 860 ? ch / HH : Math.min(cw / W, ch / HH);
     const stage = root.querySelector('.city-stage');
     stage.style.width = px(W * scale);
-    stage.style.height = px(H * scale);
-    world.style.transform = `scale(${scale})`;
-    root.style.backgroundSize = `${T * scale}px ${T * scale}px`;
+    stage.style.height = px(HH * scale);
+    root.querySelector('.city-world').style.transform = `scale(${scale})`;
+    // Ngoài mép bản đồ: trời phía trên chân đồi, cỏ phía dưới (khớp với bản đồ khi màn hình rộng hơn bản đồ).
+    const top = Math.max(0, (ch - HH * scale) / 2);
+    const horizon = Math.round(top + (SKY + HORIZON) * scale);
+    root.style.backgroundImage = `linear-gradient(#7fc6f0 0, #c4e9fb ${horizon - 20}px, #8fcf63 ${horizon - 20}px, transparent ${horizon}px), url(${IMG}grass_tile.png)`;
+    root.style.backgroundSize = `100% 100%, ${64 * scale}px ${64 * scale}px`;
   }
 
   function mount(el, o) {
     opts = o;
     root = el;
-    el.classList.add('city-pixel');
-    el.style.backgroundImage = `url(${IMG}ground_grass.png)`;
+    el.classList.add('city-toon');
     el.innerHTML = `<div class="city-stage">
-      <div class="city-world" style="width:${px(W)};height:${px(H)}" role="img" aria-label="Bản đồ DCity">
-        <canvas class="city-canvas" width="${W}" height="${H}"></canvas>
-        ${waterHtml()}${boatsHtml()}${signHtml()}${trafficHtml()}${zonesHtml()}
-        <div class="walk-target hidden"></div>
-        <div id="me" class="me">
-          <div id="me-tag" class="me-tag"><span class="tag-name"></span><span class="tag-lv"></span></div>
-          <div class="me-body"></div>
+      <div class="city-world" style="width:${px(W)};height:${px(H + SKY)}" role="img" aria-label="Bản đồ DCity">
+        <canvas class="city-canvas" width="${W}" height="${H + SKY}"></canvas>
+        <div class="city-inner" style="top:${px(SKY)};width:${px(W)};height:${px(H)}">
+          <div class="city-props"></div>
+          <div class="walk-target hidden"></div>
+          <div id="me" class="me">
+            <div id="me-tag" class="me-tag"><span class="tag-name"></span><span class="tag-lv"></span></div>
+            <div class="me-body"></div>
+          </div>
         </div>
       </div>
     </div>`;
-    world = el.querySelector('.city-world');
-    loadAvailable(ALL_IMAGES).then(() => drawStatic(el.querySelector('.city-canvas')));
+    world = el.querySelector('.city-inner');
+    // Nạp kích thước ảnh trước rồi dựng phần ảnh HTML (cần w/h) và vẽ mặt đất.
+    loadManifests().then(() => {
+      el.querySelector('.city-props').innerHTML =
+        cloudsHtml() + waterHtml() + boatsHtml() + props().map(propHtml).join('') + signHtml() + trafficHtml() + zonesHtml();
+      el.querySelectorAll('[data-zone]').forEach((z) => z.addEventListener('click', (e) => {
+        e.stopPropagation();
+        walkTo(z.dataset.zone);
+      }));
+      CARS.forEach((c) => { c.el = null; });
+      BOATS.forEach((b) => { b.el = null; });
+      return loadImages(GROUND_IMAGES).then(() => drawStatic(el.querySelector('.city-canvas')));
+    });
 
     // Lớp điều khiển (không cuộn theo bản đồ): gợi ý vào khu, hướng dẫn phím, cần điều khiển ảo.
     overlay = document.createElement('div');
@@ -870,12 +880,8 @@
     placeMe();
     setTag(o.name, o.level);
 
-    // Bấm toà nhà / biển tên: đi tới cửa khu; bấm chỗ khác: đi tới điểm đó.
-    el.querySelectorAll('[data-zone]').forEach((z) => z.addEventListener('click', (e) => {
-      e.stopPropagation();
-      walkTo(z.dataset.zone);
-    }));
-    world.addEventListener('click', (e) => {
+    // Bấm toà nhà / biển tên: đi tới cửa khu (gắn khi dựng biển); bấm chỗ khác: đi tới điểm đó.
+    el.querySelector('.city-world').addEventListener('click', (e) => {
       const r = world.getBoundingClientRect();
       walkToPoint((e.clientX - r.left) / scale, (e.clientY - r.top) / scale);
     });

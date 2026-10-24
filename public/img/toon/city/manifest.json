@@ -1,0 +1,544 @@
+{
+ "style": "Hoạt hình 2D tươi sáng (định hướng giống game Avatar), không pixel",
+ "images": [
+  {
+   "file": "grass_tile.png",
+   "w": 128,
+   "h": 128,
+   "use": "Nền cỏ lặp",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "road_h.png",
+   "w": 128,
+   "h": 128,
+   "use": "Mặt đường: đường ngang (vạch giữa)",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "road_v.png",
+   "w": 128,
+   "h": 128,
+   "use": "Mặt đường: đường dọc (vạch giữa)",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "road_plain.png",
+   "w": 128,
+   "h": 128,
+   "use": "Mặt đường: nhựa đường trơn / ngã tư",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "road_crosswalk_h.png",
+   "w": 128,
+   "h": 128,
+   "use": "Mặt đường: vạch qua đường cho đường ngang",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "road_crosswalk_v.png",
+   "w": 128,
+   "h": 128,
+   "use": "Mặt đường: vạch qua đường cho đường dọc",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "sidewalk_tile.png",
+   "w": 64,
+   "h": 64,
+   "use": "Vỉa hè gạch lát",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "water_tile.png",
+   "w": 128,
+   "h": 128,
+   "use": "Mặt nước sông lặp",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "river_bank_top.png",
+   "w": 128,
+   "h": 48,
+   "use": "Bờ trên sông (cỏ→cát→nước), lặp ngang",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "river_bank_bottom.png",
+   "w": 128,
+   "h": 48,
+   "use": "Bờ dưới sông (nước→cát→cỏ), lặp ngang",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "bridge_deck.png",
+   "w": 128,
+   "h": 128,
+   "use": "Mặt cầu gỗ lặp",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "bridge_rail_v.png",
+   "w": 20,
+   "h": 128,
+   "use": "Lan can cầu dọc (lặp dọc)",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "bridge_rail_h.png",
+   "w": 128,
+   "h": 28,
+   "use": "Lan can cầu ngang (lặp ngang)",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "lamp.png",
+   "w": 40,
+   "h": 130,
+   "use": "Đèn đường",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "bench.png",
+   "w": 100,
+   "h": 60,
+   "use": "Ghế đá công viên",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "boat_1.png",
+   "w": 110,
+   "h": 64,
+   "use": "Thuyền nhìn từ trên (mũi hướng phải; lật ngang để đi trái)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "Pirate Pack"
+   ]
+  },
+  {
+   "file": "boat_2.png",
+   "w": 80,
+   "h": 42,
+   "use": "Thuyền nhìn từ trên (mũi hướng phải; lật ngang để đi trái)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "Pirate Pack"
+   ]
+  },
+  {
+   "file": "boat_3.png",
+   "w": 80,
+   "h": 42,
+   "use": "Thuyền nhìn từ trên (mũi hướng phải; lật ngang để đi trái)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "Pirate Pack"
+   ]
+  },
+  {
+   "file": "car_blue_side.png",
+   "w": 120,
+   "h": 52,
+   "use": "Xe xanh nhìn ngang (đầu xe hướng phải; lật ngang để đi trái)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack",
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "note": "nhuộm lại từ xe bán tải của Vector Farm Pack"
+  },
+  {
+   "file": "car_red_side.png",
+   "w": 120,
+   "h": 52,
+   "use": "Xe đỏ nhìn ngang (đầu xe hướng phải; lật ngang để đi trái)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack",
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "note": "nhuộm lại từ xe bán tải của Vector Farm Pack"
+  },
+  {
+   "file": "car_yellow_side.png",
+   "w": 120,
+   "h": 52,
+   "use": "Xe vàng nhìn ngang (đầu xe hướng phải; lật ngang để đi trái)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack",
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "note": "nhuộm lại từ xe bán tải của Vector Farm Pack"
+  },
+  {
+   "file": "car_green_side.png",
+   "w": 120,
+   "h": 52,
+   "use": "Xe xanh lá nhìn ngang (đầu xe hướng phải; lật ngang để đi trái)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack",
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "note": "nhuộm lại từ xe bán tải của Vector Farm Pack"
+  },
+  {
+   "file": "ambulance_side.png",
+   "w": 120,
+   "h": 52,
+   "use": "Xe cứu thương nhìn ngang (đầu xe hướng phải)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack",
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "tree_big.png",
+   "w": 145,
+   "h": 200,
+   "use": "Cây tán to",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Cartoon Trees"
+   ]
+  },
+  {
+   "file": "tree_1.png",
+   "w": 94,
+   "h": 204,
+   "use": "Cây",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Background Elements Remastered"
+   ]
+  },
+  {
+   "file": "tree_2.png",
+   "w": 20,
+   "h": 43,
+   "use": "Cây",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Background Elements Remastered"
+   ]
+  },
+  {
+   "file": "tree_3.png",
+   "w": 23,
+   "h": 68,
+   "use": "Cây",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Background Elements Remastered"
+   ]
+  },
+  {
+   "file": "tree_4.png",
+   "w": 30,
+   "h": 49,
+   "use": "Cây",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Background Elements Remastered"
+   ]
+  },
+  {
+   "file": "tree_5.png",
+   "w": 200,
+   "h": 238,
+   "use": "Cây",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Background Elements Remastered"
+   ]
+  },
+  {
+   "file": "bush_1.png",
+   "w": 120,
+   "h": 60,
+   "use": "Bụi cây",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Background Elements Remastered"
+   ]
+  },
+  {
+   "file": "bush_2.png",
+   "w": 53,
+   "h": 44,
+   "use": "Bụi cây",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Background Elements Remastered"
+   ]
+  },
+  {
+   "file": "bush_3.png",
+   "w": 59,
+   "h": 52,
+   "use": "Bụi cây",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Background Elements Remastered"
+   ]
+  },
+  {
+   "file": "bush_4.png",
+   "w": 50,
+   "h": 46,
+   "use": "Bụi cây",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Background Elements Remastered"
+   ]
+  },
+  {
+   "file": "fountain.png",
+   "w": 180,
+   "h": 132,
+   "use": "Đài phun nước quảng trường",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Fountain"
+   ]
+  },
+  {
+   "file": "building_casino.png",
+   "w": 262,
+   "h": 260,
+   "use": "Toà Casino (biển CASINO có bóng đèn)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack",
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "door_x": 131,
+   "door_y": 260
+  },
+  {
+   "file": "building_bank.png",
+   "w": 466,
+   "h": 230,
+   "use": "Toà Ngân hàng",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack",
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "door_x": 233,
+   "door_y": 230
+  },
+  {
+   "file": "building_shop.png",
+   "w": 211,
+   "h": 240,
+   "use": "Shop thời trang",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack",
+    "Platformer Art Buildings",
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "door_x": 165,
+   "door_y": 240
+  },
+  {
+   "file": "building_hospital.png",
+   "w": 242,
+   "h": 240,
+   "use": "Bệnh viện (biển + chữ thập đỏ)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack",
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "door_x": 121,
+   "door_y": 240
+  },
+  {
+   "file": "house_1.png",
+   "w": 251,
+   "h": 170,
+   "use": "Nhà dân trang trí",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack"
+   ]
+  },
+  {
+   "file": "house_2.png",
+   "w": 175,
+   "h": 170,
+   "use": "Nhà dân trang trí",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack"
+   ]
+  },
+  {
+   "file": "house_3.png",
+   "w": 160,
+   "h": 170,
+   "use": "Nhà dân trang trí",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack"
+   ]
+  },
+  {
+   "file": "house_4.png",
+   "w": 201,
+   "h": 170,
+   "use": "Nhà dân trang trí",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack"
+   ]
+  },
+  {
+   "file": "house_5.png",
+   "w": 191,
+   "h": 170,
+   "use": "Nhà dân trang trí",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack"
+   ]
+  },
+  {
+   "file": "house_6.png",
+   "w": 170,
+   "h": 170,
+   "use": "Nhà dân trang trí",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack"
+   ]
+  },
+  {
+   "file": "house_7.png",
+   "w": 347,
+   "h": 170,
+   "use": "Nhà dân trang trí",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack"
+   ]
+  },
+  {
+   "file": "house_8.png",
+   "w": 269,
+   "h": 170,
+   "use": "Nhà dân trang trí",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack"
+   ]
+  },
+  {
+   "file": "sign_casino.png",
+   "w": 170,
+   "h": 44,
+   "use": "Biển CASINO rời (nhấp nháy bằng CSS filter)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  }
+ ]
+}

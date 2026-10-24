@@ -1,0 +1,12 @@
+Hình trong thư mục này đều dùng giấy phép CC0 1.0 (public domain) — không bắt buộc ghi công, nhưng DCity vẫn ghi nguồn:
+
+- Background Elements Remastered — Kenney — CC0 https://kenney.nl/assets/background-elements-remastered
+- Cartoon Trees — Belohlavek — CC0 https://opengameart.org/content/cartoon-trees
+- DCity (vẽ / ghép bằng PIL cho dự án) — DCity — CC0 
+- Fountain — nicubunu — CC0 https://opengameart.org/content/fountain
+- Pirate Pack — Kenney — CC0 https://kenney.nl/assets/pirate-pack
+- Platformer Art Buildings — Kenney — CC0 https://kenney.nl/assets/platformer-art-buildings
+- Vector Farm Pack — cemkalyoncu — CC0 https://opengameart.org/content/vector-farm-pack
+
+Hình "DCity" là vẽ / ghép / tô màu lại bằng PIL cho dự án, phát hành CC0.
+Chi tiết từng file: CREDITS.csv.

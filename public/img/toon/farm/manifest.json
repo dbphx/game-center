@@ -1,0 +1,772 @@
+{
+ "style": "Hoạt hình 2D tươi sáng (định hướng giống game Avatar), không pixel",
+ "images": [
+  {
+   "file": "soil_plot.png",
+   "w": 96,
+   "h": 96,
+   "use": "Ô ruộng đã cày (trống / đang trồng), đặt lưới cạnh nhau",
+   "anchor": "top-left",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "soil_plot_wet.png",
+   "w": 96,
+   "h": 96,
+   "use": "Ô ruộng đã tưới (sẫm hơn), tuỳ chọn",
+   "anchor": "top-left",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "grass_plot.png",
+   "w": 96,
+   "h": 96,
+   "use": "Ô đất chưa mở (cỏ, hoa nhỏ)",
+   "anchor": "top-left",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "grass_tile.png",
+   "w": 128,
+   "h": 128,
+   "use": "Nền cỏ lặp",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "dirt_path_tile.png",
+   "w": 128,
+   "h": 128,
+   "use": "Đường đất lặp",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "crop_carrot_1.png",
+   "w": 96,
+   "h": 120,
+   "use": "Cà rốt giai đoạn 1 (mầm)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "carrot",
+   "stage": 1
+  },
+  {
+   "file": "crop_carrot_2.png",
+   "w": 96,
+   "h": 120,
+   "use": "Cà rốt giai đoạn 2 (đang lớn)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "carrot",
+   "stage": 2
+  },
+  {
+   "file": "crop_carrot_ripe.png",
+   "w": 96,
+   "h": 120,
+   "use": "Cà rốt chín, chờ thu hoạch",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "carrot",
+   "stage": 3
+  },
+  {
+   "file": "item_carrot.png",
+   "w": 16,
+   "h": 64,
+   "use": "Nông sản Cà rốt (biểu tượng cửa hàng / hiệu ứng thu hoạch)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "Cooking & Farming Game Pack"
+   ]
+  },
+  {
+   "file": "crop_corn_1.png",
+   "w": 96,
+   "h": 120,
+   "use": "Ngô giai đoạn 1 (mầm)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "corn",
+   "stage": 1
+  },
+  {
+   "file": "crop_corn_2.png",
+   "w": 96,
+   "h": 120,
+   "use": "Ngô giai đoạn 2 (đang lớn)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "corn",
+   "stage": 2
+  },
+  {
+   "file": "crop_corn_ripe.png",
+   "w": 96,
+   "h": 120,
+   "use": "Ngô chín, chờ thu hoạch",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "corn",
+   "stage": 3
+  },
+  {
+   "file": "item_corn.png",
+   "w": 30,
+   "h": 64,
+   "use": "Nông sản Ngô (biểu tượng cửa hàng / hiệu ứng thu hoạch)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "Cooking & Farming Game Pack"
+   ]
+  },
+  {
+   "file": "crop_tomato_1.png",
+   "w": 96,
+   "h": 120,
+   "use": "Cà chua giai đoạn 1 (mầm)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "tomato",
+   "stage": 1
+  },
+  {
+   "file": "crop_tomato_2.png",
+   "w": 96,
+   "h": 120,
+   "use": "Cà chua giai đoạn 2 (đang lớn)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "tomato",
+   "stage": 2
+  },
+  {
+   "file": "crop_tomato_ripe.png",
+   "w": 96,
+   "h": 120,
+   "use": "Cà chua chín, chờ thu hoạch",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "tomato",
+   "stage": 3
+  },
+  {
+   "file": "item_tomato.png",
+   "w": 56,
+   "h": 56,
+   "use": "Nông sản Cà chua (biểu tượng cửa hàng / hiệu ứng thu hoạch)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "Cooking & Farming Game Pack"
+   ]
+  },
+  {
+   "file": "crop_rice_1.png",
+   "w": 96,
+   "h": 120,
+   "use": "Lúa giai đoạn 1 (mầm)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "rice",
+   "stage": 1
+  },
+  {
+   "file": "crop_rice_2.png",
+   "w": 96,
+   "h": 120,
+   "use": "Lúa giai đoạn 2 (đang lớn)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "rice",
+   "stage": 2
+  },
+  {
+   "file": "crop_rice_ripe.png",
+   "w": 96,
+   "h": 120,
+   "use": "Lúa chín, chờ thu hoạch",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Cooking & Farming Game Pack",
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "crop": "rice",
+   "stage": 3
+  },
+  {
+   "file": "item_rice.png",
+   "w": 40,
+   "h": 70,
+   "use": "Nông sản Lúa (biểu tượng cửa hàng / hiệu ứng thu hoạch)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "Cooking & Farming Game Pack",
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "crop_strawberry_1.png",
+   "w": 96,
+   "h": 120,
+   "use": "Dâu tây giai đoạn 1 (mầm)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "strawberry",
+   "stage": 1
+  },
+  {
+   "file": "crop_strawberry_2.png",
+   "w": 96,
+   "h": 120,
+   "use": "Dâu tây giai đoạn 2 (đang lớn)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "strawberry",
+   "stage": 2
+  },
+  {
+   "file": "crop_strawberry_ripe.png",
+   "w": 96,
+   "h": 120,
+   "use": "Dâu tây chín, chờ thu hoạch",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Cooking & Farming Game Pack",
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "crop": "strawberry",
+   "stage": 3
+  },
+  {
+   "file": "item_strawberry.png",
+   "w": 40,
+   "h": 56,
+   "use": "Nông sản Dâu tây (biểu tượng cửa hàng / hiệu ứng thu hoạch)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "Cooking & Farming Game Pack"
+   ]
+  },
+  {
+   "file": "crop_watermelon_1.png",
+   "w": 96,
+   "h": 120,
+   "use": "Dưa hấu giai đoạn 1 (mầm)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "watermelon",
+   "stage": 1
+  },
+  {
+   "file": "crop_watermelon_2.png",
+   "w": 96,
+   "h": 120,
+   "use": "Dưa hấu giai đoạn 2 (đang lớn)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "watermelon",
+   "stage": 2
+  },
+  {
+   "file": "crop_watermelon_ripe.png",
+   "w": 96,
+   "h": 120,
+   "use": "Dưa hấu chín, chờ thu hoạch",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "watermelon",
+   "stage": 3
+  },
+  {
+   "file": "item_watermelon.png",
+   "w": 72,
+   "h": 43,
+   "use": "Nông sản Dưa hấu (biểu tượng cửa hàng / hiệu ứng thu hoạch)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "Cooking & Farming Game Pack"
+   ]
+  },
+  {
+   "file": "bg_sky_hills.png",
+   "w": 1536,
+   "h": 560,
+   "use": "Nền trời xanh + mây + đồi xa, đặt phía trên cùng cảnh (lặp ngang được)",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "Free Fence Game Background"
+   ]
+  },
+  {
+   "file": "fence_row.png",
+   "w": 531,
+   "h": 56,
+   "use": "Hàng rào gỗ dài (lặp ngang)",
+   "anchor": "bottom-left",
+   "tile": true,
+   "source": [
+    "Free Fence Game Background"
+   ]
+  },
+  {
+   "file": "fence_piece.png",
+   "w": 66,
+   "h": 56,
+   "use": "Một đoạn rào ngắn",
+   "anchor": "bottom-left",
+   "tile": false,
+   "source": [
+    "Free Fence Game Background"
+   ]
+  },
+  {
+   "file": "tree_big.png",
+   "w": 174,
+   "h": 240,
+   "use": "Cây tán to",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Cartoon Trees"
+   ]
+  },
+  {
+   "file": "tree_med.png",
+   "w": 109,
+   "h": 150,
+   "use": "Cây vừa",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Cartoon Trees"
+   ]
+  },
+  {
+   "file": "tree_round_1.png",
+   "w": 94,
+   "h": 204,
+   "use": "Cây tán tròn kiểu hoạt hình",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Background Elements Remastered"
+   ]
+  },
+  {
+   "file": "tree_round_2.png",
+   "w": 20,
+   "h": 43,
+   "use": "Cây tán tròn kiểu hoạt hình",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Background Elements Remastered"
+   ]
+  },
+  {
+   "file": "tree_round_3.png",
+   "w": 23,
+   "h": 68,
+   "use": "Cây tán tròn kiểu hoạt hình",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Background Elements Remastered"
+   ]
+  },
+  {
+   "file": "bush_1.png",
+   "w": 120,
+   "h": 60,
+   "use": "Bụi cây",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Background Elements Remastered"
+   ]
+  },
+  {
+   "file": "bush_2.png",
+   "w": 53,
+   "h": 44,
+   "use": "Bụi cây",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Background Elements Remastered"
+   ]
+  },
+  {
+   "file": "bush_3.png",
+   "w": 59,
+   "h": 52,
+   "use": "Bụi cây",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Background Elements Remastered"
+   ]
+  },
+  {
+   "file": "bush_4.png",
+   "w": 50,
+   "h": 46,
+   "use": "Bụi cây",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Background Elements Remastered"
+   ]
+  },
+  {
+   "file": "cloud_1.png",
+   "w": 203,
+   "h": 121,
+   "use": "Đám mây (bay ngang)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "Background Elements Remastered"
+   ]
+  },
+  {
+   "file": "cloud_2.png",
+   "w": 196,
+   "h": 156,
+   "use": "Đám mây (bay ngang)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "Background Elements Remastered"
+   ]
+  },
+  {
+   "file": "cloud_3.png",
+   "w": 216,
+   "h": 139,
+   "use": "Đám mây (bay ngang)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "Background Elements Remastered"
+   ]
+  },
+  {
+   "file": "barn.png",
+   "w": 184,
+   "h": 240,
+   "use": "Nhà kho đỏ",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack"
+   ]
+  },
+  {
+   "file": "silo.png",
+   "w": 128,
+   "h": 260,
+   "use": "Tháp chứa (silo)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack"
+   ]
+  },
+  {
+   "file": "farmhouse.png",
+   "w": 265,
+   "h": 260,
+   "use": "Nhà nông trại",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack"
+   ]
+  },
+  {
+   "file": "tractor.png",
+   "w": 180,
+   "h": 112,
+   "use": "Máy cày (trang trí)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack"
+   ]
+  },
+  {
+   "file": "wheelbarrow.png",
+   "w": 90,
+   "h": 84,
+   "use": "Xe cút kít",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack"
+   ]
+  },
+  {
+   "file": "flowers.png",
+   "w": 74,
+   "h": 80,
+   "use": "Chậu hoa",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack"
+   ]
+  },
+  {
+   "file": "hay.png",
+   "w": 85,
+   "h": 80,
+   "use": "Đống rơm",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Cooking & Farming Game Pack"
+   ]
+  },
+  {
+   "file": "well.png",
+   "w": 103,
+   "h": 130,
+   "use": "Giếng nước",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Cooking & Farming Game Pack"
+   ]
+  },
+  {
+   "file": "trough_water.png",
+   "w": 110,
+   "h": 56,
+   "use": "Máng nước trong chuồng",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "trough_feed.png",
+   "w": 110,
+   "h": 56,
+   "use": "Máng thức ăn (rơm) trong chuồng",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "animal_chicken.png",
+   "w": 47,
+   "h": 56,
+   "use": "Gà (nhìn nghiêng, quay trái; lật ngang để quay phải)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack"
+   ],
+   "animal": "chicken"
+  },
+  {
+   "file": "animal_chicken_white.png",
+   "w": 47,
+   "h": 56,
+   "use": "Gà trắng (nhìn nghiêng, quay trái; lật ngang để quay phải)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack"
+   ],
+   "animal": "chicken_white"
+  },
+  {
+   "file": "animal_pig.png",
+   "w": 71,
+   "h": 66,
+   "use": "Heo (nhìn nghiêng, quay trái; lật ngang để quay phải)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack"
+   ],
+   "animal": "pig"
+  },
+  {
+   "file": "animal_cow.png",
+   "w": 151,
+   "h": 110,
+   "use": "Bò (nhìn nghiêng, quay trái; lật ngang để quay phải)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack"
+   ],
+   "animal": "cow"
+  },
+  {
+   "file": "animal_horse.png",
+   "w": 120,
+   "h": 120,
+   "use": "Ngựa (nhìn nghiêng, quay trái; lật ngang để quay phải)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Farm Pack"
+   ],
+   "animal": "horse"
+  },
+  {
+   "file": "animal_sheep.png",
+   "w": 113,
+   "h": 80,
+   "use": "Cừu (nhìn nghiêng, quay trái; lật ngang để quay phải)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "Vector Dog & Sheep"
+   ],
+   "animal": "sheep"
+  },
+  {
+   "file": "pond.png",
+   "w": 360,
+   "h": 220,
+   "use": "Ao cá (cá bơi đặt bên trong vùng nước, khoảng 10–350 × 17–203)",
+   "anchor": "top-left",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fish_tilapia.png",
+   "w": 72,
+   "h": 40,
+   "use": "Cá rô phi (quay phải; lật ngang để quay trái)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "Fish Pack",
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "fish": "tilapia"
+  },
+  {
+   "file": "fish_catfish.png",
+   "w": 72,
+   "h": 28,
+   "use": "Cá trê (quay phải; lật ngang để quay trái)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "Fish Pack",
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "fish": "catfish"
+  },
+  {
+   "file": "fish_carp.png",
+   "w": 72,
+   "h": 57,
+   "use": "Cá chép (quay phải; lật ngang để quay trái)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "Fish Pack"
+   ],
+   "fish": "carp"
+  },
+  {
+   "file": "fish_koi.png",
+   "w": 72,
+   "h": 39,
+   "use": "Cá Koi (quay phải; lật ngang để quay trái)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "Fish Pack",
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "fish": "koi"
+  }
+ ]
+}
