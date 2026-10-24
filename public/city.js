@@ -664,8 +664,10 @@
       // Đi tự động thì xe đã nhường, không tính va chạm (tránh bị gián đoạn khi đi bằng thanh đi nhanh).
       if (!me || locked || path || now < hurtUntil) return;
       const [hw, up, down] = carHorizontal(car) ? CAR_BOX.h : CAR_BOX.v;
-      // Chân nhân vật nằm trong làn xe (quanh tâm làn) và trùng thân xe theo chiều ngang.
-      if (Math.abs(me.x - x) < hw + 12 && me.y > y - up && me.y < y + down) hit('car', car);
+      // Chân nhân vật nằm trong làn xe (quanh tâm làn) và trùng thân xe theo chiều ngang. Hộp va chạm rộng hơn
+      // làn nên phải chặn thêm: chân đứng trên vỉa hè / lề đường thì không bị tông.
+      const onRoad = carHorizontal(car) ? inRoadRow(Math.floor(me.y / T)) : inRoadCol(Math.floor(me.x / T));
+      if (onRoad && Math.abs(me.x - x) < hw + 12 && me.y > y - up && me.y < y + down) hit('car', car);
     });
     BOATS.forEach((b, i) => {
       b.at += b.speed * dt;
