@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nông trại · DCity</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/common.css">
+  <link rel="stylesheet" href="/farm/farm.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"><i data-icon="arrowLeft"></i><span id="logo"></span><span class="brand-text">DCity</span></a>
+    <span class="spacer"></span>
+    <div class="user">
+      <span class="level-badge" id="level-badge" title="Kinh nghiệm"></span>
+      <span class="wallet-pill"><i data-icon="coins"></i><span id="balance"></span></span>
+      <span class="user-chip"><span id="user-avatar"></span><span class="user-chip-name" id="user-name"></span></span>
+    </div>
+  </header>
+
+  <main class="farm hidden" id="farm">
+    <div class="farm-bar">
+      <div class="farm-title">
+        <span class="farm-icon"><i data-icon="sprout"></i></span>
+        <div>
+          <h1 id="farm-name">Nông trại</h1>
+          <p class="muted">Gieo hạt, chờ cây chín rồi thu hoạch; nuôi gia súc và thả cá để bán lấy xu và XP.</p>
+        </div>
+      </div>
+      <div class="farm-actions">
+        <button id="btn-harvest-all" class="primary hidden"><i data-icon="sprout"></i><span>Thu hoạch tất cả</span></button>
+        <button id="btn-shop"><i data-icon="gift"></i>Cửa hàng</button>
+      </div>
+    </div>
+
+    <section class="field-card">
+      <div class="section-head">
+        <h2><i data-icon="sprout"></i>Ruộng</h2>
+        <span class="muted" id="plot-count"></span>
+      </div>
+      <div class="field" id="plots"></div>
+    </section>
+
+    <div class="pens">
+      <section class="pen-card" id="barn"></section>
+      <section class="pen-card" id="pond"></section>
+    </div>
+  </main>
+
+  <!-- Cửa hàng: hạt giống, vật nuôi, cá. Mở từ một ô trống thì chỉ để chọn hạt gieo vào ô đó. -->
+  <dialog class="modal shop-dlg" id="dlg-shop">
+    <div class="shop-wrap">
+      <div class="shop-head">
+        <h2><i data-icon="gift"></i><span id="shop-title">Cửa hàng</span></h2>
+        <button class="link icon-only" id="shop-close" title="Đóng"><i data-icon="x"></i></button>
+      </div>
+      <div class="tabs shop-tabs" role="tablist" id="shop-tabs">
+        <button class="tab active" data-tab="crops">Hạt giống</button>
+        <button class="tab" data-tab="animals">Vật nuôi</button>
+        <button class="tab" data-tab="fish">Cá</button>
+      </div>
+      <p class="muted shop-note" id="shop-note"></p>
+      <div class="shop-list" id="shop-list"></div>
+    </div>
+  </dialog>
+
+  <script src="/icons.js"></script>
+  <script src="/character.js"></script>
+  <script src="/account.js"></script>
+  <script src="/farm/farm.js"></script>
+</body>
+</html>

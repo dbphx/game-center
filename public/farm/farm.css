@@ -1,0 +1,352 @@
+/* Nông trại DCity: ruộng ô đất, chuồng gia súc, ao cá, cửa hàng.
+   Nền đất / cỏ / hàng rào / mái / nước là pixel art Kenney (public/img/farm, CC0) phóng to 3 lần. */
+
+:root { --tile: 48px; }
+
+.pixel, .pixel img, img.pixel { image-rendering: pixelated; image-rendering: crisp-edges; }
+
+.farm {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 22px 18px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ---------- Thanh tiêu đề ---------- */
+
+.farm-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.farm-title { display: flex; align-items: center; gap: 14px; }
+.farm-title h1 { margin: 0; font-size: 24px; font-weight: 800; }
+.farm-title .muted { margin: 2px 0 0; }
+.farm-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 52px; height: 52px; border-radius: 14px;
+  background: rgba(124, 197, 118, .18); color: #9ee6a0; flex-shrink: 0;
+}
+.farm-icon .icon { width: 26px; height: 26px; }
+.farm-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.section-head h2 { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 18px; font-weight: 800; color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, .35); }
+.section-head h2 .icon { color: var(--gold); }
+.section-head .muted { color: #eaf6ea; text-shadow: 0 1px 0 rgba(0, 0, 0, .4); font-weight: 600; }
+
+/* ---------- Ruộng ---------- */
+
+.field-card, .pen-card {
+  position: relative;
+  padding: 18px;
+  border-radius: 18px;
+  border: 4px solid #3f6b2f;
+  background-color: #6fbf4a;
+  background-image: url('/img/farm/grass.png');
+  background-size: var(--tile) var(--tile);
+  image-rendering: pixelated;
+  box-shadow: var(--shadow), inset 0 0 0 2px rgba(255, 255, 255, .15);
+}
+
+.field { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
+
+.plot {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 6px;
+  border: 4px solid #6b4a2f;
+  border-radius: 8px;
+  background-color: #c98b4f;
+  background-image: url('/img/farm/bed_v.png'), url('/img/farm/soil.png');
+  background-size: var(--tile) calc(var(--tile) * 4), var(--tile) var(--tile);
+  background-position: center top, 0 0;
+  image-rendering: pixelated;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, .25);
+  cursor: pointer;
+  overflow: hidden;
+  font-family: var(--font);
+  color: #fff;
+  transition: transform .12s, box-shadow .12s;
+}
+.plot:hover { transform: translateY(-2px); box-shadow: 0 7px 0 rgba(0, 0, 0, .22); }
+.plot .crop {
+  position: absolute;
+  inset: 8px 8px 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.plot .crop img { image-rendering: pixelated; filter: drop-shadow(0 3px 0 rgba(0, 0, 0, .25)); }
+.plot .plot-label {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: rgba(30, 18, 8, .62);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.2;
+}
+.plot .plot-label .sub { font-weight: 600; color: #ffe7a8; font-variant-numeric: tabular-nums; }
+.plot .bar { height: 5px; border-radius: 999px; background: rgba(255, 255, 255, .2); overflow: hidden; }
+.plot .bar > span { display: block; height: 100%; background: linear-gradient(90deg, #8bd36a, #f6c744); }
+
+.plot.empty .crop { color: rgba(255, 255, 255, .85); font-weight: 800; font-size: 34px; text-shadow: 0 2px 0 rgba(0, 0, 0, .35); }
+.plot.empty .plot-label { background: rgba(30, 18, 8, .45); }
+.plot.ripe { border-color: #e0a800; box-shadow: 0 0 0 3px rgba(246, 199, 68, .6), 0 4px 0 rgba(0, 0, 0, .25); }
+.plot.ripe .crop { animation: sway 1.4s ease-in-out infinite; }
+.plot.ripe .plot-label { background: linear-gradient(180deg, #ffd766, #e0a800); color: #2a1d00; }
+@keyframes sway { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg) translateY(-2px); } }
+
+.plot.buy, .plot.locked {
+  background-color: #8a8a7a;
+  background-image: url('/img/farm/grass_tuft.png');
+  background-size: var(--tile) var(--tile);
+  border-style: dashed;
+  border-color: rgba(60, 40, 20, .7);
+  filter: saturate(.55);
+}
+.plot.buy { filter: none; border-color: #e0a800; }
+.plot.locked { cursor: default; opacity: .75; }
+.plot.locked:hover { transform: none; }
+.plot.buy .crop, .plot.locked .crop { color: #fff; }
+.plot.buy .crop .icon, .plot.locked .crop .icon { width: 34px; height: 34px; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, .4)); }
+
+/* ---------- Chuồng và ao ---------- */
+
+.pens { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+.cap { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; color: #fff; font-weight: 700; font-size: 13px; text-shadow: 0 1px 0 rgba(0, 0, 0, .4); }
+.cap .cap-bar { flex: 1; height: 10px; border-radius: 999px; background: rgba(0, 0, 0, .3); overflow: hidden; }
+.cap .cap-bar > span { display: block; height: 100%; background: linear-gradient(90deg, #8bd36a, #f6c744); }
+.cap button { padding: 6px 12px; font-size: 13px; }
+
+/* Bãi nhốt: cỏ, hàng rào gỗ bốn phía. */
+.pen {
+  position: relative;
+  height: 230px;
+  border-radius: 6px;
+  background-color: #7cc54f;
+  background-image: url('/img/farm/grass_tuft.png'), url('/img/farm/grass.png');
+  background-size: var(--tile) var(--tile), var(--tile) var(--tile);
+  background-position: 0 0, 0 0;
+  background-repeat: space, repeat;
+  image-rendering: pixelated;
+  overflow: hidden;
+}
+.pen::before, .pen::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: var(--tile);
+  background-image: url('/img/farm/fence_mid.png');
+  background-size: var(--tile) var(--tile);
+  background-repeat: repeat-x;
+  image-rendering: pixelated;
+  z-index: 2;
+  pointer-events: none;
+}
+.pen::before { top: -14px; }
+.pen::after { bottom: -18px; }
+.pen .post-l, .pen .post-r {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: var(--tile);
+  background-image: url('/img/farm/fence_post_mid.png');
+  background-size: var(--tile) var(--tile);
+  background-repeat: repeat-y;
+  image-rendering: pixelated;
+  z-index: 2;
+  pointer-events: none;
+}
+.pen .post-l { left: -16px; }
+.pen .post-r { right: -16px; }
+.pen .deco { position: absolute; display: flex; z-index: 1; pointer-events: none; }
+
+/* Ao: mặt nước Kenney, bờ đá, sóng nhẹ. */
+.pen.water {
+  background: none;
+  border: var(--tile) solid transparent;
+  border-image: url('/img/farm/pond_9slice.png') 16 fill / var(--tile) round;
+  border-radius: 0;
+}
+.pen.water::before, .pen.water::after, .pen.water .post-l, .pen.water .post-r { display: none; }
+.pen.water .ripple-ring {
+  position: absolute;
+  width: 60px;
+  height: 22px;
+  border: 2px solid rgba(255, 255, 255, .55);
+  border-radius: 50%;
+  animation: ring 3s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes ring { from { transform: scale(.3); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
+
+.critter {
+  position: absolute;
+  z-index: 1;
+  width: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  animation: wander var(--dur, 9s) ease-in-out infinite alternate;
+  animation-delay: var(--delay, 0s);
+}
+.critter img { display: block; filter: drop-shadow(0 3px 0 rgba(0, 0, 0, .25)); }
+.critter .mini-bar { width: 40px; height: 5px; border-radius: 999px; background: rgba(0, 0, 0, .35); overflow: hidden; }
+.critter .mini-bar > span { display: block; height: 100%; background: #f6c744; }
+.critter .ready {
+  position: absolute;
+  top: -6px;
+  right: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: #2a1d00;
+  font-weight: 900;
+  font-size: 13px;
+  animation: pulse 1s infinite;
+}
+@keyframes wander { from { translate: 0 0; } to { translate: var(--dx, 40px) var(--dy, 10px); } }
+.fish-swim { animation-name: swim; }
+.fish-swim img { filter: drop-shadow(0 4px 0 rgba(0, 40, 80, .3)); }
+@keyframes swim { from { translate: 0 0; } to { translate: var(--dx, 80px) var(--dy, 6px); } }
+.critter.flip img { scale: -1 1; }
+
+.critter-list { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.critter-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: rgba(16, 30, 22, .82);
+  font-size: 12px;
+  font-weight: 600;
+}
+.critter-list li img { flex-shrink: 0; }
+.critter-list li .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.critter-list li .t { color: var(--muted); font-variant-numeric: tabular-nums; }
+.critter-list li button { padding: 4px 8px; font-size: 12px; }
+.critter-list .empty { grid-column: 1 / -1; justify-content: center; color: var(--muted); }
+
+/* Chưa có chuồng / ao: bảng mời mua. */
+.pen-offer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 12px;
+  background: rgba(16, 30, 22, .86);
+  text-align: center;
+}
+.pen-offer h3 { margin: 0; font-size: 18px; }
+.pen-offer .muted { margin: 0; }
+.barn-img { filter: drop-shadow(0 6px 0 rgba(0, 0, 0, .25)); }
+.pond-art {
+  width: calc(var(--tile) * 4);
+  height: calc(var(--tile) * 2);
+  border: var(--tile) solid transparent;
+  border-image: url('/img/farm/pond_9slice.png') 16 fill / var(--tile) round;
+  box-sizing: border-box;
+  image-rendering: pixelated;
+}
+
+/* ---------- Cửa hàng ---------- */
+
+dialog.shop-dlg { width: min(560px, calc(100vw - 24px)); }
+.shop-wrap { display: flex; flex-direction: column; gap: 12px; padding: 22px; max-height: min(80vh, 760px); }
+.shop-head { display: flex; align-items: center; justify-content: space-between; }
+.shop-head h2 { margin: 0; font-size: 20px; display: flex; align-items: center; gap: 10px; }
+.shop-head h2 .icon { color: var(--gold); }
+.shop-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 12px; background: var(--bg-2); border: 1px solid var(--border); }
+.shop-tabs .tab { background: none; border: none; color: var(--muted); padding: 9px; }
+.shop-tabs .tab:hover:not(:disabled) { background: var(--surface-2); color: var(--text); }
+.shop-tabs .tab.active { background: var(--surface-3); color: var(--text); box-shadow: 0 2px 8px rgba(0, 0, 0, .25); }
+.shop-note { margin: 0; }
+.shop-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; padding-right: 2px; }
+.shop-row {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.shop-row.locked { opacity: .6; }
+.shop-row.feature { background: linear-gradient(180deg, var(--gold-soft), var(--surface-2)); border-color: rgba(246, 199, 68, .4); }
+.shop-row .thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  background: url('/img/farm/grass.png') 0 0 / 28px 28px;
+  image-rendering: pixelated;
+}
+.shop-row .thumb img { image-rendering: pixelated; max-width: 52px; height: auto; }
+.shop-row .thumb.water { background-image: url('/img/farm/pond_c.png'); }
+.shop-row b { display: block; font-size: 15px; }
+.shop-row .meta { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 3px; font-size: 12px; color: var(--muted); }
+.shop-row .meta span { display: inline-flex; align-items: center; gap: 4px; }
+.shop-row .meta .icon { width: 12px; height: 12px; }
+.shop-row button { padding: 8px 12px; font-size: 13px; white-space: nowrap; }
+
+/* Chữ "+90 xu +2 XP" bay lên khi thu hoạch / bán. */
+.gain {
+  position: fixed;
+  z-index: 200;
+  transform: translate(-50%, 0);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(16, 30, 22, .9);
+  border: 1px solid rgba(246, 199, 68, .5);
+  color: var(--gold);
+  font-weight: 800;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: float-up 1.6s ease-out forwards;
+}
+.gain .xp { color: #a9c3ff; margin-left: 6px; }
+@keyframes float-up { from { opacity: 0; translate: 0 10px; } 15% { opacity: 1; } to { opacity: 0; translate: 0 -70px; } }
+
+@media (max-width: 860px) {
+  .pens { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .farm { padding: 14px 10px 32px; gap: 14px; }
+  .farm-title h1 { font-size: 20px; }
+  .farm-title .muted { display: none; }
+  .field-card, .pen-card { padding: 12px; }
+  .field { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .plot .plot-label { font-size: 10px; padding: 3px 4px; }
+  .plot .crop img { width: 48px; height: 48px; }
+  .critter-list { grid-template-columns: 1fr; }
+  .shop-row { grid-template-columns: 48px 1fr; }
+  .shop-row button { grid-column: 1 / -1; }
+}
