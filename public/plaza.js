@@ -33,6 +33,9 @@
   let lastMoveAt = 0;
   let myDir = 'down';
   let unread = 0;
+  let connected = false; // đã kết nối và xác thực
+  let inside = false; // server xác nhận đang đứng trong Quảng trường
+  const BUBBLE_MS = 4000; // bong bóng chat trên đầu hiện 4 giây
 
   // ---------- Vẽ người khác ----------
 
@@ -95,7 +98,7 @@
 
   const actors = () => (window.City && window.City.actors) || fallback;
 
-  function showBubble(el, text, ms = 5000) {
+  function showBubble(el, text, ms = BUBBLE_MS) {
     if (!el) return;
     const b = el.querySelector('.plaza-bubble');
     if (!b) return;
@@ -141,7 +144,7 @@
   const meEl = () => document.querySelector('#map #me');
 
   function bubbleMe(text) {
-    if (window.City && typeof window.City.bubbleMe === 'function') return window.City.bubbleMe(text);
+    if (window.City && typeof window.City.bubbleMe === 'function') return window.City.bubbleMe(text, BUBBLE_MS);
     const el = meEl();
     if (el && !el.querySelector('.plaza-bubble')) el.insertAdjacentHTML('beforeend', '<div class="plaza-bubble hidden"></div><div class="plaza-fx"></div>');
     showBubble(el, text);
@@ -250,18 +253,28 @@
   function onMessage(m) {
     switch (m.t) {
       case 'welcome':
+        // Chưa thấy ai: chỉ khi bước vào Quảng trường server mới gửi "enter" kèm người đang ở đó.
         you = m.you;
         retry = 0;
+        clearPlayers();
+        setStatus(true);
+        setInside(false);
+        lastSent = '';
+        break;
+      case 'enter':
         clearPlayers();
         (m.players || []).forEach(addPlayer);
         $('plaza-log').innerHTML = '';
         (m.chat || []).forEach((c) => logLine(c.name, c.text, c.id === you));
-        setStatus(true);
-        lastSent = '';
+        setInside(true);
+        break;
+      case 'exit':
+        clearPlayers();
+        setInside(false);
         break;
       case 'join':
         addPlayer(m.player);
-        logSystem(`${m.player.name} vừa tới thành phố`);
+        logSystem(`${m.player.name} vừa vào Quảng trường`);
         break;
       case 'leave':
         removePlayer(m.id);
@@ -292,7 +305,7 @@
         if (mine) bubbleMe(m.text);
         else {
           const a = actors();
-          if (typeof a.bubble === 'function') a.bubble(m.id, m.text, 5000);
+          if (typeof a.bubble === 'function') a.bubble(m.id, m.text, BUBBLE_MS);
           if (!chatOpen()) setUnread(unread + 1);
         }
         break;
@@ -380,6 +393,8 @@
     city.insertAdjacentHTML('beforeend', `
       <div class="plaza-online hidden" id="plaza-online"><span class="dot"></span><span id="plaza-count">0</span></div>
       <div class="plaza-title hidden" id="plaza-title"><b>Quảng trường</b><span>gặp gỡ · trò chuyện</span></div>
+      <div class="plaza-hint hidden" id="plaza-hint"><span>Vào <b>Quảng trường</b> để gặp mọi người</span>
+        <button type="button" class="primary" id="plaza-go">Đi tới</button></div>
       <section class="plaza-chat collapsed" id="plaza-chat" aria-label="Trò chuyện">
         <button class="plaza-chat-head" id="plaza-chat-toggle" type="button">
           ${ic('users')}<span>Trò chuyện</span><kbd>T</kbd><span class="plaza-unread hidden" id="plaza-unread"></span>
@@ -397,6 +412,10 @@
       </section>
       <div class="plaza-invite hidden" id="plaza-invite"></div>`);
     $('plaza-chat-toggle').onclick = () => (chatOpen() ? closeChat() : openChat());
+    $('plaza-go').onclick = () => {
+      if (window.City && typeof window.City.walkTo === 'function') window.City.walkTo('plaza');
+    };
+    setInside(inside);
     $('plaza-form').onsubmit = (e) => {
       e.preventDefault();
       const input = $('plaza-input');
@@ -419,24 +438,36 @@
   }
 
   function setStatus(on) {
-    const el = $('plaza-online');
-    if (el) el.classList.toggle('hidden', !on);
+    connected = on;
+    if (!on) inside = false;
+    setInside(inside);
+  }
+
+  // Trong Quảng trường: hiện số người, tiêu đề, khung chat. Ngoài: chỉ hiện lời mời "Vào Quảng trường để gặp mọi người".
+  function setInside(on) {
+    inside = on;
+    const show = (id, v) => $(id) && $(id).classList.toggle('hidden', !v);
+    show('plaza-online', connected && on);
+    show('plaza-title', connected && on);
+    show('plaza-chat', connected && on);
+    show('plaza-hint', connected && !on);
+    if (!on && $('plaza-chat')) {
+      $('plaza-chat').classList.add('collapsed');
+      if (document.activeElement === $('plaza-input')) $('plaza-input').blur();
+      const inv = $('plaza-invite');
+      if (inv) inv.classList.add('hidden');
+      const dlg = $('plaza-profile');
+      if (dlg && dlg.open) dlg.close();
+    }
     updateOnline();
   }
 
   function updateOnline() {
     const el = $('plaza-count');
-    if (el) el.textContent = `${players.size + (you ? 1 : 0)} người đang ở thành phố`;
+    if (el) el.textContent = `${players.size + (you ? 1 : 0)} người ở Quảng trường`;
   }
 
-  // Tiêu đề "Quảng trường — gặp gỡ" khi đứng ở khu quảng trường.
-  function updateTitle(s) {
-    const t = $('plaza-title');
-    if (!t) return;
-    const zone = s && s.zone;
-    const nav = document.querySelector('.zone-nav [data-zone="plaza"].active');
-    t.classList.toggle('hidden', !(zone === 'plaza' || nav));
-  }
+  function updateTitle() {}
 
   const chatOpen = () => $('plaza-chat') && !$('plaza-chat').classList.contains('collapsed');
 
@@ -597,12 +628,12 @@
     if (document.querySelector('dialog[open]')) return;
     if ((e.key === 't' || e.key === 'T') && !e.shiftKey) {
       e.preventDefault();
-      openChat();
+      if (inside) openChat();
       return;
     }
     // Shift+1..5: biểu cảm.
     const m = /^Digit([1-5])$/.exec(e.code || '');
-    if (m && e.shiftKey) {
+    if (m && e.shiftKey && inside) {
       e.preventDefault();
       send({ t: 'emote', kind: EMOTES[Number(m[1]) - 1].kind });
     }

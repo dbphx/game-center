@@ -99,9 +99,11 @@ func TestHelloJoinMoveLeave(t *testing.T) {
 	}
 	a, ca, _ := e.join("an")
 	b, cb, _ := e.join("binh")
-	w := cb.last("welcome")
-	if w["you"] != b.ID || len(w["players"].([]any)) != 1 {
-		t.Fatalf("welcome của binh phải thấy an: %v", w)
+	if w := cb.last("welcome"); w["you"] != b.ID || len(w["players"].([]any)) != 0 {
+		t.Fatalf("welcome chưa có ai (chưa vào Quảng trường): %v", w)
+	}
+	if en := cb.last("enter"); en == nil || len(en["players"].([]any)) != 1 {
+		t.Fatalf("vào Quảng trường thì binh phải thấy an: %v", en)
 	}
 	if j := ca.last("join"); j == nil || j["player"].(map[string]any)["name"] != "binh" {
 		t.Fatalf("an phải nhận tin binh vào: %v", ca.of("join"))
@@ -175,7 +177,7 @@ func TestChatSpamFilterHistory(t *testing.T) {
 	}
 	// Người mới vào nhận lịch sử chat.
 	_, cc, _ := e.join("chi")
-	if h := cc.last("welcome")["chat"].([]any); len(h) != 6 {
+	if h := cc.last("enter")["chat"].([]any); len(h) != 6 {
 		t.Fatalf("lịch sử chat %d tin", len(h))
 	}
 	for range ChatHistory + 5 {
@@ -286,6 +288,77 @@ func TestLookRefreshAndInvite(t *testing.T) {
 	}
 }
 
+// Chỉ người đứng trong Quảng trường mới thấy nhau, chat, biểu cảm, tặng xu với nhau.
+func TestOnlyPlazaSeesEachOther(t *testing.T) {
+	if !InPlaza(816, 780) || InPlaza(224, 994) || InPlaza(816, 600) || InPlaza(1400, 790) {
+		t.Fatal("vùng Quảng trường sai (cửa Quảng trường phải ở trong, Bệnh viện / đường / Nông trại ở ngoài)")
+	}
+	e := newEnv(t)
+	a, ca, _ := e.join("an") // ở Quảng trường (800, 700)
+	_, tokB, err := e.w.Register(ctx, "binh_u", "matkhau123", wallet.Profile{Name: "binh"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cb := &fakeConn{}
+	b, _ := e.h.Hello(ctx, tokB, cb)
+	e.h.Handle(ctx, b, Message{T: "move", X: 224, Y: 994, Dir: "down"}) // trước cửa Bệnh viện
+	if len(ca.of("join")) != 0 || len(cb.of("enter")) != 0 {
+		t.Fatal("người ngoài Quảng trường không được hiện")
+	}
+	e.h.Handle(ctx, a, Message{T: "move", X: 820, Y: 760, Dir: "left", Walking: true})
+	e.h.Handle(ctx, b, Message{T: "move", X: 230, Y: 990, Dir: "left", Walking: true})
+	e.h.Flush()
+	if len(ca.of("moves")) != 0 || len(cb.of("moves")) != 0 {
+		t.Fatal("không gửi vị trí giữa trong và ngoài Quảng trường")
+	}
+	e.h.Handle(ctx, a, Message{T: "chat", Text: "có ai không"})
+	if len(cb.of("chat")) != 0 {
+		t.Fatal("người ngoài không nhận chat")
+	}
+	if err := e.h.Handle(ctx, b, Message{T: "chat", Text: "alo"}); err == nil {
+		t.Fatal("ngoài Quảng trường không chat được")
+	}
+	if err := e.h.Handle(ctx, a, Message{T: "gift", To: b.ID, Amount: 50}); err == nil {
+		t.Fatal("không tặng xu cho người ngoài Quảng trường")
+	}
+	if e.h.Online() != 1 {
+		t.Fatalf("online (ở Quảng trường) %d", e.h.Online())
+	}
+
+	// binh đi vào: hai bên thấy nhau, binh nhận lịch sử chat.
+	e.h.Handle(ctx, b, Message{T: "move", X: 700, Y: 800, Dir: "right"})
+	if j := ca.last("join"); j == nil || j["player"].(map[string]any)["id"] != b.ID {
+		t.Fatalf("an phải thấy binh vào: %v", ca.of("join"))
+	}
+	en := cb.last("enter")
+	if en == nil || len(en["players"].([]any)) != 1 || len(en["chat"].([]any)) != 1 {
+		t.Fatalf("binh vào phải nhận an + lịch sử chat: %v", en)
+	}
+	e.h.Handle(ctx, b, Message{T: "move", X: 710, Y: 800, Dir: "right", Walking: true})
+	e.h.Flush()
+	if len(ca.of("moves")) != 1 {
+		t.Fatal("cùng ở Quảng trường thì thấy nhau đi")
+	}
+	if err := e.h.Handle(ctx, a, Message{T: "gift", To: b.ID, Amount: 50}); err != nil {
+		t.Fatalf("cùng ở Quảng trường thì tặng được: %v", err)
+	}
+
+	// binh đi ra: an nhận leave, binh nhận exit; ra rồi không nhận chat nữa.
+	e.h.Handle(ctx, b, Message{T: "move", X: 1400, Y: 790, Dir: "right"})
+	if l := ca.last("leave"); l == nil || l["id"] != b.ID {
+		t.Fatal("binh rời Quảng trường thì an phải nhận leave")
+	}
+	if cb.last("exit") == nil {
+		t.Fatal("binh phải nhận exit")
+	}
+	n := len(cb.of("chat"))
+	e.tick(2 * time.Second)
+	e.h.Handle(ctx, a, Message{T: "chat", Text: "đi rồi à"})
+	if len(cb.of("chat")) != n {
+		t.Fatal("rời Quảng trường thì không nhận chat")
+	}
+}
+
 // Nhiều phiên cùng đi, chat, tặng xu song song (chạy với -race).
 func TestConcurrent(t *testing.T) {
 	e := newEnv(t)
@@ -301,7 +374,7 @@ func TestConcurrent(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for k := range 50 {
-				e.h.Handle(ctx, p, Message{T: "move", X: float64(k), Y: float64(i), Dir: "left", Walking: true})
+				e.h.Handle(ctx, p, Message{T: "move", X: 700 + float64(k), Y: 750 + float64(i), Dir: "left", Walking: true})
 				if k%10 == 0 {
 					e.h.Handle(ctx, p, Message{T: "chat", Text: "chào"})
 					e.h.Handle(ctx, p, Message{T: "gift", To: ps[(i+1)%len(ps)].ID, Amount: 10})

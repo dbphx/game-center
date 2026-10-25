@@ -68,6 +68,16 @@
 .plaza-title b { font-size: 17px; font-weight: 900; }
 .plaza-title span { font-size: 13px; font-weight: 700; opacity: .8; }
 
+/* Ngoài Quảng trường: lời mời vào gặp mọi người */
+.plaza-hint {
+  position: absolute; left: 12px; top: 12px; z-index: 40;
+  display: flex; align-items: center; gap: 10px; padding: 5px 6px 5px 14px;
+  border-radius: 999px; background: rgba(255, 253, 244, .94); border: 2px solid #e6c98d;
+  font: 700 13px var(--font, sans-serif); color: #4a3412; box-shadow: 0 2px 0 rgba(120, 80, 20, .2);
+}
+.plaza-hint button { padding: 4px 12px; font-size: 13px; }
+.plaza-hint.hidden, .plaza-chat.hidden { display: none; }
+
 /* Khung chat */
 .plaza-chat {
   position: absolute; left: 12px; bottom: 96px; z-index: 45; width: min(330px, calc(100vw - 24px));

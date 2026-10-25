@@ -34,6 +34,22 @@ const (
 	maxAbsY = 5000
 )
 
+// Lô Quảng trường trên bản đồ (public/city.js: BLOCKS.plaza = cột 19, hàng 22, rộng 13, cao 10; một ô 32 đơn vị),
+// nới thêm một hàng vỉa hè phía trên cho người đang bước vào. Server tự xét vùng theo toạ độ, không tin client.
+const (
+	PlazaMinX = 19 * 32
+	PlazaMaxX = (19 + 13) * 32
+	PlazaMinY = 21 * 32
+	PlazaMaxY = (22 + 10) * 32
+)
+
+// InPlaza cho biết toạ độ (x, y) có nằm trong khu Quảng trường không.
+func InPlaza(x, y float64) bool {
+	return x >= PlazaMinX && x <= PlazaMaxX && y >= PlazaMinY && y <= PlazaMaxY
+}
+
+var errNotInPlaza = errors.New("vào Quảng trường để gặp mọi người nhé")
+
 var Emotes = []string{"wave", "heart", "laugh", "clap", "dance"}
 
 var dirs = map[string]bool{"down": true, "up": true, "left": true, "right": true}
@@ -62,7 +78,7 @@ type Player struct {
 
 	uid     int64
 	conn    Conn
-	visible bool // đã gửi vị trí đầu tiên (trước đó chưa hiện cho người khác)
+	visible bool // đang đứng trong Quảng trường: chỉ khi đó mới thấy / được thấy người khác
 	dirty   bool // vị trí đổi, chờ gửi ở lần gộp tới
 
 	chatTimes []time.Time
@@ -133,7 +149,7 @@ func (h *Hub) Run(ctx context.Context) {
 	}
 }
 
-// Online là số phiên đang hiện trên bản đồ.
+// Online là số phiên đang ở Quảng trường.
 func (h *Hub) Online() int {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -160,7 +176,8 @@ func (p *Player) setUser(u wallet.User) {
 	p.uid, p.Name, p.Level, p.Look, p.Hospital = u.ID, u.Name, u.Level, lookOf(u), u.HospitalUntil > 0
 }
 
-// Hello xác thực token rồi thêm phiên mới; gửi lại "welcome" gồm người đang có mặt và lịch sử chat.
+// Hello xác thực token rồi thêm phiên mới. "welcome" chưa có ai: người khác và lịch sử chat chỉ gửi khi
+// phiên bước vào Quảng trường ("enter").
 func (h *Hub) Hello(ctx context.Context, token string, c Conn) (*Player, error) {
 	u, err := h.w.UserByToken(ctx, token)
 	if err != nil {
@@ -171,14 +188,9 @@ func (h *Hub) Hello(ctx context.Context, token string, c Conn) (*Player, error) 
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.players[p.ID] = p
-	others := []Player{}
-	for _, o := range h.players {
-		if o != p && o.visible {
-			others = append(others, *o)
-		}
-	}
-	c.Send(map[string]any{"t": "welcome", "you": p.ID, "players": others, "chat": h.chat, "emotes": Emotes,
-		"gift": map[string]int{"min": GiftMin, "max": GiftMax, "daily": GiftDailyCap}})
+	c.Send(map[string]any{"t": "welcome", "you": p.ID, "players": []Player{}, "chat": []ChatLine{}, "emotes": Emotes,
+		"gift":  map[string]int{"min": GiftMin, "max": GiftMax, "daily": GiftDailyCap},
+		"plaza": map[string]int{"minX": PlazaMinX, "maxX": PlazaMaxX, "minY": PlazaMinY, "maxY": PlazaMaxY}})
 	return p, nil
 }
 
@@ -195,10 +207,10 @@ func (h *Hub) Leave(p *Player) {
 	}
 }
 
-// broadcast gửi msg tới mọi phiên khác skip (skip nil = gửi cả). Gọi khi đang giữ h.mu.
+// broadcast gửi msg tới mọi phiên đang ở Quảng trường, trừ skip (skip nil = gửi cả). Gọi khi đang giữ h.mu.
 func (h *Hub) broadcast(skip *Player, msg any) {
 	for _, o := range h.players {
-		if o != skip {
+		if o != skip && o.visible {
 			o.conn.Send(msg)
 		}
 	}
@@ -239,12 +251,29 @@ func (h *Hub) move(p *Player, m Message) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	p.X, p.Y, p.Dir, p.Walking, p.Sitting = math.Round(m.X*10)/10, math.Round(m.Y*10)/10, m.Dir, m.Walking, m.Sitting
-	if !p.visible {
-		p.visible = true
+	in := InPlaza(p.X, p.Y)
+	switch {
+	case in && !p.visible:
+		// Bước vào Quảng trường: người khác thấy mình, mình nhận danh sách người đang ở đây + lịch sử chat.
+		others := []Player{}
+		for _, o := range h.players {
+			if o != p && o.visible {
+				others = append(others, *o)
+			}
+		}
 		h.broadcast(p, map[string]any{"t": "join", "player": *p})
-		return nil
+		p.visible = true
+		p.dirty = false
+		p.conn.Send(map[string]any{"t": "enter", "players": others, "chat": h.chat})
+	case !in && p.visible:
+		// Rời Quảng trường: biến mất với người khác, mình xoá hết người khác.
+		p.visible = false
+		p.dirty = false
+		h.broadcast(p, map[string]any{"t": "leave", "id": p.ID})
+		p.conn.Send(map[string]any{"t": "exit"})
+	case in:
+		p.dirty = true
 	}
-	p.dirty = true
 	return nil
 }
 
@@ -273,6 +302,9 @@ func (h *Hub) Flush() {
 		return
 	}
 	for _, o := range h.players {
+		if !o.visible {
+			continue
+		}
 		list := make([]moveView, 0, len(moved))
 		for _, p := range moved {
 			if p != o {
@@ -296,6 +328,9 @@ func (h *Hub) chatMsg(p *Player, text string) error {
 	now := h.now()
 	h.mu.Lock()
 	defer h.mu.Unlock()
+	if !p.visible {
+		return errNotInPlaza
+	}
 	// Chống spam: tối thiểu 1,5 giây giữa hai tin và tối đa 5 tin trong 10 giây.
 	recent := p.chatTimes[:0]
 	for _, t := range p.chatTimes {
@@ -328,8 +363,8 @@ func (h *Hub) emote(p *Player, kind string) error {
 	now := h.now()
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	if now.Sub(p.lastEmote) < time.Second {
-		return nil // bấm dồn thì bỏ qua lặng lẽ
+	if !p.visible || now.Sub(p.lastEmote) < time.Second {
+		return nil // ngoài Quảng trường hoặc bấm dồn: bỏ qua lặng lẽ
 	}
 	p.lastEmote = now
 	h.broadcast(nil, map[string]any{"t": "emote", "id": p.ID, "kind": kind})
@@ -337,7 +372,7 @@ func (h *Hub) emote(p *Player, kind string) error {
 }
 
 // gift tặng xu cho người chơi có phiên to. Chuyển xu trong một transaction của ví; báo số dư mới cho
-// mọi phiên của hai người và phát hiệu ứng cho cả thành phố.
+// mọi phiên của hai người và phát hiệu ứng cho mọi người ở Quảng trường.
 func (h *Hub) gift(ctx context.Context, p *Player, to string, amount int64) error {
 	if amount < GiftMin || amount > GiftMax {
 		return fmt.Errorf("mỗi lần tặng từ %d đến %d xu", GiftMin, GiftMax)
@@ -348,6 +383,10 @@ func (h *Hub) gift(ctx context.Context, p *Player, to string, amount int64) erro
 	if target == nil {
 		h.mu.Unlock()
 		return errors.New("người này đã rời thành phố")
+	}
+	if !p.visible || !target.visible {
+		h.mu.Unlock()
+		return errors.New("chỉ tặng xu được khi cả hai đang ở Quảng trường")
 	}
 	if target.uid == p.uid {
 		h.mu.Unlock()
@@ -422,6 +461,9 @@ func (h *Hub) invite(p *Player, m Message) error {
 	target := h.players[m.To]
 	if target == nil {
 		return errors.New("người này đã rời thành phố")
+	}
+	if !p.visible || !target.visible {
+		return errors.New("chỉ mời chơi được khi cả hai đang ở Quảng trường")
 	}
 	if now.Sub(p.lastEmote) < time.Second {
 		return nil
