@@ -48,9 +48,23 @@
     ws.onmessage = (e) => onMessage(JSON.parse(e.data));
     ws.onclose = () => {
       if (stopped) return;
+      rejoining = !!state; // đang ở bàn mà rớt mạng: lần nối lại sẽ xin vào lại bàn cũ
       if (state) status('Mất kết nối, đang kết nối lại...');
       setTimeout(connect, 1000);
     };
+  }
+
+  // Nối lại sau khi máy chủ khởi động lại (cập nhật) mà bàn cũ không còn: đưa về sảnh và giải thích,
+  // thay vì để bàn cũ đứng hình. Ván dở chưa chốt tiền nên không ai mất xu.
+  let rejoining = false;
+  function roomLost() {
+    rejoining = false;
+    store(sessionStorage, ROOM_KEY, null);
+    state = null;
+    tchat.reset();
+    history.replaceState(null, '', location.pathname);
+    render();
+    A.alert('Máy chủ vừa được cập nhật nên bàn cũ đã đóng. Ván đang dở được huỷ, không ai bị trừ xu. Mời bạn mở bàn mới.', { title: 'Bàn đã đóng' });
   }
 
   function send(msg) {
@@ -69,6 +83,7 @@
         A.requireLogin();
         break;
       case 'state':
+        rejoining = false;
         onState(m);
         tchat.sync(m.chat);
         break;
@@ -82,6 +97,7 @@
         render();
         break;
       case 'error':
+        if (rejoining) { roomLost(); break; }
         A.toast(m.msg);
         break;
       case 'left':
