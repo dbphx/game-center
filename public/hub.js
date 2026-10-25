@@ -511,6 +511,9 @@
     if (!PANELS[zone]) return;
     current = zone;
     $('panel').classList.remove('hidden');
+    // Bỏ focus khỏi nút thanh đi nhanh vừa bấm để phím Enter vào khu luôn (không bấm lại nút đó).
+    const focused = document.activeElement;
+    if (focused && focused.closest && focused.closest('.zone-nav')) focused.blur();
     let x = 0;
     try { x = City.zoneX(zone); } catch (e) { /* khu chưa có trên bản đồ */ }
     $('panel').classList.toggle('left', x >= 900);

@@ -213,7 +213,8 @@
   // Đọc từ manifest.json của /img/toon/city/ và /img/toon/farm/ (khoá "farm/x"). Một bộ ảnh thay thế (vd ảnh 3D ở
   // /img/toon/city3d/) ghi đè theo tên: mỗi ảnh trong manifest của bộ đó có "replaces": "tên cũ" (hoặc mảng), hoặc manifest
   // có bảng "map": { "tên cũ": "file mới.png" }; neo đọc từ "anchor" ("bottom-center", "center", [x, y] hay {x, y}) hoặc
-  // "foot": [x, y]; "scale" (mặc định 1) đổi kích thước hiển thị. Chọn bộ: ?art=city3d hoặc localStorage 'city.art'.
+  // "foot": [x, y]; "scale" (mặc định 1) đổi kích thước hiển thị. Mặc định dùng bộ 3D; ?art=2d (hoặc localStorage
+  // 'city.art' = '2d') để xem bộ hoạt hình phẳng cũ.
   const ART_SETS = { city3d: '/img/toon/city3d/' };
   const art = {};
   const sizes = {}; // tên → [w, h] hiển thị (dùng cho xe, thuyền, mây...)
@@ -237,8 +238,12 @@
   function artSet() {
     let set = null;
     try { set = new URLSearchParams(location.search).get('art') || localStorage.getItem('city.art'); } catch (e) { /* bỏ qua */ }
-    return ART_SETS[set] || null;
+    if (set === '2d') return null;
+    return ART_SETS[set] || ART_SETS.city3d;
   }
+  let art3d = false; // đang dùng bộ ảnh 3D (đặt sau khi đọc manifest)
+  // Ảnh có trong bộ đang dùng thì lấy, không thì dùng ảnh thay thế (ảnh chỉ bộ 3D mới có: tree_cau, flower_pot...).
+  const pickArt = (name, fallback) => (art[name] ? name : fallback);
 
   async function loadManifests() {
     const read = async (dir) => {
@@ -251,6 +256,7 @@
     const dir = artSet();
     const m = dir && (await read(dir));
     if (!m) return;
+    art3d = true;
     const byFile = {};
     for (const it of m.images || []) {
       byFile[it.file] = it;
@@ -301,12 +307,12 @@
   const HOUSES = ['house_1', 'house_2', 'house_3', 'house_4', 'house_5', 'house_6', 'house_7', 'house_8'];
   // Cây: phượng, bằng lăng, bàng, sao (cây phố), xoài, đa, dừa, mai, đào, tre, chuối (vườn) và cây xanh tán tròn.
   const TREES = ['tree_1', 'tree_phuong', 'tree_banglang', 'tree_bang', 'tree_sao', 'farm/tree_xoai', 'farm/tree_dua', 'tree_big',
-    'farm/tree_mai', 'farm/tree_dao', 'farm/tree_tre', 'farm/tree_chuoi', 'farm/tree_big', 'farm/tree_med', 'farm/tree_da', 'tree_lieu'];
+    'farm/tree_mai', 'farm/tree_dao', 'farm/tree_tre', 'farm/tree_chuoi', 'farm/tree_big', 'farm/tree_med', 'farm/tree_da', 'tree_lieu', 'tree_cau'];
   const TREE_K = {
     tree_1: [0.6, 0.8], tree_big: [0.5, 0.68], 'farm/tree_big': [0.45, 0.6], 'farm/tree_med': [0.6, 0.8], 'farm/tree_round_1': [0.6, 0.8],
     tree_phuong: [0.4, 0.5], tree_banglang: [0.42, 0.52], tree_bang: [0.4, 0.5], tree_sao: [0.42, 0.52], tree_lieu: [0.42, 0.52],
     'farm/tree_xoai': [0.36, 0.44], 'farm/tree_dua': [0.4, 0.5], 'farm/tree_da': [0.32, 0.4], 'farm/tree_mai': [0.5, 0.6],
-    'farm/tree_dao': [0.5, 0.6], 'farm/tree_tre': [0.5, 0.62], 'farm/tree_chuoi': [0.5, 0.6],
+    'farm/tree_dao': [0.5, 0.6], 'farm/tree_tre': [0.5, 0.62], 'farm/tree_chuoi': [0.5, 0.6], tree_cau: [0.6, 0.75],
   };
   // Cây phố (vỉa hè, quảng trường): xen kẽ phượng, bằng lăng, bàng, sao, dừa.
   const STREET_TREES = ['tree_phuong', 'tree_banglang', 'tree_bang', 'tree_sao', 'farm/tree_dua', 'tree_phuong', 'tree_banglang', 'tree_1'];
@@ -340,6 +346,10 @@
       plan.fx.push(['crane', SITE_X + 130, 992 - 270 + 4]);
       at('site_bricks', SITE_X + 30, 1012, 0.8);
       at('site_sand', Rr - 60, 1004, 0.8);
+      // Bộ 3D có thêm: giàn giáo, máy trộn, bao xi măng.
+      if (art.scaffold) at('scaffold', Rr - 110, 930, 0.62);
+      if (art.mixer) at('mixer', SITE_X - 60, 1010, 0.7);
+      if (art.cement_bags) at('cement_bags', Rr - 150, 1014, 0.7);
       for (const x of [SITE_X - 50, SITE_X + 50, L + 250]) at('site_cone', x, x === L + 250 ? 990 : 806, 0.8);
       plan.fx.push(['beacon', SITE_X - 71, ZONE_FENCE_Y - 128], ['beacon', SITE_X + 71, ZONE_FENCE_Y - 128]);
       at('fx_flag', L + 30, ZONE_FENCE_Y - 6, 0.7);
@@ -355,7 +365,11 @@
       at('fishing_gate', FISH_X, ZONE_FENCE_Y + 1, 0.9);
       at('tree_lieu', L + 30, 870, 0.5);
       at('tree_lieu', Rr - 24, 900, 0.46, true);
-      at('bench', L + 90, 1012, 0.75, false, 'deco');
+      at(pickArt('bench_wood', 'bench'), L + 90, 1012, 0.75, false, 'deco');
+      // Ghế gỗ mộc trên vỉa hè trước cổng hồ (ngồi được), cầu tre ven hồ, đèn lồng cột tre bên bờ.
+      if (art.bench_wood) for (const x of [FISH_X - 150, FISH_X + 150]) at('bench_wood', x, 22 * T - 4, 0.62);
+      if (art.bamboo_bridge) at('bamboo_bridge', L + 470, 1000, 0.7);
+      if (art.lantern) for (const x of [L + 100, Rr - 130]) at('lantern', x, 846, 0.5);
       at('farm/tree_dua', Rr - 70, 1018, 0.4);
       plan.fx.push(['lantern', FISH_X - 40, ZONE_FENCE_Y - 92], ['lantern', FISH_X + 40, ZONE_FENCE_Y - 92]);
       for (const [x, y, n] of [[L + 140, 880, 'fishing_lotus'], [L + 260, 960, 'fishing_lotus'], [L + 380, 880, 'fishing_hyacinth'], [L + 200, 1000, 'fishing_hyacinth']]) {
@@ -372,7 +386,8 @@
     const plan = { plots: [], props: [], ground: [], fx: [] };
     const at = (img, x, y, k = 1, flip = false, cls = '') => plan.props.push([img, x, y, k, flip, cls]);
     const tree = (x, y, scale = 1) => {
-      const t = pick(r, TREES);
+      let t = pick(r, TREES);
+      if (!art[t]) t = 'tree_1';
       const [a, b] = TREE_K[t] || [0.6, 0.8];
       at(t, x, y, between(r, a, b) * scale, r() < 0.5);
     };
@@ -610,14 +625,15 @@
     for (const c3 of ROAD_COLS) at('tree_big', (c3[0] + 1.5) * T, HORIZON + 14, 0.75);
 
     // Toà nhà bờ Bắc đặt giữa lô, cửa ở đáy (sát vỉa hè hàng 8); hai bên mỗi toà có cây phố và chậu hoa.
-    at('building_casino', 224, 8 * T, 1);
-    at('building_bank', 816, 8 * T, 0.86);
-    at('building_shop', 1392, 8 * T, 1);
+    const BK = art3d ? { casino: 1.2, bank: 1.02, shop: 1.22, hospital: 0.96 } : { casino: 1, bank: 0.86, shop: 1, hospital: 0.8 };
+    at('building_casino', 224, 8 * T, BK.casino);
+    at('building_bank', 816, 8 * T, BK.bank);
+    at('building_shop', art3d ? 1402 : 1392, 8 * T, BK.shop);
     tree('tree_phuong', 36, 8 * T + 2, 0.4);
     tree('tree_banglang', 412, 8 * T + 2, 0.42, true);
     tree('tree_sao', 1226, 8 * T + 2, 0.42);
     tree('tree_bang', 1560, 8 * T + 2, 0.4);
-    for (const x of [140, 308, 1272, 1512]) at('farm/flowers', x, 8 * T + 4, 0.55);
+    for (const x of [140, 308, 1272, 1512]) at(pickArt('flower_pot', 'farm/flowers'), x, 8 * T + 4, art3d ? 0.7 : 0.55);
 
     // Vỉa hè: đèn đường hai bên đường ngang; cây phố dọc vỉa hè bờ Nam (chừa vạch qua đường và biển tên khu).
     for (const x of [96, 400, 700, 940, 1250, 1540]) {
@@ -627,6 +643,7 @@
     tree('tree_sao', 40, 22 * T - 6, 0.4);
     tree('farm/tree_dua', 632, 22 * T - 6, 0.38, true);
     tree('farm/tree_dua', 1004, 22 * T - 6, 0.38);
+    if (art3d) for (const x of [560, 1080]) tree('tree_cau', x, 22 * T - 4, 0.62);
 
     // Công viên ven sông (vỉa hè hai bờ): dừa, mai, cây nhỏ, bụi, ghế; chừa chỗ hai cây cầu.
     const free = (x) => !(x > 13 * T && x < 20 * T) && !(x > 31 * T && x < 38 * T);
@@ -645,7 +662,7 @@
     for (const x of [180, 360, 700, 860, 1360, 1540]) at('bench', x, 18 * T - 2, 0.75);
 
     // Bệnh viện: toà giữa lô, sân lát gạch trước cửa, xe cứu thương đậu trong sân, cây và hoa hai bên.
-    at('building_hospital', 224, 966, 0.8);
+    at('building_hospital', 224, 966, BK.hospital);
     at('ambulance_side', 396, 1012, 0.7);
     at('bench', 80, 1008, 0.72);
     tree('tree_bang', 52, 30 * T - 24, 0.36);
@@ -681,8 +698,14 @@
 
     // Hiệu ứng động: đèn biển CASINO chạy vòng, đồng xu Ngân hàng, neon Thời trang, chữ thập Bệnh viện, đài phun, cờ.
     if (fx) {
-      fx.push(['bulbs', 224, 0], ['coin', 712, 112], ['coin', 920, 112], ['neon', 1392, 36], ['cross', 224, 822],
-        ['spray', 816, 846], ['flag', 112, 40], ['flag', 336, 40, true], ['flag', 816, 66], ['bunting', 1392, 200]);
+      const [sx, sy] = casinoSignAt();
+      if (art3d) {
+        fx.push(['bulbs', sx, sy - 22], ['coin', 700, 150], ['coin', 932, 150], ['neon', 1402, 92], ['cross', 214, 774],
+          ['spray', 816, 862], ['flag', 120, 26], ['flag', 300, 26, true], ['flag', 640, 70], ['bunting', 1402, 196]);
+      } else {
+        fx.push(['bulbs', 224, 0], ['coin', 712, 112], ['coin', 920, 112], ['neon', 1392, 36], ['cross', 224, 822],
+          ['spray', 816, 846], ['flag', 112, 40], ['flag', 336, 40, true], ['flag', 816, 66], ['bunting', 1392, 200]);
+      }
       for (let i = 0; i < 6; i++) fx.push(['sparkle', 760 + ((i * 37) % 112), 836 + ((i * 23) % 60)]);
     }
     return list;
@@ -707,7 +730,8 @@
     const top = y - a.ay * k;
     let extra = '';
     if (isTree(name)) cls = `${cls} tree${h > 70 ? ' sway' : ''}`;
-    if (name === 'bench' && !/\bdeco\b/.test(cls)) {
+    if (art3d && name.startsWith('house_')) cls += ` tint${Math.abs(Math.round(x / 7 + y)) % 5}`;
+    if ((name === 'bench' || name === 'bench_wood') && !/\bdeco\b/.test(cls)) {
       cls += ' bench';
       extra = ` data-bench="${Math.round(x)},${Math.round(y)}" title="Ngồi nghỉ (hồi máu ×2)"`;
     }
@@ -811,9 +835,14 @@
 
   function trafficHtml() {
     return CARS.map((car, i) => {
-      const [w, h] = sizes[car.img] || [120, 52];
-      return `<div class="car car-${car.dir}" data-car="${i}"><img src="${srcOf(car.img)}" alt="" draggable="false"
-        style="width:${px(w * CAR_SCALE)};height:${px(h * CAR_SCALE)}"></div>`;
+      const west = car.dir === 'west' && art[car.img.replace(/_side$/, '_west')];
+      const name = west ? car.img.replace(/_side$/, '_west') : car.img;
+      const a = art[name];
+      const [w, h] = sizes[name] || [120, 52];
+      // Bộ 3D: chân bánh xe (neo) nằm dưới tâm làn 14 đơn vị; bộ 2D giữ cách đặt cũ (CSS).
+      const place = art3d && a ? `;transform:translate(${px(-a.ax * CAR_SCALE)}, ${px(-a.ay * CAR_SCALE + 14)})` : '';
+      return `<div class="car car-${car.dir}${west ? ' own-west' : ''}" data-car="${i}"><img src="${srcOf(name)}" alt="" draggable="false"
+        style="width:${px(w * CAR_SCALE)};height:${px(h * CAR_SCALE)}${place}"></div>`;
     }).join('');
   }
 
@@ -846,11 +875,23 @@
   }
 
   // Biển CASINO nhấp nháy đè đúng lên biển trên nóc toà Casino.
+  // Tâm biển CASINO rời: bộ 3D đặt trên mép mái trước của toà (điểm (175, 58) trong ảnh toà), bộ 2D đè lên biển vẽ sẵn.
+  function casinoSignAt() {
+    const b = art.building_casino;
+    if (!art3d || !b) {
+      const [, bh] = sizes.building_casino || [262, 260];
+      const [, sh] = sizes.sign_casino || [170, 44];
+      return [224, 8 * T - bh + 4 + sh / 2];
+    }
+    const k = 1.2; // = BK.casino của bộ 3D trong props()
+    const u = b.w / 371; // ảnh gốc 371 × 296 → đơn vị hiển thị
+    return [224 + (175 * u - b.ax) * k, 8 * T - (b.ay - 58 * u) * k];
+  }
   function signHtml() {
-    const [bw, bh] = sizes.building_casino || [262, 260];
     const [sw, sh] = sizes.sign_casino || [170, 44];
+    const [cx, cy] = casinoSignAt();
     return `<img class="casino-sign" src="${srcOf('sign_casino')}" alt="" draggable="false"
-      style="left:${px(224 - sw / 2)};top:${px(8 * T - bh + 4)};width:${px(sw)};height:${px(sh)};z-index:${100 + 8 * T + 1}">`;
+      style="left:${px(cx - sw / 2)};top:${px(cy - sh / 2)};width:${px(sw)};height:${px(sh)};z-index:${100 + 8 * T + 1}">`;
   }
 
   // Vùng bấm của từng khu và biển tên (HTML).
