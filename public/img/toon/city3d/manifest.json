@@ -1403,108 +1403,6 @@
    "license": "CC0 1.0"
   },
   {
-   "file": "boat_1.png",
-   "w": 117,
-   "h": 55,
-   "anchor": "center",
-   "foot": [
-    58,
-    28
-   ],
-   "use": "Thuyền gỗ có mui (mũi hướng phải)",
-   "source": [
-    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
-   ],
-   "license": "CC0 1.0"
-  },
-  {
-   "file": "boat_1.png",
-   "w": 117,
-   "h": 55,
-   "anchor": "center",
-   "foot": [
-    58,
-    28
-   ],
-   "use": "Thuyền gỗ có mui (mũi hướng phải) (thay boat_1, cỡ như ảnh cũ)",
-   "source": [
-    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
-   ],
-   "license": "CC0 1.0",
-   "replaces": [
-    "boat_1"
-   ],
-   "scale": 0.9649
-  },
-  {
-   "file": "boat_2.png",
-   "w": 90,
-   "h": 39,
-   "anchor": "center",
-   "foot": [
-    45,
-    20
-   ],
-   "use": "Thuyền gỗ nhỏ (mũi hướng phải)",
-   "source": [
-    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
-   ],
-   "license": "CC0 1.0"
-  },
-  {
-   "file": "boat_2.png",
-   "w": 90,
-   "h": 39,
-   "anchor": "center",
-   "foot": [
-    45,
-    20
-   ],
-   "use": "Thuyền gỗ nhỏ (mũi hướng phải) (thay boat_2, cỡ như ảnh cũ)",
-   "source": [
-    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
-   ],
-   "license": "CC0 1.0",
-   "replaces": [
-    "boat_2"
-   ],
-   "scale": 0.9091
-  },
-  {
-   "file": "boat_3.png",
-   "w": 84,
-   "h": 70,
-   "anchor": "center",
-   "foot": [
-    42,
-    35
-   ],
-   "use": "Thuyền thúng",
-   "source": [
-    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
-   ],
-   "license": "CC0 1.0"
-  },
-  {
-   "file": "boat_3.png",
-   "w": 84,
-   "h": 70,
-   "anchor": "center",
-   "foot": [
-    42,
-    35
-   ],
-   "use": "Thuyền thúng (thay boat_3, cỡ như ảnh cũ)",
-   "source": [
-    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
-   ],
-   "license": "CC0 1.0",
-   "replaces": [
-    "boat_3"
-   ],
-   "scale": 1.0127
-  },
-  {
    "file": "scaffold.png",
    "w": 221,
    "h": 153,
@@ -2426,6 +2324,406 @@
     "farm/hay"
    ],
    "scale": 1.0
+  },
+  {
+   "file": "boat_sampan_east.png",
+   "w": 558,
+   "h": 165,
+   "frames": 3,
+   "frameW": 186,
+   "frameH": 165,
+   "anchor": "foot",
+   "foot": [
+    93,
+    108
+   ],
+   "use": "Xuồng ba lá gỗ, người chèo đội nón lá (mái chèo khua 3 nhịp) — hướng đông (mũi sang phải), dải 3 khung ngang (lắc / chèo), lặp ~0.5 s/khung. Neo \"foot\" ở đường mặt nước (mép nước gần người xem, giữa thân); phần dưới là phản chiếu mờ + bọt.",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "boat_sampan_east_still.png",
+   "w": 186,
+   "h": 165,
+   "anchor": "foot",
+   "foot": [
+    93,
+    108
+   ],
+   "use": "Xuồng ba lá gỗ, người chèo đội nón lá (mái chèo khua 3 nhịp) — hướng đông, 1 khung tĩnh. Neo \"foot\" ở đường mặt nước (mép nước gần người xem, giữa thân); phần dưới là phản chiếu mờ + bọt.",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "boat_2"
+   ]
+  },
+  {
+   "file": "boat_sampan_west.png",
+   "w": 582,
+   "h": 178,
+   "frames": 3,
+   "frameW": 194,
+   "frameH": 178,
+   "anchor": "foot",
+   "foot": [
+    97,
+    117
+   ],
+   "use": "Xuồng ba lá gỗ, người chèo đội nón lá (mái chèo khua 3 nhịp) — hướng tây (mũi sang trái), dải 3 khung ngang (lắc / chèo), lặp ~0.5 s/khung. Neo \"foot\" ở đường mặt nước (mép nước gần người xem, giữa thân); phần dưới là phản chiếu mờ + bọt.",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "boat_sampan_west_still.png",
+   "w": 194,
+   "h": 178,
+   "anchor": "foot",
+   "foot": [
+    97,
+    117
+   ],
+   "use": "Xuồng ba lá gỗ, người chèo đội nón lá (mái chèo khua 3 nhịp) — hướng tây, 1 khung tĩnh. Neo \"foot\" ở đường mặt nước (mép nước gần người xem, giữa thân); phần dưới là phản chiếu mờ + bọt.",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "boat_motor_east.png",
+   "w": 543,
+   "h": 122,
+   "frames": 3,
+   "frameW": 181,
+   "frameH": 122,
+   "anchor": "foot",
+   "foot": [
+    90,
+    80
+   ],
+   "use": "Thuyền máy nhỏ có mui che, máy đuôi tôm — hướng đông (mũi sang phải), dải 3 khung ngang (lắc / chèo), lặp ~0.5 s/khung. Neo \"foot\" ở đường mặt nước (mép nước gần người xem, giữa thân); phần dưới là phản chiếu mờ + bọt.",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "boat_motor_east_still.png",
+   "w": 181,
+   "h": 122,
+   "anchor": "foot",
+   "foot": [
+    90,
+    80
+   ],
+   "use": "Thuyền máy nhỏ có mui che, máy đuôi tôm — hướng đông, 1 khung tĩnh. Neo \"foot\" ở đường mặt nước (mép nước gần người xem, giữa thân); phần dưới là phản chiếu mờ + bọt.",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "boat_3"
+   ]
+  },
+  {
+   "file": "boat_motor_west.png",
+   "w": 633,
+   "h": 122,
+   "frames": 3,
+   "frameW": 211,
+   "frameH": 122,
+   "anchor": "foot",
+   "foot": [
+    105,
+    80
+   ],
+   "use": "Thuyền máy nhỏ có mui che, máy đuôi tôm — hướng tây (mũi sang trái), dải 3 khung ngang (lắc / chèo), lặp ~0.5 s/khung. Neo \"foot\" ở đường mặt nước (mép nước gần người xem, giữa thân); phần dưới là phản chiếu mờ + bọt.",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "boat_motor_west_still.png",
+   "w": 211,
+   "h": 122,
+   "anchor": "foot",
+   "foot": [
+    105,
+    80
+   ],
+   "use": "Thuyền máy nhỏ có mui che, máy đuôi tôm — hướng tây, 1 khung tĩnh. Neo \"foot\" ở đường mặt nước (mép nước gần người xem, giữa thân); phần dưới là phản chiếu mờ + bọt.",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "boat_ferry_east.png",
+   "w": 756,
+   "h": 210,
+   "frames": 3,
+   "frameW": 252,
+   "frameH": 210,
+   "anchor": "foot",
+   "foot": [
+    126,
+    138
+   ],
+   "use": "Đò chở khách mái che cong, người lái đò chèo — hướng đông (mũi sang phải), dải 3 khung ngang (lắc / chèo), lặp ~0.5 s/khung. Neo \"foot\" ở đường mặt nước (mép nước gần người xem, giữa thân); phần dưới là phản chiếu mờ + bọt.",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "boat_ferry_east_still.png",
+   "w": 252,
+   "h": 210,
+   "anchor": "foot",
+   "foot": [
+    126,
+    138
+   ],
+   "use": "Đò chở khách mái che cong, người lái đò chèo — hướng đông, 1 khung tĩnh. Neo \"foot\" ở đường mặt nước (mép nước gần người xem, giữa thân); phần dưới là phản chiếu mờ + bọt.",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "boat_1"
+   ]
+  },
+  {
+   "file": "boat_ferry_west.png",
+   "w": 774,
+   "h": 226,
+   "frames": 3,
+   "frameW": 258,
+   "frameH": 226,
+   "anchor": "foot",
+   "foot": [
+    129,
+    148
+   ],
+   "use": "Đò chở khách mái che cong, người lái đò chèo — hướng tây (mũi sang trái), dải 3 khung ngang (lắc / chèo), lặp ~0.5 s/khung. Neo \"foot\" ở đường mặt nước (mép nước gần người xem, giữa thân); phần dưới là phản chiếu mờ + bọt.",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "boat_ferry_west_still.png",
+   "w": 258,
+   "h": 226,
+   "anchor": "foot",
+   "foot": [
+    129,
+    148
+   ],
+   "use": "Đò chở khách mái che cong, người lái đò chèo — hướng tây, 1 khung tĩnh. Neo \"foot\" ở đường mặt nước (mép nước gần người xem, giữa thân); phần dưới là phản chiếu mờ + bọt.",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "boat_barge_east.png",
+   "w": 783,
+   "h": 187,
+   "frames": 3,
+   "frameW": 261,
+   "frameH": 187,
+   "anchor": "foot",
+   "foot": [
+    130,
+    122
+   ],
+   "use": "Sà lan nhỏ chở cát + gạch (hợp khu công trường) — hướng đông (mũi sang phải), dải 3 khung ngang (lắc / chèo), lặp ~0.5 s/khung. Neo \"foot\" ở đường mặt nước (mép nước gần người xem, giữa thân); phần dưới là phản chiếu mờ + bọt.",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "boat_barge_east_still.png",
+   "w": 261,
+   "h": 187,
+   "anchor": "foot",
+   "foot": [
+    130,
+    122
+   ],
+   "use": "Sà lan nhỏ chở cát + gạch (hợp khu công trường) — hướng đông, 1 khung tĩnh. Neo \"foot\" ở đường mặt nước (mép nước gần người xem, giữa thân); phần dưới là phản chiếu mờ + bọt.",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "boat_barge_west.png",
+   "w": 783,
+   "h": 165,
+   "frames": 3,
+   "frameW": 261,
+   "frameH": 165,
+   "anchor": "foot",
+   "foot": [
+    130,
+    108
+   ],
+   "use": "Sà lan nhỏ chở cát + gạch (hợp khu công trường) — hướng tây (mũi sang trái), dải 3 khung ngang (lắc / chèo), lặp ~0.5 s/khung. Neo \"foot\" ở đường mặt nước (mép nước gần người xem, giữa thân); phần dưới là phản chiếu mờ + bọt.",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "boat_barge_west_still.png",
+   "w": 261,
+   "h": 165,
+   "anchor": "foot",
+   "foot": [
+    130,
+    108
+   ],
+   "use": "Sà lan nhỏ chở cát + gạch (hợp khu công trường) — hướng tây, 1 khung tĩnh. Neo \"foot\" ở đường mặt nước (mép nước gần người xem, giữa thân); phần dưới là phản chiếu mờ + bọt.",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "boat_basket_east.png",
+   "w": 273,
+   "h": 113,
+   "frames": 3,
+   "frameW": 91,
+   "frameH": 113,
+   "anchor": "foot",
+   "foot": [
+    45,
+    74
+   ],
+   "use": "Thuyền thúng đan tre có người ngồi câu cá (chỉ dùng ở hồ câu) — hướng đông (mũi sang phải), dải 3 khung ngang (lắc / chèo), lặp ~0.5 s/khung. Neo \"foot\" ở đường mặt nước (mép nước gần người xem, giữa thân); phần dưới là phản chiếu mờ + bọt.",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "boat_basket_east_still.png",
+   "w": 91,
+   "h": 113,
+   "anchor": "foot",
+   "foot": [
+    45,
+    74
+   ],
+   "use": "Thuyền thúng đan tre có người ngồi câu cá (chỉ dùng ở hồ câu) — hướng đông, 1 khung tĩnh. Neo \"foot\" ở đường mặt nước (mép nước gần người xem, giữa thân); phần dưới là phản chiếu mờ + bọt.",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "boat_basket_west.png",
+   "w": 273,
+   "h": 113,
+   "frames": 3,
+   "frameW": 91,
+   "frameH": 113,
+   "anchor": "foot",
+   "foot": [
+    45,
+    74
+   ],
+   "use": "Thuyền thúng đan tre có người ngồi câu cá (chỉ dùng ở hồ câu) — hướng tây (mũi sang trái), dải 3 khung ngang (lắc / chèo), lặp ~0.5 s/khung. Neo \"foot\" ở đường mặt nước (mép nước gần người xem, giữa thân); phần dưới là phản chiếu mờ + bọt.",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "boat_basket_west_still.png",
+   "w": 91,
+   "h": 113,
+   "anchor": "foot",
+   "foot": [
+    45,
+    74
+   ],
+   "use": "Thuyền thúng đan tre có người ngồi câu cá (chỉ dùng ở hồ câu) — hướng tây, 1 khung tĩnh. Neo \"foot\" ở đường mặt nước (mép nước gần người xem, giữa thân); phần dưới là phản chiếu mờ + bọt.",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "wake_east.png",
+   "w": 240,
+   "h": 56,
+   "anchor": "foot",
+   "foot": [
+    236,
+    28
+   ],
+   "use": "Vệt sóng sau đuôi thuyền chạy đông (vệt kéo về phía trái); foot = điểm gắn ở đuôi thuyền tại mặt nước; cho dao động scaleX/opacity bằng CSS. Dùng cho xuồng/đò/sà lan",
+   "source": [
+    "DCity — vẽ bằng Pillow cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "wake_west.png",
+   "w": 240,
+   "h": 56,
+   "anchor": "foot",
+   "foot": [
+    4,
+    28
+   ],
+   "use": "Vệt sóng sau đuôi thuyền chạy tây (vệt kéo về phía phải); foot = điểm gắn ở đuôi thuyền tại mặt nước; cho dao động scaleX/opacity bằng CSS. Dùng cho xuồng/đò/sà lan",
+   "source": [
+    "DCity — vẽ bằng Pillow cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "wake_small_east.png",
+   "w": 130,
+   "h": 34,
+   "anchor": "foot",
+   "foot": [
+    126,
+    17
+   ],
+   "use": "Vệt sóng sau đuôi thuyền chạy đông (vệt kéo về phía trái); foot = điểm gắn ở đuôi thuyền tại mặt nước; cho dao động scaleX/opacity bằng CSS. Dùng cho thuyền máy / thuyền nhỏ",
+   "source": [
+    "DCity — vẽ bằng Pillow cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "wake_small_west.png",
+   "w": 130,
+   "h": 34,
+   "anchor": "foot",
+   "foot": [
+    4,
+    17
+   ],
+   "use": "Vệt sóng sau đuôi thuyền chạy tây (vệt kéo về phía phải); foot = điểm gắn ở đuôi thuyền tại mặt nước; cho dao động scaleX/opacity bằng CSS. Dùng cho thuyền máy / thuyền nhỏ",
+   "source": [
+    "DCity — vẽ bằng Pillow cho dự án"
+   ],
+   "license": "CC0 1.0"
   }
- ]
+ ],
+ "boats_note": "Thuyền: boat_{sampan,motor,ferry,barge,basket}_{east,west}.png là dải 3 khung (frames/frameW), *_still.png là 1 khung. boat_basket chỉ dùng ở hồ câu cá. boat_barge hợp sông gần khu công trường. Dài thuyền ≈ 1.3–2× xe. Ghép vệt sóng wake_*."
 }

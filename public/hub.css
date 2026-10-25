@@ -207,6 +207,19 @@
 .boat { z-index: 3; }
 .boat img { display: block; transform: translate(-50%, -50%); filter: drop-shadow(0 3px 2px rgba(0, 40, 80, .35)); }
 .boat.back img { transform: translate(-50%, -50%) scaleX(-1); }
+/* Thuyền bộ 3D: dải 3 khung chạy steps(3) ~3 khung / giây; ảnh hướng tây riêng (lớp .back), vệt sóng sau đuôi dao động. */
+.boat3d .boat-dir { position: absolute; left: 0; top: 0; }
+.boat3d .boat-west, .boat3d.back .boat-east { display: none; }
+.boat3d.back .boat-west { display: block; }
+.boat3d .boat-sheet, .fx-basket .boat-sheet { position: absolute; display: block; background-repeat: no-repeat; animation: boat-frames 1s steps(3) infinite; filter: drop-shadow(0 3px 2px rgba(0, 40, 80, .3)); }
+@keyframes boat-frames { from { background-position: 0 0; } to { background-position: calc(-1 * var(--sw)) 0; } }
+.boat3d .wake { position: absolute; display: block; opacity: .85; animation: wake 1.3s ease-in-out infinite alternate; }
+.boat3d .wake-east { transform-origin: 100% 50%; }
+.boat3d .wake-west { transform-origin: 0 50%; }
+@keyframes wake { from { scale: .82 .9; opacity: .55; } to { scale: 1.08 1; opacity: .9; } }
+.fx-basket { width: 0; height: 0; animation: basket-drift 26s ease-in-out infinite alternate; }
+.fx-basket .boat-sheet { animation-duration: 1.6s; }
+@keyframes basket-drift { from { translate: -60px 6px; rotate: -2deg; } to { translate: 80px -10px; rotate: 2deg; } }
 .casino-sign { position: absolute; pointer-events: none; animation: sign-blink 1.6s ease-in-out infinite; }
 @keyframes sign-blink { 0%, 100% { filter: brightness(1) drop-shadow(0 0 4px rgba(255, 220, 90, .6)); } 50% { filter: brightness(1.35) drop-shadow(0 0 14px rgba(255, 210, 60, 1)); } }
 
@@ -747,5 +760,5 @@
 @keyframes lean { from { rotate: -4deg; } to { rotate: 4deg; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .city-toon .fx, .city-toon .fx i, .city-toon .prop.sway, .city-toon .cloud, .city-toon .river-flow { animation: none !important; }
+  .city-toon .fx, .city-toon .fx i, .city-toon .prop.sway, .city-toon .cloud, .city-toon .river-flow, .city-toon .boat-sheet, .city-toon .wake { animation: none !important; }
 }

@@ -246,6 +246,56 @@
   const pickArt = (name, fallback) => (art[name] ? name : fallback);
 
   async function loadManifests() {
+    await loadArt();
+    await measureBoxes();
+  }
+
+  // Khung pixel không trong suốt (alpha > 100) của các ảnh cần giữ khỏi lòng đường, đơn vị hiển thị: art[n].box = {l, t, r, b}.
+  const BOX_RE = /(^|\/)(tree_|bush|building_|house_|lamp|bench|flower)/;
+  async function measureBoxes() {
+    const bySrc = {};
+    await Promise.all(Object.keys(art).filter((n) => BOX_RE.test(n)).map((n) => {
+      const src = art[n].src;
+      if (!bySrc[src]) {
+        bySrc[src] = new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            try {
+              const c = document.createElement('canvas');
+              c.width = img.naturalWidth;
+              c.height = img.naturalHeight;
+              const g = c.getContext('2d');
+              g.drawImage(img, 0, 0);
+              const d = g.getImageData(0, 0, c.width, c.height).data;
+              let l = c.width;
+              let t = c.height;
+              let r = 0;
+              let b = 0;
+              for (let y = 0; y < c.height; y++) {
+                for (let x = 0; x < c.width; x += 2) {
+                  if (d[(y * c.width + x) * 4 + 3] <= 100) continue;
+                  if (x < l) l = x;
+                  if (x > r) r = x;
+                  if (y < t) t = y;
+                  b = y;
+                }
+              }
+              resolve(r >= l ? { l, t, r: r + 2, b: b + 1, w: c.width } : null);
+            } catch (e) { resolve(null); }
+          };
+          img.onerror = () => resolve(null);
+          img.src = src;
+        });
+      }
+      return bySrc[src].then((px) => {
+        if (!px) return;
+        const u = art[n].w / px.w;
+        art[n].box = { l: px.l * u, t: px.t * u, r: px.r * u, b: px.b * u };
+      });
+    }));
+  }
+
+  async function loadArt() {
     const read = async (dir) => {
       try { return await (await fetch(dir + 'manifest.json')).json(); } catch (e) { return null; }
     };
@@ -260,6 +310,7 @@
     const byFile = {};
     for (const it of m.images || []) {
       byFile[it.file] = it;
+      if (it.frames && it.frameW) boatMeta[it.file.replace(/\.png$/, '')] = { w: it.w, frameW: it.frameW, foot: it.foot || [it.frameW / 2, it.h] };
       const names = [].concat(it.replaces || []);
       for (const n of names.length ? names : [it.file.replace(/\.png$/, '')]) register(n, dir, it);
     }
@@ -376,7 +427,81 @@
         plan.fx.push(['drift', x, y, n]);
       }
       for (let i = 0; i < 7; i++) plan.fx.push(['sparkle', L + 120 + ((i * 67) % 330), 860 + ((i * 41) % 130)]);
+      plan.fx.push(['basket', L + 230, 930]);
     }
+  }
+
+  // ---------- Không lấn lòng đường ----------
+
+  // Mặt nhựa (đường ngang, đường dọc thành phố tới đường đất), cầu, và chỗ đứng trước cửa khu: [trái, trên, phải, dưới].
+  const ASPHALT = [
+    ...ROAD_ROWS.map((g) => [-1e6, g[0] * T, 1e6, (g[2] + 1) * T]),
+    ...ROAD_COLS.map((g) => [g[0] * T, 5 * T, (g[2] + 1) * T, COUNTRY[0] * T + 8]),
+  ];
+  const BRIDGES = [[14 * T, 13 * T - 18, 19 * T, 17 * T + 6], [32 * T, 13 * T - 18, 37 * T, 17 * T + 6]];
+  const DOORS = Object.values(NODES).map(([x, y]) => [x - 30, y - 70, x + 30, y + 10]);
+  const hits = (b, r) => b[0] < r[2] && b[2] > r[0] && b[1] < r[3] && b[3] > r[1];
+  const isPlant = (name) => isTree(name) || /(^|\/)bush/.test(name);
+  const isHouse = (name) => /^(building_|house_)/.test(name);
+
+  // Khung ảnh thật của một món đã đặt (x, y = điểm chân, k = tỉ lệ, flip = lật ngang).
+  function propBox(name, x, y, k, flip) {
+    const a = art[name];
+    if (!a) return null;
+    const b = a.box || { l: 0, t: 0, r: a.w, b: a.h };
+    const left = flip ? x - (a.w - a.ax) * k : x - a.ax * k;
+    const [l, r] = flip ? [left + (a.w - b.r) * k, left + (a.w - b.l) * k] : [left + b.l * k, left + b.r * k];
+    return [l, y - (a.ay - b.t) * k, r, y + (b.b - a.ay) * k];
+  }
+  // Điểm chân để đáy ảnh toà / nhà bờ Bắc vừa chạm mép trên vỉa hè (không lấn xuống vỉa hè, lòng đường).
+  function northFoot(name, k) {
+    const a = art[name];
+    if (!a) return 8 * T;
+    const below = ((a.box ? a.box.b : a.h) - a.ay) * k;
+    return 8 * T - Math.max(0, below);
+  }
+  // Lý do một món lấn đường ('' = ổn): cây / bụi — cả gốc và tán không chạm mặt nhựa, cầu, chỗ cửa khu;
+  // toà / nhà bờ Bắc — đáy ảnh không quá mép trên vỉa hè; món khác — đáy ảnh không xuống mặt nhựa.
+  function violation([name, x, y, k, flip]) {
+    const b = propBox(name, x, y, k, flip);
+    if (!b) return '';
+    if (isPlant(name)) {
+      if (ASPHALT.some((r) => hits(b, r))) return 'cây chạm mặt đường';
+      if (BRIDGES.some((r) => hits(b, r))) return 'cây đè cầu';
+      if (DOORS.some((r) => hits(b, r))) return 'cây che cửa khu';
+      if (RIVER_ROWS.includes(Math.floor(y / T))) return 'gốc cây dưới sông';
+      return '';
+    }
+    if (isHouse(name) && y <= 8 * T + 8) return b[3] > 8 * T + 0.5 ? 'nhà lấn vỉa hè' : '';
+    const base = [b[0], y - 2, b[2], b[3]];
+    return ASPHALT.some((r) => hits(base, r)) ? 'chân lấn mặt đường' : '';
+  }
+  // Sửa một món lấn đường: lùi đáy lên / gốc xuống khỏi mặt nhựa, thu nhỏ, dời ngang; không được thì bỏ (chỉ bỏ cây / bụi).
+  function settle(list) {
+    const out = [];
+    for (const p of list) {
+      if (!violation(p)) { out.push(p); continue; }
+      const [name, x, y, k, flip, cls] = p;
+      const cands = [];
+      const b = propBox(name, x, y, k, flip);
+      if (isHouse(name) && y <= 8 * T + 8) cands.push([name, x, y - (b[3] - 8 * T), k, flip, cls]);
+      for (const kk of [k, k * 0.82, k * 0.66]) {
+        const bb = propBox(name, x, y, kk, flip);
+        for (const r of [...ASPHALT, ...BRIDGES, ...DOORS]) {
+          if (!hits(bb, r)) continue;
+          cands.push([name, x, y + (r[3] - bb[1]) + 2, kk, flip, cls]); // gốc xuống dưới (tán khỏi đường phía trên)
+          cands.push([name, x, y - (bb[3] - r[1]) - 2, kk, flip, cls]); // đáy lên trên
+          cands.push([name, x + (r[2] - bb[0]) + 2, y, kk, flip, cls]); // sang phải
+          cands.push([name, x - (bb[2] - r[0]) - 2, y, kk, flip, cls]); // sang trái
+        }
+        cands.push([name, x, y, kk, flip, cls]);
+      }
+      // Chỉ nhận chỗ mới gần chỗ cũ (≤ 140 đơn vị) và không rơi vào sông.
+      const ok = cands.find((c) => !violation(c) && Math.hypot(c[1] - x, c[2] - y) <= 140 && !RIVER_ROWS.includes(Math.floor(c[2] / T)));
+      if (ok) out.push(ok);
+      else if (!isPlant(name)) out.push(p);
+    }
+    return out;
   }
 
   // Kế hoạch một mảng: ô đất vẽ lên canvas và danh sách ảnh đồ vật.
@@ -511,6 +636,7 @@
       if (kx === 0 && !offRoad(x, 20)) continue;
       at(r() < 0.3 ? 'farm/flowers' : pick(r, BUSHES), x, lane0 - 2, between(r, 0.5, 0.7));
     }
+    plan.props = settle(plan.props);
     // Hiệu ứng suy ra từ đồ vật: đèn đường sáng và cửa sổ sáng ban đêm, khói bếp trên mái nhà, bướm quanh hoa;
     // đàn chim bay ngang trời.
     for (const [img, x, y, k] of plan.props) {
@@ -626,9 +752,12 @@
 
     // Toà nhà bờ Bắc đặt giữa lô, cửa ở đáy (sát vỉa hè hàng 8); hai bên mỗi toà có cây phố và chậu hoa.
     const BK = art3d ? { casino: 1.2, bank: 1.02, shop: 1.22, hospital: 0.96 } : { casino: 1, bank: 0.86, shop: 1, hospital: 0.8 };
-    at('building_casino', 224, 8 * T, BK.casino);
-    at('building_bank', 816, 8 * T, BK.bank);
-    at('building_shop', art3d ? 1402 : 1392, 8 * T, BK.shop);
+    const footC = northFoot('building_casino', BK.casino);
+    const footB = northFoot('building_bank', BK.bank);
+    const footS = northFoot('building_shop', BK.shop);
+    at('building_casino', 224, footC, BK.casino);
+    at('building_bank', 816, footB, BK.bank);
+    at('building_shop', art3d ? 1402 : 1392, footS, BK.shop);
     tree('tree_phuong', 36, 8 * T + 2, 0.4);
     tree('tree_banglang', 412, 8 * T + 2, 0.42, true);
     tree('tree_sao', 1226, 8 * T + 2, 0.42);
@@ -700,8 +829,11 @@
     if (fx) {
       const [sx, sy] = casinoSignAt();
       if (art3d) {
-        fx.push(['bulbs', sx, sy - 22], ['coin', 700, 150], ['coin', 932, 150], ['neon', 1402, 92], ['cross', 214, 774],
-          ['spray', 816, 862], ['flag', 120, 26], ['flag', 300, 26, true], ['flag', 640, 70], ['bunting', 1402, 196]);
+        const dB = footB - 8 * T;
+        const dS = footS - 8 * T;
+        const dC = footC - 8 * T;
+        fx.push(['bulbs', sx, sy - 22], ['coin', 700, 150 + dB], ['coin', 932, 150 + dB], ['neon', 1402, 92 + dS], ['cross', 214, 774],
+          ['spray', 816, 862], ['flag', 120, 26 + dC], ['flag', 300, 26 + dC, true], ['flag', 640, 70 + dB], ['bunting', 1402, 196 + dS]);
       } else {
         fx.push(['bulbs', 224, 0], ['coin', 712, 112], ['coin', 920, 112], ['neon', 1392, 36], ['cross', 224, 822],
           ['spray', 816, 846], ['flag', 112, 40], ['flag', 336, 40, true], ['flag', 816, 66], ['bunting', 1392, 200]);
@@ -755,6 +887,10 @@
       case 'drift': {
         const a = art[p3];
         return a ? img(p3, 'fx-drift', a.w * 0.8, a.h * 0.8, x - a.w * 0.4, y - a.h * 0.8, z) : '';
+      }
+      case 'basket': { // thuyền thúng có người câu, trôi chậm trên hồ
+        const html = boatSheetHtml('basket', 'east', BOAT_K.basket);
+        return html ? `<div class="fx fx-basket" style="left:${px(x)};top:${px(y)};z-index:${z}">${html}</div>` : '';
       }
       case 'sparkle':
         return img('fx_sparkle', 'fx-twinkle', 16, 16, x - 8, y - 8, z + 2);
@@ -857,18 +993,50 @@
   }
 
   // Thuyền: mỗi chiếc chạy qua lại trong một đoạn sông giữa hai cây cầu.
+  // kind: loại thuyền của bộ 3D (xuồng ba lá, thuyền máy, đò, sà lan — sà lan chạy đoạn gần Công trường); img: ảnh bộ 2D.
+  // y là đường mặt nước (điểm chân thuyền).
   const BOATS = [
-    { img: 'boat_1', from: 2 * T, to: 12 * T, y: 14 * T + 30, speed: 55, at: 0 },
-    { img: 'boat_2', from: 21 * T, to: 30 * T, y: 15 * T + 10, speed: 28, at: 120 },
-    { img: 'boat_3', from: 39 * T, to: 48 * T, y: 14 * T + 34, speed: 45, at: 260 },
+    { kind: 'sampan', img: 'boat_1', from: 2 * T, to: 12 * T, y: 15 * T + 2, speed: 40, at: 0 },
+    { kind: 'ferry', img: 'boat_2', from: 21 * T, to: 30 * T, y: 15 * T + 16, speed: 24, at: 120 },
+    { kind: 'motor', img: 'boat_3', from: 39 * T, to: 48 * T, y: 15 * T + 4, speed: 60, at: 260 },
     // ngoại ô
-    { img: 'boat_2', from: -1500, to: -200, y: 15 * T + 6, speed: 35, at: 400 },
-    { img: 'boat_1', from: -3200, to: -1800, y: 14 * T + 30, speed: 50, at: 90 },
-    { img: 'boat_3', from: 1800, to: 3000, y: 14 * T + 30, speed: 40, at: 700 },
-    { img: 'boat_2', from: 3300, to: 4600, y: 15 * T + 8, speed: 30, at: 50 },
+    { kind: 'barge', img: 'boat_2', from: -1500, to: -200, y: 15 * T + 16, speed: 22, at: 400 },
+    { kind: 'sampan', img: 'boat_1', from: -3200, to: -1800, y: 15 * T + 2, speed: 40, at: 90 },
+    { kind: 'motor', img: 'boat_3', from: 1800, to: 3000, y: 15 * T + 6, speed: 60, at: 700 },
+    { kind: 'ferry', img: 'boat_2', from: 3300, to: 4600, y: 15 * T + 16, speed: 24, at: 50 },
   ];
+  const BOAT_K = { sampan: 0.8, motor: 0.78, ferry: 0.74, barge: 0.74, basket: 0.62 };
+  const BOAT_WAKE = { sampan: 'wake', ferry: 'wake', barge: 'wake', motor: 'wake_small' };
+
+  // Thuyền bộ 3D: dải 3 khung (lắc / khua chèo ~3 khung mỗi giây), ảnh riêng cho hướng tây, vệt sóng ở đuôi.
+  // Đặt theo điểm chân (đường mặt nước) của từng khung.
+  function boatSheetHtml(kind, dir, k, cls = '') {
+    const a = art[`boat_${kind}_${dir}`];
+    const meta = boatMeta[`boat_${kind}_${dir}`];
+    if (!a || !meta) return '';
+    const fw = meta.frameW * (a.w / meta.w) * k;
+    const fh = a.h * k;
+    const fx = meta.foot[0] * (a.w / meta.w) * k;
+    const fy = meta.foot[1] * (a.w / meta.w) * k;
+    let wake = '';
+    const wn = BOAT_WAKE[kind] && `${BOAT_WAKE[kind]}_${dir}`;
+    const wa = wn && art[wn];
+    if (wa) {
+      const kw = k * (kind === 'motor' ? 1 : 0.9);
+      const stern = (dir === 'east' ? -1 : 1) * fw * 0.4; // đuôi thuyền so với điểm chân
+      wake = `<img class="wake wake-${dir}" src="${srcOf(wn)}" alt="" draggable="false" style="left:${px(stern - wa.ax * kw)};top:${px(-wa.ay * kw)};width:${px(wa.w * kw)};height:${px(wa.h * kw)}">`;
+    }
+    return `<div class="boat-dir boat-${dir}${cls ? ' ' + cls : ''}">${wake}<i class="boat-sheet" style="left:${px(-fx)};top:${px(-fy)};width:${px(fw)};height:${px(fh)};background-image:url(${srcOf(`boat_${kind}_${dir}`)});background-size:${px(fw * 3)} ${px(fh)};--sw:${px(fw * 3)}"></i></div>`;
+  }
+  const boatMeta = {}; // tên dải khung → { w, frameW, foot } (đọc từ manifest bộ 3D)
+
   function boatsHtml() {
     return BOATS.map((b, i) => {
+      const k = BOAT_K[b.kind] || 0.8;
+      const three = art3d && boatSheetHtml(b.kind, 'east', k);
+      if (three) {
+        return `<div class="boat boat3d" data-boat="${i}">${three}${boatSheetHtml(b.kind, 'west', k)}</div>`;
+      }
       const [w, h] = sizes[b.img] || [80, 42];
       return `<div class="boat" data-boat="${i}"><img src="${srcOf(b.img)}" alt="" draggable="false" style="width:${px(w * 0.85)};height:${px(h * 0.85)}"></div>`;
     }).join('');
@@ -885,7 +1053,7 @@
     }
     const k = 1.2; // = BK.casino của bộ 3D trong props()
     const u = b.w / 371; // ảnh gốc 371 × 296 → đơn vị hiển thị
-    return [224 + (175 * u - b.ax) * k, 8 * T - (b.ay - 58 * u) * k];
+    return [224 + (175 * u - b.ax) * k, northFoot('building_casino', k) - (b.ay - 58 * u) * k];
   }
   function signHtml() {
     const [sw, sh] = sizes.sign_casino || [170, 44];
@@ -1464,7 +1632,7 @@
     const trees = [...layer.querySelectorAll('.prop.tree')].map((el) => ({
       el, l: parseFloat(el.style.left), t: parseFloat(el.style.top), w: parseFloat(el.style.width), h: parseFloat(el.style.height),
     }));
-    chunks.set(kx, { canvas, props: layer, benches, trees });
+    chunks.set(kx, { canvas, props: layer, benches, trees, plan });
   }
 
   // Kéo chuột / vuốt trên bản đồ để nhìn quanh; bấm (không kéo) vẫn là đi tới điểm đó.
@@ -1791,6 +1959,9 @@
     // Trạng thái nhân vật mình (để gửi cho người khác).
     state: () => me && { x: me.x, y: me.y, dir: me.dir, walking: !!me.walking, sitting: !!sitting, zone: nearZone },
     isSitting: () => !!sitting,
+    // Kiểm tự động: các món (toà, nhà, cây, đèn, ghế...) lấn lòng đường / vỉa hè trong các mảng đang dựng.
+    audit: () => [...chunks.entries()].flatMap(([kx, ch]) => (ch.plan ? ch.plan.props : [])
+      .map((p) => [kx, p[0], Math.round(p[1]), Math.round(p[2]), violation(p)]).filter((v) => v[4])),
     // Đồng bộ theo server (vd server đã cho đứng): false = đứng dậy, không báo lại qua onSit.
     setSitting: (on) => { if (!on) standUp(false); },
     actors: Actors,

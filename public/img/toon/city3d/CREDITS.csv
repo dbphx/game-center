@@ -37,9 +37,6 @@ car_green_east.png,"Kenney — Car Kit 3.1 (sedan, hatchback-sports, taxi, suv, 
 car_green_west.png,"Kenney — Car Kit 3.1 (sedan, hatchback-sports, taxi, suv, ambulance), đổi màu thân xe",Kenney (www.kenney.nl),CC0 1.0,https://kenney.nl/assets/car-kit,"Xe xanh lá, hướng tây"
 ambulance_east.png,"Kenney — Car Kit 3.1 (sedan, hatchback-sports, taxi, suv, ambulance), đổi màu thân xe",Kenney (www.kenney.nl),CC0 1.0,https://kenney.nl/assets/car-kit,"Xe cứu thương, hướng đông"
 ambulance_west.png,"Kenney — Car Kit 3.1 (sedan, hatchback-sports, taxi, suv, ambulance), đổi màu thân xe",Kenney (www.kenney.nl),CC0 1.0,https://kenney.nl/assets/car-kit,"Xe cứu thương, hướng tây"
-boat_1.png,DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án,DCity,CC0 1.0,—,Thuyền gỗ có mui (mũi hướng phải)
-boat_2.png,DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án,DCity,CC0 1.0,—,Thuyền gỗ nhỏ (mũi hướng phải)
-boat_3.png,DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án,DCity,CC0 1.0,—,Thuyền thúng
 scaffold.png,DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án,DCity,CC0 1.0,—,Công trường: giàn giáo
 crane.png,DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án,DCity,CC0 1.0,—,Công trường: cần cẩu tháp
 house_build.png,DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án,DCity,CC0 1.0,—,Công trường: nhà đang xây
@@ -71,3 +68,27 @@ tree_xoai.png,DCity — dựng 3D bằng three.js (hình học tự dựng) cho 
 tree_da.png,DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án,DCity,CC0 1.0,—,"Cây đa cổ thụ, rễ phụ thõng"
 flower_clump.png,DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án,DCity,CC0 1.0,—,Khóm hoa nhiều màu
 hay.png,DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án,DCity,CC0 1.0,—,Cuộn rơm
+boat_sampan_east.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,Thuyền 3D (xuồng ba lá / thuyền máy / đò / sà lan / thuyền thúng)
+boat_sampan_east_still.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,Thuyền 3D (xuồng ba lá / thuyền máy / đò / sà lan / thuyền thúng)
+boat_sampan_west.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,Thuyền 3D (xuồng ba lá / thuyền máy / đò / sà lan / thuyền thúng)
+boat_sampan_west_still.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,Thuyền 3D (xuồng ba lá / thuyền máy / đò / sà lan / thuyền thúng)
+boat_motor_east.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,Thuyền 3D (xuồng ba lá / thuyền máy / đò / sà lan / thuyền thúng)
+boat_motor_east_still.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,Thuyền 3D (xuồng ba lá / thuyền máy / đò / sà lan / thuyền thúng)
+boat_motor_west.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,Thuyền 3D (xuồng ba lá / thuyền máy / đò / sà lan / thuyền thúng)
+boat_motor_west_still.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,Thuyền 3D (xuồng ba lá / thuyền máy / đò / sà lan / thuyền thúng)
+boat_ferry_east.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,Thuyền 3D (xuồng ba lá / thuyền máy / đò / sà lan / thuyền thúng)
+boat_ferry_east_still.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,Thuyền 3D (xuồng ba lá / thuyền máy / đò / sà lan / thuyền thúng)
+boat_ferry_west.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,Thuyền 3D (xuồng ba lá / thuyền máy / đò / sà lan / thuyền thúng)
+boat_ferry_west_still.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,Thuyền 3D (xuồng ba lá / thuyền máy / đò / sà lan / thuyền thúng)
+boat_barge_east.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,Thuyền 3D (xuồng ba lá / thuyền máy / đò / sà lan / thuyền thúng)
+boat_barge_east_still.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,Thuyền 3D (xuồng ba lá / thuyền máy / đò / sà lan / thuyền thúng)
+boat_barge_west.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,Thuyền 3D (xuồng ba lá / thuyền máy / đò / sà lan / thuyền thúng)
+boat_barge_west_still.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,Thuyền 3D (xuồng ba lá / thuyền máy / đò / sà lan / thuyền thúng)
+boat_basket_east.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,Thuyền 3D (xuồng ba lá / thuyền máy / đò / sà lan / thuyền thúng)
+boat_basket_east_still.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,Thuyền 3D (xuồng ba lá / thuyền máy / đò / sà lan / thuyền thúng)
+boat_basket_west.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,Thuyền 3D (xuồng ba lá / thuyền máy / đò / sà lan / thuyền thúng)
+boat_basket_west_still.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,Thuyền 3D (xuồng ba lá / thuyền máy / đò / sà lan / thuyền thúng)
+wake_east.png,DCity — vẽ bằng Pillow,DCity,CC0 1.0,—,Vệt sóng sau thuyền
+wake_west.png,DCity — vẽ bằng Pillow,DCity,CC0 1.0,—,Vệt sóng sau thuyền
+wake_small_east.png,DCity — vẽ bằng Pillow,DCity,CC0 1.0,—,Vệt sóng sau thuyền
+wake_small_west.png,DCity — vẽ bằng Pillow,DCity,CC0 1.0,—,Vệt sóng sau thuyền
