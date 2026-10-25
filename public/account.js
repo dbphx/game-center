@@ -127,6 +127,12 @@
   const confirmBox = (message, opts = {}) => ask({ ...opts, message });
   const alertBox = (message, opts = {}) => ask({ title: 'Thông báo', ok: 'Đã hiểu', cancel: '', ...opts, message });
 
+  // Service worker giữ ảnh trong bộ đệm của trình duyệt (js / css hỏi lại bằng ETag), lần sau mở trang không phải tải lại
+  // (server đổi phiên bản mỗi lần cập nhật nên bộ đệm cũ tự bị xoá).
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+  }
+
   window.Account = { token: load, api, me, register, login, logout, requireLogin, xu, escapeHtml, toast,
     ask, confirm: confirmBox, alert: alertBox };
 })();
