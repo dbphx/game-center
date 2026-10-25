@@ -8,13 +8,14 @@ import (
 
 // Mọi khoản tiền trong package này tính bằng "mức cược"; phòng chơi nhân với số xu của một mức.
 
-// Luật "nhất ăn tất": chỉ người về nhất được tiền thứ hạng, mỗi người còn lại trả loseUnits mức cược
-// (bị cóng trả congUnits). Tới bằng 3♠ (bộ bài cuối có 3 bích) thì phần này nhân threeSpadesMul.
+// Luật "nhất ăn tất, đếm lá": chỉ người về nhất được tiền thứ hạng. Lúc người nhất hết bài, mỗi người
+// còn lại trả số lá đang cầm × 1 mức; bị cóng (chưa đánh lá nào) trả congCards lá (gấp đôi 13).
+// Tới bằng 3♠ (bộ bài cuối có 3 bích) thì phần đếm lá nhân threeSpadesMul.
+// Tới trắng: mỗi người trả 13 lá × instantWinLoss (= 26 lá, như bị cóng).
 const (
-	loseUnits      = 1
-	congUnits      = 2
+	congCards      = 26
 	threeSpadesMul = 2
-	instantWinLoss = 2 // tới trắng: ăn của mỗi người 2 mức
+	instantWinLoss = 2
 )
 
 // WinBy mô tả cách người nhất về: Multiplier nhân vào tiền nhất ăn tất (không nhân tiền chặt / thối).
@@ -71,6 +72,7 @@ type Game struct {
 	History     []Event
 	Delta       []int      // tiền "nhất ăn tất" của ván vừa xong
 	WinBy       *WinBy     // cách người nhất về (tới bằng 3♠ thì ×2); nil khi chưa có người về nhất
+	CardsLeft   []int      // số lá bị tính tiền của từng người lúc người nhất về (cóng: 26, người nhất: 0)
 	Transfers   []Transfer // tiền chặt và thối của ván vừa xong
 
 	rand *rand.Rand
@@ -96,6 +98,7 @@ func (g *Game) Start() {
 	g.History = nil
 	g.Delta = make([]int, n)
 	g.WinBy = nil
+	g.CardsLeft = nil
 	g.Transfers = nil
 	g.MustInclude = -1
 
@@ -105,11 +108,12 @@ func (g *Game) Start() {
 			g.Over = true
 			g.Finished = []int{p}
 			g.LastWinner = p
+			g.CardsLeft = make([]int, n)
 			for q := range n {
-				if q == p {
-					g.Delta[q] = instantWinLoss * (n - 1)
-				} else {
-					g.Delta[q] = -instantWinLoss
+				if q != p {
+					g.CardsLeft[q] = 13 * instantWinLoss
+					g.Delta[q] = -g.CardsLeft[q]
+					g.Delta[p] += g.CardsLeft[q]
 				}
 			}
 			g.settle()
@@ -227,6 +231,17 @@ func (g *Game) Play(p int, cards []Card) error {
 					g.Cong = append(g.Cong, q)
 				}
 			}
+			// Đếm lá ngay lúc người nhất về: những lá còn trên tay mỗi người là số tiền phải trả.
+			g.CardsLeft = make([]int, g.Players)
+			for q := range g.Players {
+				if q == p {
+					continue
+				}
+				g.CardsLeft[q] = len(g.Hands[q])
+				if slices.Contains(g.Cong, q) {
+					g.CardsLeft[q] = congCards
+				}
+			}
 		}
 		if g.activeCount() <= 1 {
 			g.finish()
@@ -302,18 +317,15 @@ func (g *Game) finish() {
 	g.Finished = append(g.Finished, g.Cong...)
 	winner := g.Finished[0]
 	g.LastWinner = winner
-	// Nhất ăn tất: mỗi người còn lại trả cho người nhất, bị cóng trả gấp đôi.
+	// Nhất ăn tất, đếm lá: mỗi người còn lại trả người nhất số lá đã ghi lúc người nhất về.
 	mul := 1
 	if g.WinBy != nil {
 		mul = g.WinBy.Multiplier
 	}
 	for _, p := range g.Finished[1:] {
-		pay := loseUnits
-		if slices.Contains(g.Cong, p) {
-			pay = congUnits
-		}
-		g.Delta[p] = -pay * mul
-		g.Delta[winner] += pay * mul
+		pay := g.CardsLeft[p] * mul
+		g.Delta[p] = -pay
+		g.Delta[winner] += pay
 	}
 
 	// Thối: người về bét và người bị cóng trả heo / hàng còn trên tay cho người về nhất.

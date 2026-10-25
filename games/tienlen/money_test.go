@@ -107,11 +107,14 @@ func TestLastPlayerPaysLeftover(t *testing.T) {
 	if len(g.Transfers) != 1 || g.Transfers[0] != want {
 		t.Fatalf("muốn %+v, được %+v", want, g.Transfers)
 	}
-	// Người 0 về nhất bằng 3♠ nên tiền nhất ăn tất ×2: mỗi người trả 2; thối heo đỏ không nhân.
+	// Người 0 về nhất bằng 3♠: đếm lá ×2 — người 1 còn 2 lá trả 4, người 2 còn 2 lá trả 4; thối heo đỏ không nhân.
 	if g.WinBy == nil || !g.WinBy.ThreeSpades || g.WinBy.Multiplier != 2 {
 		t.Fatalf("phải tới bằng 3♠ ×2: %+v", g.WinBy)
 	}
-	if m := g.Money(); !slices.Equal(m, []int{2 + 2 + 2, -2 - 2, -2}) {
+	if !slices.Equal(g.CardsLeft, []int{0, 2, 2}) {
+		t.Fatalf("số lá bị tính sai: %v", g.CardsLeft)
+	}
+	if m := g.Money(); !slices.Equal(m, []int{8 + 2, -4 - 2, -4}) {
 		t.Fatalf("tiền sai: %v", m)
 	}
 }
@@ -157,7 +160,7 @@ func sum(xs []int) int {
 	return n
 }
 
-// Nhất ăn tất: mọi người còn lại trả người nhất 1 mức, không có tiền nhì/ba/bét.
+// Nhất ăn tất, đếm lá: lúc người nhất về mỗi người còn 1 lá nên trả 1 mức; không có tiền nhì/ba/bét.
 func TestWinnerTakesAll(t *testing.T) {
 	cases := []struct {
 		hands []string
@@ -182,7 +185,7 @@ func TestWinnerTakesAll(t *testing.T) {
 	}
 }
 
-// Người còn lại đã đánh bài (không cóng) trả 1, người bị cóng trả 2; tổng luôn bằng 0.
+// Đếm lá lúc người nhất về: người 0, 1 còn 1 lá trả 1, người bị cóng trả 26; tổng luôn bằng 0.
 func TestWinnerTakesAllWithCong(t *testing.T) {
 	thirteen := "3♣ 4♣ 5♣ 6♣ 7♣ 8♣ 9♣ 10♣ J♣ Q♣ K♣ A♣ 2♠"
 	g := fixedGame(t, "4♠ 6♥", "5♠ 7♠", thirteen, "9♥ 10♥")
@@ -202,12 +205,12 @@ func TestWinnerTakesAllWithCong(t *testing.T) {
 	if !g.Over {
 		t.Fatal("phải hết ván")
 	}
-	// Nhất ăn tất: người 0 và 1 trả 1, người 2 (cóng) trả 2 → người 3 được 4. Thối: cóng thối heo đen 2♠ (1).
-	if !slices.Equal(g.Delta, []int{-1, -1, -2, 4}) {
-		t.Fatalf("tiền nhất ăn tất sai: %v", g.Delta)
+	// Người 0, 1 còn 1 lá trả 1; người 2 cóng trả 26 → người 3 được 28. Thối: cóng thối heo đen 2♠ (1).
+	if !slices.Equal(g.CardsLeft, []int{1, 1, 26, 0}) || !slices.Equal(g.Delta, []int{-1, -1, -26, 28}) {
+		t.Fatalf("đếm lá sai: lá %v, tiền %v", g.CardsLeft, g.Delta)
 	}
 	m := g.Money()
-	if !slices.Equal(m, []int{-1, -1, -3, 5}) || sum(m) != 0 {
+	if !slices.Equal(m, []int{-1, -1, -27, 29}) || sum(m) != 0 {
 		t.Fatalf("tổng tiền sai: %v", m)
 	}
 }
@@ -228,12 +231,13 @@ func TestThreeSpadesPairDoubles(t *testing.T) {
 	if !g.Over {
 		t.Fatal("phải hết ván")
 	}
-	if !slices.Equal(g.Delta, []int{4, -2, -2}) || sum(g.Money()) != 0 {
+	// Lúc người 0 về: người 1 còn 3 lá, người 2 còn 2 lá → ×2 thành 6 và 4.
+	if !slices.Equal(g.Delta, []int{10, -6, -4}) || sum(g.Money()) != 0 {
 		t.Fatalf("×2 sai: delta %v, money %v", g.Delta, g.Money())
 	}
 }
 
-// Tới trắng: ăn của mỗi người 2 mức.
+// Tới trắng: mỗi người trả 13 lá × 2 = 26 mức.
 func TestInstantWinTakesAll(t *testing.T) {
 	g, _ := NewGame(4, rand.New(rand.NewPCG(1, 1)))
 	for seed := uint64(0); seed < 200000; seed++ {
@@ -244,11 +248,27 @@ func TestInstantWinTakesAll(t *testing.T) {
 		}
 		w := g.Instant.Player
 		for q, d := range g.Delta {
-			if (q == w && d != 6) || (q != w && d != -2) {
+			if (q == w && d != 78) || (q != w && d != -26) {
 				t.Fatalf("tới trắng sai: %v", g.Delta)
 			}
 		}
 		return
 	}
 	t.Skip("không gặp ván tới trắng nào")
+}
+
+// Đếm lá theo số lá thật còn trên tay lúc người nhất về, người về sau vẫn trả theo số lá lúc đó.
+func TestCountCardsAtFirstFinish(t *testing.T) {
+	g := fixedGame(t, "5♠", "6♠ 7♠ 8♠ 9♦", "J♠ K♥")
+	mustPlay(t, g, 0, "5♠") // người 0 về nhất: người 1 còn 4 lá, người 2 còn 2 lá
+	mustPlay(t, g, 1, "6♠")
+	mustPlay(t, g, 2, "J♠")
+	mustPass(t, g, 1)
+	mustPlay(t, g, 2, "K♥") // người 2 về nhì dù lúc người nhất về còn 2 lá
+	if !g.Over {
+		t.Fatal("phải hết ván")
+	}
+	if !slices.Equal(g.CardsLeft, []int{0, 4, 2}) || !slices.Equal(g.Delta, []int{6, -4, -2}) || sum(g.Money()) != 0 {
+		t.Fatalf("đếm lá sai: lá %v, tiền %v", g.CardsLeft, g.Delta)
+	}
 }

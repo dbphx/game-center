@@ -321,16 +321,16 @@ Mọi khoản tính bằng *mức*, nhân với mức cược (10–500 xu/mức
 
 | Khoản | Mức |
 |---|---|
-| **Nhất ăn tất** | mỗi người còn lại trả người về nhất 1 (bị cóng trả 2); không có tiền nhì / ba / bét |
-| **Tới bằng 3 bích** | bộ bài cuối người nhất đánh ra có 3♠ thì tiền nhất ăn tất ×2 (tiền chặt / thối không nhân) |
-| Tới trắng | người thắng +2 × số người thua, mỗi người thua −2 |
+| **Nhất ăn tất, đếm lá** | lúc người nhất hết bài, mỗi người còn lại trả người nhất số lá đang cầm (bị cóng trả 26 lá); không có tiền nhì / ba / bét |
+| **Tới bằng 3 bích** | bộ bài cuối người nhất đánh ra có 3♠ thì tiền đếm lá ×2 (tiền chặt / thối không nhân) |
+| Tới trắng | mỗi người thua trả 13 lá × 2 = 26 |
 | Heo đen ♠♣ / heo đỏ ♦♥ | 1 / 2 |
 | 3 đôi thông / tứ quý / 4 đôi thông | 3 / 4 / 6 |
 
 - **Chặt heo / chặt hàng**: người bị chặt trả người chặt theo bảng trên. **Chặt chồng**: người bị chặt sau trả luôn số tiền mình vừa ăn, nên người chặt cuối ăn trọn.
 - **Thối**: hết ván, người về bét còn heo / hàng trên tay thì trả cho người về nhất.
 - **Cóng**: khi có người về nhất mà ai đó chưa đánh lá nào thì người đó bị cóng: xếp bét, bị loại khỏi ván và cũng phải thối cả tay.
-- State có `delta` (tiền nhất ăn tất, mức) và `winBy: {threeSpades, multiplier}` để giao diện hiện "Tới bằng 3 bích ×2".
+- State có `delta` (tiền đếm lá, mức), `cardsLeft` (số lá bị tính từng người lúc người nhất về, cóng 26) và `winBy: {threeSpades, multiplier}` để giao diện hiện "An còn 5 lá trả 50 xu", "Tới bằng 3 bích ×2".
 
 ## Cấu trúc
 

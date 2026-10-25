@@ -611,8 +611,13 @@
         const pays = state.players
           .map((p, i) => ({ p, i, d: state.delta[i] }))
           .filter(({ d }) => d < 0)
-          .map(({ p, i, d }) => `${escapeHtml(playerName(i))}${p.cong ? ' (cóng)' : ''} trả ${xu(-d * state.gameBet)} xu`);
-        lines.push(`<li>${state.instant ? 'Tới trắng' : 'Nhất ăn tất'} — ${escapeHtml(playerName(winner))} +${xu(state.delta[winner] * state.gameBet)} xu: ${pays.join(', ')}</li>`);
+          .map(({ p, i, d }) => {
+            // Số lá bị tính lúc người nhất về (cóng / tới trắng tính 26 lá).
+            const n = state.cardsLeft ? state.cardsLeft[i] : 0;
+            const cards = p.cong ? `cóng (${n} lá)` : state.instant ? `${n} lá` : `còn ${n} lá`;
+            return `${escapeHtml(playerName(i))} ${cards} trả ${xu(-d * state.gameBet)} xu`;
+          });
+        lines.push(`<li>${state.instant ? 'Tới trắng (đếm lá)' : 'Nhất ăn tất (đếm lá)'} — ${escapeHtml(playerName(winner))} +${xu(state.delta[winner] * state.gameBet)} xu: ${pays.join(', ')}</li>`);
       }
     }
     for (const t of state.transfers || []) lines.push(`<li>${transferText(t)}</li>`);
