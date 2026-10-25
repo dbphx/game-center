@@ -84,8 +84,9 @@ func New(w *wallet.Wallet, static fs.FS, games []Game) *Server {
 			s.mux.Handle("/ws/"+g.ID, g.WS)
 		}
 		if g.API != nil {
-			s.mux.Handle("/api/"+g.ID, g.API)
-			s.mux.Handle("/api/"+g.ID+"/", g.API)
+			api := s.markElsewhere(g.API)
+			s.mux.Handle("/api/"+g.ID, api)
+			s.mux.Handle("/api/"+g.ID+"/", api)
 		}
 		if g.Rooms != nil {
 			s.mux.Handle("GET /api/"+g.ID+"/rooms", g.Rooms)
@@ -115,7 +116,7 @@ func (s *Server) authed(h func(http.ResponseWriter, *http.Request, wallet.User))
 	return func(w http.ResponseWriter, r *http.Request) {
 		u, err := s.wallet.UserByToken(r.Context(), bearer(r))
 		if errors.Is(err, wallet.ErrNotFound) {
-			writeError(w, http.StatusUnauthorized, "phiên đăng nhập không hợp lệ")
+			unauthorized(w, err)
 			return
 		}
 		if err != nil {
@@ -124,6 +125,47 @@ func (s *Server) authed(h func(http.ResponseWriter, *http.Request, wallet.User))
 		}
 		h(w, r, u)
 	}
+}
+
+// unauthorized trả 401 kèm code: "elsewhere" khi tài khoản vừa đăng nhập ở nơi khác (phiên này bị đá ra),
+// "invalid" khi không có / hết phiên. Giao diện dựa vào code để báo người chơi.
+func unauthorized(w http.ResponseWriter, err error) {
+	if wallet.IsElsewhere(err) {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": err.Error(), "code": "elsewhere"})
+		return
+	}
+	writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "phiên đăng nhập không hợp lệ", "code": "invalid"})
+}
+
+// markElsewhere bọc API riêng của từng game: khi game trả 401 cho một token đã bị đăng nhập nơi khác
+// đá ra thì thay bằng trả lời có code "elsewhere" (chỉ tra database khi có 401, không tốn gì lúc bình thường).
+func (s *Server) markElsewhere(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h.ServeHTTP(&elsewhereWriter{ResponseWriter: w, s: s, r: r}, r)
+	})
+}
+
+type elsewhereWriter struct {
+	http.ResponseWriter
+	s        *Server
+	r        *http.Request
+	replaced bool // đã trả lời thay, bỏ phần game ghi sau đó
+}
+
+func (e *elsewhereWriter) WriteHeader(code int) {
+	if code == http.StatusUnauthorized && e.s.wallet.SessionElsewhere(e.r.Context(), bearer(e.r)) {
+		e.replaced = true
+		unauthorized(e.ResponseWriter, wallet.ErrSessionElsewhere)
+		return
+	}
+	e.ResponseWriter.WriteHeader(code)
+}
+
+func (e *elsewhereWriter) Write(b []byte) (int, error) {
+	if e.replaced {
+		return len(b), nil
+	}
+	return e.ResponseWriter.Write(b)
 }
 
 func (s *Server) internal(w http.ResponseWriter, err error) {

@@ -103,15 +103,20 @@ func TestRegisterLoginLogout(t *testing.T) {
 	if code := call(t, srv, "POST", "/api/login", "", creds("Binh", "matkhau123"), &s); code != 200 || s.User.ID != a.User.ID {
 		t.Fatalf("đăng nhập: %d %+v", code, s)
 	}
+	// Mỗi tài khoản một phiên: đăng nhập thì phiên lúc đăng ký bị đá ra.
+	if code := call(t, srv, "GET", "/api/me", a.Token, nil, nil); code != 401 {
+		t.Fatalf("phiên cũ phải bị đá ra, được %d", code)
+	}
 	if code := call(t, srv, "POST", "/api/logout", s.Token, nil, nil); code != 200 {
 		t.Fatalf("đăng xuất: %d", code)
 	}
 	if code := call(t, srv, "GET", "/api/me", s.Token, nil, nil); code != 401 {
 		t.Fatalf("token đã đăng xuất phải 401, được %d", code)
 	}
-	if code := call(t, srv, "GET", "/api/me", a.Token, nil, nil); code != 200 {
-		t.Fatalf("phiên khác vẫn phải dùng được, được %d", code)
+	if code := call(t, srv, "POST", "/api/login", "", creds("binh", "matkhau123"), &s); code != 200 {
+		t.Fatalf("đăng nhập lại: %d", code)
 	}
+	a.Token = s.Token
 
 	var u wallet.User
 	// Giới tính gửi kèm bị bỏ qua: không đổi được sau khi tạo.
@@ -426,5 +431,53 @@ func TestTienLenRoomsAPI(t *testing.T) {
 	r := rooms[0]
 	if r.Code != code || r.Bet != 200 || r.Phase != online.PhaseLobby || len(r.Players) != 1 || !r.Players[0].Host || r.Players[0].Name != "an.nguyen" {
 		t.Fatalf("bàn sai: %+v", r)
+	}
+}
+
+// Mỗi tài khoản một phiên: đăng nhập lần hai thì token cũ bị 401 code "elsewhere", WebSocket đang mở bị ngắt.
+func TestOneSessionPerAccountAPI(t *testing.T) {
+	srv, _ := newTestServer(t)
+	first := newAccount(t, srv, "motphien")
+
+	ws := dial(t, srv)
+	ws.send(online.Message{T: "create", Token: first.Token})
+	ws.next("session")
+
+	var second session
+	if code := call(t, srv, "POST", "/api/login", "", creds("motphien", "matkhau123"), &second); code != 200 {
+		t.Fatalf("đăng nhập lần hai: %d", code)
+	}
+	if m := ws.next("auth"); m["reason"] != "elsewhere" {
+		t.Fatalf("WebSocket token cũ phải nhận auth elsewhere, được %v", m)
+	}
+	ws.ws.SetReadDeadline(time.Now().Add(3 * time.Second))
+	for {
+		if _, _, err := ws.ws.ReadMessage(); err != nil {
+			break // server đã đóng kết nối
+		}
+	}
+
+	var e map[string]string
+	if code := call(t, srv, "GET", "/api/me", first.Token, nil, &e); code != 401 || e["code"] != "elsewhere" || e["error"] != "Tài khoản đã đăng nhập ở nơi khác" {
+		t.Fatalf("token cũ: %d %v", code, e)
+	}
+	if code := call(t, srv, "GET", "/api/me", second.Token, nil, nil); code != 200 {
+		t.Fatalf("token mới phải dùng được, được %d", code)
+	}
+	// Token cũ mở WebSocket mới: báo auth elsewhere.
+	again := dial(t, srv)
+	again.send(online.Message{T: "create", Token: first.Token})
+	if m := again.next("auth"); m["reason"] != "elsewhere" {
+		t.Fatalf("WebSocket mới bằng token cũ: %v", m)
+	}
+	// Token lạ / đã đăng xuất: code "invalid".
+	if code := call(t, srv, "GET", "/api/me", "khong-co", nil, &e); code != 401 || e["code"] != "invalid" {
+		t.Fatalf("token lạ: %d %v", code, e)
+	}
+	if code := call(t, srv, "POST", "/api/logout", second.Token, nil, nil); code != 200 {
+		t.Fatalf("đăng xuất: %d", code)
+	}
+	if code := call(t, srv, "GET", "/api/me", second.Token, nil, &e); code != 401 || e["code"] != "invalid" {
+		t.Fatalf("token đã đăng xuất: %d %v", code, e)
 	}
 }

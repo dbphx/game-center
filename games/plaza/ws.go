@@ -3,6 +3,7 @@ package plaza
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"sync"
@@ -90,10 +91,11 @@ func (c *client) run() {
 			}
 			p, err := c.hub.Hello(ctx, m.Token, c)
 			if err != nil {
-				c.Send(map[string]string{"t": "auth"})
+				c.Send(authFailed(err))
 				return
 			}
 			c.player = p
+			c.watchRevoke(p.uid)
 			continue
 		}
 		if err := c.hub.Handle(ctx, c.player, m); err != nil {
@@ -123,4 +125,39 @@ func (c *client) writeLoop() {
 			return
 		}
 	}
+}
+
+// authFailed là tin báo token không dùng được; reason "elsewhere" khi tài khoản đã đăng nhập ở nơi khác.
+func authFailed(err error) map[string]string {
+	msg := map[string]string{"t": "auth"}
+	var e interface{ Elsewhere() bool }
+	if errors.As(err, &e) && e.Elsewhere() {
+		msg["reason"] = "elsewhere"
+	}
+	return msg
+}
+
+// watchRevoke ngắt kết nối khi tài khoản đăng nhập ở nơi khác (mỗi tài khoản một phiên): gửi
+// {t:"auth", reason:"elsewhere"} rồi đóng. Ví giả trong test không có WatchRevoke thì bỏ qua.
+func (c *client) watchRevoke(userID int64) {
+	wr, ok := c.hub.w.(interface {
+		WatchRevoke(userID int64) (<-chan struct{}, func())
+	})
+	if !ok {
+		return
+	}
+	revoked, stop := wr.WatchRevoke(userID)
+	go func() {
+		defer stop()
+		select {
+		case <-revoked:
+			c.Send(map[string]string{"t": "auth", "reason": "elsewhere"})
+			select {
+			case <-time.After(500 * time.Millisecond):
+				c.shutdown()
+			case <-c.done:
+			}
+		case <-c.done:
+		}
+	}()
 }

@@ -1,0 +1,185 @@
+/* Quảng trường: cảnh công viên riêng + gặp gỡ người chơi khác. */
+
+body { background: #8fcbea; overflow: hidden; }
+.park { position: fixed; inset: 56px 0 0 0; }
+.park.hidden { display: none; }
+
+/* Khung nhìn: trời (ảnh đồi + mây) phía trên khi khung cao hơn cảnh */
+.stage {
+  position: absolute; inset: 0; overflow: hidden; touch-action: none; cursor: pointer;
+  background: #9fd7f2 url('/img/toon/farm/bg_sky_hills.png') repeat-x center bottom / auto 100%;
+}
+.world { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
+.layer { position: absolute; inset: 0; }
+.ground {
+  /* trời + đồi phía sau, bãi cỏ phía trước */
+  background:
+    url('/img/toon/city/grass_tile.png') repeat 0 0 / 128px 128px;
+}
+.ground::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 250px;
+  background: url('/img/toon/farm/bg_sky_hills.png') repeat-x left bottom / auto 260px;
+}
+.ground .path {
+  position: absolute; border-radius: 26px;
+  background: url('/img/toon/city/sidewalk_tile.png') repeat 0 0 / 64px 64px;
+  box-shadow: inset 0 0 0 4px rgba(150, 120, 80, .35), 0 2px 0 rgba(60, 90, 30, .25);
+}
+.ground .hedge {
+  position: absolute; left: 0; right: 0; height: 60px;
+  background: url('/img/toon/city3d/bush.png') repeat-x 0 0 / 120px 64px;
+}
+.things { z-index: 1; }
+.prop { position: absolute; user-select: none; transition: opacity .25s; }
+.prop.fade { opacity: .45; }
+.prop.bench { cursor: pointer; }
+.prop.bench:hover { filter: brightness(1.12) drop-shadow(0 0 6px #fff6b0); }
+.prop.gate { cursor: pointer; }
+
+/* Nhân vật (mình + người khác): chân ở (0, 0) */
+.actor { position: absolute; left: 0; top: 0; pointer-events: none; }
+.actor .body { position: absolute; left: 0; bottom: 0; transform: translateX(-50%); filter: drop-shadow(0 4px 3px rgba(40, 60, 20, .3)); }
+.actor.other .body, .actor.other .tag { pointer-events: auto; cursor: pointer; }
+.actor .tag {
+  position: absolute; left: 0; bottom: 100px; transform: translateX(-50%); white-space: nowrap;
+  display: flex; align-items: center; gap: 4px; padding: 1px 8px 1px 2px; border-radius: 999px;
+  background: rgba(30, 50, 80, .72); color: #fff; font: 800 12px var(--font, sans-serif);
+}
+.actor.me .tag { background: rgba(200, 110, 20, .85); }
+.actor .tag .lv { padding: 0 6px; border-radius: 999px; background: linear-gradient(180deg, #ffe66b, #ffad1f); color: #6b3300; font-size: 10px; }
+.actor.talking { z-index: 5000 !important; }
+.actor.dancing .body { animation: park-dance .5s ease-in-out infinite alternate; }
+@keyframes park-dance { from { transform: translateX(-50%) rotate(-8deg); } to { transform: translateX(-50%) rotate(8deg) translateY(-8px); } }
+.actor .bubble {
+  position: absolute; left: 0; bottom: 126px; transform: translateX(-50%); width: max-content; max-width: 220px;
+  padding: 6px 12px; border-radius: 16px; border: 2px solid #e6c98d; background: #fffdf4; color: #3a2a12;
+  font: 700 13px/1.35 var(--font, sans-serif); text-align: center; word-break: break-word;
+  box-shadow: 0 3px 0 rgba(120, 80, 20, .25); animation: park-pop .18s ease-out;
+}
+.actor .bubble::after { content: ''; position: absolute; left: 50%; bottom: -9px; transform: translateX(-50%); border: 8px solid transparent; border-top-color: #e6c98d; border-bottom: 0; }
+.actor .bubble.hidden { display: none; }
+@keyframes park-pop { from { transform: translateX(-50%) scale(.6); opacity: 0; } }
+.actor .fx { position: absolute; left: 0; bottom: 112px; width: 0; height: 0; }
+.actor .emote { position: absolute; left: -26px; bottom: 0; width: 52px; height: 52px; filter: drop-shadow(0 3px 2px rgba(0, 0, 0, .25)); animation: park-emote 2.4s ease-out forwards; }
+@keyframes park-emote {
+  0% { transform: translateY(10px) scale(.4); opacity: 0; } 15% { transform: translateY(-6px) scale(1.15); opacity: 1; }
+  30% { transform: translateY(-10px) scale(1); } 80% { opacity: 1; } 100% { transform: translateY(-46px) scale(.9); opacity: 0; }
+}
+.actor .float { position: absolute; left: 0; bottom: 10px; transform: translateX(-50%); white-space: nowrap; font: 900 18px var(--font, sans-serif); color: #ffd23f; -webkit-text-stroke: 1px #7a4a00; text-shadow: 0 2px 0 #7a4a00; animation: park-float 2.2s ease-out forwards; }
+@keyframes park-float { to { transform: translate(-50%, -60px); opacity: 0; } }
+
+/* Chim bồ câu, bướm */
+.pigeon { position: absolute; left: 0; top: 0; width: 37px; height: 26px; pointer-events: none; transition: opacity .3s; }
+.butterfly { position: absolute; width: 30px; pointer-events: none; z-index: 3000; animation: park-fly 9s ease-in-out infinite; }
+@keyframes park-fly {
+  0% { transform: translate(0, 0) scaleX(1); } 25% { transform: translate(60px, -30px) scaleX(1); }
+  50% { transform: translate(20px, -60px) scaleX(-1); } 75% { transform: translate(-50px, -20px) scaleX(-1); } 100% { transform: translate(0, 0) scaleX(1); }
+}
+
+/* Bảng nổi trên cảnh */
+.park-title {
+  position: absolute; left: 50%; top: 10px; transform: translateX(-50%); z-index: 40; pointer-events: none;
+  display: flex; align-items: baseline; gap: 8px; padding: 6px 16px; border-radius: 14px;
+  background: linear-gradient(180deg, #fff6d8, #ffe39a); border: 3px solid #c9932f; box-shadow: 0 3px 0 #9b6a16;
+  font-family: var(--font, sans-serif); color: #5a3a06;
+}
+.park-title b { font-size: 18px; font-weight: 900; }
+.park-title span { font-size: 13px; font-weight: 700; opacity: .8; }
+.park-online {
+  position: absolute; left: 12px; top: 12px; z-index: 40; display: flex; align-items: center; gap: 8px;
+  padding: 5px 12px 5px 10px; border-radius: 999px; background: rgba(255, 253, 244, .94); border: 2px solid #e6c98d;
+  font: 800 13px var(--font, sans-serif); color: #4a3412; box-shadow: 0 2px 0 rgba(120, 80, 20, .2);
+}
+.park-online .dot { width: 10px; height: 10px; border-radius: 50%; background: #3cc46a; box-shadow: 0 0 0 3px rgba(60, 196, 106, .25); }
+.park-hint {
+  position: absolute; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 40; pointer-events: none;
+  display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 999px;
+  background: linear-gradient(180deg, #ffe9a8, #ffc94a); border: 3px solid #c9932f; box-shadow: 0 3px 0 #9b6a16;
+  font: 900 15px var(--font, sans-serif); color: #5a3a06;
+}
+.park-hint kbd { padding: 0 7px; border-radius: 6px; background: #fff; font: 900 13px/1.6 inherit; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .15); }
+.park-hint.hidden { display: none; }
+.park-help {
+  position: absolute; right: 12px; top: 12px; z-index: 40; max-width: 360px; padding: 6px 12px; border-radius: 12px;
+  background: rgba(255, 253, 244, .9); border: 2px solid #e6c98d; font: 700 12px var(--font, sans-serif); color: #5a4420;
+  transition: opacity .6s;
+}
+.park-help.faded { opacity: 0; pointer-events: none; }
+.park-bar { position: absolute; right: 12px; bottom: 14px; z-index: 40; display: flex; gap: 8px; }
+.park-bar .btn, .park-bar button { box-shadow: 0 3px 0 rgba(120, 80, 20, .3); }
+/* HP trên topbar (như nông trại) */
+.hp-pill {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 7px; border-radius: 999px;
+  background: linear-gradient(180deg, #fff, #ffe9e9); border: 2px solid #f3a6a6; font-size: 13px; white-space: nowrap;
+}
+.hp-pill:empty { display: none; }
+.hp-pill .icon { width: 17px; height: 17px; fill: #ff4d4d; color: #c92a2a; }
+.hp-pill b { color: #7a1d1d; font-variant-numeric: tabular-nums; }
+.hp-pill .hp-bar { display: inline-block; width: 56px; height: 8px; border-radius: 999px; background: #f6d0d0; overflow: hidden; }
+.hp-pill .hp-bar > span { display: block; height: 100%; background: linear-gradient(180deg, #8ee08a, #3aa94a); }
+.hp-pill.low .hp-bar > span { background: linear-gradient(180deg, #ffb3b3, #e03131); }
+.hp-pill.regen { border-color: #8ed39a; }
+.hp-pill.regen em { font-style: normal; font-weight: 900; color: #2e7d32; }
+
+/* Khung chat */
+.plaza-chat {
+  position: absolute; left: 12px; bottom: 14px; z-index: 45; width: min(330px, calc(100vw - 24px));
+  border-radius: 18px; background: rgba(255, 253, 244, .96); border: 3px solid #e6c98d;
+  box-shadow: 0 4px 0 rgba(120, 80, 20, .25); overflow: hidden; font-family: var(--font, sans-serif);
+}
+.plaza-chat-head { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; border: 0; border-radius: 0; background: linear-gradient(180deg, #ffe9a8, #ffd36b); color: #5a3a06; font: 900 14px var(--font, sans-serif); cursor: pointer; box-shadow: none; }
+.plaza-chat-head kbd { margin-left: auto; padding: 0 6px; border-radius: 6px; background: rgba(255, 255, 255, .7); font: 800 11px/1.6 inherit; }
+.plaza-unread { min-width: 20px; padding: 0 6px; border-radius: 999px; background: #e5484d; color: #fff; font: 900 11px/20px inherit; text-align: center; }
+.plaza-unread.hidden { display: none; }
+.plaza-chat.collapsed { width: auto; }
+.plaza-chat.collapsed .plaza-chat-body { display: none; }
+.plaza-log { height: 170px; overflow-y: auto; padding: 8px 12px; font-size: 13px; line-height: 1.45; color: #3a2a12; }
+.plaza-log p { margin: 0 0 4px; word-break: break-word; }
+.plaza-log b { color: #2f6fae; }
+.plaza-log .mine b { color: #c0601a; }
+.plaza-log .sys { color: #8a7650; font-style: italic; font-size: 12px; }
+.plaza-emotes { display: flex; gap: 6px; padding: 6px 10px; border-top: 2px dashed #ecd9ad; }
+.plaza-emotes button { flex: 1; padding: 3px; border-radius: 12px; background: #fff; border: 2px solid #ecd9ad; box-shadow: none; }
+.plaza-emotes img { width: 30px; height: 30px; display: block; margin: 0 auto; }
+.plaza-form { display: flex; gap: 6px; padding: 8px 10px 10px; }
+.plaza-form input { flex: 1; min-width: 0; padding: 8px 12px; border-radius: 12px; border: 2px solid #e6c98d; font: 600 14px var(--font, sans-serif); background: #fff; }
+.plaza-invite {
+  position: absolute; left: 50%; top: 60px; transform: translateX(-50%); z-index: 50; display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: 16px; background: #fffdf4; border: 3px solid #c9932f; box-shadow: 0 4px 0 #9b6a16;
+  font: 700 14px var(--font, sans-serif); color: #4a3412;
+}
+.plaza-invite.hidden { display: none; }
+
+/* Thẻ hồ sơ */
+dialog.plaza-profile { width: min(400px, calc(100vw - 32px)); }
+.plaza-profile .pp-head { display: flex; gap: 14px; align-items: center; }
+.plaza-profile .pp-art { width: 120px; height: 180px; display: grid; place-items: end center; border-radius: 16px; background: #dff1d0; overflow: hidden; }
+.plaza-profile .pp-info h2 { margin: 0 0 6px; font-size: 22px; }
+.plaza-profile .pp-lv { display: inline-block; padding: 2px 10px; border-radius: 999px; background: linear-gradient(180deg, #ffe66b, #ffad1f); color: #6b3300; font-weight: 900; font-size: 13px; }
+.plaza-profile .pp-tag { display: block; margin-top: 8px; font-size: 13px; color: #8a6a2a; font-weight: 700; }
+.plaza-profile .pp-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.plaza-profile .pp-actions button { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.plaza-profile .pp-actions img { width: 22px; height: 22px; }
+.plaza-profile .pp-gift p { margin: 0 0 6px; }
+.plaza-profile .pp-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.plaza-profile .pp-gift.hidden { display: none; }
+
+@media (max-width: 600px) {
+  .topbar .hp-bar, .topbar .level-badge .xp-bar, .topbar .user-chip-name, .topbar .brand-text { display: none; }
+  .topbar .user { gap: 6px; }
+  .hp-pill { padding: 3px 8px 3px 5px; }
+  .park { inset: 52px 0 0 0; }
+  .park-title { top: 50px; }
+  .park-title span { display: none; }
+  .park-help { display: none; }
+  .plaza-log { height: 110px; }
+  /* nút gọn ở góc phải trên, chừa đáy cho khung chat */
+  .park-bar { top: 100px; bottom: auto; right: 10px; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .park-bar .btn, .park-bar button { padding: 6px 10px; font-size: 13px; }
+  .park-bar #btn-sit span { display: none; }
+  .plaza-chat { bottom: 12px; }
+  .park-hint { bottom: 70px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .butterfly, .actor .emote, .actor .float, .actor.dancing .body { animation-duration: .01s; }
+}

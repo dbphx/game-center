@@ -112,7 +112,7 @@ func TestMigrateFromV5DefaultHair(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = db.Exec(dropV8 + dropV7 + dropV6 + `UPDATE users SET outfit = 'sport'; PRAGMA user_version = 5;`)
+	_, err = db.Exec(dropV9 + dropV8 + dropV7 + dropV6 + `UPDATE users SET outfit = 'sport'; PRAGMA user_version = 5;`)
 	db.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -182,7 +182,7 @@ func TestMigrateFromV6DefaultFace(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = db.Exec(dropV8 + dropV7 + `PRAGMA user_version = 6;`)
+	_, err = db.Exec(dropV9 + dropV8 + dropV7 + `PRAGMA user_version = 6;`)
 	db.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -223,7 +223,7 @@ func TestMigrateFromV7Standing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = db.Exec(dropV8 + `PRAGMA user_version = 7;`)
+	_, err = db.Exec(dropV9 + dropV8 + `PRAGMA user_version = 7;`)
 	db.Close()
 	if err != nil {
 		t.Fatal(err)

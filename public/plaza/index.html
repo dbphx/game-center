@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quảng trường · DCity</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/common.css">
+  <link rel="stylesheet" href="/plaza/plaza-scene.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"><i data-icon="arrowLeft"></i><span id="logo"></span><span class="brand-text">DCity</span></a>
+    <span class="spacer"></span>
+    <div class="user">
+      <span class="hp-pill" id="hp-pill" title="Máu"></span>
+      <span class="level-badge" id="level-badge" title="Kinh nghiệm"></span>
+      <span class="wallet-pill"><i data-icon="coins"></i><span id="balance"></span></span>
+      <span class="user-chip"><span id="user-avatar"></span><span class="user-chip-name" id="user-name"></span></span>
+    </div>
+  </header>
+
+  <!-- Công viên (Quảng trường) là một cảnh riêng rộng theo chiều ngang: vào trang là vào phòng gặp gỡ,
+       thấy người chơi khác cũng đang ở công viên. Camera bám theo nhân vật; kéo để xem ngang. -->
+  <main class="park hidden" id="park">
+    <section class="stage" id="stage">
+      <div class="world" id="world">
+        <div class="layer ground" id="ground"></div>
+        <div class="layer things" id="things"></div>
+      </div>
+    </section>
+
+    <div class="park-title"><b>Quảng trường</b><span>công viên · gặp gỡ</span></div>
+    <div class="park-online" id="park-online"><span class="dot"></span><span id="park-count">Đang vào công viên…</span></div>
+    <div class="park-hint hidden" id="park-hint"></div>
+    <div class="park-help" id="park-help">WASD / ↑↓←→ hoặc bấm để đi · E ngồi ghế / ra cổng · T trò chuyện · Shift+1–5 biểu cảm · bấm vào người khác để xem hồ sơ</div>
+
+    <section class="plaza-chat collapsed" id="plaza-chat" aria-label="Trò chuyện">
+      <button class="plaza-chat-head" id="plaza-chat-toggle" type="button">
+        <i data-icon="users"></i><span>Trò chuyện</span><kbd>T</kbd><span class="plaza-unread hidden" id="plaza-unread"></span>
+      </button>
+      <div class="plaza-chat-body">
+        <div class="plaza-log" id="plaza-log" aria-live="polite"></div>
+        <div class="plaza-emotes" id="plaza-emotes"></div>
+        <form class="plaza-form" id="plaza-form" autocomplete="off">
+          <input id="plaza-input" maxlength="120" placeholder="Nói gì đó… (Enter gửi, Esc đóng)">
+          <button class="primary" type="submit">Gửi</button>
+        </form>
+      </div>
+    </section>
+    <div class="plaza-invite hidden" id="plaza-invite"></div>
+
+    <nav class="park-bar">
+      <a class="btn" href="/" id="btn-city"><i data-icon="arrowLeft"></i><span>Về thành phố</span></a>
+      <button type="button" id="btn-sit" title="Ngồi ghế gần nhất (hồi máu ×2)"><i data-icon="heart"></i><span>Ngồi ghế gần nhất</span></button>
+    </nav>
+  </main>
+
+  <script src="/icons.js"></script>
+  <script src="/character.js"></script>
+  <script src="/account.js"></script>
+  <script src="/plaza/plaza-scene.js"></script>
+</body>
+</html>

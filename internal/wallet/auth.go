@@ -111,6 +111,9 @@ func (w *Wallet) Register(ctx context.Context, username, password string, p Prof
 	if err != nil {
 		return User{}, "", err
 	}
+	if _, err := w.revokeSessions(ctx, tx, id, hashToken(token)); err != nil {
+		return User{}, "", err
+	}
 	if err := tx.Commit(); err != nil {
 		return User{}, "", err
 	}
@@ -121,7 +124,7 @@ func (w *Wallet) Register(ctx context.Context, username, password string, p Prof
 // dummyHash dùng khi tên đăng nhập không tồn tại, để thời gian trả lời giống như sai mật khẩu.
 var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("không-có-tài-khoản"), bcrypt.DefaultCost)
 
-// Login kiểm tra mật khẩu và tạo phiên mới.
+// Login kiểm tra mật khẩu và tạo phiên mới; mọi phiên cũ của tài khoản bị đá ra (ErrSessionElsewhere).
 func (w *Wallet) Login(ctx context.Context, username, password string) (User, string, error) {
 	var id int64
 	var hash string
@@ -136,9 +139,25 @@ func (w *Wallet) Login(ctx context.Context, username, password string) (User, st
 	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) != nil {
 		return User{}, "", ErrBadCredentials
 	}
-	token, err := w.newSession(ctx, w.db, id)
+	// Mỗi tài khoản một phiên: phiên mới thay mọi phiên cũ, kết nối đang mở bằng token cũ bị ngắt.
+	tx, err := w.db.BeginTx(ctx, nil)
 	if err != nil {
 		return User{}, "", err
+	}
+	defer tx.Rollback()
+	token, err := w.newSession(ctx, tx, id)
+	if err != nil {
+		return User{}, "", err
+	}
+	revoked, err := w.revokeSessions(ctx, tx, id, hashToken(token))
+	if err != nil {
+		return User{}, "", err
+	}
+	if err := tx.Commit(); err != nil {
+		return User{}, "", err
+	}
+	if revoked > 0 {
+		w.fireRevoke(id)
 	}
 	u, err := w.User(ctx, id)
 	return u, token, err
@@ -197,10 +216,16 @@ func (w *Wallet) ChangePassword(ctx context.Context, id int64, oldPassword, newP
 	return err
 }
 
+// UserByToken trả người dùng của phiên. Token không có: ErrNotFound; token bị một lần đăng nhập khác
+// đá ra: ErrSessionElsewhere (errors.Is(err, ErrNotFound) vẫn đúng).
 func (w *Wallet) UserByToken(ctx context.Context, token string) (User, error) {
 	if token == "" {
 		return User{}, ErrNotFound
 	}
-	return w.withOwned(ctx)(w.scanUser(w.db.QueryRowContext(ctx, `SELECT `+userColumns+` FROM users
+	u, err := w.withOwned(ctx)(w.scanUser(w.db.QueryRowContext(ctx, `SELECT `+userColumns+` FROM users
 		WHERE id = (SELECT user_id FROM sessions WHERE token_hash = ?)`, hashToken(token))))
+	if errors.Is(err, ErrNotFound) && w.SessionElsewhere(ctx, token) {
+		return User{}, ErrSessionElsewhere
+	}
+	return u, err
 }

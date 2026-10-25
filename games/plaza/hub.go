@@ -1,6 +1,6 @@
-// Package plaza là phần "gặp gỡ" của bản đồ DCity: mọi người đang ở thành phố thấy nhau đi lại,
-// trò chuyện, gửi biểu cảm và tặng xu cho nhau. Kết nối qua WebSocket /ws/plaza; vị trí không lưu
-// vào database, chỉ tặng xu mới đi qua ví.
+// Package plaza là phòng "Công viên" (Quảng trường) của DCity: ai mở trang /plaza/ là vào phòng, thấy nhau
+// đi lại trong cảnh công viên, trò chuyện, gửi biểu cảm, tặng xu, mời chơi; đóng trang là rời phòng.
+// Kết nối qua WebSocket /ws/plaza; vị trí không lưu vào database, chỉ tặng xu mới đi qua ví.
 package plaza
 
 import (
@@ -29,24 +29,13 @@ const (
 	GiftMax      = 1000
 	GiftDailyCap = 5000
 
-	// Biên hợp lệ của toạ độ (bản đồ có ngoại ô kéo dài hai bên).
-	maxAbsX = 20000
-	maxAbsY = 5000
+	// Kích thước cảnh công viên (toạ độ cảnh, khớp SCENE_W / SCENE_H trong public/plaza/plaza-scene.js).
+	SceneW = 2400
+	SceneH = 1000
 )
 
-// Lô Quảng trường trên bản đồ (public/city.js: BLOCKS.plaza = cột 19, hàng 22, rộng 13, cao 10; một ô 32 đơn vị),
-// nới thêm một hàng vỉa hè phía trên cho người đang bước vào. Server tự xét vùng theo toạ độ, không tin client.
-const (
-	PlazaMinX = 19 * 32
-	PlazaMaxX = (19 + 13) * 32
-	PlazaMinY = 21 * 32
-	PlazaMaxY = (22 + 10) * 32
-)
-
-// InPlaza cho biết toạ độ (x, y) có nằm trong khu Quảng trường không.
-func InPlaza(x, y float64) bool {
-	return x >= PlazaMinX && x <= PlazaMaxX && y >= PlazaMinY && y <= PlazaMaxY
-}
+// InScene cho biết (x, y) có nằm trong cảnh công viên không; vị trí ngoài cảnh bị bỏ qua.
+func InScene(x, y float64) bool { return x >= 0 && x <= SceneW && y >= 0 && y <= SceneH }
 
 var errNotInPlaza = errors.New("vào Quảng trường để gặp mọi người nhé")
 
@@ -176,8 +165,8 @@ func (p *Player) setUser(u wallet.User) {
 	p.uid, p.Name, p.Level, p.Look, p.Hospital = u.ID, u.Name, u.Level, lookOf(u), u.HospitalUntil > 0
 }
 
-// Hello xác thực token rồi thêm phiên mới. "welcome" chưa có ai: người khác và lịch sử chat chỉ gửi khi
-// phiên bước vào Quảng trường ("enter").
+// Hello xác thực token rồi vào phòng công viên: "welcome" gồm người đang ở công viên và lịch sử chat.
+// Người khác chỉ thấy phiên mới khi nó gửi vị trí đầu tiên (đã đặt chân vào cảnh).
 func (h *Hub) Hello(ctx context.Context, token string, c Conn) (*Player, error) {
 	u, err := h.w.UserByToken(ctx, token)
 	if err != nil {
@@ -187,10 +176,16 @@ func (h *Hub) Hello(ctx context.Context, token string, c Conn) (*Player, error) 
 	p.setUser(u)
 	h.mu.Lock()
 	defer h.mu.Unlock()
+	others := []Player{}
+	for _, o := range h.players {
+		if o.visible {
+			others = append(others, *o)
+		}
+	}
 	h.players[p.ID] = p
-	c.Send(map[string]any{"t": "welcome", "you": p.ID, "players": []Player{}, "chat": []ChatLine{}, "emotes": Emotes,
+	c.Send(map[string]any{"t": "welcome", "you": p.ID, "players": others, "chat": append([]ChatLine{}, h.chat...), "emotes": Emotes,
 		"gift":  map[string]int{"min": GiftMin, "max": GiftMax, "daily": GiftDailyCap},
-		"plaza": map[string]int{"minX": PlazaMinX, "maxX": PlazaMaxX, "minY": PlazaMinY, "maxY": PlazaMaxY}})
+		"scene": map[string]int{"w": SceneW, "h": SceneH}})
 	return p, nil
 }
 
@@ -242,8 +237,8 @@ func (h *Hub) Handle(ctx context.Context, p *Player, m Message) error {
 }
 
 func (h *Hub) move(p *Player, m Message) error {
-	if !validNum(m.X, maxAbsX) || !validNum(m.Y, maxAbsY) {
-		return nil // bỏ qua gói hỏng
+	if !validNum(m.X, SceneW) || !validNum(m.Y, SceneH) || !InScene(m.X, m.Y) {
+		return nil // bỏ qua gói hỏng / ngoài cảnh công viên
 	}
 	if !dirs[m.Dir] {
 		m.Dir = "down"
@@ -251,29 +246,13 @@ func (h *Hub) move(p *Player, m Message) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	p.X, p.Y, p.Dir, p.Walking, p.Sitting = math.Round(m.X*10)/10, math.Round(m.Y*10)/10, m.Dir, m.Walking, m.Sitting
-	in := InPlaza(p.X, p.Y)
-	switch {
-	case in && !p.visible:
-		// Bước vào Quảng trường: người khác thấy mình, mình nhận danh sách người đang ở đây + lịch sử chat.
-		others := []Player{}
-		for _, o := range h.players {
-			if o != p && o.visible {
-				others = append(others, *o)
-			}
-		}
+	if !p.visible {
+		// Vị trí đầu tiên: hiện với mọi người trong công viên.
 		h.broadcast(p, map[string]any{"t": "join", "player": *p})
 		p.visible = true
-		p.dirty = false
-		p.conn.Send(map[string]any{"t": "enter", "players": others, "chat": h.chat})
-	case !in && p.visible:
-		// Rời Quảng trường: biến mất với người khác, mình xoá hết người khác.
-		p.visible = false
-		p.dirty = false
-		h.broadcast(p, map[string]any{"t": "leave", "id": p.ID})
-		p.conn.Send(map[string]any{"t": "exit"})
-	case in:
-		p.dirty = true
+		return nil
 	}
+	p.dirty = true
 	return nil
 }
 

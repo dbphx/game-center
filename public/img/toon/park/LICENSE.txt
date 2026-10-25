@@ -1,0 +1,4 @@
+Ảnh cảnh Công viên DCity (public/img/toon/park/)
+
+Mọi ảnh trong thư mục này do dự án dựng bằng three.js (hình học tự dựng) và phát hành theo CC0 1.0:
+http://creativecommons.org/publicdomain/zero/1.0/

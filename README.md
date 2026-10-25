@@ -108,8 +108,10 @@ Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè c
 - **Chuồng** (heo 1, cừu / bò 2 đơn vị) và **ao cá** (koi 3 đơn vị...): đều mở từ level 1, mặc định 5 đơn vị, mở rộng +5 tới 30.
 - **Sân gia cầm**: gà, vịt (1 đơn vị) không ở chuồng mà đi quanh trang trại. Có sẵn cho mọi người, mặc định 10 đơn vị,
   mở rộng +5 tới 40, lần thứ n giá 1.000 × n xu. Gà vịt trong chuồng từ bản cũ được chuyển ra sân khi khởi động.
-- **Cho ăn**: con chưa lớn đói lại sau 10 phút kể từ lúc mua / lần ăn trước. Cho ăn tốn 1/10 giá mua (ít nhất 5 xu),
-  +1 XP và rút ngắn 25% thời gian còn lại tới lúc lớn.
+- **Cho ăn**: con chưa lớn đói lại sau 10 phút kể từ lúc mua / lần ăn trước. Thức ăn là **vật phẩm mua trước** ở cửa hàng,
+  cất trong kho giống (mỗi phần chiếm 1 chỗ): Thóc cho gà vịt 15 xu, Cám gia súc 50 xu, Thức ăn cá 10 xu mỗi phần.
+  Mỗi lần ăn 1 phần (bò, cừu, cá koi 2 phần); hết thức ăn thì không cho ăn được. Cho ăn +1 XP và rút ngắn 25% thời gian
+  còn lại tới lúc lớn.
 - **Sản phẩm vật nuôi**: con đã lớn cứ mỗi chu kỳ cho 1 món (để lâu vẫn chỉ 1 món chờ lấy), lấy vào kho sản phẩm;
   hoặc **lấy thịt** (con vật mất, được thịt vào kho). Cá thu nguyên con như cũ.
 
@@ -122,7 +124,7 @@ Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè c
 | Bò | Sữa bò — 20 phút, 300 xu, 5 XP | 3.400 xu, 35 XP |
 
 - **Làm nhanh**: gieo hạt mọi ô trống (dùng hạt trong kho trước, thiếu thì mua tới khi hết xu), thu hoạch tất cả,
-  cho mọi con đói ăn (tới khi hết xu), lấy hết trứng / sữa / lông, thu hết cá đã lớn (tới khi kho đầy).
+  cho mọi con đói ăn (tới khi hết thức ăn), lấy hết trứng / sữa / lông, thu hết cá đã lớn (tới khi kho đầy).
 - **Kho giống**: mua hạt theo số lượng (1–100 hạt/lần) cất vào kho; gieo hạt lấy từ kho, hết hạt thì tự mua 1 hạt.
   Sức chứa 50, mở rộng +25 tới 300, lần mở rộng thứ n giá 1.000 × n xu.
 - **Kho sản phẩm**: thu hoạch cây và thu vật nuôi / cá đã lớn → vào kho (cộng XP lúc thu); bán ở kho mới được xu.
@@ -133,13 +135,14 @@ Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè c
 | `GET /api/farm/catalog` (không cần token), `GET /api/farm` | |
 | `POST /api/farm/plots/buy` | |
 | `POST /api/farm/seeds/buy` | `{crop, qty}` |
+| `POST /api/farm/feeds/buy` (thức ăn vào kho giống) | `{feed, qty}` |
 | `POST /api/farm/plant` | `{plot, crop}` |
 | `POST /api/farm/harvest`, `/harvest-all` | `{plot}` / — |
 | `POST /api/farm/{barn,pond}/buy`, `/{barn,yard,pond}/expand` | |
 | `POST /api/farm/{animals,poultry,fish}/buy` (chuồng / sân / ao) | `{kind}` |
 | `POST /api/farm/{animals,poultry,fish}/feed` (cho ăn), `/collect` (vật nuôi, gia cầm: lấy thịt; cá: vào kho), `/sell` (bán thẳng) | `{id}` |
 | `POST /api/farm/{animals,poultry}/produce` (lấy trứng / sữa / lông vào kho) | `{id}` |
-| `POST /api/farm/plant-all`, `/feed-all`, `/produce-all`, `/fish/collect-all` (làm nhanh; `gained.spent` = xu đã tiêu) | `{crop}` / — |
+| `POST /api/farm/plant-all`, `/feed-all`, `/produce-all`, `/fish/collect-all` (làm nhanh; `gained.spent` = xu đã tiêu, `gained.used` = thức ăn đã dùng) | `{crop}` / — |
 | `POST /api/farm/products/sell` (qty 0 = bán hết món đó), `/products/sell-all` | `{item, qty}` / — |
 | `POST /api/farm/storage/{seeds,products}/expand` | |
 
@@ -210,6 +213,43 @@ Server gửi `{t:"state", code, you, phase, size, board, turn, players:[{id, nam
 coins, ready}], last:{x,y}, winLine:[[x,y]…], result:{winner, reason, money:{id:delta}, xp:{id:n}}, bet, gameBet,
 betOptions, rule, turnMs, spectators, moves}` (`board` là chuỗi 225 ký tự `.`/`x`/`o` theo hàng; `you` rỗng khi đang xem;
 `reason`: `five` | `timeout` | `resign` | `left` | `draw`), cùng `{t:"session", code}`, `{t:"error", msg}`, `{t:"left"}`, `{t:"auth"}`.
+
+## Cờ Cá Ngựa
+
+Khu Casino, trang `/cangua/`. 2–4 người (hoặc máy), màu theo ghế: `red`, `blue`, `green`, `yellow` (chiều kim đồng hồ),
+mỗi người 4 ngựa.
+
+- **Bàn**: đường chung 56 ô (mỗi màu một cạnh 14 ô). Màu thứ i xuất quân ở ô `14·i`; cửa chuồng đích là ô ngay trước
+  ô xuất phát (`14·i − 1`, đi đủ một vòng). Chuồng đích có 6 bậc.
+- **Đổ xúc xắc** (server quay): ra 1 hoặc 6 mới được xuất quân. Ra 6 được đổ thêm; ra 6 lần thứ 3 liên tiếp thì mất lượt.
+  Không có nước đi thì bỏ lượt (ra 6 thì vẫn được đổ tiếp).
+- **Đi** đúng số ô, không được vượt qua ngựa nào trên đường; đến đúng ô có ngựa đối thủ thì **đá** ngựa đó về chuồng;
+  không đứng chồng lên ngựa mình. Phải dừng đúng cửa đích (không đi quá); từ cửa đổ k thì lên bậc k (không vượt ngựa
+  mình); trong chuồng đích, ngựa ở bậc b chỉ lên khi đổ đúng b+1.
+- **Thắng**: ai đủ 4 ngựa trong chuồng đích trước thì thắng, ván kết thúc ngay.
+- **Lượt** 20 giây; hết giờ máy đổ / đi thay một bước (không xử thua). Rời bàn giữa ván hoặc mất kết nối quá 30 giây thì
+  máy đánh thay tới hết ván (vẫn tính tiền); vào lại thì lấy lại quyền. Không còn ai có mặt thì máy chơi nốt ván ngay để chốt.
+- **Máy** `easy` / `normal` / `hard`: ưu tiên đá ngựa, lên đích, xuất quân, tiến ngựa đi xa nhất; máy khó tránh đứng
+  trong tầm 1–6 ô trước ngựa đối thủ.
+- **Cược** 0, 10, 20, 50, 100, 200, 500, 1000 xu: người thắng ăn **mỗi** người thua một mức cược (máy là nhà cái).
+  Ghi sổ cái game `cangua`. **XP**: thắng 25, người khác 10 (cả bàn 0 xu). Ván sau người thắng đi trước.
+- Cần đủ máu vào Casino để ngồi ghế. Bàn đủ 4 người hoặc đang chơi thì người vào sau được xem. Chat bàn như Cờ Caro.
+
+WebSocket `/ws/cangua`, danh sách bàn `GET /api/cangua/rooms`
+→ `[{code, phase, bet, players:[{name, gender, outfit, hair, wings, face, level, bot, color}], spectators, max}]`.
+
+| Client → server | |
+|---|---|
+| `{t:"create", token, bet}` / `{t:"join", token, code}` | mở / vào bàn (đủ người hoặc đang chơi thì vào xem) |
+| `{t:"addBot", level}`, `{t:"kick", id}`, `{t:"setBet", bet}`, `{t:"start"}` | chủ bàn, ngoài ván (cần ≥ 2 người) |
+| `{t:"roll"}`, `{t:"move", horse}` | tới lượt mình: đổ, rồi đi ngựa `horse` (0..3) trong `movable` |
+| `{t:"rematch"}`, `{t:"leave"}`, `{t:"chat", text}` | |
+
+Server gửi `{t:"state", code, you, phase, players:[{id, name, …, bot, botLevel, host, online, auto, color, coins, ready}],
+turn (id người tới lượt), dice, rolled, sixes, movable:[horse…] (chỉ gửi cho người tới lượt sau khi đổ),
+horses:{color:[pos×4]}, last:{color, horse, from, to, kicked:{color, horse}}, winner, result:{money:{id:delta}, xp:{id:n}},
+bet, gameBet, betOptions, turnMs, spectators, chat}`. `pos`: `-1` trong chuồng, `0..55` ô đường chung, `100+b` bậc đích b.
+`auto` = máy đang đánh thay. Cùng `{t:"chat", …}`, `{t:"session", code}`, `{t:"error", msg}`, `{t:"left"}`, `{t:"replaced"}`, `{t:"auth"}`.
 
 ## Công trường (ngoại ô)
 
@@ -303,6 +343,7 @@ games/tienlen/online/    phòng chơi online: người vào/ra, máy, hẹn gi�
 games/farm/              nông trại: ô đất, chuồng, ao, kho
 games/baucua/            bầu cua: sòng chung, vòng theo đồng hồ, trả thưởng vào ví
 games/caro/              cờ caro 15×15: luật thắng, máy chơi, bàn online qua WebSocket
+games/cangua/            cờ cá ngựa 2–4 người: luật đi / đá / lên đích, máy chơi, bàn online qua WebSocket
 games/site/              công trường: ca làm thuê, tiền công theo điểm, giới hạn ngày
 games/fishing/           hồ câu cá: mồi, thả câu (kết quả quay ở server), giỏ cá, kỷ lục
 public/                  bản đồ thành phố (index.html, hub.js, city.js), nhân vật (character.js),
@@ -322,10 +363,13 @@ public/tienlen/          giao diện Tiến Lên
 
 ### API
 
+Token sai trả 401 `{"error", "code"}`: `code` là `"elsewhere"` khi tài khoản vừa đăng nhập ở nơi khác (phiên này bị đá ra),
+`"invalid"` khi không có / đã đăng xuất. WebSocket các game gửi `{t:"auth", reason:"elsewhere"}` rồi ngắt kết nối đang mở.
+
 | | |
 |---|---|
 | `POST /api/register {username, password, name, gender, outfit}` | đăng ký + tạo nhân vật → `{token, user}` |
-| `POST /api/login {username, password}` | đăng nhập → `{token, user}` |
+| `POST /api/login {username, password}` | đăng nhập → `{token, user}`; **mỗi tài khoản một phiên**: phiên cũ bị đá ra |
 | `POST /api/logout` | đăng xuất phiên hiện tại |
 | `POST /api/password {old, new}` | đổi mật khẩu |
 | `POST /api/credentials {username, password}` | tài khoản khách cũ đặt tên đăng nhập |

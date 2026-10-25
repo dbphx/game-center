@@ -99,11 +99,8 @@ func TestHelloJoinMoveLeave(t *testing.T) {
 	}
 	a, ca, _ := e.join("an")
 	b, cb, _ := e.join("binh")
-	if w := cb.last("welcome"); w["you"] != b.ID || len(w["players"].([]any)) != 0 {
-		t.Fatalf("welcome chưa có ai (chưa vào Quảng trường): %v", w)
-	}
-	if en := cb.last("enter"); en == nil || len(en["players"].([]any)) != 1 {
-		t.Fatalf("vào Quảng trường thì binh phải thấy an: %v", en)
+	if w := cb.last("welcome"); w["you"] != b.ID || len(w["players"].([]any)) != 1 {
+		t.Fatalf("welcome của binh phải thấy an đang ở công viên: %v", w)
 	}
 	if j := ca.last("join"); j == nil || j["player"].(map[string]any)["name"] != "binh" {
 		t.Fatalf("an phải nhận tin binh vào: %v", ca.of("join"))
@@ -177,7 +174,7 @@ func TestChatSpamFilterHistory(t *testing.T) {
 	}
 	// Người mới vào nhận lịch sử chat.
 	_, cc, _ := e.join("chi")
-	if h := cc.last("enter")["chat"].([]any); len(h) != 6 {
+	if h := cc.last("welcome")["chat"].([]any); len(h) != 6 {
 		t.Fatalf("lịch sử chat %d tin", len(h))
 	}
 	for range ChatHistory + 5 {
@@ -288,74 +285,52 @@ func TestLookRefreshAndInvite(t *testing.T) {
 	}
 }
 
-// Chỉ người đứng trong Quảng trường mới thấy nhau, chat, biểu cảm, tặng xu với nhau.
-func TestOnlyPlazaSeesEachOther(t *testing.T) {
-	if !InPlaza(816, 780) || InPlaza(224, 994) || InPlaza(816, 600) || InPlaza(1400, 790) {
-		t.Fatal("vùng Quảng trường sai (cửa Quảng trường phải ở trong, Bệnh viện / đường / Nông trại ở ngoài)")
+// Công viên là một phòng: mở trang (hello) là vào, gửi vị trí đầu tiên mới hiện với người khác, đóng trang là rời.
+// Toạ độ là toạ độ cảnh công viên; ngoài cảnh thì bỏ qua.
+func TestParkRoom(t *testing.T) {
+	if !InScene(0, 0) || !InScene(SceneW, SceneH) || InScene(-1, 10) || InScene(10, SceneH+1) || InScene(SceneW+1, 5) {
+		t.Fatal("biên cảnh công viên sai")
 	}
 	e := newEnv(t)
-	a, ca, _ := e.join("an") // ở Quảng trường (800, 700)
+	a, ca, _ := e.join("an")
 	_, tokB, err := e.w.Register(ctx, "binh_u", "matkhau123", wallet.Profile{Name: "binh"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	cb := &fakeConn{}
 	b, _ := e.h.Hello(ctx, tokB, cb)
-	e.h.Handle(ctx, b, Message{T: "move", X: 224, Y: 994, Dir: "down"}) // trước cửa Bệnh viện
-	if len(ca.of("join")) != 0 || len(cb.of("enter")) != 0 {
-		t.Fatal("người ngoài Quảng trường không được hiện")
+	if w := cb.last("welcome"); w == nil || len(w["players"].([]any)) != 1 || w["scene"].(map[string]any)["w"] != float64(SceneW) {
+		t.Fatalf("vào phòng phải thấy an và kích thước cảnh: %v", w)
 	}
-	e.h.Handle(ctx, a, Message{T: "move", X: 820, Y: 760, Dir: "left", Walking: true})
-	e.h.Handle(ctx, b, Message{T: "move", X: 230, Y: 990, Dir: "left", Walking: true})
-	e.h.Flush()
-	if len(ca.of("moves")) != 0 || len(cb.of("moves")) != 0 {
-		t.Fatal("không gửi vị trí giữa trong và ngoài Quảng trường")
-	}
-	e.h.Handle(ctx, a, Message{T: "chat", Text: "có ai không"})
-	if len(cb.of("chat")) != 0 {
-		t.Fatal("người ngoài không nhận chat")
+	if len(ca.of("join")) != 0 {
+		t.Fatal("chưa đặt chân vào cảnh thì chưa hiện với người khác")
 	}
 	if err := e.h.Handle(ctx, b, Message{T: "chat", Text: "alo"}); err == nil {
-		t.Fatal("ngoài Quảng trường không chat được")
+		t.Fatal("chưa vào cảnh thì không chat được")
 	}
-	if err := e.h.Handle(ctx, a, Message{T: "gift", To: b.ID, Amount: 50}); err == nil {
-		t.Fatal("không tặng xu cho người ngoài Quảng trường")
+	e.h.Handle(ctx, b, Message{T: "move", X: SceneW + 50, Y: 500, Dir: "down"}) // ngoài cảnh: bỏ
+	e.h.Handle(ctx, b, Message{T: "move", X: 400, Y: -3, Dir: "down"})
+	if len(ca.of("join")) != 0 || e.h.Online() != 1 {
+		t.Fatal("vị trí ngoài cảnh không được tính")
 	}
-	if e.h.Online() != 1 {
-		t.Fatalf("online (ở Quảng trường) %d", e.h.Online())
+	e.h.Handle(ctx, b, Message{T: "move", X: 1200, Y: 900, Dir: "up"})
+	if j := ca.last("join"); j == nil || j["player"].(map[string]any)["id"] != b.ID || e.h.Online() != 2 {
+		t.Fatalf("an phải thấy binh vào công viên: %v", ca.of("join"))
 	}
-
-	// binh đi vào: hai bên thấy nhau, binh nhận lịch sử chat.
-	e.h.Handle(ctx, b, Message{T: "move", X: 700, Y: 800, Dir: "right"})
-	if j := ca.last("join"); j == nil || j["player"].(map[string]any)["id"] != b.ID {
-		t.Fatalf("an phải thấy binh vào: %v", ca.of("join"))
-	}
-	en := cb.last("enter")
-	if en == nil || len(en["players"].([]any)) != 1 || len(en["chat"].([]any)) != 1 {
-		t.Fatalf("binh vào phải nhận an + lịch sử chat: %v", en)
-	}
-	e.h.Handle(ctx, b, Message{T: "move", X: 710, Y: 800, Dir: "right", Walking: true})
+	e.h.Handle(ctx, b, Message{T: "move", X: 1210, Y: 900, Dir: "right", Walking: true})
 	e.h.Flush()
 	if len(ca.of("moves")) != 1 {
-		t.Fatal("cùng ở Quảng trường thì thấy nhau đi")
+		t.Fatal("cùng trong công viên thì thấy nhau đi")
 	}
 	if err := e.h.Handle(ctx, a, Message{T: "gift", To: b.ID, Amount: 50}); err != nil {
-		t.Fatalf("cùng ở Quảng trường thì tặng được: %v", err)
+		t.Fatalf("tặng xu trong công viên: %v", err)
 	}
-
-	// binh đi ra: an nhận leave, binh nhận exit; ra rồi không nhận chat nữa.
-	e.h.Handle(ctx, b, Message{T: "move", X: 1400, Y: 790, Dir: "right"})
-	if l := ca.last("leave"); l == nil || l["id"] != b.ID {
-		t.Fatal("binh rời Quảng trường thì an phải nhận leave")
+	e.h.Leave(b) // đóng trang
+	if l := ca.last("leave"); l == nil || l["id"] != b.ID || e.h.Online() != 1 {
+		t.Fatal("rời trang thì biến mất với người khác")
 	}
-	if cb.last("exit") == nil {
-		t.Fatal("binh phải nhận exit")
-	}
-	n := len(cb.of("chat"))
-	e.tick(2 * time.Second)
-	e.h.Handle(ctx, a, Message{T: "chat", Text: "đi rồi à"})
-	if len(cb.of("chat")) != n {
-		t.Fatal("rời Quảng trường thì không nhận chat")
+	if err := e.h.Handle(ctx, a, Message{T: "gift", To: b.ID, Amount: 50}); err == nil {
+		t.Fatal("người đã rời không nhận quà được")
 	}
 }
 

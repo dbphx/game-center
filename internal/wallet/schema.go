@@ -16,7 +16,8 @@ import (
 //	6: tóc và cánh mua ở shop thời trang; bảng user_items lưu các món đã có.
 //	7: gương mặt mua ở shop thời trang (lưu chung bảng user_items, kind 'face').
 //	8: ngồi ghế (sit_until) để hồi máu nhanh gấp đôi.
-const schemaVersion = 8
+//	9: mỗi tài khoản một phiên; revoked_sessions nhớ token bị đăng nhập nơi khác đá ra.
+const schemaVersion = 9
 
 const schemaV2 = `
 CREATE TABLE users (
@@ -117,6 +118,16 @@ const migrateV7toV8 = `
 ALTER TABLE users ADD COLUMN sit_until INTEGER NOT NULL DEFAULT 0;
 `
 
+// Phiên đang có giữ nguyên; từ lần đăng nhập sau mới chỉ còn một phiên.
+const migrateV8toV9 = `
+CREATE TABLE revoked_sessions (
+	token_hash TEXT PRIMARY KEY,
+	user_id    INTEGER NOT NULL,
+	revoked_at INTEGER NOT NULL
+);
+CREATE INDEX revoked_sessions_at ON revoked_sessions(revoked_at);
+`
+
 func migrate(db *sql.DB) error {
 	ctx := context.Background()
 	var version int
@@ -159,6 +170,9 @@ func migrate(db *sql.DB) error {
 	}
 	if version <= 7 {
 		steps = append(steps, migrateV7toV8)
+	}
+	if version <= 8 {
+		steps = append(steps, migrateV8toV9)
 	}
 
 	// Dựng lại bảng có khoá ngoại trỏ tới cần tắt kiểm tra khoá ngoại (không đổi được trong transaction).

@@ -3,6 +3,7 @@ package caro
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"sync"
@@ -39,13 +40,14 @@ func (h *Hub) Handler(auth Auth) http.Handler {
 
 // client là một kết nối WebSocket. Gorilla chỉ cho một goroutine ghi, nên mọi tin gửi đi qua kênh out.
 type client struct {
-	ws      *websocket.Conn
-	hub     *Hub
-	auth    Auth
-	out     chan []byte
-	done    chan struct{}
-	once    sync.Once
-	session *Session
+	ws       *websocket.Conn
+	hub      *Hub
+	auth     Auth
+	out      chan []byte
+	done     chan struct{}
+	once     sync.Once
+	session  *Session
+	watching bool // đã theo dõi việc tài khoản đăng nhập ở nơi khác
 }
 
 // Send không chặn: client quá chậm thì bị ngắt kết nối, sau đó tự vào lại.
@@ -101,7 +103,7 @@ func (c *client) handle(m Message) error {
 		}
 		u, err := c.auth(context.Background(), m.Token)
 		if err != nil {
-			c.Send(map[string]string{"t": "auth"})
+			c.Send(authFailed(err))
 			return nil
 		}
 		var s *Session
@@ -117,6 +119,7 @@ func (c *client) handle(m Message) error {
 			return err
 		}
 		c.session = s
+		c.watchRevoke(u.ID)
 		c.Send(map[string]string{"t": "session", "code": s.Room.Code})
 		return nil
 	}
@@ -149,4 +152,41 @@ func (c *client) writeLoop() {
 			return
 		}
 	}
+}
+
+// authFailed là tin báo token không dùng được; reason "elsewhere" khi tài khoản đã đăng nhập ở nơi khác.
+func authFailed(err error) map[string]string {
+	msg := map[string]string{"t": "auth"}
+	var e interface{ Elsewhere() bool }
+	if errors.As(err, &e) && e.Elsewhere() {
+		msg["reason"] = "elsewhere"
+	}
+	return msg
+}
+
+// watchRevoke ngắt kết nối khi tài khoản đăng nhập ở nơi khác (mỗi tài khoản một phiên): gửi
+// {t:"auth", reason:"elsewhere"} rồi đóng. Ví thật (wallet.Wallet) có WatchRevoke; ví giả trong test thì bỏ qua.
+func (c *client) watchRevoke(userID int64) {
+	wr, ok := c.hub.bank.(interface {
+		WatchRevoke(userID int64) (<-chan struct{}, func())
+	})
+	if !ok || c.watching {
+		return
+	}
+	c.watching = true
+	revoked, stop := wr.WatchRevoke(userID)
+	go func() {
+		defer stop()
+		select {
+		case <-revoked:
+			c.Send(map[string]string{"t": "auth", "reason": "elsewhere"})
+			// Chờ một chút cho tin kịp gửi rồi mới đóng kết nối.
+			select {
+			case <-time.After(500 * time.Millisecond):
+				c.shutdown()
+			case <-c.done:
+			}
+		case <-c.done:
+		}
+	}()
 }

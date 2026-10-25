@@ -68,8 +68,9 @@ type Entry struct {
 }
 
 type Wallet struct {
-	db  *sql.DB
-	now func() time.Time
+	db      *sql.DB
+	now     func() time.Time
+	revokes revokeWatch // báo các kết nối WebSocket khi phiên bị đăng nhập nơi khác đá ra
 }
 
 // Open mở (hoặc tạo) file SQLite ở path.

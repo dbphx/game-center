@@ -184,3 +184,18 @@ func TestSitAPI(t *testing.T) {
 		t.Fatalf("config sitRegenMultiplier: %+v", cfg)
 	}
 }
+
+// API riêng của game (nông trại) trả 401 cho token bị đá ra cũng có code "elsewhere".
+func TestGameAPIElsewhere(t *testing.T) {
+	srv, _ := newHPServer(t)
+	first := newAccount(t, srv, "nongdan")
+	call(t, srv, "POST", "/api/login", "", creds("nongdan", "matkhau123"), nil)
+	var e map[string]string
+	if code := call(t, srv, "GET", "/api/farm", first.Token, nil, &e); code != 401 || e["code"] != "elsewhere" {
+		t.Fatalf("API nông trại với token cũ: %d %v", code, e)
+	}
+	e = nil
+	if code := call(t, srv, "GET", "/api/farm", "khong-co", nil, &e); code != 401 || e["code"] == "elsewhere" {
+		t.Fatalf("API nông trại với token lạ: %d %v", code, e)
+	}
+}

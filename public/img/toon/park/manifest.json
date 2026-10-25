@@ -1,0 +1,201 @@
+{
+ "style": "Ảnh 3D dựng sẵn cho cảnh Công viên (/plaza/), cùng phong cách bộ ảnh thành phố /img/toon/city3d/ (tô hoạt hình mềm, nắng chiều ấm, bóng đổ mềm, viền nâu). Cảnh còn dùng lại cây, đèn, đài phun nước, ghế ở /img/toon/city3d/ và nền cỏ / vỉa hè ở /img/toon/city/.",
+ "anchor_note": "\"foot\" = điểm chân (gốc vật trên mặt đất) tính theo pixel trong ảnh; anchor \"center\" thì đặt tâm ảnh.",
+ "images": [
+  {
+   "file": "park_gate.png",
+   "w": 423,
+   "h": 169,
+   "anchor": "bottom-center",
+   "foot": [
+    211,
+    149
+   ],
+   "use": "Cổng công viên gỗ, biển CÔNG VIÊN",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "swing.png",
+   "w": 149,
+   "h": 113,
+   "anchor": "bottom-center",
+   "foot": [
+    74,
+    92
+   ],
+   "use": "Xích đu 2 chỗ",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "slide.png",
+   "w": 124,
+   "h": 102,
+   "anchor": "bottom-center",
+   "foot": [
+    62,
+    87
+   ],
+   "use": "Cầu trượt",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "seesaw.png",
+   "w": 106,
+   "h": 39,
+   "anchor": "bottom-center",
+   "foot": [
+    53,
+    33
+   ],
+   "use": "Bập bênh",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "icecream.png",
+   "w": 151,
+   "h": 110,
+   "anchor": "bottom-center",
+   "foot": [
+    76,
+    98
+   ],
+   "use": "Xe kem có dù sọc",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "balloons.png",
+   "w": 121,
+   "h": 140,
+   "anchor": "bottom-center",
+   "foot": [
+    61,
+    135
+   ],
+   "use": "Chùm bong bóng bán ở công viên",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "pigeon.png",
+   "w": 37,
+   "h": 23,
+   "anchor": "bottom-center",
+   "foot": [
+    19,
+    18
+   ],
+   "use": "Chim bồ câu đứng",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "pigeon_peck.png",
+   "w": 37,
+   "h": 23,
+   "anchor": "bottom-center",
+   "foot": [
+    21,
+    14
+   ],
+   "use": "Chim bồ câu mổ",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "stone_bench.png",
+   "w": 99,
+   "h": 37,
+   "anchor": "bottom-center",
+   "foot": [
+    49,
+    29
+   ],
+   "use": "Ghế đá công viên",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "flowerbed.png",
+   "w": 159,
+   "h": 103,
+   "anchor": "bottom-center",
+   "foot": [
+    80,
+    62
+   ],
+   "use": "Bồn hoa tròn viền gạch",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "pond.png",
+   "w": 426,
+   "h": 138,
+   "anchor": "center",
+   "foot": [
+    213,
+    69
+   ],
+   "use": "Hồ sen nhỏ viền đá",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "bridge_arch.png",
+   "w": 200,
+   "h": 95,
+   "anchor": "bottom-center",
+   "foot": [
+    100,
+    77
+   ],
+   "use": "Cầu gỗ cong qua hồ",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "trash_bin.png",
+   "w": 38,
+   "h": 38,
+   "anchor": "bottom-center",
+   "foot": [
+    19,
+    31
+   ],
+   "use": "Thùng rác xanh",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  }
+ ]
+}

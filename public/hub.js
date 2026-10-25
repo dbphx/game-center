@@ -382,7 +382,14 @@
     },
 
     plaza() {
-      return `${panelHead('plaza', 'Quảng trường', 'Trung tâm thành phố')}
+      const park = games.find((x) => x.id === 'plaza');
+      const inPark = park && park.online ? park.online.players : 0;
+      return `${panelHead('plaza', 'Quảng trường', inPark ? `${inPark} người trong công viên` : 'Công viên trung tâm thành phố')}
+        <div class="panel-section">
+          <p class="muted" style="margin:0">Công viên có ghế đá, đài phun nước, hồ sen, xích đu. Vào để gặp người chơi khác,
+            trò chuyện, tặng xu, rủ nhau chơi; ngồi ghế hồi máu nhanh gấp đôi.</p>
+          ${enterButton('plaza', '/plaza/', 'Vào Quảng trường')}
+        </div>
         <div class="panel-section">
           <div class="profile">${C.svg(look(user))}
             <div>
@@ -834,7 +841,7 @@
     if (user) enterCity();
     else {
       show('auth');
-      switchTab(nextPage() ? 'register' : 'login');
+      switchTab(nextPage() && !A.relogin ? 'register' : 'login');
     }
   })();
 })();

@@ -7,6 +7,36 @@
   const load = () => { try { return localStorage.getItem(KEY); } catch (e) { return null; } };
   const save = (v) => { try { v ? localStorage.setItem(KEY, v) : localStorage.removeItem(KEY); } catch (e) { /* bỏ qua */ } };
 
+  // Mỗi tài khoản chỉ một phiên: đăng nhập ở nơi khác thì phiên này bị đá ra (API trả 401 code "elsewhere",
+  // WebSocket gửi {t:"auth", reason:"elsewhere"}). Báo người chơi rồi mới về trang đăng nhập; cờ trong
+  // sessionStorage để nếu trang tự chuyển trước khi kịp bấm thì trang chủ vẫn hiện thông báo.
+  const KICKED = 'hub.kicked';
+  const RELOGIN = 'hub.relogin'; // vừa bị đá ra: trang chủ mở sẵn tab Đăng nhập
+  const KICK_MSG = 'Tài khoản của bạn vừa đăng nhập ở thiết bị/trình duyệt khác, phiên này đã thoát.';
+  let kicking = null;
+  function kicked(token) {
+    if (kicking) return kicking;
+    // Tab khác cùng trình duyệt vừa đăng nhập lại: token mới đã có, chỉ cần tải lại trang.
+    if (token && load() && load() !== token) {
+      kicking = new Promise(() => location.reload());
+      return kicking;
+    }
+    save(null);
+    try {
+      sessionStorage.setItem(KICKED, '1');
+      localStorage.setItem(KICKED, String(Date.now())); // báo các tab khác cùng trình duyệt (token đã bị xoá)
+    } catch (e) { /* bỏ qua */ }
+    kicking = alertBox(KICK_MSG, { title: 'Phiên đã thoát' }).then(() => {
+      try {
+        sessionStorage.removeItem(KICKED);
+        sessionStorage.setItem(RELOGIN, '1');
+      } catch (e) { /* bỏ qua */ }
+      if (location.pathname !== '/') location.href = '/?next=' + encodeURIComponent(location.pathname + location.search);
+      else location.reload(); // trang chủ tải lại để hiện màn đăng nhập
+    });
+    return kicking;
+  }
+
   async function api(path, { method = 'GET', body } = {}) {
     const headers = { 'Content-Type': 'application/json' };
     const token = load();
@@ -16,6 +46,8 @@
     if (!res.ok) {
       const err = new Error(data.error || 'Lỗi kết nối, thử lại sau');
       err.status = res.status;
+      err.code = data.code;
+      if (res.status === 401 && data.code === 'elsewhere') kicked(token);
       throw err;
     }
     return data;
@@ -55,8 +87,11 @@
     }
   }
 
-  // Chuyển về hub để đăng nhập rồi quay lại đúng trang này.
-  function requireLogin() {
+  // Chuyển về hub để đăng nhập rồi quay lại đúng trang này. Nếu lý do là tài khoản vừa đăng nhập ở nơi khác
+  // (vd WebSocket báo {t:"auth"}) thì hỏi lại server để hiện thông báo trước khi chuyển.
+  async function requireLogin() {
+    if (!kicking && load()) await api('/api/me').catch(() => {});
+    if (kicking) return kicking;
     location.href = '/?next=' + encodeURIComponent(location.pathname + location.search);
   }
 
@@ -133,6 +168,35 @@
     window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
   }
 
+  // Quay lại tab / cửa sổ thì hỏi lại phiên ngay (không đợi lần cập nhật định kỳ), để biết sớm nếu đã bị
+  // đăng nhập nơi khác đá ra.
+  let lastCheck = 0;
+  const recheck = () => {
+    if (document.hidden || !load() || kicking || Date.now() - lastCheck < 5000) return;
+    lastCheck = Date.now();
+    api('/api/me').catch(() => {});
+  };
+  window.addEventListener('focus', recheck);
+  window.addEventListener('storage', (e) => { if (e.key === KICKED && e.newValue) kicked(); });
+  document.addEventListener('visibilitychange', recheck);
+
+  // Trang trước bị chuyển đi khi chưa kịp đọc thông báo bị đá ra thì hiện lại ở đây.
+  try {
+    if (sessionStorage.getItem(KICKED)) {
+      sessionStorage.removeItem(KICKED);
+      const show = () => alertBox(KICK_MSG, { title: 'Phiên đã thoát' });
+      if (document.body) setTimeout(show, 0);
+      else window.addEventListener('DOMContentLoaded', show);
+    }
+  } catch (e) { /* bỏ qua */ }
+
+  // relogin: trang này mở ngay sau khi bị đá ra (để trang chủ chọn tab Đăng nhập thay vì Đăng ký).
+  let relogin = false;
+  try {
+    relogin = sessionStorage.getItem(RELOGIN) === '1';
+    sessionStorage.removeItem(RELOGIN);
+  } catch (e) { /* bỏ qua */ }
+
   window.Account = { token: load, api, me, register, login, logout, requireLogin, xu, escapeHtml, toast,
-    ask, confirm: confirmBox, alert: alertBox };
+    ask, confirm: confirmBox, alert: alertBox, relogin };
 })();
