@@ -69,13 +69,22 @@ type Conn interface {
 }
 
 type Options struct {
-	BotDelay    time.Duration // thời gian máy "suy nghĩ" mỗi bước (đổ / đi)
+	BotDelay    time.Duration // máy "suy nghĩ" trước khi đổ (sau khi hoạt ảnh lượt trước xong)
 	TurnTimeout time.Duration // hết giờ thì máy đổ / đi thay người đang tới lượt
-	Grace       time.Duration // chờ người mất kết nối quay lại; quá hạn giữa ván thì máy đánh thay
-	MinHP       int           // máu tối thiểu để ngồi ghế (0 = không kiểm tra)
+
+	// Nhịp hoạt ảnh của giao diện (0 trong test cho nhanh): xúc xắc lăn + giữ số, ngựa nhảy từng ô.
+	// Máy và đồng hồ của người tiếp theo chỉ bắt đầu khi hoạt ảnh đã xong.
+	RollShow     time.Duration // từ lúc đổ tới khi số hiện xong (lăn ~1.2 s + giữ ~0.6 s)
+	BotMoveDelay time.Duration // máy chờ thêm sau khi số hiện rồi mới đi ngựa
+	StepAnim     time.Duration // mỗi ô ngựa nhảy
+	MaxMoveAnim  time.Duration // trần thời gian ngựa chạy một nước
+	Grace        time.Duration // chờ người mất kết nối quay lại; quá hạn giữa ván thì máy đánh thay
+	MinHP        int           // máu tối thiểu để ngồi ghế (0 = không kiểm tra)
 }
 
-var DefaultOptions = Options{BotDelay: 700 * time.Millisecond, TurnTimeout: 20 * time.Second, Grace: 30 * time.Second}
+var DefaultOptions = Options{BotDelay: 1400 * time.Millisecond, TurnTimeout: 20 * time.Second, Grace: 30 * time.Second,
+	RollShow: 1800 * time.Millisecond, BotMoveDelay: 300 * time.Millisecond, StepAnim: 250 * time.Millisecond,
+	MaxMoveAnim: 3500 * time.Millisecond}
 
 func (o Options) gate(u User) error {
 	if o.MinHP <= 0 {
@@ -163,6 +172,7 @@ type Room struct {
 	closed     bool
 	rng        *mrand.Rand
 	dicer      func() int // thay xúc xắc trong test; nil = quay ngẫu nhiên
+	busyUntil  time.Time  // giao diện đang chạy hoạt ảnh (xúc xắc / ngựa) tới lúc này
 	chatLog    chat.Log
 }
 
@@ -490,6 +500,9 @@ func (r *Room) Handle(p *Player, m Message) error {
 		if !r.rolled {
 			return errors.New("hãy đổ xúc xắc trước")
 		}
+		if r.stuck() {
+			return errors.New("lượt này không đi được ngựa nào")
+		}
 		mv, ok := r.board.target(r.turn, m.Horse, r.dice)
 		if m.Horse < 0 || m.Horse >= Horses || !ok {
 			return errors.New("ngựa này không đi được")
@@ -615,21 +628,22 @@ func (r *Room) roll() {
 		d = r.dicer()
 	}
 	r.dice, r.rolled = d, true
+	r.busy(r.opts.RollShow)
 	if d == 6 {
 		r.sixes++
-		if r.sixes >= maxSixes { // 3 lần 6 liên tiếp: mất lượt
-			r.nextTurn()
+		if r.sixes >= maxSixes { // 3 lần 6 liên tiếp: mất lượt (giữ số trên màn hình rồi mới chuyển)
+			r.schedule()
+			r.broadcast()
 			return
 		}
 	}
 	if len(r.board.Moves(r.turn, d)) == 0 {
 		if d == 6 { // không đi được nhưng ra 6 thì vẫn được đổ tiếp
 			r.rolled = false
-			r.schedule()
-			r.broadcast()
-			return
 		}
-		r.nextTurn()
+		// Không đi được: giữ số hiện trên màn hình hết RollShow rồi mới chuyển lượt (schedule → step).
+		r.schedule()
+		r.broadcast()
 		return
 	}
 	r.schedule()
@@ -639,6 +653,7 @@ func (r *Room) roll() {
 // apply đi ngựa, kiểm tra thắng, rồi ra 6 thì đổ tiếp, không thì sang lượt người sau.
 func (r *Room) apply(mv Move) {
 	r.board.Apply(mv)
+	r.busy(min(time.Duration(cells(mv))*r.opts.StepAnim, r.opts.MaxMoveAnim))
 	r.last = &LastMove{Color: colorOf(mv.Seat), Horse: mv.Horse, From: mv.From, To: mv.To}
 	if mv.KickSeat >= 0 {
 		r.last.Kicked = &Kick{Color: colorOf(mv.KickSeat), Horse: mv.KickHorse}
@@ -656,6 +671,31 @@ func (r *Room) apply(mv Move) {
 	r.nextTurn()
 }
 
+// stuck: đã đổ nhưng không được đi (3 lần 6 hoặc không có nước) — chỉ chờ hoạt ảnh rồi sang lượt.
+func (r *Room) stuck() bool {
+	return r.rolled && (r.sixes >= maxSixes || len(r.board.Moves(r.turn, r.dice)) == 0)
+}
+
+// busy: giao diện cần thêm d để chạy hoạt ảnh, tính từ bây giờ.
+func (r *Room) busy(d time.Duration) {
+	if d > 0 {
+		r.busyUntil = time.Now().Add(d)
+	}
+}
+
+// cells là số ô ngựa nhảy trong nước đi (để tính thời gian hoạt ảnh).
+func cells(mv Move) int {
+	switch {
+	case mv.From == Home:
+		return 1
+	case mv.From >= FinishBase:
+		return mv.To - mv.From
+	case mv.To >= FinishBase:
+		return mv.To - FinishBase
+	}
+	return (mv.To - mv.From + Track) % Track
+}
+
 func (r *Room) nextTurn() {
 	r.turn = (r.turn + 1) % len(r.players)
 	r.rolled, r.sixes = false, 0
@@ -668,6 +708,10 @@ func (r *Room) step() {
 	cur := r.players[r.turn]
 	if !r.rolled {
 		r.roll()
+		return
+	}
+	if r.stuck() {
+		r.nextTurn()
 		return
 	}
 	level := cur.BotLevel
@@ -751,8 +795,9 @@ func (r *Room) stopTimer() {
 	r.deadline = time.Time{}
 }
 
-// schedule: lượt máy (hoặc người đang được máy đánh thay) thì máy làm sau BotDelay;
+// schedule: lượt máy (hoặc người đang được máy đánh thay) thì máy đổ sau BotDelay / đi sau BotMoveDelay;
 // lượt người thì có TurnTimeout, hết giờ máy đổ / đi thay một bước rồi hẹn giờ lại.
+// Mọi khoảng chờ đều cộng thêm phần hoạt ảnh còn lại (busyUntil).
 func (r *Room) schedule() {
 	r.stopTimer()
 	if r.phase != PhasePlaying {
@@ -760,11 +805,17 @@ func (r *Room) schedule() {
 	}
 	cur := r.players[r.turn]
 	gen := r.timerGen
-	wait := r.opts.TurnTimeout
-	if cur.Bot || cur.auto {
-		wait = r.opts.BotDelay
-	} else {
-		r.deadline = time.Now().Add(wait)
+	anim := max(0, time.Until(r.busyUntil)) // chờ hoạt ảnh lượt trước xong
+	wait := anim + r.opts.TurnTimeout
+	switch {
+	case r.stuck(): // ai cũng vậy: hiện số xong là sang lượt
+		wait = anim
+	case (cur.Bot || cur.auto) && r.rolled:
+		wait = anim + r.opts.BotMoveDelay
+	case cur.Bot || cur.auto:
+		wait = anim + r.opts.BotDelay
+	default:
+		r.deadline = time.Now().Add(wait) // đồng hồ 20 s của người chỉ chạy sau hoạt ảnh
 	}
 	r.timer = time.AfterFunc(wait, func() {
 		r.mu.Lock()
@@ -849,7 +900,7 @@ func (r *Room) stateFor(viewer *Player) State {
 	}
 	if r.phase == PhasePlaying && r.turn < len(r.players) {
 		s.Turn = r.players[r.turn].ID
-		if seat == r.turn && r.rolled {
+		if seat == r.turn && r.rolled && !r.stuck() {
 			for _, mv := range r.board.Moves(r.turn, r.dice) {
 				s.Movable = append(s.Movable, mv.Horse)
 			}

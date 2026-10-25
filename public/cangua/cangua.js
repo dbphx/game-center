@@ -89,9 +89,7 @@
   let user = null;
   let pick = 0; // ngựa đang chọn bằng bàn phím
   let shown = null; // vị trí ngựa đang vẽ trên bàn (trễ hơn state khi đang chạy hiệu ứng)
-  let animating = false;
-  let lastKey = ''; // nước đi cuối đã chạy hiệu ứng
-  let rollKey = ''; // lần đổ đã chạy hiệu ứng lăn
+  let animating = false; // đang chạy hiệu ứng trong hàng đợi: chưa cho đổ / đi
 
   const store = (k, v) => { try { v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch (e) { /* bỏ qua */ } };
   const load = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
@@ -146,7 +144,9 @@
         break;
       case 'state':
         rejoining = false;
-        onState(m);
+        m._at = Date.now();
+        inbox.push(m);
+        pump();
         tchat.sync(m.chat);
         break;
       case 'chat':
@@ -158,6 +158,7 @@
         if (!state) { store(ROOM_KEY, null); history.replaceState(null, '', location.pathname); }
         break;
       case 'left':
+        inbox.length = 0;
         store(ROOM_KEY, null);
         state = null;
         shown = null;
@@ -174,11 +175,80 @@
     }
   }
 
+  // Hàng đợi hoạt ảnh: mỗi state từ server được áp dụng lần lượt, sau khi chạy xong hiệu ứng của nó
+  // (xúc xắc lăn → giữ số → ngựa nhảy từng ô → báo lượt). State tới trong lúc đang chạy thì chờ.
+  const inbox = [];
+  let pumping = false;
+  async function pump() {
+    if (pumping) return;
+    pumping = true;
+    try {
+      while (inbox.length) {
+        const s = inbox.shift();
+        const prev = state;
+        // Chỉ chạy hiệu ứng khi đang ở cùng một ván (vào bàn / tải lại trang thì vẽ thẳng).
+        if (prev && prev.code === s.code && prev.phase === 'playing' && (s.phase === 'playing' || s.phase === 'over')) {
+          animating = true;
+          try { await playEvents(prev, s); } catch (e) { /* hiệu ứng lỗi thì bỏ qua, vẫn áp dụng state */ }
+          animating = false;
+        }
+        onState(s);
+        if (prev && s.phase === 'playing' && (prev.turn !== s.turn || prev.phase !== 'playing')) announceTurn(prev, s);
+      }
+    } finally {
+      pumping = false;
+      animating = false;
+    }
+  }
+
+  // Các sự kiện giữa hai state: một lần đổ xúc xắc và / hoặc một nước đi.
+  async function playEvents(prev, s) {
+    const moved = !!s.last && key(s.last) !== key(prev.last);
+    const sameTurn = prev.turn === s.turn;
+    // Một lần đổ: có số xúc xắc, chưa đi (nước đi luôn là state riêng) và có gì đó về xúc xắc đổi:
+    // vừa đổ (rolled false → true), hoặc đổ không đi được (sang lượt / ra 6 đổ tiếp — rolled vẫn false).
+    const rolled = !moved && s.dice != null && (
+      (s.rolled && !prev.rolled) ||
+      (!s.rolled && !prev.rolled && (!sameTurn || s.sixes !== prev.sixes || s.dice !== prev.dice)));
+    if (rolled) {
+      const roller = s.rolled ? s.turn : prev.turn;
+      const p = s.players.find((x) => x.id === roller);
+      await rollDice(s.dice, p && p.color);
+      if (!s.rolled) {
+        // Đổ xong mà không có nước đi.
+        if (sameTurn && s.dice === 6) toast('Ra 6 nhưng không có nước đi — được đổ tiếp!', p && p.color);
+        else if (s.dice === 6 && (prev.sixes || 0) >= 2) toast('Ra 6 ba lần liền — mất lượt!', p && p.color);
+        else toast('Không có nước đi — mất lượt', p && p.color);
+        await sleep(reduced() ? 200 : 900);
+      } else if (!(s.movable || []).length) {
+        // Server giữ lượt ~1.8 s với rolled=true, movable rỗng rồi mới chuyển lượt / cho đổ tiếp.
+        if (s.dice === 6 && (s.sixes || 0) < 3) toast('Ra 6 nhưng không có nước đi — được đổ tiếp!', p && p.color);
+        else if (s.dice === 6) toast('Ra 6 ba lần liền — mất lượt!', p && p.color);
+        else toast('Không có nước đi — mất lượt', p && p.color);
+      }
+    }
+    if (moved) {
+      // Đổ và đi gộp trong một state (chưa thấy lần đổ): lăn xúc xắc trước rồi mới cho ngựa chạy.
+      if (!prev.rolled && s.dice != null) {
+        const p = s.players.find((x) => x.color === s.last.color);
+        await rollDice(s.dice, p && p.color);
+      }
+      shown = JSON.parse(JSON.stringify(prev.horses || {}));
+      await animateMove(s.last, s.horses);
+      // Ra 6 thì được đổ thêm (vẫn lượt mình, chưa đổ).
+      const mover = s.players.find((x) => x.color === s.last.color);
+      if (prev.dice === 6 && mover && s.turn === mover.id && !s.rolled && s.phase === 'playing') {
+        toast(mover.id === s.you ? 'Ra 6 — bạn được đổ tiếp!' : `Ra 6 — ${mover.name} được đổ tiếp!`, mover.color);
+        await sleep(reduced() ? 150 : 500);
+      }
+    }
+  }
+
   function onState(s) {
     const prev = state;
     state = s;
     if (s.code) store(ROOM_KEY, s.code);
-    deadline = s.phase === 'playing' && s.turnMs > 0 ? Date.now() + s.turnMs : 0;
+    deadline = s.phase === 'playing' && s.turnMs > 0 ? (s._at || Date.now()) + s.turnMs : 0;
     if (s.phase !== 'over') hideResult = false;
     const mine = me();
     if (mine) showBalance(mine.coins);
@@ -447,6 +517,7 @@
 
   const key = (o) => (o ? JSON.stringify(o) : '');
 
+  // Vẽ ngựa theo state đã áp dụng (hiệu ứng nước đi chạy trong hàng đợi trước khi áp dụng state).
   function renderHorses() {
     const s = state;
     const colors = s.players.map((p) => p.color).filter(Boolean);
@@ -455,18 +526,8 @@
       if (!colors.includes(el.dataset.color) || !s.horses || !s.horses[el.dataset.color]) el.remove();
     });
     if (!s.horses) return;
-    const lk = key(s.last);
-    const fresh = !shown; // vào bàn / tải lại trang: đặt thẳng, không chạy hiệu ứng
-    if (!fresh && lk && lk !== lastKey && s.last && !animating) {
-      lastKey = lk;
-      animateMove(s.last);
-      return;
-    }
-    lastKey = lk;
-    if (!animating) {
-      shown = JSON.parse(JSON.stringify(s.horses));
-      drawShown();
-    }
+    shown = JSON.parse(JSON.stringify(s.horses));
+    drawShown();
   }
 
   function drawShown() {
@@ -515,49 +576,70 @@
   const reduced = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // Hiệu ứng một nước đi: ngựa nhảy lần lượt từng ô; nếu đá ngựa khác thì ngựa đó bay về chuồng.
-  async function animateMove(last) {
-    animating = true;
-    try {
-      if (!shown) shown = JSON.parse(JSON.stringify(state.horses));
-      const { color, horse, from, to } = last;
-      if (!shown[color]) shown[color] = [-1, -1, -1, -1];
-      drawShown();
-      const el = horseEl(color, horse);
-      el.classList.remove('movable', 'picked');
-      const hop = reduced() ? 40 : 170;
-      for (const pos of pathOf(color, from, to)) {
-        el.classList.remove('hopping');
-        void el.offsetWidth; // chạy lại hiệu ứng nhảy
-        el.classList.add('hopping');
-        place(el, color, horse, pos);
-        await sleep(hop);
-      }
+  async function animateMove(last, final) {
+    const { color, horse, from, to } = last;
+    if (!shown[color]) shown[color] = [-1, -1, -1, -1];
+    drawShown();
+    const el = horseEl(color, horse);
+    el.classList.remove('movable', 'picked');
+    $('ghost') && $('ghost').classList.add('hidden');
+    const hop = reduced() ? 40 : 230;
+    for (const pos of pathOf(color, from, to)) {
       el.classList.remove('hopping');
-      shown[color][horse] = to;
-      if (last.kicked) {
-        const k = last.kicked;
-        if (shown[k.color]) {
-          const kel = horseEl(k.color, k.horse);
-          kel.classList.add('kicked');
-          shown[k.color][k.horse] = -1;
-          place(kel, k.color, k.horse, -1);
-          await sleep(reduced() ? 60 : 650);
-          kel.classList.remove('kicked');
-        }
-      }
-    } finally {
-      animating = false;
-      if (state && state.horses) shown = JSON.parse(JSON.stringify(state.horses));
-      if (state) { drawShown(); renderDice(); renderStatus(); }
-      // State mới tới trong lúc chạy hiệu ứng (vd. máy đi tiếp): chạy nốt.
-      if (state && key(state.last) !== lastKey) renderHorses();
+      void el.offsetWidth; // chạy lại hiệu ứng nhảy
+      el.classList.add('hopping');
+      place(el, color, horse, pos);
+      await sleep(hop);
     }
+    el.classList.remove('hopping');
+    shown[color][horse] = to;
+    if (last.kicked && shown[last.kicked.color]) {
+      const k = last.kicked;
+      const kel = horseEl(k.color, k.horse);
+      toast('Đá ngựa đối thủ về chuồng!', color);
+      kel.classList.add('kicked');
+      shown[k.color][k.horse] = -1;
+      place(kel, k.color, k.horse, -1);
+      await sleep(reduced() ? 60 : 700);
+      kel.classList.remove('kicked');
+    }
+    if (final) shown = JSON.parse(JSON.stringify(final));
   }
 
-  // ---------- Xúc xắc ----------
+  // ---------- Xúc xắc giữa bàn ----------
 
-  let rolling = false;
-  async function renderDice() {
+  // Lăn xúc xắc ~1.1 s (nảy, xoay, đổi mặt chậm dần), dừng ở mặt thật rồi giữ số ~0.6 s.
+  async function rollDice(n, color) {
+    const img = $('dice');
+    const box = $('dice-box');
+    box.className = `center-dice${color ? ' c-' + color : ''}`;
+    img.classList.remove('idle');
+    $('btn-roll').disabled = true;
+    $('btn-roll').classList.remove('pulse');
+    if (reduced()) {
+      img.src = `${IMG}dice_${n}.png`;
+      await sleep(400);
+      return;
+    }
+    box.classList.add('rolling');
+    const steps = [70, 75, 85, 95, 110, 130, 155, 185];
+    let last = 0;
+    for (const ms of steps) {
+      let f = 1 + Math.floor(Math.random() * 6);
+      if (f === last) f = (f % 6) + 1;
+      last = f;
+      img.src = `${IMG}dice_${f}.png`;
+      await sleep(ms);
+    }
+    img.src = `${IMG}dice_${n}.png`;
+    box.classList.remove('rolling');
+    box.classList.add('landed');
+    await sleep(600);
+    box.classList.remove('landed');
+  }
+
+  // Trạng thái xúc xắc khi không lăn: mặt vừa đổ (hoặc 6 mờ), khung màu người tới lượt, nhấp nháy khi tới lượt mình.
+  function renderDice() {
     const s = state;
     const img = $('dice');
     const box = $('dice-box');
@@ -567,29 +649,65 @@
     $('sixes').classList.toggle('hidden', !(s.phase === 'playing' && six > 0));
     $('sixes').textContent = six ? `Đã ra 6 × ${six}` : '';
     const tp = s.players.find((p) => p.id === s.turn);
-    box.className = `dice-box${tp && tp.color ? ' c-' + tp.color : ''}`;
-    if (s.phase !== 'playing' || !s.dice) {
-      if (!rolling) img.classList.toggle('idle', s.phase === 'playing');
-      return;
+    box.className = `center-dice${tp && tp.color ? ' c-' + tp.color : ''}${canRoll() ? ' ready' : ''}`;
+    box.classList.toggle('hidden', s.phase === 'lobby');
+    box.disabled = !canRoll();
+    box.title = canRoll() ? 'Bấm để đổ (Space)' : '';
+    if (s.dice) img.src = `${IMG}dice_${s.dice}.png`;
+    // Chưa đổ trong lượt này thì xúc xắc mờ (số cũ của lượt trước).
+    img.classList.toggle('idle', s.phase === 'playing' && !s.rolled);
+  }
+
+  // Dòng thông báo ngắn trên bàn (ra 6, mất lượt, đá ngựa…).
+  let toastTimer = null;
+  function toast(text, color) {
+    const el = $('dice-toast');
+    el.className = `dice-toast${color ? ' c-' + color : ''}`;
+    el.textContent = text;
+    void el.offsetWidth;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.add('hidden'), 2200);
+  }
+
+  // Banner báo lượt: trượt vào mỗi khi đổi lượt; tới lượt mình thì nổi bật, rung thẻ, kêu "ting".
+  function announceTurn(prev, s) {
+    const p = s.players.find((x) => x.id === s.turn);
+    const el = $('turn-banner');
+    if (!p) return el.classList.add('hidden');
+    const mine = p.id === s.you;
+    el.className = `turn-banner c-${p.color}${mine ? ' mine' : ''}`;
+    el.innerHTML = `<span class="tb-head">${C.head(lookOf(p))}</span>
+      <span class="tb-text">${mine ? '<b>Tới lượt bạn!</b> Bấm xúc xắc / Space' : `Lượt của <b>${escapeHtml(p.name)}</b> (${COLOR_NAMES[p.color] || ''})`}</span>`;
+    void el.offsetWidth;
+    el.classList.add('in');
+    if (mine) {
+      const card = document.querySelector(`.pcard[data-pid="${CSS.escape(p.id)}"]`);
+      if (card) { card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake'); }
+      ding();
     }
-    const rk = `${s.turn}|${s.dice}|${s.sixes}|${key(s.last)}|${s.rolled}`;
-    if (rk === rollKey) return;
-    const fresh = !rollKey;
-    rollKey = rk;
-    img.classList.remove('idle');
-    if (fresh || reduced()) { img.src = `${IMG}dice_${s.dice}.png`; return; }
-    // Lăn: đổi mặt ngẫu nhiên vài lần rồi dừng ở mặt thật.
-    rolling = true;
-    box.classList.add('rolling');
-    for (let k = 0; k < 7; k++) {
-      img.src = `${IMG}dice_${1 + Math.floor(Math.random() * 6)}.png`;
-      await sleep(60 + k * 12);
-    }
-    img.src = `${IMG}dice_${s.dice}.png`;
-    box.classList.remove('rolling');
-    box.classList.add('landed');
-    setTimeout(() => box.classList.remove('landed'), 400);
-    rolling = false;
+  }
+
+  // Âm báo ngắn tới lượt (WebAudio, không cần file âm thanh; trình duyệt chặn thì thôi).
+  let audio = null;
+  function ding() {
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      if (audio.state === 'suspended') audio.resume();
+      const t = audio.currentTime;
+      [880, 1320].forEach((f, i) => {
+        const o = audio.createOscillator();
+        const g = audio.createGain();
+        o.type = 'sine';
+        o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t + i * 0.12);
+        g.gain.exponentialRampToValueAtTime(0.18, t + i * 0.12 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.12 + 0.25);
+        o.connect(g).connect(audio.destination);
+        o.start(t + i * 0.12);
+        o.stop(t + i * 0.12 + 0.3);
+      });
+    } catch (e) { /* không có âm thanh */ }
   }
 
   function renderStatus() {

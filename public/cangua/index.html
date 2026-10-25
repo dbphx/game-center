@@ -72,9 +72,16 @@
       <div class="board-col">
         <div class="board" id="board" tabindex="0" aria-label="Bàn cờ cá ngựa">
           <div class="horses" id="horses"></div>
+          <!-- Xúc xắc nằm giữa bàn (trên ô đích), bấm để đổ -->
+          <button type="button" class="center-dice" id="dice-box" aria-label="Đổ xúc xắc">
+            <span class="dice-shadow"></span>
+            <img class="dice" id="dice" src="/img/toon/cangua/dice_6.png" alt="" draggable="false">
+          </button>
+          <!-- Banner báo lượt / sự kiện ở giữa phía trên bàn -->
+          <div class="turn-banner hidden" id="turn-banner"></div>
+          <div class="dice-toast hidden" id="dice-toast"></div>
         </div>
         <div class="dice-bar">
-          <div class="dice-box" id="dice-box"><img class="dice" id="dice" src="/img/toon/cangua/dice_6.png" alt="" draggable="false"></div>
           <div class="dice-info">
             <p class="status" id="status"></p>
             <span class="sixes hidden" id="sixes"></span>

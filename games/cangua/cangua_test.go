@@ -218,6 +218,18 @@ func dice(r *Room, seq ...int) {
 	}
 }
 
+// waitFor chờ (tối đa 5 s) tới khi cond đúng — các bước chờ hoạt ảnh chạy bằng hẹn giờ.
+func waitFor(t *testing.T, cond func() bool) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for !cond() {
+		if time.Now().After(deadline) {
+			t.Fatal("quá hạn chờ")
+		}
+		time.Sleep(2 * time.Millisecond)
+	}
+}
+
 func do(t *testing.T, s *Session, m Message) {
 	t.Helper()
 	if err := s.Room.Handle(s.Player, m); err != nil {
@@ -255,7 +267,14 @@ func TestTurnFlowSixesAndSkip(t *testing.T) {
 	// Ra 3, chưa có ngựa nào ngoài: không đi được → sang lượt Bình.
 	dice(r, 3)
 	do(t, a, Message{T: "roll"})
-	if st = ca.last(); st.Turn != b.Player.ID || *st.Dice != 3 {
+	if st = ca.last(); st.Turn != a.Player.ID || *st.Dice != 3 || len(st.Movable) != 0 {
+		t.Fatalf("không đi được: giữ số trên màn hình trước khi chuyển lượt: %+v", st)
+	}
+	if err := a.Room.Handle(a.Player, Message{T: "move", Horse: 0}); err == nil {
+		t.Fatal("không có nước thì không đi được")
+	}
+	waitFor(t, func() bool { return ca.last().Turn == b.Player.ID })
+	if st = ca.last(); *st.Dice != 3 {
 		t.Fatalf("không đi được phải sang lượt: %+v", st)
 	}
 	// Bình ra 6: xuất quân rồi được đổ tiếp.
@@ -274,6 +293,10 @@ func TestTurnFlowSixesAndSkip(t *testing.T) {
 	do(t, b, Message{T: "roll"})
 	do(t, b, Message{T: "move", Horse: 0}) // ô xuất phát đang có ngựa 0 nên chỉ đi ngựa 0 được
 	do(t, b, Message{T: "roll"})
+	if err := b.Room.Handle(b.Player, Message{T: "move", Horse: 0}); err == nil {
+		t.Fatal("lần 6 thứ 3 không được đi")
+	}
+	waitFor(t, func() bool { return ca.last().Turn == a.Player.ID })
 	if st = ca.last(); st.Turn != a.Player.ID || st.Sixes != 0 {
 		t.Fatalf("3 lần 6 liên tiếp mất lượt: %+v", st)
 	}
@@ -430,5 +453,43 @@ func TestDisconnectAutoplayAndResume(t *testing.T) {
 	}
 	if st := cb2.last(); st.Players[1].Auto || !st.Players[1].Online || st.You != b.Player.ID {
 		t.Fatalf("vào lại phải lấy lại ghế: %+v", st.Players[1])
+	}
+}
+
+// Nhịp hoạt ảnh: máy chờ BotDelay mới đổ, chờ RollShow + BotMoveDelay mới đi, lượt sau chờ ngựa chạy xong;
+// đồng hồ của người cộng thêm phần hoạt ảnh còn lại.
+func TestAnimationPacing(t *testing.T) {
+	opts := Options{BotDelay: 40 * time.Millisecond, TurnTimeout: time.Hour, Grace: time.Hour,
+		RollShow: 60 * time.Millisecond, BotMoveDelay: 10 * time.Millisecond, StepAnim: 20 * time.Millisecond,
+		MaxMoveAnim: 70 * time.Millisecond}
+	h := NewHub(newBank(), opts)
+	ca := &fakeConn{}
+	a, _ := h.Create(an, ca, ptr(0))
+	do(t, a, Message{T: "addBot", Level: BotNormal})
+	r := a.Room
+	r.mu.Lock()
+	r.lastWinner = "" // An (chủ bàn) đi trước
+	r.mu.Unlock()
+	do(t, a, Message{T: "start"})
+	dice(r, 6, 6, 3) // An: 6 (ra quân), 6 (đi 6 ô), 3 (đi 3 ô); máy: 3 (không đi được)
+	do(t, a, Message{T: "roll"})
+	if st := ca.last(); st.TurnMs < int((time.Hour + 50*time.Millisecond).Milliseconds()) {
+		t.Fatalf("đồng hồ phải cộng thời gian số hiện: %d ms", st.TurnMs)
+	}
+	do(t, a, Message{T: "move", Horse: 0})
+	do(t, a, Message{T: "roll"})
+	do(t, a, Message{T: "move", Horse: 0})
+	do(t, a, Message{T: "roll"})
+	do(t, a, Message{T: "move", Horse: 0}) // 3 ô → máy chờ 60 ms hoạt ảnh + 40 ms rồi mới đổ
+	moved := time.Now()
+	waitFor(t, func() bool { st := ca.last(); return st.Turn != a.Player.ID && st.Rolled })
+	if d := time.Since(moved); d < 90*time.Millisecond {
+		t.Fatalf("máy đổ quá sớm sau nước đi: %v", d)
+	}
+	// Máy ra 3 không có ngựa ngoài: giữ số RollShow rồi mới trả lượt cho An.
+	rolledAt := time.Now()
+	waitFor(t, func() bool { return ca.last().Turn == a.Player.ID })
+	if d := time.Since(rolledAt); d < 45*time.Millisecond {
+		t.Fatalf("chuyển lượt trước khi số hiện xong: %v", d)
 	}
 }
