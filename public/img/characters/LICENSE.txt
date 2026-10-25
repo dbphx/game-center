@@ -13,3 +13,8 @@ Tóc: tô lại màu tóc gốc của nhân vật + vẽ thêm chỏm / đuôi /
 Gương mặt: tô màu da che mắt / miệng gốc rồi vẽ nét mặt mới (mắt, miệng, má, kính, râu mèo) bằng PIL.
 Vương miện: cắt từ ảnh trang phục Hoàng gia (CC0 ở trên) để đội lên trên tóc mới.
 Mỗi lớp cùng bố cục khung với sprite nhân vật (xem manifest.json mục "layers").
+
+Bổ sung (CC0 1.0, dựng lại bằng script build Kenney + PIL): 6 trang phục mới (đồng phục học sinh, áo bà ba, áo Tết,
+hải tặc, đồ cưới, phi hành gia) — thân Kenney Toon Characters tô lại màu + vẽ thêm chi tiết (cà vạt, nơ, nút áo, túi,
+hoạ tiết vàng, sọc, áo gi lê, váy cưới, bảng điều khiển, ba lô); tư thế ngồi / nằm (_sit, _lie) ghép từ khung đứng;
+lớp mắt nhắm / hiệu ứng mặt (face/*_blink, *_fx) và hạt lấp lánh (fx/) vẽ bằng PIL.

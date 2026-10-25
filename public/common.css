@@ -324,81 +324,152 @@ dialog.modal .actions { display: flex; justify-content: flex-end; gap: 8px; marg
 
 .character.char-img { display: block; width: auto; }
 
-/* Sprite động: khung --w × --h, hàng theo hướng (down, left, right, up), cột 0 đứng / cột 1–4 bước đi. */
+/* Sprite động: mỗi lớp (cánh sau, thân, mặt, mắt nhắm, hiệu ứng mặt, tóc, vương miện, cánh trước) là một thẻ <i>
+   cùng khung --w × --h; hàng theo hướng (down, left, right, up), cột 0 đứng / cột 1–4 bước đi.
+   Ngồi: 1 cột × 4 hàng; nằm: 1 cột × 2 hàng (đầu trái / phải). */
 .char-sprite {
   --row: 0;
+  --cols: 5;
+  --rows: 4;
+  position: relative;
   display: inline-block;
   width: var(--w);
   height: var(--h);
-  background-image: var(--sheet);
-  background-repeat: no-repeat;
-  background-size: calc(var(--w) * 5) calc(var(--h) * 4);
-  background-position: 0 calc(var(--h) * var(--row) * -1);
 }
 .char-sprite[data-dir="left"] { --row: 1; }
 .char-sprite[data-dir="right"] { --row: 2; }
 .char-sprite[data-dir="up"] { --row: 3; }
-.char-sprite.walking { animation: char-walk .56s steps(1) infinite; }
+.char-sprite.pose-lie[data-dir] { --row: 0; }
+.char-sprite.pose-lie[data-dir="right"] { --row: 1; }
+.char-sprite > i {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--w);
+  height: var(--h);
+  background-image: var(--img);
+  background-repeat: no-repeat;
+  background-size: calc(var(--w) * var(--cols)) calc(var(--h) * var(--rows));
+  background-position: 0 calc(var(--h) * var(--row) * -1);
+  pointer-events: none;
+}
+.char-sprite.walking > i { animation: char-walk .56s steps(1) infinite; }
 @keyframes char-walk {
   0% { background-position-x: calc(var(--w) * -1); }
   25% { background-position-x: calc(var(--w) * -2); }
   50% { background-position-x: calc(var(--w) * -3); }
   75% { background-position-x: calc(var(--w) * -4); }
 }
-/* Nằm (ví dụ nằm viện): khung đứng xoay ngang quanh chân. */
-.char-sprite.lying { transform: translateY(-20%) rotate(-90deg); transform-origin: 50% 70%; }
 /* Bị mất HP: nháy đỏ bằng filter trên ảnh. */
 .char-sprite.hurt, .char-img.hurt { animation: char-hurt .5s steps(1) infinite; }
-.char-sprite.walking.hurt { animation: char-walk .56s steps(1) infinite, char-hurt .5s steps(1) infinite; }
 @keyframes char-hurt {
   50% { filter: sepia(1) saturate(6) hue-rotate(-45deg) brightness(.95) drop-shadow(0 0 4px rgba(255, 40, 40, .9)); }
 }
 
-.char-avatar {
-  overflow: hidden;
-  background: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, .45), transparent 70%), var(--avatar);
-}
-.char-avatar img { width: 100%; height: 100%; display: block; object-fit: cover; transform: translateY(6%) scale(1.08); }
-.char-avatar { position: relative; }
-.char-avatar img.char-layer { position: absolute; inset: 0; }
-
-/* Có cánh: thân và hai lớp cánh (khung rộng gấp đôi) là thẻ con cùng hàng / khung bước với sprite. */
-.char-sprite.has-wings { position: relative; background: none; }
-.char-sprite.has-wings > i { position: absolute; top: 0; height: var(--h); background-repeat: no-repeat; pointer-events: none; }
-.char-sprite > .cs-body {
-  left: 0;
-  width: var(--w);
-  background-image: var(--sheet);
-  background-size: calc(var(--w) * 5) calc(var(--h) * 4);
-  background-position: 0 calc(var(--h) * var(--row) * -1);
-}
-.char-sprite > .cs-wing {
+/* Cánh: khung rộng gấp đôi; vỗ nhẹ khi đứng, vỗ nhanh khi đi (lớp trước / sau cùng nhịp). */
+.char-sprite > i.cs-wing {
   left: calc(var(--w) * -.5);
   width: calc(var(--w) * 2);
-  background-image: var(--wing);
-  background-size: calc(var(--w) * 10) calc(var(--h) * 4);
-  background-position: 0 calc(var(--h) * var(--row) * -1);
+  background-size: calc(var(--w) * 2 * var(--cols)) calc(var(--h) * var(--rows));
+  transform-origin: 50% 64%;
+  animation: wing-flap 1.6s ease-in-out infinite;
 }
-.char-sprite.has-wings.walking { animation: none; }
-.char-sprite.has-wings.walking.hurt { animation: char-hurt .5s steps(1) infinite; }
-.char-sprite.walking > .cs-body { animation: char-walk .56s steps(1) infinite; }
-.char-sprite.walking > .cs-wing { animation: char-walk-wide .56s steps(1) infinite; }
+.char-sprite.walking > i.cs-wing { animation: wing-flap .42s ease-in-out infinite, char-walk-wide .56s steps(1) infinite; }
+@keyframes wing-flap {
+  0%, 100% { transform: scaleX(1) scaleY(1); }
+  50% { transform: scaleX(.86) scaleY(1.03); }
+}
 @keyframes char-walk-wide {
   0% { background-position-x: calc(var(--w) * -2); }
   25% { background-position-x: calc(var(--w) * -4); }
   50% { background-position-x: calc(var(--w) * -6); }
   75% { background-position-x: calc(var(--w) * -8); }
 }
+/* Ánh sáng theo loại cánh. */
+[data-wing="angel"] .cs-wing, [data-wing="angel"] .char-layer.wing { filter: drop-shadow(0 0 3px rgba(255, 250, 215, .95)) drop-shadow(0 0 7px rgba(255, 236, 160, .6)); }
+[data-wing="fairy"] .cs-wing, [data-wing="fairy"] .char-layer.wing { filter: drop-shadow(0 0 3px rgba(190, 240, 255, .95)) drop-shadow(0 0 8px rgba(255, 180, 240, .55)); }
+[data-wing="bat"] .cs-wing, [data-wing="bat"] .char-layer.wing { animation-name: wing-flap, glow-bat; animation-duration: 1.6s, 2.4s; animation-timing-function: ease-in-out; animation-iteration-count: infinite; }
+[data-wing="dragon"] .cs-wing, [data-wing="dragon"] .char-layer.wing { animation-name: wing-flap, glow-fire; animation-duration: 1.6s, .9s; animation-timing-function: ease-in-out; animation-iteration-count: infinite; }
+.char-sprite.walking[data-wing="bat"] > i.cs-wing { animation: wing-flap .42s ease-in-out infinite, char-walk-wide .56s steps(1) infinite, glow-bat 2.4s ease-in-out infinite; }
+.char-sprite.walking[data-wing="dragon"] > i.cs-wing { animation: wing-flap .42s ease-in-out infinite, char-walk-wide .56s steps(1) infinite, glow-fire .9s ease-in-out infinite; }
+@keyframes glow-bat {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(170, 90, 255, .6)); }
+  50% { filter: drop-shadow(0 0 7px rgba(190, 110, 255, 1)) drop-shadow(0 0 12px rgba(120, 40, 200, .6)); }
+}
+@keyframes glow-fire {
+  0%, 100% { filter: drop-shadow(0 0 3px rgba(255, 140, 40, .7)); }
+  40% { filter: drop-shadow(0 0 7px rgba(255, 110, 20, .95)) drop-shadow(0 -2px 10px rgba(255, 200, 60, .5)); }
+  70% { filter: drop-shadow(0 0 4px rgba(255, 170, 60, .8)); }
+}
+/* Hạt lấp lánh rơi quanh cánh thiên thần / tiên. */
+.char-sprite > i.cs-spark {
+  left: calc(var(--w) * -.5);
+  width: calc(var(--w) * 2);
+  background-size: 100% 100%;
+  background-position: 0 0;
+  animation: spark-fall 2s linear infinite;
+}
+.char-sprite > i.cs-spark.s2 { animation-delay: -1s; }
+.char-sprite.walking > i.cs-spark { animation: spark-fall 1.3s linear infinite; }
+.char-sprite.walking > i.cs-spark.s2 { animation-delay: -.65s; }
+@keyframes spark-fall {
+  0% { transform: translateY(-14%); opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: .8; }
+  100% { transform: translateY(16%); opacity: 0; }
+}
 
-/* Ảnh toàn thân có lớp tóc / cánh: khung ngoài nhận cỡ từ CSS của trang (class "character"),
+/* Mặt: mắt nhắm hiện thoáng qua theo nhịp ngẫu nhiên (--blink); khi nằm thì nhắm hẳn. */
+.char-sprite > i.cs-blink, .char-stack-in > .char-layer.blink { opacity: 0; animation: blink var(--blink, 4s) linear infinite; }
+.char-sprite.walking > i.cs-blink { animation: char-walk .56s steps(1) infinite, blink var(--blink, 4s) linear infinite; }
+.char-sprite > i.cs-blink.shut { opacity: 1; animation: none; }
+@keyframes blink {
+  0%, 95.5% { opacity: 0; }
+  96%, 99% { opacity: 1; }
+  99.5%, 100% { opacity: 0; }
+}
+/* Hiệu ứng riêng của mặt: sao lấp lánh xoay / chớp, má ửng theo nhịp, kính loé sáng. */
+.char-sprite > i.fx-star, .char-stack-in > .fx-star { animation: fx-twinkle .9s steps(1) infinite; }
+.char-sprite > i.fx-blush, .char-stack-in > .fx-blush { animation: fx-blush 2.4s ease-in-out infinite; }
+.char-sprite > i.fx-cool, .char-stack-in > .fx-cool { animation: fx-glint 3.4s ease-in-out infinite; }
+.char-sprite.walking > i.fx-star { animation: char-walk .56s steps(1) infinite, fx-twinkle .9s steps(1) infinite; }
+.char-sprite.walking > i.fx-blush { animation: char-walk .56s steps(1) infinite, fx-blush 2.4s ease-in-out infinite; }
+.char-sprite.walking > i.fx-cool { animation: char-walk .56s steps(1) infinite, fx-glint 3.4s ease-in-out infinite; }
+@keyframes fx-twinkle {
+  0% { opacity: 0; }
+  50% { opacity: 1; filter: brightness(1.25); }
+}
+@keyframes fx-blush {
+  0%, 100% { opacity: .15; }
+  50% { opacity: .95; }
+}
+@keyframes fx-glint {
+  0%, 80% { opacity: 0; filter: brightness(1); }
+  86% { opacity: 1; filter: brightness(1.6) drop-shadow(0 0 2px #fff); }
+  92%, 100% { opacity: 0; }
+}
+
+.char-avatar {
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, .45), transparent 70%), var(--avatar);
+}
+.char-avatar img { width: 100%; height: 100%; display: block; object-fit: cover; transform: translateY(6%) scale(1.08); }
+.char-avatar img.char-layer { position: absolute; inset: 0; }
+
+/* Ảnh toàn thân có lớp tóc / mặt / cánh: khung ngoài nhận cỡ từ CSS của trang (class "character"),
    khung trong ôm đúng ảnh thân để các lớp đặt theo %. */
 .character.char-stack { display: inline-block; line-height: 0; text-align: center; }
 .char-stack-in { position: relative; display: inline-block; height: 100%; isolation: isolate; }
 .char-stack-in > img { display: block; height: 100%; width: auto; }
 .char-stack-in > .char-base { position: relative; z-index: 1; }
 .char-stack-in > .char-layer { position: absolute; left: 0; width: 100% !important; max-width: none; z-index: 2; }
-.char-stack-in > .char-layer.wing { left: -50%; width: 200% !important; z-index: 0; }
+.char-stack-in > .char-layer.wing { left: -50%; width: 200% !important; z-index: 0; transform-origin: 50% 60%; animation: wing-flap 1.6s ease-in-out infinite; }
 .char-stack-in > .char-layer.crown { top: 0; height: 100% !important; z-index: 3; }
+
+@media (prefers-reduced-motion: reduce) {
+  .char-sprite > i, .char-stack-in > .char-layer { animation-duration: .01s !important; animation-iteration-count: 1 !important; }
+}
 
 .level-badge {
   display: inline-flex;
@@ -441,3 +512,6 @@ dialog.ask-dialog .ask-input { width: 100%; padding: 10px 12px; border-radius: 1
 dialog.ask-dialog .actions button { min-width: 96px; }
 dialog.ask-dialog.danger { border-color: #e57373; }
 dialog.ask-dialog .danger-fill { background: linear-gradient(180deg, #ff8a80, #e53935); border-color: #b71c1c; color: #fff; }
+
+/* Ngồi ghế trên bản đồ: đã có khung ngồi thật nên bỏ cách cắt chân cũ (hub.css .me.sitting). */
+.me.sitting .me-body:has(> .pose-sit) { clip-path: none; }

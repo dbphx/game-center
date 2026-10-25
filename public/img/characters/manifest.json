@@ -153,6 +153,138 @@
     "right": "female_royal_right.png",
     "up": "female_royal_up.png"
    }
+  },
+  "male_school": {
+   "sheet": "male_school.png",
+   "full": "male_school_full.png",
+   "head": "male_school_head.png",
+   "still": {
+    "down": "male_school_down.png",
+    "left": "male_school_left.png",
+    "right": "male_school_right.png",
+    "up": "male_school_up.png"
+   }
+  },
+  "male_aobaba": {
+   "sheet": "male_aobaba.png",
+   "full": "male_aobaba_full.png",
+   "head": "male_aobaba_head.png",
+   "still": {
+    "down": "male_aobaba_down.png",
+    "left": "male_aobaba_left.png",
+    "right": "male_aobaba_right.png",
+    "up": "male_aobaba_up.png"
+   }
+  },
+  "male_tet": {
+   "sheet": "male_tet.png",
+   "full": "male_tet_full.png",
+   "head": "male_tet_head.png",
+   "still": {
+    "down": "male_tet_down.png",
+    "left": "male_tet_left.png",
+    "right": "male_tet_right.png",
+    "up": "male_tet_up.png"
+   }
+  },
+  "male_pirate": {
+   "sheet": "male_pirate.png",
+   "full": "male_pirate_full.png",
+   "head": "male_pirate_head.png",
+   "still": {
+    "down": "male_pirate_down.png",
+    "left": "male_pirate_left.png",
+    "right": "male_pirate_right.png",
+    "up": "male_pirate_up.png"
+   }
+  },
+  "male_wedding": {
+   "sheet": "male_wedding.png",
+   "full": "male_wedding_full.png",
+   "head": "male_wedding_head.png",
+   "still": {
+    "down": "male_wedding_down.png",
+    "left": "male_wedding_left.png",
+    "right": "male_wedding_right.png",
+    "up": "male_wedding_up.png"
+   }
+  },
+  "male_astronaut": {
+   "sheet": "male_astronaut.png",
+   "full": "male_astronaut_full.png",
+   "head": "male_astronaut_head.png",
+   "still": {
+    "down": "male_astronaut_down.png",
+    "left": "male_astronaut_left.png",
+    "right": "male_astronaut_right.png",
+    "up": "male_astronaut_up.png"
+   }
+  },
+  "female_school": {
+   "sheet": "female_school.png",
+   "full": "female_school_full.png",
+   "head": "female_school_head.png",
+   "still": {
+    "down": "female_school_down.png",
+    "left": "female_school_left.png",
+    "right": "female_school_right.png",
+    "up": "female_school_up.png"
+   }
+  },
+  "female_aobaba": {
+   "sheet": "female_aobaba.png",
+   "full": "female_aobaba_full.png",
+   "head": "female_aobaba_head.png",
+   "still": {
+    "down": "female_aobaba_down.png",
+    "left": "female_aobaba_left.png",
+    "right": "female_aobaba_right.png",
+    "up": "female_aobaba_up.png"
+   }
+  },
+  "female_tet": {
+   "sheet": "female_tet.png",
+   "full": "female_tet_full.png",
+   "head": "female_tet_head.png",
+   "still": {
+    "down": "female_tet_down.png",
+    "left": "female_tet_left.png",
+    "right": "female_tet_right.png",
+    "up": "female_tet_up.png"
+   }
+  },
+  "female_pirate": {
+   "sheet": "female_pirate.png",
+   "full": "female_pirate_full.png",
+   "head": "female_pirate_head.png",
+   "still": {
+    "down": "female_pirate_down.png",
+    "left": "female_pirate_left.png",
+    "right": "female_pirate_right.png",
+    "up": "female_pirate_up.png"
+   }
+  },
+  "female_wedding": {
+   "sheet": "female_wedding.png",
+   "full": "female_wedding_full.png",
+   "head": "female_wedding_head.png",
+   "still": {
+    "down": "female_wedding_down.png",
+    "left": "female_wedding_left.png",
+    "right": "female_wedding_right.png",
+    "up": "female_wedding_up.png"
+   }
+  },
+  "female_astronaut": {
+   "sheet": "female_astronaut.png",
+   "full": "female_astronaut_full.png",
+   "head": "female_astronaut_head.png",
+   "still": {
+    "down": "female_astronaut_down.png",
+    "left": "female_astronaut_left.png",
+    "right": "female_astronaut_right.png",
+    "up": "female_astronaut_up.png"
+   }
   }
  },
  "layers": {
@@ -418,5 +550,15 @@
     }
    }
   }
+ },
+ "poses": {
+  "note": "Tư thế dựng bằng PIL từ khung đứng (CC0), áp cùng phép biến đổi cho thân và mọi lớp (mặt, mắt nhắm, hiệu ứng mặt, tóc, vương miện, cánh) nên các lớp vẫn khớp.",
+  "sit": "<tên>_sit.png: 1 cột × 4 hàng (down, left, right, up), khung như sheet gốc (cánh 192×148); thân trên hạ xuống, chân thu ngắn (đùi hướng ra trước), nhìn nghiêng bàn chân đưa ra trước.",
+  "lie": "<tên>_lie.png: 1 cột × 2 hàng (đầu trái, đầu phải), khung 148×96, nằm ngửa; dùng kèm lớp mắt nhắm face/<mặt>_<giới>_blink_lie.png."
+ },
+ "effects": {
+  "blink": "face/<mặt>_<giới>_blink.png (+_full): mắt nhắm, hiện thoáng qua theo nhịp 3–6 s; mặt: default, wink, blush, cat, star",
+  "fx": "face/<mặt>_<giới>_fx.png (+_full): star = sao xoay chớp, blush = má ửng, cool = loé sáng trên kính",
+  "sparkle": "fx/sparkle_{gold,pastel}_{1,2}.png: hạt lấp lánh rơi quanh cánh thiên thần (gold) / tiên (pastel), khung 192×148"
  }
 }

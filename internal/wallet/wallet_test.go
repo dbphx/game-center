@@ -287,6 +287,30 @@ func TestBuyOutfit(t *testing.T) {
 	}
 }
 
+// Các trang phục thêm sau (dùng chung hai giới) mua như cũ; owned theo thứ tự Catalog.
+func TestBuyNewOutfits(t *testing.T) {
+	w := open(t)
+	u, _ := register(t, w, "tan")
+	if _, err := w.BuyOutfit(ctx, u.ID, "aobaba"); !errors.Is(err, ErrLevelTooLow) {
+		t.Fatalf("áo bà ba cần level 2, được %v", err)
+	}
+	u, err := w.BuyOutfit(ctx, u.ID, "school")
+	if err != nil || u.Outfit != "school" || u.Balance != StartBalance-600 || !slices.Equal(u.Owned, []string{"casual", "sport", "school"}) {
+		t.Fatalf("mua đồng phục: %+v %v", u, err)
+	}
+	w.AwardXP(ctx, map[int64]int64{u.ID: LevelStart(9)})
+	if _, err := w.BuyOutfit(ctx, u.ID, "astronaut"); !errors.Is(err, ErrNotEnoughCoins) {
+		t.Fatalf("phi hành gia 12.000 xu phải thiếu xu, được %v", err)
+	}
+	w.Settle(ctx, "hub", "nạp thử", map[int64]int64{u.ID: 20000})
+	if u, err = w.BuyOutfit(ctx, u.ID, "astronaut"); err != nil || u.Outfit != "astronaut" || u.Balance != StartBalance-600+20000-12000 {
+		t.Fatalf("mua phi hành gia: %+v %v", u, err)
+	}
+	if u, err = w.BuyItem(ctx, u.ID, KindOutfit, "tet"); err != nil || !slices.Equal(u.Owned, []string{"casual", "sport", "school", "tet", "astronaut"}) {
+		t.Fatalf("mua áo Tết qua items: %+v %v", u, err)
+	}
+}
+
 // Database v3 (trước khi có shop): người chơi giữ trang phục đang mặc dù trước đây chọn miễn phí.
 func TestMigrateFromV3KeepsWornOutfit(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "v3.db")

@@ -31,6 +31,12 @@ var (
 		{ID: "suit", Name: "Vest lịch lãm", Level: 3, Price: 1500},
 		{ID: "aodai", Name: "Áo dài", Level: 4, Price: 2500},
 		{ID: "royal", Name: "Hoàng gia", Level: 6, Price: 5000},
+		{ID: "school", Name: "Đồng phục học sinh", Level: 1, Price: 600},
+		{ID: "aobaba", Name: "Áo bà ba", Level: 2, Price: 1200},
+		{ID: "tet", Name: "Áo Tết", Level: 3, Price: 2000},
+		{ID: "pirate", Name: "Hải tặc", Level: 5, Price: 4000},
+		{ID: "wedding", Name: "Đồ cưới", Level: 7, Price: 8000},
+		{ID: "astronaut", Name: "Phi hành gia", Level: 9, Price: 12000},
 	}
 
 	// Outfits là id các trang phục theo thứ tự trong Catalog.

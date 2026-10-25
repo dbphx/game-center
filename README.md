@@ -71,6 +71,12 @@ Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè c
 | Vest lịch lãm | 3 | 1.500 xu |
 | Áo dài | 4 | 2.500 xu |
 | Hoàng gia (có vương miện) | 6 | 5.000 xu |
+| Đồng phục học sinh | 1 | 600 xu |
+| Áo bà ba | 2 | 1.200 xu |
+| Áo Tết | 3 | 2.000 xu |
+| Hải tặc | 5 | 4.000 xu |
+| Đồ cưới | 7 | 8.000 xu |
+| Phi hành gia | 9 | 12.000 xu |
 
 - Shop còn bán **tóc** và **cánh** (dùng chung cả hai giới). Ai cũng có sẵn tóc mặc định; cánh có thể tháo ra bất cứ lúc nào.
 
@@ -275,9 +281,8 @@ Mọi khoản tính bằng *mức*, nhân với mức cược (10–500 xu/mức
 
 | Khoản | Mức |
 |---|---|
-| Thứ hạng, 4 người | Nhất +3, Nhì +1, Ba −1, Bét −3 |
-| Thứ hạng, 3 người | +2 / 0 / −2 |
-| Thứ hạng, 2 người | +1 / −1 |
+| **Nhất ăn tất** | mỗi người còn lại trả người về nhất 1 (bị cóng trả 2); không có tiền nhì / ba / bét |
+| **Tới bằng 3 bích** | bộ bài cuối người nhất đánh ra có 3♠ thì tiền nhất ăn tất ×2 (tiền chặt / thối không nhân) |
 | Tới trắng | người thắng +2 × số người thua, mỗi người thua −2 |
 | Heo đen ♠♣ / heo đỏ ♦♥ | 1 / 2 |
 | 3 đôi thông / tứ quý / 4 đôi thông | 3 / 4 / 6 |
@@ -285,6 +290,7 @@ Mọi khoản tính bằng *mức*, nhân với mức cược (10–500 xu/mức
 - **Chặt heo / chặt hàng**: người bị chặt trả người chặt theo bảng trên. **Chặt chồng**: người bị chặt sau trả luôn số tiền mình vừa ăn, nên người chặt cuối ăn trọn.
 - **Thối**: hết ván, người về bét còn heo / hàng trên tay thì trả cho người về nhất.
 - **Cóng**: khi có người về nhất mà ai đó chưa đánh lá nào thì người đó bị cóng: xếp bét, bị loại khỏi ván và cũng phải thối cả tay.
+- State có `delta` (tiền nhất ăn tất, mức) và `winBy: {threeSpades, multiplier}` để giao diện hiện "Tới bằng 3 bích ×2".
 
 ## Cấu trúc
 

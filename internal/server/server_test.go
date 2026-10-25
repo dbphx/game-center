@@ -173,7 +173,8 @@ func TestOutfitShopAPI(t *testing.T) {
 		Outfits []string            `json:"outfits"`
 	}
 	call(t, srv, "GET", "/api/config", "", nil, &cfg)
-	if len(cfg.Catalog) != 6 || cfg.Catalog[5].ID != "royal" || cfg.Catalog[5].Level != 6 || cfg.Catalog[5].Price != 5000 || !cfg.Catalog[0].Starter || len(cfg.Outfits) != 6 {
+	if len(cfg.Catalog) != 12 || cfg.Catalog[5].ID != "royal" || cfg.Catalog[5].Level != 6 || cfg.Catalog[5].Price != 5000 || !cfg.Catalog[0].Starter ||
+		len(cfg.Outfits) != 12 || cfg.Catalog[11].ID != "astronaut" || cfg.Catalog[11].Level != 9 || cfg.Catalog[11].Price != 12000 {
 		t.Fatalf("catalog trong config: %+v", cfg)
 	}
 }

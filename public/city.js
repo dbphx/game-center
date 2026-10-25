@@ -943,7 +943,7 @@
     const look = me.look || {};
     const hurt = performance.now() < hurtUntil;
     if (C && typeof C.sprite === 'function') {
-      me.body.innerHTML = C.sprite(look, { dir: me.dir, walking: me.walking && !locked, size: SPRITE_SIZE, pose: locked ? 'lie' : undefined, hurt });
+      me.body.innerHTML = C.sprite(look, { dir: me.dir, walking: me.walking && !locked, size: SPRITE_SIZE, pose: locked ? 'lie' : sitting ? 'sit' : undefined, hurt });
     } else if (C && typeof C.svg === 'function') {
       me.body.innerHTML = `<div class="me-fallback">${C.svg(look, { size: SPRITE_SIZE })}</div>`;
     }
@@ -1692,7 +1692,7 @@
     const key = `${dir}|${walking}|${a.sitting}|${JSON.stringify(a.look || {})}`;
     if (key === a.drawn || !C || typeof C.sprite !== 'function') return;
     a.drawn = key;
-    a.el.querySelector('.me-body').innerHTML = C.sprite(a.look || {}, { dir: a.sitting ? 'down' : dir, walking, size: SPRITE_SIZE });
+    a.el.querySelector('.me-body').innerHTML = C.sprite(a.look || {}, { dir: a.sitting ? 'down' : dir, walking, size: SPRITE_SIZE, pose: a.sitting ? 'sit' : undefined });
     a.el.classList.toggle('sitting', !!a.sitting);
   }
   // Đi mượt tới vị trí mới nhận được (nội suy); xa quá thì nhảy luôn.
