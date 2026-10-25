@@ -53,6 +53,8 @@ type User struct {
 	HP            int      `json:"hp"`      // máu hiện tại (đã tính tự hồi)
 	MaxHP         int      `json:"maxHp"`
 	HospitalUntil int64    `json:"hospitalUntil"` // unix lúc xuất viện, 0 nếu không nằm viện
+	Sitting       bool     `json:"sitting"`       // đang ngồi ghế (hồi máu nhanh gấp đôi)
+	RegenSeconds  int      `json:"regenSeconds"`  // số giây hồi 1 HP lúc này: 60 đứng, 30 ngồi
 	Now           int64    `json:"now"`           // giờ server (unix), để giao diện đếm ngược
 	lastDaily     string
 }
@@ -110,12 +112,12 @@ func addEntry(ctx context.Context, tx *sql.Tx, userID, delta, after int64, game,
 	return err
 }
 
-const userColumns = `id, coalesce(username, ''), name, balance, last_daily, gender, outfit, xp, hp, coalesce(hp_at, 0), hospital_until, hair, wings, face`
+const userColumns = `id, coalesce(username, ''), name, balance, last_daily, gender, outfit, xp, hp, coalesce(hp_at, 0), hospital_until, hair, wings, face, sit_until`
 
 func (w *Wallet) scanUser(row *sql.Row) (User, error) {
 	var u User
 	var s hpState
-	err := row.Scan(&u.ID, &u.Username, &u.Name, &u.Balance, &u.lastDaily, &u.Gender, &u.Outfit, &u.XP, &s.hp, &s.hpAt, &s.hospitalUntil, &u.Hair, &u.Wings, &u.Face)
+	err := row.Scan(&u.ID, &u.Username, &u.Name, &u.Balance, &u.lastDaily, &u.Gender, &u.Outfit, &u.XP, &s.hp, &s.hpAt, &s.hospitalUntil, &u.Hair, &u.Wings, &u.Face, &s.sitUntil)
 	if errors.Is(err, sql.ErrNoRows) {
 		return User{}, ErrNotFound
 	}
@@ -124,6 +126,11 @@ func (w *Wallet) scanUser(row *sql.Row) (User, error) {
 	u.LevelXP, u.NextXP = LevelStart(u.Level), LevelStart(u.Level+1)
 	u.Now = w.nowUnix()
 	u.HP, u.HospitalUntil = s.current(u.Now)
+	u.Sitting = u.HospitalUntil == 0 && s.sitUntil > u.Now
+	u.RegenSeconds = RegenSeconds
+	if u.Sitting {
+		u.RegenSeconds = RegenSeconds / SitRegenMultiplier
+	}
 	u.MaxHP = MaxHP
 	return u, err
 }

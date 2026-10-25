@@ -144,3 +144,99 @@ func TestCheckZone(t *testing.T) {
 		t.Errorf("thông báo casino sai: %v", err)
 	}
 }
+
+func mustSit(t *testing.T, w *Wallet, id int64, sit bool) User {
+	t.Helper()
+	u, err := w.Sit(ctx, id, sit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return u
+}
+
+func TestSitDoublesRegen(t *testing.T) {
+	w, tick := clockWallet(t)
+	u, _ := register(t, w, "ngoi")
+	for range 3 {
+		u = mustHit(t, w, u.ID)
+		tick(2 * time.Second)
+	}
+	if u.HP != MaxHP-3*CarDamage || u.Sitting || u.RegenSeconds != RegenSeconds {
+		t.Fatalf("sau 3 lần bị tông: %+v", u)
+	}
+	base := u.HP
+
+	// Ngồi: 30 giây +1 HP; nhịp tim mỗi 30 giây giữ ghế, 5 phút ngồi liên tục = +10 HP.
+	if u = mustSit(t, w, u.ID, true); !u.Sitting || u.RegenSeconds != RegenSeconds/SitRegenMultiplier || u.HP != base {
+		t.Fatalf("vừa ngồi: %+v", u)
+	}
+	for range 10 {
+		tick(30 * time.Second)
+		u = mustSit(t, w, u.ID, true)
+	}
+	if u.HP != base+10 || !u.Sitting {
+		t.Fatalf("ngồi 5 phút phải +10 HP, được %d (%+v)", u.HP-base, u)
+	}
+
+	// Nhịp tim lệch (mỗi 29 giây) vẫn không mất phần hồi dở: 4 × 29 s = 116 s ngồi → +3 HP (116·2/60 = 3,87).
+	base = u.HP
+	for range 4 {
+		tick(29 * time.Second)
+		u = mustSit(t, w, u.ID, true)
+	}
+	if u.HP != base+3 {
+		t.Fatalf("nhịp tim lệch: +%d HP", u.HP-base)
+	}
+
+	// Không báo nữa: hết 60 giây giữ ghế thì về hồi thường. Phần lẻ đang dở 52 điểm (832 điểm từ lúc ngồi),
+	// thêm 60 s ngồi còn lại = 120 điểm và 120 s đứng = 120 điểm → 292 điểm = +4 HP sau 180 s (nếu vẫn ngồi là +6).
+	base = u.HP
+	tick(180 * time.Second)
+	if u, _ = w.User(ctx, u.ID); u.Sitting || u.RegenSeconds != RegenSeconds || u.HP != base+4 {
+		t.Fatalf("hết nhịp tim: sitting %v regen %d, +%d HP", u.Sitting, u.RegenSeconds, u.HP-base)
+	}
+
+	// Đứng dậy giữa chừng: chia đoạn đúng, phần lẻ 52 điểm + ngồi 45 s (90 điểm) + đứng 45 s (45 điểm) = 187 điểm → +3 HP.
+	u = mustSit(t, w, u.ID, true) // chốt máu, giữ phần lẻ
+	base = u.HP
+	tick(45 * time.Second)
+	if u = mustSit(t, w, u.ID, false); u.Sitting {
+		t.Fatalf("đứng dậy: %+v", u)
+	}
+	tick(45 * time.Second)
+	if u, _ = w.User(ctx, u.ID); u.HP != base+3 {
+		t.Fatalf("ngồi 45 s rồi đứng 45 s: +%d HP", u.HP-base)
+	}
+
+	// Ngồi lâu cũng không vượt máu tối đa.
+	mustSit(t, w, u.ID, true)
+	for range 200 {
+		tick(30 * time.Second)
+		u = mustSit(t, w, u.ID, true)
+	}
+	if u.HP != MaxHP {
+		t.Fatalf("ngồi lâu phải đầy máu, được %d", u.HP)
+	}
+}
+
+func TestSitBlockedInHospitalAndHitStandsUp(t *testing.T) {
+	w, tick := clockWallet(t)
+	u, _ := register(t, w, "tong")
+	if u = mustSit(t, w, u.ID, true); !u.Sitting {
+		t.Fatalf("ngồi: %+v", u)
+	}
+	tick(2 * time.Second)
+	if u = mustHit(t, w, u.ID); u.Sitting || u.RegenSeconds != RegenSeconds {
+		t.Fatalf("bị tông phải đứng dậy: %+v", u)
+	}
+	for u.HospitalUntil == 0 {
+		tick(2 * time.Second)
+		u = mustHit(t, w, u.ID)
+	}
+	if _, err := w.Sit(ctx, u.ID, true); !errors.Is(err, ErrInHospital) {
+		t.Fatalf("nằm viện không ngồi được, được %v", err)
+	}
+	if u, _ = w.User(ctx, u.ID); u.Sitting {
+		t.Fatalf("nằm viện không tính là ngồi: %+v", u)
+	}
+}

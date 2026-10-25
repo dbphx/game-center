@@ -65,6 +65,7 @@ func New(w *wallet.Wallet, static fs.FS, games []Game) *Server {
 				"dischargePrice": wallet.DischargePrice, "healPerHP": wallet.HealPerHP, "stayMinutes": wallet.HospitalStay / 60,
 				"regenPerMinute": 60 / wallet.RegenSeconds, "carDamage": wallet.CarDamage,
 			},
+			"sitRegenMultiplier": wallet.SitRegenMultiplier,
 		})
 	})
 	s.mux.HandleFunc("POST /api/register", s.register)
@@ -78,6 +79,7 @@ func New(w *wallet.Wallet, static fs.FS, games []Game) *Server {
 	s.mux.HandleFunc("POST /api/me/items/wear", s.authed(s.shopItem(false)))
 	s.mux.HandleFunc("POST /api/hp/hit", s.authed(s.hit))
 	s.mux.HandleFunc("POST /api/hospital/heal", s.authed(s.heal))
+	s.mux.HandleFunc("POST /api/me/sit", s.authed(s.sit))
 	s.mux.HandleFunc("GET /api/me", s.authed(s.me))
 	s.mux.HandleFunc("POST /api/me", s.authed(s.rename))
 	s.mux.HandleFunc("POST /api/daily", s.authed(s.daily))

@@ -17,6 +17,9 @@ const (
 	HospitalStay   = 300  // nằm viện 5 phút thì tự xuất viện đầy máu
 	DischargePrice = 200  // xu để xuất viện ngay
 	HealPerHP      = 2    // xu cho mỗi HP thiếu khi chữa lúc không nằm viện
+
+	SitRegenMultiplier = 2  // ngồi ghế hồi máu nhanh gấp đôi
+	SitHeartbeat       = 60 // mỗi lần báo "đang ngồi" giữ ghế 60 giây; giao diện báo lại khoảng 30 giây một lần
 )
 
 // ZoneMinHP là lượng máu tối thiểu để vào từng khu trên bản đồ.
@@ -64,6 +67,17 @@ type hpState struct {
 	hpAt          int64 // unix lúc lưu hp; 0 = chưa tính lần nào (coi như đầy)
 	hospitalUntil int64
 	lastHitMs     int64
+	sitUntil      int64 // unix lúc hết ngồi; khoảng ngồi luôn bắt đầu từ hpAt (ngồi xuống là chốt máu)
+}
+
+// regenCredit là "điểm hồi" tích từ hpAt tới now: mỗi giây đứng 1 điểm, mỗi giây ngồi SitRegenMultiplier điểm;
+// đủ RegenSeconds điểm thì +1 HP. Đoạn ngồi là [hpAt, min(now, sitUntil)], phần sau hồi thường.
+func (s hpState) regenCredit(now int64) int64 {
+	if now <= s.hpAt {
+		return 0
+	}
+	sit := max(0, min(now, s.sitUntil)-s.hpAt)
+	return (now - s.hpAt - sit) + sit*SitRegenMultiplier
 }
 
 // current tính máu hiện tại (lười, không ghi DB): tự hồi theo thời gian, đang nằm viện thì
@@ -79,15 +93,15 @@ func (s hpState) current(now int64) (hp int, hospitalUntil int64) {
 	if s.hpAt == 0 {
 		return MaxHP, 0
 	}
-	regen := max(0, (now-s.hpAt)/RegenSeconds)
+	regen := s.regenCredit(now) / RegenSeconds
 	return int(min(int64(MaxHP), int64(s.hp)+regen)), 0
 }
 
 func (t *Tx) hpState(userID int64) (hpState, error) {
 	var s hpState
 	var hpAt sql.NullInt64
-	err := t.QueryRowContext(t.ctx, `SELECT hp, hp_at, hospital_until, last_hit_ms FROM users WHERE id = ?`, userID).
-		Scan(&s.hp, &hpAt, &s.hospitalUntil, &s.lastHitMs)
+	err := t.QueryRowContext(t.ctx, `SELECT hp, hp_at, hospital_until, last_hit_ms, sit_until FROM users WHERE id = ?`, userID).
+		Scan(&s.hp, &hpAt, &s.hospitalUntil, &s.lastHitMs, &s.sitUntil)
 	if errors.Is(err, sql.ErrNoRows) {
 		return s, ErrNotFound
 	}
@@ -95,10 +109,57 @@ func (t *Tx) hpState(userID int64) (hpState, error) {
 	return s, err
 }
 
+// setHP lưu máu mới tính từ bây giờ; luôn đứng dậy (sit_until = now): bị xe tông, chữa trị... đều làm nhân vật đứng.
 func (t *Tx) setHP(userID int64, hp int, hospitalUntil, lastHitMs int64) error {
-	_, err := t.ExecContext(t.ctx, `UPDATE users SET hp = ?, hp_at = ?, hospital_until = ?, last_hit_ms = ? WHERE id = ?`,
-		hp, t.now, hospitalUntil, lastHitMs, userID)
+	_, err := t.ExecContext(t.ctx, `UPDATE users SET hp = ?, hp_at = ?, hospital_until = ?, last_hit_ms = ?, sit_until = ? WHERE id = ?`,
+		hp, t.now, hospitalUntil, lastHitMs, t.now, userID)
 	return err
+}
+
+// Sit cho nhân vật ngồi ghế (sit = true) hoặc đứng dậy. Ngồi hồi máu nhanh gấp SitRegenMultiplier lần;
+// mỗi lần báo ngồi giữ ghế SitHeartbeat giây, giao diện báo lại khi còn ngồi. Đang nằm viện thì không ngồi được.
+func (w *Wallet) Sit(ctx context.Context, id int64, sit bool) (User, error) {
+	t, err := w.Begin(ctx)
+	if err != nil {
+		return User{}, err
+	}
+	defer t.Rollback()
+	s, err := t.hpState(id)
+	if err != nil {
+		return User{}, err
+	}
+	hp, until := s.current(t.now)
+	if until > 0 {
+		return User{}, ErrInHospital
+	}
+	sitUntil := t.now
+	if sit {
+		sitUntil = t.now + SitHeartbeat
+	}
+	switch {
+	case sit && s.sitUntil > t.now && s.hpAt > 0:
+		// Đang ngồi sẵn (nhịp tim): chỉ gia hạn, khoảng ngồi vẫn liền từ hpAt nên không cần chốt máu.
+		_, err = t.ExecContext(t.ctx, `UPDATE users SET sit_until = ? WHERE id = ?`, sitUntil, id)
+	default:
+		// Đổi tư thế: chốt máu tới bây giờ, giữ phần điểm hồi lẻ bằng cách lùi hp_at lại tương ứng
+		// (theo tốc độ của tư thế mới) để báo ngồi / đứng liên tục không làm mất máu đang hồi dở.
+		hpAt := t.now
+		if s.hpAt > 0 && hp < MaxHP {
+			rest := s.regenCredit(t.now) % RegenSeconds
+			if sit {
+				rest /= SitRegenMultiplier
+			}
+			hpAt -= rest
+		}
+		_, err = t.ExecContext(t.ctx, `UPDATE users SET hp = ?, hp_at = ?, sit_until = ? WHERE id = ?`, hp, hpAt, sitUntil, id)
+	}
+	if err != nil {
+		return User{}, err
+	}
+	if err := t.Commit(); err != nil {
+		return User{}, err
+	}
+	return w.User(ctx, id)
 }
 
 // Hit trừ máu khi nhân vật bị xe đụng trên bản đồ. Va chạm dồn dập (dưới 1.5 giây) bị bỏ qua;

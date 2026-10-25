@@ -188,6 +188,21 @@ func (s *Server) hit(w http.ResponseWriter, r *http.Request, u wallet.User) {
 	writeJSON(w, http.StatusOK, u)
 }
 
+// sit ngồi ghế (hồi máu gấp đôi) hoặc đứng dậy: {sit: true|false}. Khi còn ngồi giao diện gửi lại sit: true
+// khoảng 30 giây một lần, quá 60 giây không báo thì coi như đã đứng.
+func (s *Server) sit(w http.ResponseWriter, r *http.Request, u wallet.User) {
+	var body struct {
+		Sit bool `json:"sit"`
+	}
+	readJSON(w, r, &body)
+	u, err := s.wallet.Sit(r.Context(), u.ID, body.Sit)
+	if err != nil {
+		s.authError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, u)
+}
+
 // heal chữa ở bệnh viện: xuất viện ngay hoặc chữa phần HP thiếu.
 func (s *Server) heal(w http.ResponseWriter, r *http.Request, u wallet.User) {
 	u, err := s.wallet.Heal(r.Context(), u.ID)

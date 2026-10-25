@@ -154,3 +154,33 @@ func TestZoneHPGates(t *testing.T) {
 		t.Fatalf("nằm viện vào bàn: %v", msg)
 	}
 }
+
+// Ngồi ghế: POST /api/me/sit {sit} trả user có sitting / regenSeconds; bị tông thì đứng; nằm viện 423.
+func TestSitAPI(t *testing.T) {
+	srv, path := newHPServer(t)
+	a := newAccount(t, srv, "ngoi")
+	var u wallet.User
+	if code := call(t, srv, "POST", "/api/me/sit", a.Token, map[string]bool{"sit": true}, &u); code != 200 || !u.Sitting || u.RegenSeconds != 30 {
+		t.Fatalf("ngồi: %d %+v", code, u)
+	}
+	if code := call(t, srv, "POST", "/api/me/sit", a.Token, map[string]bool{"sit": false}, &u); code != 200 || u.Sitting || u.RegenSeconds != 60 {
+		t.Fatalf("đứng dậy: %d %+v", code, u)
+	}
+	call(t, srv, "POST", "/api/me/sit", a.Token, map[string]bool{"sit": true}, nil)
+	if code := call(t, srv, "POST", "/api/hp/hit", a.Token, map[string]string{"source": "car"}, &u); code != 200 || u.Sitting {
+		t.Fatalf("bị tông phải đứng dậy: %d %+v", code, u)
+	}
+	setHP(t, path, "ngoi", 0, time.Now().Unix()+wallet.HospitalStay)
+	if code := call(t, srv, "POST", "/api/me/sit", a.Token, map[string]bool{"sit": true}, nil); code != 423 {
+		t.Fatalf("nằm viện ngồi phải 423, được %d", code)
+	}
+	if code := call(t, srv, "POST", "/api/me/sit", "", map[string]bool{"sit": true}, nil); code != 401 {
+		t.Fatalf("chưa đăng nhập phải 401, được %d", code)
+	}
+	var cfg struct {
+		Sit int `json:"sitRegenMultiplier"`
+	}
+	if call(t, srv, "GET", "/api/config", "", nil, &cfg); cfg.Sit != 2 {
+		t.Fatalf("config sitRegenMultiplier: %+v", cfg)
+	}
+}

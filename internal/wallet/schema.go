@@ -15,7 +15,8 @@ import (
 //	5: máu (HP), nằm viện, thời điểm va chạm xe gần nhất.
 //	6: tóc và cánh mua ở shop thời trang; bảng user_items lưu các món đã có.
 //	7: gương mặt mua ở shop thời trang (lưu chung bảng user_items, kind 'face').
-const schemaVersion = 7
+//	8: ngồi ghế (sit_until) để hồi máu nhanh gấp đôi.
+const schemaVersion = 8
 
 const schemaV2 = `
 CREATE TABLE users (
@@ -111,6 +112,11 @@ const migrateV6toV7 = `
 ALTER TABLE users ADD COLUMN face TEXT NOT NULL DEFAULT 'default';
 `
 
+// Người chơi cũ đang đứng.
+const migrateV7toV8 = `
+ALTER TABLE users ADD COLUMN sit_until INTEGER NOT NULL DEFAULT 0;
+`
+
 func migrate(db *sql.DB) error {
 	ctx := context.Background()
 	var version int
@@ -150,6 +156,9 @@ func migrate(db *sql.DB) error {
 	}
 	if version <= 6 {
 		steps = append(steps, migrateV6toV7)
+	}
+	if version <= 7 {
+		steps = append(steps, migrateV7toV8)
 	}
 
 	// Dựng lại bảng có khoá ngoại trỏ tới cần tắt kiểm tra khoá ngoại (không đổi được trong transaction).

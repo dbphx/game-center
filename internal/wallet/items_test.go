@@ -112,7 +112,7 @@ func TestMigrateFromV5DefaultHair(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = db.Exec(dropV7 + dropV6 + `UPDATE users SET outfit = 'sport'; PRAGMA user_version = 5;`)
+	_, err = db.Exec(dropV8 + dropV7 + dropV6 + `UPDATE users SET outfit = 'sport'; PRAGMA user_version = 5;`)
 	db.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -182,7 +182,7 @@ func TestMigrateFromV6DefaultFace(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = db.Exec(dropV7 + `PRAGMA user_version = 6;`)
+	_, err = db.Exec(dropV8 + dropV7 + `PRAGMA user_version = 6;`)
 	db.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -200,5 +200,45 @@ func TestMigrateFromV6DefaultFace(t *testing.T) {
 	}
 	if got, err = w.BuyItem(ctx, u.ID, KindFace, "smile"); err != nil || got.Face != "smile" {
 		t.Fatalf("mua mặt sau nâng cấp: %+v %v", got, err)
+	}
+}
+
+// dropV8 bỏ cột ngồi ghế để đưa database về dạng v7.
+const dropV8 = `ALTER TABLE users DROP COLUMN sit_until;`
+
+// Người chơi từ database v7 đang đứng, vẫn hồi máu bình thường và ngồi được.
+func TestMigrateFromV7Standing(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "v7.db")
+	w, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, _ := register(t, w, "binh")
+	if _, err := w.BuyItem(ctx, u.ID, KindFace, "smile"); err != nil {
+		t.Fatal(err)
+	}
+	w.Close()
+
+	db, err := sql.Open("sqlite", "file:"+path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = db.Exec(dropV8 + `PRAGMA user_version = 7;`)
+	db.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	w, err = Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer w.Close()
+	got, err := w.User(ctx, u.ID)
+	if err != nil || got.Sitting || got.RegenSeconds != RegenSeconds || got.HP != MaxHP || got.Face != "smile" {
+		t.Fatalf("sau nâng cấp v8: %+v %v", got, err)
+	}
+	if got, err = w.Sit(ctx, u.ID, true); err != nil || !got.Sitting {
+		t.Fatalf("ngồi sau nâng cấp: %+v %v", got, err)
 	}
 }

@@ -22,6 +22,7 @@ mỗi khu là một game hoặc tiện ích, tất cả **dùng chung một ví 
 ## Máu (HP) và Bệnh viện
 
 - Nhân vật có 100 HP, tự hồi 1 HP/phút. **Bị xe tông −20 HP.**
+- **Ngồi ghế** hồi máu nhanh gấp đôi (1 HP / 30 giây); bị xe tông thì đứng dậy, đang nằm viện thì không ngồi được.
 - Hết HP → **nằm viện 5 phút** (bị đưa tới Bệnh viện, không đi / vào khu được), hồi dần tới đầy; trả 200 xu để xuất viện ngay.
   Khi khoẻ có thể chữa nhanh ở Bệnh viện: 2 xu mỗi HP thiếu.
 - HP tối thiểu để vào khu (server cũng chặn): Shop 10, Casino 30, Nông trại 40; Quảng trường, Ngân hàng, Bệnh viện 0.
@@ -251,12 +252,13 @@ public/tienlen/          giao diện Tiến Lên
 | `POST /api/outfits/buy {outfit}` | mua trang phục (403 thiếu level, 402 thiếu xu, 409 đã có) |
 | `POST /api/me/items/buy {kind, id}` | mua quần áo / tóc / cánh / gương mặt (`kind`: `outfit`, `hair`, `wings`, `face`) và mặc luôn; lỗi như trên, 400 món lạ |
 | `POST /api/me/items/wear {kind, id}` | mặc / đeo món đã có (403 chưa có); tóc / mặt `default` luôn được, cánh `""` là tháo cánh |
+| `POST /api/me/sit {sit}` | ngồi ghế (`true`, giữ 60 giây — gửi lại ~30 giây một lần khi còn ngồi) / đứng dậy (`false`); user có `sitting`, `regenSeconds` (60 đứng, 30 ngồi); 423 khi nằm viện |
 | `GET /api/me` | thông tin + số dư, nhân vật (`outfit`, `owned`, `hair`, `ownedHair`, `wings`, `ownedWings`, `face`, `ownedFace`) (header `Authorization: Bearer <token>`) |
 | `POST /api/me {name}` | đổi tên |
 | `POST /api/daily` | nhận thưởng ngày (409 nếu đã nhận) |
 | `GET /api/history` | 30 giao dịch gần nhất |
 | `GET /api/games` | danh sách game và số người đang chơi |
-| `GET /api/config` | số xu tặng ban đầu, thưởng ngày, danh mục trang phục (`catalog`), tóc (`hair`), cánh (`wings`), gương mặt (`face`) |
+| `GET /api/config` | số xu tặng ban đầu, thưởng ngày, danh mục trang phục (`catalog`), tóc (`hair`), cánh (`wings`), gương mặt (`face`), `sitRegenMultiplier` (2) |
 
 WebSocket Tiến Lên (`/ws/tienlen`, JSON): client gửi `create {token}`, `join {code, token}`, `addBot`, `kick`, `setBet`, `start`, `play`, `pass`, `hint`, `leave`;
 server gửi `session`, `state` (riêng từng người, chỉ có bài của chính họ), `hint`, `error`, `left`, `auth`.
