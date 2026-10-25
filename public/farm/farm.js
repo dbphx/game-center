@@ -200,6 +200,7 @@
   const H = 740; // phần dưới y 610 là bụi cây + cỏ (thanh công cụ nổi đè lên)
   const SKY = 130; // dải trời + hàng rào phía sau
   const BOTTOM = 610; // mép dưới vùng đi lại
+  const FRONT_Y = 694; // chân rào ranh giới mặt trước (dưới vùng đi lại, không chạm rào chuồng)
   const PLOT = 56;
   const PITCH = 60;
   const BLOCK_COLS = 4;
@@ -220,18 +221,19 @@
     const barnCap = farm && farm.barn ? farm.barn.capacity : 5;
     const pondCap = farm && farm.pond ? farm.pond.capacity : 5;
     PEN.x2 = PEN.x1 + Math.round(300 + 360 * capK(barnCap));
-    OX = PEN.x2 - 400;
-    BX[0] = 804 + OX;
+    // +110: chừa lối đi ≥ 1 ô (~64px) giữa rào chuồng và rào tre cụm kho (rào kho bên trái ở X(400) = PEN.x2 + 110).
+    OX = PEN.x2 - 400 + 110;
+    BX[0] = 834 + OX;
     BX[1] = BX[0] + BLOCK_W + 48;
     POND_BOX.w = Math.round(260 + 310 * capK(pondCap));
-    POND_BOX.h = Math.round(200 + 80 * capK(pondCap));
+    POND_BOX.h = 200; // ao chỉ nới ngang về bên phải (cạnh trái cố định), không lấn xuống dưới
     POND_BOX.x = BX[1] + BLOCK_W + 40;
-    POND_BOX.y = Math.round(372 - POND_BOX.h / 2);
+    POND_BOX.y = 272;
     W = POND_BOX.x + POND_BOX.w + 40;
-    CORE_W = 804 - 82 + 2 * BLOCK_W + 48 + 40 + 260 + 40;
+    CORE_W = 834 + 28 + 2 * BLOCK_W + 48 + 40 + 260 + 40;
     Object.assign(ROAM, { x1: PEN.x1 + 34, y1: 330, x2: PEN.x2 - 30, y2: PEN.y2 - 24 });
     const ww = POND_BOX.w - 30;
-    Object.assign(POND, { cx: POND_BOX.x + POND_BOX.w / 2, cy: POND_BOX.y + 18 + ww * 0.305, rx: ww * 0.34, ry: ww * 0.15 });
+    Object.assign(POND, { cx: POND_BOX.x + POND_BOX.w / 2, cy: POND_BOX.y + 18 + 58, rx: ww * 0.34, ry: 28 });
     NESTS.splice(0, NESTS.length, [584 + OX, 446]); // một ổ rơm chung giữa lô cỏ
   }
   let OY = 0; // khoảng trời thêm phía trên khi khung nhìn cao hơn cảnh
@@ -249,21 +251,21 @@
   function hedgeList(X) {
     const b = POND_BOX;
     return [
-      [PEN.x2 + 24, X(528), 598], // mặt trước, trái cổng
-      [X(646), BX[0] - 14, 598], // mặt trước, phải cổng
-      [BX[1] + BLOCK_W + 14, W - 16, 598], // mặt trước, góc phải
-      [X(462), X(524), 504], // viền hai góc dưới lô cỏ giữa (chừa lối rộng ở giữa)
-      [X(654), X(708), 504],
+      // Rào ranh giới mặt trước trang trại: chạy suốt chiều ngang, chỉ hở đúng cổng.
+      [0, X(528), FRONT_Y],
+      [X(644), W, FRONT_Y],
       [b.x + 6, b.x + b.w - 6, b.y + b.h + 8], // viền dưới ao
       // Quanh cụm hai nhà kho + đống rơm: mặt trước, chừa lối vào trước cửa mỗi kho.
-      [X(398), X(472), 340],
-      [X(538), X(670), 340],
-      [X(742), X(792), 340],
+      // Rào tre hoa quanh cụm kho (sân trước cửa kho rộng, bao cả đống rơm), lối vào rộng trước mỗi cửa.
+      [X(400), X(444), 388],
+      [X(566), X(644), 388],
+      [X(768), X(806), 388],
+      [X(400), X(806), 214], // mặt sau cụm kho (sau hai mái, trước luỹ tre)
     ];
   }
   // Rào hoa chạy dọc hai bên cụm kho: [x, y1, y2 (chân)].
   function hedgeSides(X) {
-    return [[X(392), 216, 340], [X(796), 216, 340]];
+    return [[X(400), 214, 388], [X(806), 214, 388]];
   }
 
   // Khoảng cổng hông chuồng (toạ độ thế giới) theo ảnh hàng rào (manifest gate_gap_y; ảnh cũ 250–330).
@@ -448,7 +450,7 @@
       ${penLabel('pond', pen)}
       <span class="deco" style="left:0;bottom:2px">${art.img('flowers', { h: 40 })}</span>
       <span class="deco" style="right:0;bottom:2px">${art.img('bush_3', { h: 34 })}</span>
-      <div class="pond-water" style="width:${b.w - 30}px">${art.img('pond', { cls: 'pond-img' })}</div>
+      <div class="pond-water" style="width:${b.w - 30}px;height:${b.h - 84}px">${art.img('pond', { cls: 'pond-img' })}</div>
     </div>`;
   }
 
@@ -511,7 +513,7 @@
     const r = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
     const colors = ['red', 'yellow', 'pink', 'purple', 'white'];
     const zones = [
-      [480 + OX, 362, 700 + OX, 455, 5], // lô cỏ giữa
+      [500 + OX, 404, 668 + OX, 412, 3], // vành cỏ quanh ổ trứng
       [POND_BOX.x + 10, POND_BOX.y + POND_BOX.h - 26, POND_BOX.x + POND_BOX.w - 10, POND_BOX.y + POND_BOX.h - 8, 6], // bờ ao dưới
       [POND_BOX.x + 10, POND_BOX.y + 6, POND_BOX.x + POND_BOX.w - 10, POND_BOX.y + 18, 3], // bờ ao trên
       [16, SKY + 10, W - 16, SKY + 26, 18], // dải cỏ dưới hàng rào
@@ -599,8 +601,11 @@
       <span class="fence-row"></span></div>`);
     parts.push(`<span class="grass-edge" style="left:0;top:${SKY}px;width:${W}px;z-index:3"></span>`);
     for (const x of [Math.round(PEN.x2 * 0.65), BX[0] + 140, BX[1] + 160]) parts.push(`<span class="obj decor far" style="${pos(x, SKY + 10, 2)}">${art.img('tree_big', { h: 250 })}</span>`);
-    parts.push(`<span class="grass-edge bottom" style="left:0;top:${BOTTOM - 4}px;width:${W}px;height:${H - BOTTOM + 4}px;z-index:4"></span>`);
-    parts.push(`<span class="bush-row" style="left:0;top:${BOTTOM - 10}px;width:${W}px;z-index:${H}"></span>`);
+    // Mép trước trang trại là nền đất (không còn dải cỏ / bụi xanh); vài khóm hoa sát chân rào ranh giới.
+    for (let x = 60; x < W - 40; x += 170) {
+      if (Math.abs(x - X(586)) < 90) continue;
+      parts.push(`<span class="flower-clump" style="${pos(x + ((x / 170) % 2) * 30, FRONT_Y + 14, 4)}">${art.img(`flower_${['red', 'pink', 'yellow', 'purple', 'white'][Math.floor(x / 170) % 5]}`, { h: 26 })}</span>`);
+    }
 
     // Chuồng gia súc ở mép trái.
     parts.push(yardHTML());
@@ -616,8 +621,8 @@
     objs.seeds = { x: X(706), y: 316, face: 'up', hx: X(706), hy: 104, verb: 'Mở kho', run: () => openStore('seeds') };
 
     // Lô cỏ nhỏ giữa (giếng, cây ăn trái, hoa) và gà con đi dạo.
-    parts.push(`<span class="patch" style="left:${X(458)}px;top:340px;width:250px;height:156px;z-index:3"></span>`);
-    parts.push(deco('flowers', X(470), 488, 30));
+    // Ô cỏ nhỏ bo góc vừa ôm ổ trứng + vành cỏ hẹp; xung quanh là lối đất.
+    parts.push(`<span class="patch small" style="left:${X(584) - 96}px;top:398px;width:192px;height:74px;z-index:3"></span>`);
 
     // Ổ rơm (ổ đẻ) trên lô cỏ giữa: trứng của gà / vịt đã lớn hiện trong ổ.
     parts.push(nestsHTML());
@@ -661,7 +666,7 @@
       parts.push(el.replace('style="', `style="--sway-delay:-${(i * 0.73) % 6}s;`));
     });
     parts.push(flowersHTML());
-    for (const [x1, x2, y] of HEDGES) parts.push(`<span class="hedge" style="left:${x1}px;top:${y - 60}px;width:${x2 - x1}px;z-index:${y}"></span>`);
+    for (const [x1, x2, y] of HEDGES) parts.push(`<span class="hedge" style="left:${x1}px;top:${y - 72}px;width:${x2 - x1}px;z-index:${y}"></span>`);
     for (const [x, y1, y2] of hedgeSides(X)) parts.push(`<span class="hedge-side" style="left:${x - 20}px;top:${y1 - 30}px;height:${y2 - y1 + 22}px;z-index:${y2 - 1}"></span>`);
 
     $('objects').innerHTML = parts.join('');

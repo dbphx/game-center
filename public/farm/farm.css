@@ -508,11 +508,12 @@ button.wide { width: 100%; justify-content: center; }
 .field-bed { box-shadow: inset 0 0 0 3px rgba(60, 120, 30, .35), 0 6px 0 rgba(120, 90, 40, .3); background: url('/img/toon/farm/grass_tile.png') repeat; background-size: 128px; }
 
 .layer { position: absolute; left: 0; top: 0; width: 100%; height: 720px; }
-.world { background: linear-gradient(#5dbcf2, #b9e6ff) 0 0 / 100% calc(var(--oy, 0px) + 4px) no-repeat, url('/img/toon/farm/dirt_smooth.png') 0 var(--oy, 0px) / 128px repeat; }
+.world { background: linear-gradient(#5dbcf2, #b9e6ff) 0 0 / 100% calc(var(--oy, 0px) + 140px) no-repeat, url('/img/toon/farm/dirt_smooth.png') 0 var(--oy, 0px) / 128px repeat; }
 .sky-top { position: absolute; left: 0; z-index: 1; pointer-events: none; }
 
 /* Nền xa: đồi cây + đồng ruộng sau hàng rào (ảnh far_farmland.png) */
-.sky { background: url('/img/toon/farm/far_farmland.png') left bottom 30px / auto var(--far, 120px) repeat-x, linear-gradient(#5dbcf2, #b9e6ff); }
+/* Một dải trời liền: màu trời vẽ ở .world (từ đỉnh tới chân hàng rào), các lớp .sky / .sky-top chỉ còn đồi + mây (nền trong suốt). */
+.sky { background: url('/img/toon/farm/far_farmland.png') left bottom 30px / auto var(--far, 120px) repeat-x; }
 .stroll { animation: stroll var(--dur, 10s) ease-in-out infinite alternate; }
 .stroll img { animation: peck 1.2s ease-in-out infinite; transform-origin: 50% 100%; }
 @keyframes stroll { 0% { translate: -30px 0; } 45% { translate: 20px 4px; } 50% { translate: 20px 4px; scale: -1 1; } 100% { translate: -30px 0; scale: -1 1; } }
@@ -722,7 +723,7 @@ button.danger { background: linear-gradient(180deg, #ff8a7a, #e03131); border-co
 }
 
 /* Hàng rào hoa (ảnh lặp ngang hedge_flower.png) */
-.hedge { position: absolute; height: 60px; pointer-events: none; background: url('/img/toon/farm/hedge_flower.png') left bottom / 128px 60px repeat-x; filter: drop-shadow(0 3px 2px rgba(60, 40, 10, .2)); }
+.hedge { position: absolute; height: 72px; pointer-events: none; background: url('/img/toon/farm/fence_bamboo.png') left bottom / 128px 72px repeat-x; filter: drop-shadow(0 3px 2px rgba(60, 40, 10, .2)); }
 
 /* Ổ rơm chung */
 .obj.nest.big .nest-eggs { position: absolute; left: 0; right: 0; top: 0; bottom: 0; transform: none; display: block; }
@@ -737,7 +738,7 @@ button.danger { background: linear-gradient(180deg, #ff8a7a, #e03131); border-co
 /* Biển tên trên cổng 3D (vị trí / cỡ đặt bằng JS theo sign_box) */
 .obj.gate .gate-sign[style] { transform: translate(-50%, -50%); justify-content: center; }
 .obj.nest.big .nest-eggs[style] { right: auto; bottom: auto; width: 0; height: 0; }
-.hedge-side { position: absolute; width: 40px; pointer-events: none; background: url('/img/toon/farm/hedge_flower_side.png') left top / 40px 48px repeat-y; filter: drop-shadow(0 3px 2px rgba(60, 40, 10, .2)); }
+.hedge-side { position: absolute; width: 40px; pointer-events: none; background: url('/img/toon/farm/fence_bamboo_side.png') left top / 40px 56px repeat-y; filter: drop-shadow(0 3px 2px rgba(60, 40, 10, .2)); }
 
 /* Sàn chuồng đất be (như lối đi), vài khóm cỏ, ít rơm gần máng */
 .obj.area.yard { background: url('/img/toon/farm/dirt_smooth.png') repeat; background-size: 256px; box-shadow: inset 0 0 0 3px rgba(150, 110, 50, .3), 0 6px 0 rgba(120, 90, 40, .25); }
@@ -749,3 +750,8 @@ button.danger { background: linear-gradient(180deg, #ff8a7a, #e03131); border-co
 /* Thức ăn trong kho giống */
 .store-sub { margin: 6px 0 0; font: 800 16px var(--font-title); color: #5a2c00; }
 .store-card.feed { background: linear-gradient(180deg, #f6fbe8, #e4f2c8); border-color: #b9d98a; }
+.patch.small { border-radius: 40px; }
+.patch.small::before { left: 18px; right: 18px; top: -12px; height: 22px; background-size: 60px 22px; }
+.pond-area .pond-water .pond-img { width: 100%; height: 100%; object-fit: fill; }
+.sky-top { background: none; }
+.scene { background: #5dbcf2; }

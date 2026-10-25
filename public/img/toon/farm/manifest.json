@@ -2044,6 +2044,28 @@
    "source": [
     "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
    ]
+  },
+  {
+   "file": "fence_bamboo.png",
+   "w": 128,
+   "h": 72,
+   "use": "Rào tre đan chéo có hoa leo (hoa giấy, mười giờ), lặp ngang 128×72",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ bằng PIL)"
+   ]
+  },
+  {
+   "file": "fence_bamboo_side.png",
+   "w": 40,
+   "h": 56,
+   "use": "Rào tre hoa chạy dọc (3/4), lặp dọc 40×56",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ bằng PIL)"
+   ]
   }
  ]
 }
