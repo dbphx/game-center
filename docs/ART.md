@@ -47,5 +47,11 @@ Toàn game theo phong cách hoạt hình Avatar (bộ pixel cũ đã xoá, còn 
 | `/credits.html` | tổng hợp ghi công từ manifest / CREDITS.csv / LICENSE.txt |
 | `public/icons.js` | icon giao diện SVG nhỏ trong nút — ngoại lệ, giữ |
 
+Bản đồ (`public/city.js`) đọc mọi ảnh qua bảng ánh xạ tên → file + điểm chân lấy từ manifest. Một bộ ảnh thay thế
+(vd 3D ở `public/img/toon/city3d/`) chỉ cần manifest có `"replaces": "tên cũ"` cho từng ảnh (hoặc bảng `"map"`), neo chân
+`"anchor": [x, y]` / `"foot"` và `"scale"` nếu cần; bật bằng `?art=city3d` hoặc `localStorage['city.art']`.
+Cây phố (phượng, bằng lăng, bàng, sao), khu Công trường / Hồ câu cá, hiệu ứng động (`fx_*`) và biểu cảm (`emote_*`) ở
+`public/img/toon/city/` đều vẽ bằng PIL (CC0); hoạt ảnh chỉ dùng CSS transform / opacity trên ảnh PNG.
+
 Nguồn hiện tại đều CC0 (Kenney, OpenGameArt; phần tự ghép bằng PIL phát hành CC0).
 Hạn chế: xe chỉ có ảnh nghiêng (chỉ chạy đường ngang); nhân vật hướng lên/xuống nhún thay vì bước; nằm = xoay 90°.

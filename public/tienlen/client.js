@@ -100,11 +100,15 @@
 
   function onState(s) {
     const prevPhase = state && state.phase;
+    const prevGame = state && state.gameNo;
     state = s;
     if (s.phase === 'playing') showLobby = false;
     if (s.phase === 'playing' && prevPhase !== 'playing') selected.clear();
     selected = new Set([...selected].filter((c) => s.hand.includes(c)));
     deadline = s.turnMs > 0 ? Date.now() + s.turnMs : 0;
+    // Ván mới bắt đầu ngay trước mắt (không phải tải lại trang giữa ván) thì chạy hiệu ứng chia bài.
+    if (s.phase === 'playing' && prevPhase && (prevPhase !== 'playing' || prevGame !== s.gameNo)) startDeal();
+    else if (s.phase !== 'playing' && deal) finishDeal(false);
     if (pendingBet !== null && s.phase === 'lobby') {
       const mine = s.players.find((p) => p.id === s.you);
       if (mine && mine.host && s.bet !== pendingBet) send({ t: 'setBet', bet: pendingBet });
@@ -121,7 +125,7 @@
   const me = () => state.players.find((p) => p.id === state.you);
   const mySeat = () => state.players.findIndex((p) => p.id === state.you);
   const isHost = () => !!(state && me() && me().host);
-  const myTurn = () => state.phase === 'playing' && state.turn === mySeat();
+  const myTurn = () => state.phase === 'playing' && state.turn === mySeat() && !deal;
   const xu = A.xu;
   const signed = (n) => (n > 0 ? '+' : '') + xu(n);
   const escapeHtml = A.escapeHtml;
@@ -326,6 +330,105 @@
     renderControls();
     renderSide();
     renderResult();
+    $('game').classList.toggle('dealing', !!deal);
+    if (deal) applyLanded();
+  }
+
+  // ---------- Hiệu ứng chia bài ----------
+  // Server chia bài ngay khi bắt đầu ván; client diễn lại: xào bộ bài úp giữa bàn rồi chia từng lá vòng quanh bàn,
+  // bắt đầu từ người đi đầu, 13 lá mỗi người. Trong lúc chia lá chưa tới tay thì ẩn, khoá đánh bài, ẩn đồng hồ lượt.
+  // State từ server vẫn nhận bình thường (máy có thể đã đánh); chia xong vẽ lại đúng trạng thái hiện tại.
+  const CARDS_EACH = 13;
+  let deal = null; // { landed: [số lá đã tới tay theo ghế], timers: [], layer }
+
+  function startDeal() {
+    if (deal) finishDeal(false);
+    const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const n = state.players.length;
+    const first = state.turn >= 0 ? state.turn : 0;
+    const layer = document.createElement('div');
+    layer.className = 'deal-layer';
+    layer.innerHTML = `<div class="deal-deck"></div><button type="button" class="deal-skip">${I.svg('skip')}Bỏ qua</button>`;
+    document.body.appendChild(layer);
+    deal = { landed: new Array(n).fill(0), timers: [], layer };
+    layer.querySelector('.deal-skip').addEventListener('click', () => finishDeal(true));
+    render(); // hiện màn chơi (lá chưa chia đều ẩn) trước khi đo vị trí bộ bài và các tay
+
+    // Bộ bài úp nằm giữa bàn (giữa ô .center).
+    const c = document.querySelector('#game .center').getBoundingClientRect();
+    const deck = layer.querySelector('.deal-deck');
+    deck.style.left = `${c.left + c.width / 2}px`;
+    deck.style.top = `${c.top + c.height / 2}px`;
+    for (let k = 0; k < 8; k++) {
+      const b = cardEl(0, { back: true });
+      b.style.setProperty('--k', k);
+      deck.appendChild(b);
+    }
+    if (!reduce) deck.classList.add('shuffling');
+
+    const step = reduce ? 8 : 40;
+    const flight = reduce ? 90 : 260;
+    const start = reduce ? 50 : 650; // xào bài xong mới chia
+    const order = [];
+    for (let r = 0; r < CARDS_EACH; r++) for (let j = 0; j < n; j++) order.push((first + j) % n);
+    order.forEach((seat, k) => deal.timers.push(setTimeout(() => fly(seat, deck, flight), start + k * step)));
+    deal.timers.push(setTimeout(() => finishDeal(true), start + order.length * step + flight + 80));
+  }
+
+  // Một lá bay từ bộ bài tới vị trí lá kế tiếp trên tay người ở ghế seat.
+  function fly(seat, deck, ms) {
+    if (!deal) return;
+    const top = deck.lastElementChild;
+    if (top && deal.landed.reduce((a, b) => a + b, 0) > state.players.length * CARDS_EACH - 9) top.remove(); // bộ bài vơi dần
+    const from = deck.getBoundingClientRect();
+    const seatEl = document.querySelector(`#game .seat[data-player="${seat}"]`);
+    const cards = seatEl ? seatEl.querySelectorAll('.hand .card') : [];
+    const idx = Math.min(deal.landed[seat], Math.max(0, cards.length - 1));
+    const target = (cards[idx] || (seatEl && seatEl.querySelector('.hand')) || seatEl || deck).getBoundingClientRect();
+    const card = cardEl(0, { back: true });
+    card.classList.add('deal-fly');
+    card.style.left = `${from.left + from.width / 2}px`;
+    card.style.top = `${from.top + from.height / 2}px`;
+    deal.layer.appendChild(card);
+    const dx = target.left + target.width / 2 - (from.left + from.width / 2);
+    const dy = target.top + target.height / 2 - (from.top + from.height / 2);
+    const scale = Math.max(0.6, Math.min(1.3, target.height / card.offsetHeight || 1));
+    const spin = (Math.random() * 30 - 15).toFixed(1);
+    requestAnimationFrame(() => {
+      card.style.transition = `transform ${ms}ms cubic-bezier(.2,.7,.3,1)`;
+      card.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) rotate(${spin}deg) scale(${scale})`;
+    });
+    deal.timers.push(setTimeout(() => {
+      card.remove();
+      if (!deal) return;
+      deal.landed[seat]++;
+      applyLanded(seat);
+    }, ms));
+  }
+
+  // Ẩn những lá chưa tới tay; lá của mình vừa tới thì lật mặt.
+  function applyLanded(only) {
+    if (!deal) return;
+    document.querySelectorAll('#game .seat[data-player]').forEach((el) => {
+      const i = Number(el.dataset.player);
+      if (only !== undefined && i !== only) return;
+      const mine = state.players[i] && state.players[i].id === state.you;
+      el.querySelectorAll('.hand .card').forEach((ce, k) => {
+        const hidden = k >= deal.landed[i];
+        if (!hidden && ce.classList.contains('undealt') && mine) ce.classList.add('flip-in');
+        ce.classList.toggle('undealt', hidden);
+      });
+    });
+  }
+
+  // Kết thúc hiệu ứng (hết giờ hoặc bấm Bỏ qua) rồi vẽ lại đúng trạng thái hiện tại.
+  function finishDeal(redraw = true) {
+    if (!deal) return;
+    deal.timers.forEach(clearTimeout);
+    deal.layer.remove();
+    deal = null;
+    $('game').classList.remove('dealing');
+    if (redraw && state) render();
   }
 
   function renderSeat(p, i, pos) {
@@ -333,6 +436,7 @@
     const isMe = p.id === state.you;
     const playing = state.phase === 'playing';
     el.className = 'seat';
+    el.dataset.player = i;
     el.classList.toggle('turn', playing && state.turn === i);
     el.classList.toggle('done', playing && (p.place >= 0 || p.cong));
     el.classList.toggle('offline', !p.online);
@@ -401,6 +505,7 @@
     $('btn-hint').disabled = !turn;
     $('btn-clear').disabled = selected.size === 0;
     if (state.phase !== 'playing') status('');
+    else if (deal) status('Đang chia bài...');
     else if (turn) {
       status(state.mustInclude >= 0 ? `Lượt của bạn — ván đầu phải đánh kèm ${R.cardName(state.mustInclude)}` : 'Lượt của bạn');
     } else status(`Đợi ${playerName(state.turn)}...`);
@@ -530,6 +635,9 @@
   $('btn-to-lobby').addEventListener('click', () => { showLobby = true; render(); });
   $('btn-leave-lobby').addEventListener('click', leave);
   $('btn-leave-game').addEventListener('click', leave);
+
+  // Bấm vào bàn trong lúc chia thì chia nhanh (bỏ qua hiệu ứng).
+  document.querySelector('#game .table').addEventListener('click', () => deal && finishDeal(true));
 
   $('btn-play').addEventListener('click', () => {
     if (!selected.size) return;

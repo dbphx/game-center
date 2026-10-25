@@ -7,7 +7,7 @@
   const City = window.City;
   const $ = (id) => document.getElementById(id);
 
-  const ZONE_ICON = { plaza: 'mapPin', casino: 'layers', shop: 'shirt', bank: 'landmark', farm: 'sprout', hospital: 'hospital' };
+  const ZONE_ICON = { plaza: 'mapPin', casino: 'layers', shop: 'shirt', bank: 'landmark', farm: 'sprout', hospital: 'hospital', site: 'hammer', fishing: 'fish' };
   const GAME_PATH = { tienlen: '/tienlen/' };
 
   let user = null;
@@ -20,7 +20,7 @@
       { id: 'sport', name: 'Thể thao', level: 1, price: 0, starter: true },
     ],
     // HP tối thiểu để vào từng khu, và quy tắc bệnh viện.
-    zoneMinHP: { plaza: 0, bank: 0, hospital: 0, shop: 10, casino: 30, farm: 40 },
+    zoneMinHP: { plaza: 0, bank: 0, hospital: 0, shop: 10, casino: 30, farm: 40, site: 30, fishing: 10 },
     hospital: { dischargePrice: 200, healPerHP: 2, stayMinutes: 5, regenPerMinute: 1, carDamage: 20 },
   };
   const outfitName = (id) => (config.catalog.find((o) => o.id === id) || C.OUTFITS[id] || { name: id }).name;
@@ -125,6 +125,12 @@
     user = u;
     if (u && typeof u.now === 'number') clockSkew = u.now - Date.now() / 1000;
     if (u && typeof u.hp === 'number') hpBase = { hp: u.hp, at: typeof u.now === 'number' ? u.now : serverNow() };
+    // Server đã cho đứng (bị xe tông, vào viện, hết hạn ngồi) thì nhân vật trên bản đồ cũng đứng dậy; bỏ qua vài giây
+    // đầu sau khi vừa ngồi để phản hồi cũ không làm đứng nhầm.
+    if (u && !u.sitting && cityMounted && City.isSitting && City.isSitting() && Date.now() - sitSince > 3000) {
+      City.setSitting(false);
+      stopSitBeat();
+    }
     return u;
   }
 
@@ -138,7 +144,9 @@
       return Math.min(maxHP() - 1, Math.max(user.hp, Math.floor((elapsed * maxHP()) / stay)));
     }
     const regen = (config.hospital && config.hospital.regenPerMinute) || 0;
-    const gained = Math.floor(Math.max(0, serverNow() - hpBase.at) / 60) * regen;
+    if (!regen) return hpBase.hp;
+    const per = user.regenSeconds || 60 / regen; // số giây hồi 1 HP lúc này
+    const gained = Math.floor(Math.max(0, serverNow() - hpBase.at) / per);
     return Math.min(maxHP(), hpBase.hp + gained);
   }
 
@@ -155,12 +163,14 @@
     const hp = hpNow();
     const pct = Math.round((hp / maxHP()) * 100);
     const tone = pct > 60 ? 'good' : pct > 30 ? 'warn' : 'bad';
-    el.className = `hp-badge ${tone}${inHospital() ? ' sick' : ''}${el.classList.contains('hit') ? ' hit' : ''}`;
-    el.innerHTML = `${I.svg('heart')}<span class="hp-bar"><span style="width:${pct}%"></span></span><b>${hp}/${maxHP()}</b>`;
+    const sit = !!user.sitting && !inHospital();
+    el.className = `hp-badge ${tone}${inHospital() ? ' sick' : ''}${sit ? ' sitting' : ''}${el.classList.contains('hit') ? ' hit' : ''}`;
+    el.innerHTML = `${I.svg('heart')}<span class="hp-bar"><span style="width:${pct}%"></span></span><b>${hp}/${maxHP()}</b>` +
+      (sit ? `<span class="sit-chip" title="Đang ngồi nghỉ: máu hồi nhanh gấp ${config.sitRegenMultiplier || 2}">${I.svg('armchair')}<span>Ngồi nghỉ ×${config.sitRegenMultiplier || 2} hồi máu</span></span>` : '');
     const regen = (config.hospital && config.hospital.regenPerMinute) || 1;
     el.title = inHospital()
       ? `Đang nằm viện, còn ${fmtLeft(user.hospitalUntil - serverNow())}`
-      : `Máu ${hp}/${maxHP()} HP · tự hồi ${regen} HP mỗi phút. Va chạm xe mất máu; hết máu phải nằm viện.`;
+      : `Máu ${hp}/${maxHP()} HP · tự hồi ${sit ? regen * (config.sitRegenMultiplier || 2) : regen} HP mỗi phút${sit ? ' (đang ngồi ghế)' : ''}. Ngồi ghế hồi nhanh gấp đôi; va chạm xe mất máu; hết máu phải nằm viện.`;
   }
 
   // Chữ bay lên trên HUD, ví dụ "-20 HP".
@@ -199,6 +209,34 @@
       A.toast(`Cẩn thận xe! -${dmg} HP`);
       refreshPanel();
     }
+  }
+
+  // Ngồi ghế trên bản đồ: báo server (hồi máu ×2), giữ ghế bằng nhịp báo lại mỗi 30 giây khi còn ngồi.
+  let sitTimer = null;
+  let sitSince = 0;
+  function stopSitBeat() {
+    clearInterval(sitTimer);
+    sitTimer = null;
+  }
+  async function sendSit(on) {
+    try {
+      setUser(await A.api('/api/me/sit', { method: 'POST', body: { sit: on } }));
+    } catch (e) {
+      if (on) {
+        stopSitBeat();
+        City.setSitting(false);
+        if (e.status !== 401) A.toast(e.status === 423 ? 'Đang nằm viện, chưa ngồi được' : e.message);
+      }
+    }
+    renderHUD();
+  }
+  function onSit(on) {
+    stopSitBeat();
+    if (on) {
+      sitSince = Date.now();
+      sitTimer = setInterval(() => (City.isSitting() ? sendSit(true) : stopSitBeat()), 30000);
+    }
+    sendSit(on);
   }
 
   // Vào / ra chế độ nằm viện theo hospitalUntil.
@@ -282,6 +320,28 @@
   }
 
   const PANELS = {
+    site() {
+      return `${panelHead('site', 'Công trường', 'Khu ngoại ô · làm thợ xây kiếm xu')}
+        <div class="panel-section">
+          <p class="muted" style="margin:0">Công trường ở ngoại ô phía tây: cần cẩu, giàn giáo, đống gạch. Nhận việc xây dựng để kiếm xu và XP — đội mũ bảo hộ, cẩn thận kẻo mất máu.</p>
+          <div class="stats">
+            <div class="stat"><div class="muted">Cần máu</div><b>${I.svg('heart')}≥ ${minHP('site')} HP</b></div>
+            <div class="stat"><div class="muted">Phần thưởng</div><b>${I.svg('coins')}Xu + XP</b></div>
+          </div>
+          ${enterButton('site', '/site/', 'Vào công trường')}
+        </div>`;
+    },
+    fishing() {
+      return `${panelHead('fishing', 'Hồ câu cá', 'Khu ngoại ô · câu cá giải trí')}
+        <div class="panel-section">
+          <p class="muted" style="margin:0">Hồ nước yên tĩnh ở ngoại ô phía đông, có bến gỗ, sen và lục bình. Thả câu, chờ phao động rồi giật cần để bắt cá.</p>
+          <div class="stats">
+            <div class="stat"><div class="muted">Cần máu</div><b>${I.svg('heart')}≥ ${minHP('fishing')} HP</b></div>
+            <div class="stat"><div class="muted">Thư giãn</div><b>${I.svg('fish')}Câu cá</b></div>
+          </div>
+          ${enterButton('fishing', '/fishing/', 'Đi câu cá')}
+        </div>`;
+    },
     hospital() {
       const h = config.hospital || {};
       const hp = hpNow();
@@ -368,6 +428,16 @@
             <div class="stat"><div class="muted">Thưởng</div><b>${I.svg('trophy')}XP mỗi vòng</b></div>
           </div>
           ${enterButton('casino', '/baucua/', 'Chơi Bầu cua')}
+        </div>
+        <div class="panel-section">
+          <div class="panel-art">${['x', 'o'].map((m) => `<img src="/img/toon/caro/piece_${m}.png" alt="" width="40" height="40" draggable="false">`).join('')}</div>
+          <h2 style="margin:0">Cờ Caro</h2>
+          <p class="muted" style="margin:0">Bàn cờ 15×15, ai có 5 quân liền hàng trước thì thắng. Mời bạn qua link hoặc đấu với máy (dễ, vừa, khó).</p>
+          <div class="stats">
+            <div class="stat"><div class="muted">Số người</div><b>${I.svg('users')}2 người</b></div>
+            <div class="stat"><div class="muted">Mỗi lượt</div><b>${I.svg('timer')}30 giây</b></div>
+          </div>
+          ${enterButton('casino', '/caro/', 'Chơi Cờ Caro')}
         </div>`;
     },
 
@@ -596,7 +666,7 @@
       try { at = localStorage.getItem('city.at') || 'plaza'; } catch (e) { /* bỏ qua */ }
       const start = City.mount($('map'), {
         look: look(user), name: user.name, level: user.level, at,
-        onArrive: openPanel, onMove: follow, onDepart: closePanel, onHit,
+        onArrive: openPanel, onMove: follow, onDepart: closePanel, onHit, onSit,
       });
       cityMounted = true;
       $('zone-nav').innerHTML = Object.entries(City.ZONES)
@@ -718,7 +788,8 @@
   showConfig();
   A.api('/api/config')
     .then((c) => {
-      config = { ...config, ...c };
+      // zoneMinHP gộp với mặc định (khu mới trên bản đồ vẫn có ngưỡng máu nếu server cũ chưa trả về).
+      config = { ...config, ...c, zoneMinHP: { ...config.zoneMinHP, ...(c && c.zoneMinHP) } };
       showConfig();
       registerCreator.redraw();
       refreshPanel();

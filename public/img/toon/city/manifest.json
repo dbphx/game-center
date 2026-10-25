@@ -550,6 +550,424 @@
    "source": [
     "DCity (vẽ / ghép bằng PIL cho dự án)"
    ]
+  },
+  {
+   "file": "tree_phuong.png",
+   "w": 350,
+   "h": 320,
+   "use": "Cây phượng hoa đỏ (tán dù rộng) — cây phố",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "tree_banglang.png",
+   "w": 270,
+   "h": 320,
+   "use": "Cây bằng lăng hoa tím — cây phố",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "tree_bang.png",
+   "w": 330,
+   "h": 320,
+   "use": "Cây bàng tán tầng — cây phố",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "tree_sao.png",
+   "w": 190,
+   "h": 360,
+   "use": "Cây sao / dầu thân cao tán hẹp — cây phố",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "site_crane_mast.png",
+   "w": 90,
+   "h": 360,
+   "use": "Công trường: thân cần cẩu tháp",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "site_crane_jib.png",
+   "w": 400,
+   "h": 70,
+   "use": "Công trường: cần ngang của cần cẩu (trục quay ở x=120 trên đỉnh thân; quay qua lại bằng CSS)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "site_building.png",
+   "w": 300,
+   "h": 250,
+   "use": "Công trường: nhà đang xây có giàn giáo, lưới xanh",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "site_barrier.png",
+   "w": 120,
+   "h": 60,
+   "use": "Công trường: rào chắn sọc đỏ trắng",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "site_bricks.png",
+   "w": 100,
+   "h": 70,
+   "use": "Công trường: pallet gạch",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "site_sand.png",
+   "w": 130,
+   "h": 60,
+   "use": "Công trường: đống cát + xô",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "site_cone.png",
+   "w": 34,
+   "h": 44,
+   "use": "Cọc tiêu giao thông",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "site_beacon.png",
+   "w": 30,
+   "h": 30,
+   "use": "Đèn cảnh báo cam (quay / chớp bằng CSS)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "site_gate.png",
+   "w": 200,
+   "h": 164,
+   "use": "Cổng gỗ biển CÔNG TRƯỜNG",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fishing_lake.png",
+   "w": 620,
+   "h": 300,
+   "use": "Hồ câu cá (mặt nước, bờ cát, sậy) — vẽ lên mặt đất",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fishing_pier.png",
+   "w": 150,
+   "h": 150,
+   "use": "Bến gỗ câu cá",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fishing_lotus.png",
+   "w": 90,
+   "h": 40,
+   "use": "Cụm lá sen + hoa sen",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fishing_hyacinth.png",
+   "w": 70,
+   "h": 36,
+   "use": "Cụm lục bình trôi",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "tree_lieu.png",
+   "w": 260,
+   "h": 300,
+   "use": "Cây liễu rủ",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "lantern.png",
+   "w": 30,
+   "h": 52,
+   "use": "Đèn lồng đỏ (đung đưa bằng CSS)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fishing_gate.png",
+   "w": 200,
+   "h": 164,
+   "use": "Cổng gỗ biển HỒ CÂU CÁ",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fx_bird.png",
+   "w": 64,
+   "h": 24,
+   "use": "Hiệu ứng: chim bay (2 khung ngang 32×24)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fx_butterfly.png",
+   "w": 40,
+   "h": 18,
+   "use": "Hiệu ứng: bướm (2 khung ngang 20×18)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fx_smoke.png",
+   "w": 40,
+   "h": 40,
+   "use": "Hiệu ứng: làn khói ống khói",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fx_sparkle.png",
+   "w": 24,
+   "h": 24,
+   "use": "Hiệu ứng: tia lấp lánh",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fx_spray.png",
+   "w": 60,
+   "h": 90,
+   "use": "Hiệu ứng: tia nước đài phun",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fx_bunting.png",
+   "w": 220,
+   "h": 40,
+   "use": "Dây cờ đuôi nheo trang trí",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fx_coin.png",
+   "w": 36,
+   "h": 36,
+   "use": "Hiệu ứng: đồng xu xoay ở Ngân hàng",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fx_bulb.png",
+   "w": 14,
+   "h": 14,
+   "use": "Hiệu ứng: bóng đèn biển hiệu",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fx_flag.png",
+   "w": 50,
+   "h": 70,
+   "use": "Cờ đỏ trên cột (bay bằng CSS)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fx_glow.png",
+   "w": 96,
+   "h": 96,
+   "use": "Quầng sáng ấm (đèn đường, cửa sổ ban đêm)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fx_glow_pink.png",
+   "w": 96,
+   "h": 96,
+   "use": "Quầng neon hồng",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fx_glow_red.png",
+   "w": 96,
+   "h": 96,
+   "use": "Quầng đỏ",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fx_glow_orange.png",
+   "w": 96,
+   "h": 96,
+   "use": "Quầng cam",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "emote_wave.png",
+   "w": 44,
+   "h": 44,
+   "use": "Biểu cảm: vẫy tay",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "emote_heart.png",
+   "w": 44,
+   "h": 44,
+   "use": "Biểu cảm: tim",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "emote_laugh.png",
+   "w": 44,
+   "h": 44,
+   "use": "Biểu cảm: cười",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "emote_clap.png",
+   "w": 44,
+   "h": 44,
+   "use": "Biểu cảm: vỗ tay",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "emote_dance.png",
+   "w": 44,
+   "h": 44,
+   "use": "Biểu cảm: nhảy",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
   }
  ]
 }

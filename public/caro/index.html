@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cờ Caro · DCity</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/common.css">
+  <link rel="stylesheet" href="/caro/caro.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"><i data-icon="arrowLeft"></i><span id="logo"></span><span class="brand-text">DCity</span></a>
+    <span class="spacer"></span>
+    <div class="user">
+      <span class="level-badge hidden" id="level-badge" title="Kinh nghiệm"></span>
+      <span class="wallet-pill"><i data-icon="coins"></i><span id="balance"></span></span>
+      <span class="user-chip"><span id="user-avatar"></span><span class="user-chip-name" id="user-name"></span></span>
+    </div>
+  </header>
+
+  <!-- Sảnh: các bàn cờ đang mở, chọn ghế trống để ngồi hoặc mở bàn mới -->
+  <section class="screen hall hidden" id="home">
+    <div class="hall-bar">
+      <div class="hall-title">
+        <span class="hall-icon" id="home-art"></span>
+        <div>
+          <h1>Sảnh Cờ Caro</h1>
+          <p class="muted">Bàn cờ 15×15, ai có 5 quân liền hàng trước thì thắng. Chơi với bạn bè hoặc với máy.</p>
+        </div>
+      </div>
+      <div class="hall-actions">
+        <div class="row code-row">
+          <span class="input-icon grow"><i data-icon="hash"></i><input id="code" maxlength="8" placeholder="Mã bàn" autocomplete="off"></span>
+          <button id="btn-join"><i data-icon="logIn"></i>Vào</button>
+        </div>
+        <button id="btn-create" class="primary"><i data-icon="plus"></i>Tạo bàn</button>
+      </div>
+    </div>
+    <div class="hall-floor">
+      <div class="tables" id="tables"></div>
+    </div>
+  </section>
+
+  <dialog class="modal" id="dlg-create">
+    <form method="dialog">
+      <h2><i data-icon="plus"></i>Mở bàn cờ</h2>
+      <div class="field-label">Mức cược mỗi ván</div>
+      <div class="bet-grid" id="bet-grid"></div>
+      <div class="field-label">Luật chơi</div>
+      <div class="rule-grid" id="rule-grid"></div>
+      <div class="actions"><button value="cancel" formnovalidate>Huỷ</button><button class="primary" value="ok"><i data-icon="plus"></i>Mở bàn</button></div>
+    </form>
+  </dialog>
+
+  <!-- Bàn cờ: chờ người, đang chơi và kết quả đều trên cùng một màn -->
+  <section class="screen room hidden" id="room">
+    <div class="room-bar">
+      <div class="room-title">
+        <h1>Bàn <span class="code" id="room-code"></span></h1>
+        <span class="chip" id="room-bet"></span>
+        <span class="chip" id="room-rule"></span>
+        <span class="chip" id="room-watch"></span>
+      </div>
+      <div class="room-actions">
+        <button id="btn-invite"><i data-icon="link"></i>Mời bạn</button>
+        <button id="btn-leave" class="link"><i data-icon="door"></i>Rời bàn</button>
+      </div>
+    </div>
+
+    <div class="room-floor">
+      <div class="seat-panel" id="seat-a"></div>
+      <div class="board-col">
+        <div class="board" id="board" tabindex="0" aria-label="Bàn cờ caro 15 × 15">
+          <div class="grid" id="grid"></div>
+          <div class="strike hidden" id="strike"></div>
+        </div>
+        <p class="status" id="status"></p>
+      </div>
+      <div class="seat-panel" id="seat-b"></div>
+    </div>
+
+    <!-- Chủ bàn chỉnh mức cược / luật, thêm máy, bắt đầu -->
+    <div class="room-controls" id="lobby-controls">
+      <label class="ctl host-only"><span>Mức cược</span><select id="sel-bet"></select></label>
+      <label class="ctl host-only"><span>Luật</span><select id="sel-rule">
+        <option value="free">Tự do</option>
+        <option value="block2">Chặn 2 đầu</option>
+      </select></label>
+      <label class="ctl host-only"><span>Máy</span><select id="sel-bot">
+        <option value="easy">Dễ</option>
+        <option value="normal" selected>Vừa</option>
+        <option value="hard">Khó</option>
+      </select></label>
+      <button class="host-only" id="btn-add-bot"><i data-icon="bot"></i>Thêm máy</button>
+      <button class="primary host-only" id="btn-start"><i data-icon="play"></i>Bắt đầu</button>
+      <p class="muted guest-only" id="guest-wait">Chờ chủ bàn bắt đầu ván…</p>
+    </div>
+    <div class="room-controls hidden" id="play-controls">
+      <span class="muted keys">Phím: ←↑→↓ chọn ô · Enter đánh · R đầu hàng</span>
+      <button class="danger" id="btn-resign"><i data-icon="x"></i>Đầu hàng</button>
+    </div>
+  </section>
+
+  <!-- Kết quả ván -->
+  <div class="result hidden" id="result">
+    <div class="result-card">
+      <div class="result-title" id="result-title"></div>
+      <div class="result-sub" id="result-sub"></div>
+      <div class="result-gain" id="result-gain"></div>
+      <div class="result-actions">
+        <button class="primary" id="btn-rematch"><i data-icon="play"></i>Ván mới <kbd>N</kbd></button>
+        <button id="btn-board"><i data-icon="eye"></i>Xem bàn cờ</button>
+        <button class="link" id="btn-hall"><i data-icon="door"></i>Về sảnh</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/icons.js"></script>
+  <script src="/character.js"></script>
+  <script src="/account.js"></script>
+  <script src="/caro/caro.js"></script>
+</body>
+</html>

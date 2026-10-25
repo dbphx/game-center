@@ -568,6 +568,12 @@
 .hp-bar { position: relative; display: inline-block; width: 64px; height: 9px; border-radius: 999px; background: #f6d0d0; box-shadow: inset 0 1px 2px rgba(120, 0, 0, .25); overflow: hidden; }
 .hp-bar > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(180deg, #8ee08a, var(--hp, #3aa94a)); transition: width .4s; }
 .hp-bar.big { width: 100%; height: 14px; --hp: #3aa94a; }
+/* Đang ngồi ghế: thanh máu có vệt sáng chạy (hồi nhanh) và nhãn "Ngồi nghỉ ×2". */
+.hp-badge.sitting .hp-bar > span { background: linear-gradient(90deg, #6fd46b 0%, #b6f5a8 45%, #6fd46b 55%, #3aa94a 100%) 0 0 / 200% 100%; animation: hp-fast 1.1s linear infinite; }
+@keyframes hp-fast { to { background-position: -200% 0; } }
+.sit-chip { display: inline-flex; align-items: center; gap: 4px; margin-left: 2px; padding: 1px 8px 1px 5px; border-radius: 999px; background: linear-gradient(180deg, #e3fbd6, #b4e89c); border: 1.5px solid #5aa83a; color: #2f6b1a; font-size: 11px; }
+.sit-chip .icon { width: 14px; height: 14px; fill: none; color: #2f6b1a; animation: none; }
+@media (max-width: 560px) { .sit-chip span { display: none; } }
 
 .hp-float {
   position: fixed;
@@ -604,3 +610,136 @@
 /* Nhãn phím Enter trên nút vào khu */
 .enter-kbd { margin-left: 8px; padding: 1px 6px; border-radius: 6px; background: rgba(255, 255, 255, .55); color: inherit; font: 800 11px/1.4 inherit; box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .15); }
 @media (hover: none) { .enter-kbd { display: none; } }
+
+/* ---------- Bản đồ: ánh sáng, cây, ghế, hiệu ứng động, người chơi khác ---------- */
+
+/* Ánh nắng chiều ấm phủ nhẹ lên bản đồ (chỉ là hiệu ứng ánh sáng trên ảnh, không vẽ hình). */
+.city-light {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 90% at 15% -10%, rgba(255, 214, 140, .38), rgba(255, 214, 140, 0) 62%),
+    linear-gradient(180deg, rgba(255, 200, 130, .12), rgba(255, 170, 90, 0) 45%, rgba(90, 40, 60, .10) 100%);
+  mix-blend-mode: soft-light;
+  transition: background 2s;
+}
+.city-light::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 45%, rgba(0, 0, 0, 0) 62%, rgba(60, 30, 0, .16) 100%);
+}
+/* Ban đêm: lớp tối xanh tím nằm giữa đồ vật và quầng sáng (đèn, cửa sổ, biển hiệu vẫn sáng). */
+.city-dusk {
+  position: absolute;
+  left: -20000px;
+  top: -2000px;
+  width: 40000px;
+  height: 6000px;
+  z-index: 2500;
+  pointer-events: none;
+  background: rgba(24, 28, 80, .55);
+  mix-blend-mode: multiply;
+  opacity: 0;
+  transition: opacity 2s;
+}
+.city-toon.dusk .city-dusk { opacity: .35; background: rgba(120, 60, 60, .5); }
+.city-toon.night .city-dusk { opacity: 1; }
+.city-toon.night .city-light { background: radial-gradient(90% 70% at 50% 60%, rgba(255, 190, 110, .18), rgba(0, 0, 0, 0) 70%); }
+.city-toon.night .zone-label { z-index: 2700; }
+.fx { position: absolute; display: block; pointer-events: none; }
+.fx.glow { mix-blend-mode: screen; }
+.fx-night { opacity: 0; transition: opacity 2s; }
+.city-toon.night .fx-night { opacity: 1; }
+.city-toon.night .fx-window { animation: window-flicker 7s ease-in-out infinite; animation-delay: var(--d); }
+@keyframes window-flicker { 50% { opacity: .78; } }
+
+/* Cây lắc theo gió (lệch pha), mờ khi che nhân vật. rotate/scale riêng để không đè transform lật ảnh. */
+.prop.tree { transition: opacity .25s; }
+.prop.tree.fade { opacity: .42; }
+.prop.sway { transform-origin: 50% 100%; animation: sway 5.5s ease-in-out infinite alternate; animation-delay: var(--d); }
+@keyframes sway { from { rotate: -1.3deg; } to { rotate: 1.3deg; } }
+
+/* Ghế ngồi được */
+.prop.bench { pointer-events: auto; cursor: pointer; }
+.prop.bench:hover { filter: drop-shadow(0 0 6px rgba(255, 220, 120, .95)) drop-shadow(0 4px 3px rgba(40, 60, 20, .28)); }
+/* Ngồi: hạ người xuống mặt ghế và giấu phần chân sau mép ghế. */
+.me.sitting .me-body { bottom: -5px; clip-path: inset(0 0 21px 0); }
+.me.sitting .me-tag { bottom: 97px; }
+.enter-hint.sit { background: linear-gradient(180deg, #d9f7c8, #9fdc7c); border-color: #5aa83a; }
+
+/* Biển hiệu, đèn, đài phun, cờ... */
+.fx-chase { animation: chase 1.6s steps(1) infinite; }
+@keyframes chase { 0%, 100% { opacity: 1; filter: brightness(1.4) drop-shadow(0 0 4px #ffd84a); } 30% { opacity: .25; filter: none; } }
+.fx-spin { animation: coin-spin 2.4s linear infinite; }
+@keyframes coin-spin { 0% { scale: 1 1; } 25% { scale: .08 1; } 50% { scale: 1 1; } 75% { scale: .08 1; } }
+.fx-pulse { animation: pulse 1.8s ease-in-out infinite; animation-delay: var(--d); }
+@keyframes pulse { 0%, 100% { opacity: .35; scale: .9; } 50% { opacity: 1; scale: 1.1; } }
+.fx-neon { animation: neon 3.2s steps(1) infinite; }
+@keyframes neon { 0%, 42%, 48%, 100% { opacity: 1; } 44%, 46%, 80% { opacity: .2; } }
+.fx-blink { animation: blink 1s steps(2, jump-none) infinite; }
+@keyframes blink { 50% { opacity: .15; } }
+.fx-beacon { animation: beacon 1s linear infinite; }
+@keyframes beacon { 50% { filter: brightness(1.6) drop-shadow(0 0 6px #ff9b1a); } }
+.fx-crane { animation: crane 14s ease-in-out infinite alternate; }
+@keyframes crane { 0% { scale: 1 1; } 50% { scale: .35 1; } 100% { scale: -.9 1; } }
+.fx-swing { animation: swing 2.6s ease-in-out infinite alternate; animation-delay: var(--d); }
+@keyframes swing { from { rotate: -9deg; } to { rotate: 9deg; } }
+.fx-drift { animation: drift 9s ease-in-out infinite alternate; animation-delay: var(--d); }
+@keyframes drift { from { translate: -18px 0; } to { translate: 18px 4px; } }
+.fx-twinkle { animation: twinkle 2.2s ease-in-out infinite; animation-delay: var(--d); }
+@keyframes twinkle { 0%, 100% { opacity: 0; scale: .4; } 50% { opacity: 1; scale: 1; } }
+.fx-spray { transform-origin: 50% 100%; animation: spray .9s ease-in-out infinite alternate; }
+@keyframes spray { from { scale: 1 .82; opacity: .85; } to { scale: 1.06 1.08; opacity: 1; } }
+.fx-wave { transform-origin: 10% 100%; animation: wave 1.4s ease-in-out infinite alternate; animation-delay: var(--d); }
+.fx-wave.flip { transform: scaleX(-1); }
+@keyframes wave { from { skew: 0 -6deg; scale: .92 1; } to { skew: 0 5deg; scale: 1.04 1; } }
+.fx-bunting { transform-origin: 50% 0; animation: swing 4s ease-in-out infinite alternate; animation-duration: 4s; }
+.fx-smoke { animation: smoke 4.2s ease-out infinite; }
+@keyframes smoke { 0% { opacity: 0; translate: 0 6px; scale: .4; } 20% { opacity: .85; } 100% { opacity: 0; translate: 14px -70px; scale: 1.6; } }
+.fx-butterfly { width: 20px; height: 18px; animation: flutter-path 7s ease-in-out infinite; animation-delay: var(--d); }
+.fx-butterfly i { display: block; width: 20px; height: 18px; background-size: 40px 18px; animation: flap .22s steps(2) infinite; }
+@keyframes flap { from { background-position: 0 0; } to { background-position: -40px 0; } }
+@keyframes flutter-path { 0%, 100% { translate: 0 0; } 25% { translate: 26px -18px; } 50% { translate: 6px -34px; } 75% { translate: -22px -12px; } }
+.fx-birds { width: 120px; height: 40px; animation: birds 42s linear infinite; animation-delay: var(--d); }
+.fx-birds i { position: absolute; width: 22px; height: 9px; background-size: 44px 9px; animation: flap .32s steps(2) infinite; }
+@keyframes birds { from { translate: -200px 0; } 50% { translate: 900px -24px; } to { translate: 2000px 10px; } }
+.cloud { animation-duration: 90s; }
+
+/* Người chơi khác: bấm được; bong bóng chat và biểu cảm trên đầu (cả nhân vật mình). */
+.me.actor .me-body { pointer-events: auto; cursor: pointer; }
+.me.talking { z-index: 2100 !important; }
+.city-toon.night .me.talking { z-index: 2750 !important; }
+.me .say {
+  position: absolute;
+  left: 0;
+  bottom: 132px;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 190px;
+  padding: 6px 11px;
+  border-radius: 14px;
+  background: #fffdf4;
+  border: 2px solid #c9893f;
+  box-shadow: 0 3px 0 #8a5422;
+  color: var(--text, #3b2a1a);
+  font: 700 13px/1.3 var(--font, sans-serif);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+  animation: say-in .2s ease-out;
+}
+.me .say::after { content: ''; position: absolute; left: 50%; bottom: -8px; margin-left: -6px; border: 6px solid transparent; border-top-color: #c9893f; border-bottom: 0; }
+@keyframes say-in { from { opacity: 0; translate: 0 6px; } }
+.me .emote { position: absolute; left: -18px; bottom: 120px; width: 36px; height: 36px; animation: emote-up 2.2s ease-out forwards; }
+@keyframes emote-up { 0% { opacity: 0; translate: 0 10px; scale: .5; } 15% { opacity: 1; scale: 1.15; } 30% { scale: 1; } 80% { opacity: 1; } 100% { opacity: 0; translate: 0 -40px; } }
+.me.emo-dance .me-body, .me.emo-laugh .me-body, .me.emo-clap .me-body { animation: hop .35s ease-in-out 6 alternate; }
+.me.emo-wave .me-body, .me.emo-heart .me-body { animation: lean .4s ease-in-out 4 alternate; }
+@keyframes hop { to { translate: 0 -10px; } }
+@keyframes lean { from { rotate: -4deg; } to { rotate: 4deg; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .city-toon .fx, .city-toon .fx i, .city-toon .prop.sway, .city-toon .cloud, .city-toon .river-flow { animation: none !important; }
+}

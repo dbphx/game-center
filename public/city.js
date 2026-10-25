@@ -54,7 +54,14 @@
   const BLOCKS = {
     casino: [0, 0, 14, 8], bank: [19, 0, 13, 8], shop: [37, 0, 13, 8],
     hospital: [0, 22, 14, 10], plaza: [19, 22, 13, 10], farm: [37, 22, 13, 10],
+    // Hai khu ở ngoại ô, bờ Nam: Công trường bên trái, Hồ câu cá bên phải; cửa vào trên vỉa hè hàng 21 trước cổng.
+    site: [-42, 22, 16, 10], fishing: [68, 22, 18, 10],
   };
+  const SITE_X = -1088; // tâm cổng Công trường
+  const FISH_X = 2464; // tâm cổng Hồ câu cá
+  const ZONE_FENCE_Y = 772; // hàng rào / cổng của hai khu ngoại ô
+  // Khoảng x dành riêng cho hai khu (ngoại ô không rải lô nhà / ruộng vào đây).
+  const RESERVED = [[-42 * T - 16, -26 * T + 16], [68 * T - 16, 86 * T + 16]];
   // Vật cản trong các khu bờ Nam (cột, hàng, rộng, cao): đài phun nước, toà bệnh viện, bên trong hàng rào nông trại.
   const FOUNTAIN = [23, 27, 6, 3];
   const HOSPITAL = [4, 24, 6, 6]; // toà thu 0.8 (194×192), cửa giữa đáy (x 224, y 966); sân trước hàng 30–31
@@ -72,12 +79,15 @@
     shop: { name: 'Shop thời trang', sub: 'Đổi trang phục', node: 'shop' },
     hospital: { name: 'Bệnh viện', sub: 'Chữa trị · Hồi máu', node: 'hospital' },
     farm: { name: 'Nông trại', sub: 'Trồng trọt · Chăn nuôi', node: 'farm' },
+    site: { name: 'Công trường', sub: 'Xây dựng · Kiếm xu', node: 'site' },
+    fishing: { name: 'Hồ câu cá', sub: 'Câu cá giải trí', node: 'fishing' },
   };
 
   // Điểm đứng trước cửa / trong mỗi khu (đơn vị bản đồ).
   const NODES = {
     casino: [224, 276], bank: [816, 276], shop: [1452, 276], // cửa Shop lệch phải trong ảnh toà nhà
     plaza: [816, 780], hospital: [224, 994], farm: [FARM_GATE_X, 790],
+    site: [SITE_X, 690], fishing: [FISH_X, 690],
   };
   const SPEED = 240; // đơn vị bản đồ / giây
   const SPRITE_SIZE = 96; // chiều cao nhân vật chibi (khung 96×148, neo chân giữa đáy)
@@ -199,18 +209,55 @@
 
   // ---------- Ảnh ----------
 
-  // Kích thước gốc của mọi ảnh (đọc từ manifest.json của hai thư mục); khoá "farm/x" cho ảnh nông trại.
-  const sizes = {};
+  // Bộ ảnh: mỗi tên (vd 'tree_1', 'farm/barn') → { src, w, h, ax, ay }: kích thước hiển thị gốc và điểm chân (neo) trong ảnh.
+  // Đọc từ manifest.json của /img/toon/city/ và /img/toon/farm/ (khoá "farm/x"). Một bộ ảnh thay thế (vd ảnh 3D ở
+  // /img/toon/city3d/) ghi đè theo tên: mỗi ảnh trong manifest của bộ đó có "replaces": "tên cũ" (hoặc mảng), hoặc manifest
+  // có bảng "map": { "tên cũ": "file mới.png" }; neo đọc từ "anchor" ("bottom-center", "center", [x, y] hay {x, y}) hoặc
+  // "foot": [x, y]; "scale" (mặc định 1) đổi kích thước hiển thị. Chọn bộ: ?art=city3d hoặc localStorage 'city.art'.
+  const ART_SETS = { city3d: '/img/toon/city3d/' };
+  const art = {};
+  const sizes = {}; // tên → [w, h] hiển thị (dùng cho xe, thuyền, mây...)
   const images = {};
-  const srcOf = (name) => (name.startsWith('farm/') ? FARM_IMG + name.slice(5) : IMG + name) + '.png';
+  const srcOf = (name) => (art[name] ? art[name].src : (name.startsWith('farm/') ? FARM_IMG + name.slice(5) : IMG + name) + '.png');
+
+  function anchorOf(it, w, h) {
+    const a = it.foot || it.anchor;
+    if (Array.isArray(a)) return [a[0], a[1]];
+    if (a && typeof a === 'object') return [a.x, a.y];
+    if (a === 'center') return [w / 2, h / 2];
+    if (a === 'top-left') return [0, 0];
+    return [w / 2, h];
+  }
+  function register(name, dir, it, file) {
+    const k = it.scale || 1;
+    const [ax, ay] = anchorOf(it, it.w, it.h);
+    art[name] = { src: dir + (file || it.file), w: it.w * k, h: it.h * k, ax: ax * k, ay: ay * k };
+    sizes[name] = [it.w * k, it.h * k];
+  }
+  function artSet() {
+    let set = null;
+    try { set = new URLSearchParams(location.search).get('art') || localStorage.getItem('city.art'); } catch (e) { /* bỏ qua */ }
+    return ART_SETS[set] || null;
+  }
 
   async function loadManifests() {
+    const read = async (dir) => {
+      try { return await (await fetch(dir + 'manifest.json')).json(); } catch (e) { return null; }
+    };
     await Promise.all([[IMG, ''], [FARM_IMG, 'farm/']].map(async ([dir, prefix]) => {
-      try {
-        const m = await (await fetch(dir + 'manifest.json')).json();
-        for (const it of m.images || []) sizes[prefix + it.file.replace(/\.png$/, '')] = [it.w, it.h];
-      } catch (e) { /* bỏ qua */ }
+      const m = await read(dir);
+      for (const it of (m && m.images) || []) register(prefix + it.file.replace(/\.png$/, ''), dir, it);
     }));
+    const dir = artSet();
+    const m = dir && (await read(dir));
+    if (!m) return;
+    const byFile = {};
+    for (const it of m.images || []) {
+      byFile[it.file] = it;
+      const names = [].concat(it.replaces || []);
+      for (const n of names.length ? names : [it.file.replace(/\.png$/, '')]) register(n, dir, it);
+    }
+    for (const [old, file] of Object.entries(m.map || {})) if (byFile[file]) register(old, dir, byFile[file], file);
   }
 
   function loadImages(names) {
@@ -231,7 +278,7 @@
   const GROUND_IMAGES = [
     'grass_tile', 'road_h', 'road_v', 'road_plain', 'road_crosswalk_h', 'road_crosswalk_v', 'sidewalk_tile', 'water_tile',
     'river_bank_top', 'river_bank_bottom', 'bridge_deck', 'bridge_rail_v', 'farm/bg_sky_hills', 'farm/soil_plot',
-    'farm/soil_plot_wet', 'farm/dirt_path_tile', 'farm/grass_plot',
+    'farm/soil_plot_wet', 'farm/dirt_path_tile', 'farm/grass_plot', 'fishing_lake', 'fishing_pier',
   ];
 
   // Số ngẫu nhiên cố định theo hạt giống (cùng mảng luôn ra cùng cảnh).
@@ -252,18 +299,78 @@
   const offRoad = (x, pad) => ![[14, 19], [32, 37]].some(([a, b]) => x > a * T - pad && x < b * T + pad);
 
   const HOUSES = ['house_1', 'house_2', 'house_3', 'house_4', 'house_5', 'house_6', 'house_7', 'house_8'];
-  const TREES = ['tree_1', 'tree_big', 'farm/tree_big', 'farm/tree_med', 'tree_1', 'farm/tree_round_1'];
-  const TREE_K = { tree_1: [0.6, 0.8], tree_big: [0.5, 0.68], 'farm/tree_big': [0.45, 0.6], 'farm/tree_med': [0.6, 0.8], 'farm/tree_round_1': [0.6, 0.8] };
+  // Cây: phượng, bằng lăng, bàng, sao (cây phố), xoài, đa, dừa, mai, đào, tre, chuối (vườn) và cây xanh tán tròn.
+  const TREES = ['tree_1', 'tree_phuong', 'tree_banglang', 'tree_bang', 'tree_sao', 'farm/tree_xoai', 'farm/tree_dua', 'tree_big',
+    'farm/tree_mai', 'farm/tree_dao', 'farm/tree_tre', 'farm/tree_chuoi', 'farm/tree_big', 'farm/tree_med', 'farm/tree_da', 'tree_lieu'];
+  const TREE_K = {
+    tree_1: [0.6, 0.8], tree_big: [0.5, 0.68], 'farm/tree_big': [0.45, 0.6], 'farm/tree_med': [0.6, 0.8], 'farm/tree_round_1': [0.6, 0.8],
+    tree_phuong: [0.4, 0.5], tree_banglang: [0.42, 0.52], tree_bang: [0.4, 0.5], tree_sao: [0.42, 0.52], tree_lieu: [0.42, 0.52],
+    'farm/tree_xoai': [0.36, 0.44], 'farm/tree_dua': [0.4, 0.5], 'farm/tree_da': [0.32, 0.4], 'farm/tree_mai': [0.5, 0.6],
+    'farm/tree_dao': [0.5, 0.6], 'farm/tree_tre': [0.5, 0.62], 'farm/tree_chuoi': [0.5, 0.6],
+  };
+  // Cây phố (vỉa hè, quảng trường): xen kẽ phượng, bằng lăng, bàng, sao, dừa.
+  const STREET_TREES = ['tree_phuong', 'tree_banglang', 'tree_bang', 'tree_sao', 'farm/tree_dua', 'tree_phuong', 'tree_banglang', 'tree_1'];
+  const treeK = (name, r) => { const [a, b] = TREE_K[name] || [0.6, 0.8]; return r ? a + (b - a) * r : (a + b) / 2; };
   const BUSHES = ['bush_1', 'farm/bush_1', 'bush_3', 'farm/bush_2', 'bush_2', 'farm/bush_3'];
   const CROPS = ['corn', 'tomato', 'carrot', 'watermelon', 'strawberry', 'rice'];
   const ANIMALS = ['farm/animal_cow', 'farm/animal_sheep', 'farm/animal_pig', 'farm/animal_horse', 'farm/animal_chicken', 'farm/animal_chicken_white'];
+
+  // Các đoạn [a, b] trong [xa, xb] không chạm khu dành riêng.
+  function freeSpans(xa, xb) {
+    let spans = [[xa, xb]];
+    for (const [ra, rb] of RESERVED) {
+      spans = spans.flatMap(([a, b]) => (rb <= a || ra >= b ? [[a, b]] : [[a, ra], [rb, b]].filter(([u, v]) => v - u > 60)));
+    }
+    return spans;
+  }
+
+  // Công trường và Hồ câu cá: hàng rào + cổng ở y ZONE_FENCE_Y (cửa vào trên vỉa hè ngay trước cổng), bên trong chỉ để nhìn.
+  function zoneProps(kx, at, plan) {
+    const x0 = kx * W;
+    const inChunk = (x) => x >= x0 && x < x0 + W;
+    if (inChunk(SITE_X)) {
+      const [c, , w] = BLOCKS.site;
+      const L = c * T;
+      const Rr = L + w * T;
+      plan.ground.push(['farm/dirt_path_tile', L, ZONE_FENCE_Y + 4, Rr - L, H - ZONE_FENCE_Y - 4, 0.5]);
+      for (const x of [L + 44, L + 122, SITE_X + 132, SITE_X + 210]) at('site_barrier', x, ZONE_FENCE_Y, 0.75);
+      at('site_gate', SITE_X, ZONE_FENCE_Y + 1, 0.9);
+      at('site_building', L + 140, 1004, 0.8);
+      at('site_crane_mast', SITE_X + 130, 992, 0.75);
+      plan.fx.push(['crane', SITE_X + 130, 992 - 270 + 4]);
+      at('site_bricks', SITE_X + 30, 1012, 0.8);
+      at('site_sand', Rr - 60, 1004, 0.8);
+      for (const x of [SITE_X - 50, SITE_X + 50, L + 250]) at('site_cone', x, x === L + 250 ? 990 : 806, 0.8);
+      plan.fx.push(['beacon', SITE_X - 71, ZONE_FENCE_Y - 128], ['beacon', SITE_X + 71, ZONE_FENCE_Y - 128]);
+      at('fx_flag', L + 30, ZONE_FENCE_Y - 6, 0.7);
+    }
+    if (inChunk(FISH_X)) {
+      const [c, , w] = BLOCKS.fishing;
+      const L = c * T;
+      const Rr = L + w * T;
+      // Hồ (vẽ lên mặt đất) + bến gỗ, sen, lục bình, liễu, đèn lồng dưới xà cổng.
+      plan.ground.push(['fishing_lake', L + 14, 792, 548, 266]);
+      plan.ground.push(['fishing_pier', FISH_X + 110, 902, 120, 120]);
+      for (const x of [L + 40, L + 96, L + 152, Rr - 40, Rr - 96, Rr - 152]) at('farm/fence_piece', x, ZONE_FENCE_Y, 0.85);
+      at('fishing_gate', FISH_X, ZONE_FENCE_Y + 1, 0.9);
+      at('tree_lieu', L + 30, 870, 0.5);
+      at('tree_lieu', Rr - 24, 900, 0.46, true);
+      at('bench', L + 90, 1012, 0.75, false, 'deco');
+      at('farm/tree_dua', Rr - 70, 1018, 0.4);
+      plan.fx.push(['lantern', FISH_X - 40, ZONE_FENCE_Y - 92], ['lantern', FISH_X + 40, ZONE_FENCE_Y - 92]);
+      for (const [x, y, n] of [[L + 140, 880, 'fishing_lotus'], [L + 260, 960, 'fishing_lotus'], [L + 380, 880, 'fishing_hyacinth'], [L + 200, 1000, 'fishing_hyacinth']]) {
+        plan.fx.push(['drift', x, y, n]);
+      }
+      for (let i = 0; i < 7; i++) plan.fx.push(['sparkle', L + 120 + ((i * 67) % 330), 860 + ((i * 41) % 130)]);
+    }
+  }
 
   // Kế hoạch một mảng: ô đất vẽ lên canvas và danh sách ảnh đồ vật.
   function chunkPlan(kx) {
     const r = rng(kx * 7919 + 101);
     const x0 = kx * W;
-    const plan = { plots: [], props: [] };
-    const at = (img, x, y, k = 1, flip = false) => plan.props.push([img, x, y, k, flip, '']);
+    const plan = { plots: [], props: [], ground: [], fx: [] };
+    const at = (img, x, y, k = 1, flip = false, cls = '') => plan.props.push([img, x, y, k, flip, cls]);
     const tree = (x, y, scale = 1) => {
       const t = pick(r, TREES);
       const [a, b] = TREE_K[t] || [0.6, 0.8];
@@ -340,7 +447,7 @@
     }
 
     if (kx === 0) {
-      plan.props.push(...props());
+      plan.props.push(...props(plan.fx));
     } else {
       // Bờ Bắc: dãy nhà dân hướng ra vỉa hè, xen cây và chậu hoa.
       let x = x0 + between(r, 0, 40);
@@ -372,7 +479,8 @@
         }
       }
       // Bờ Nam: các lô nhà, ruộng, vườn cây, bãi chăn thả nối tiếp nhau.
-      band(x0, x0 + W, 760, 1012, ['houses', 'field', 'grove', 'pasture', 'houses', 'field']);
+      for (const [a, b] of freeSpans(x0, x0 + W)) band(a, b, 760, 1012, ['houses', 'field', 'grove', 'pasture', 'houses', 'field']);
+      zoneProps(kx, at, plan);
     }
 
     // Đồng cỏ phía dưới: dải trên (giữa thành phố và đường đất), dải dưới đường đất; ở thành phố chừa hai trục dọc.
@@ -388,6 +496,18 @@
       if (kx === 0 && !offRoad(x, 20)) continue;
       at(r() < 0.3 ? 'farm/flowers' : pick(r, BUSHES), x, lane0 - 2, between(r, 0.5, 0.7));
     }
+    // Hiệu ứng suy ra từ đồ vật: đèn đường sáng và cửa sổ sáng ban đêm, khói bếp trên mái nhà, bướm quanh hoa;
+    // đàn chim bay ngang trời.
+    for (const [img, x, y, k] of plan.props) {
+      const a = art[img];
+      if (!a) continue;
+      if (img === 'lamp') plan.fx.push(['lampglow', x, y - a.h * k + 12]);
+      else if (img.startsWith('house_') || img.startsWith('building_')) {
+        plan.fx.push(['window', x, y - a.h * k * 0.42, a.w * k * 0.8, a.h * k * 0.55]);
+        if (img.startsWith('house_') && r() < 0.55) plan.fx.push(['smoke', x - a.w * k * between(r, 0.05, 0.25), y - a.h * k + 6]);
+      } else if (img === 'farm/flowers' && r() < 0.4) plan.fx.push(['butterfly', x, y - 34]);
+    }
+    plan.fx.push(['birds', x0 + between(r, 0, 400), between(r, -80, -30)]);
     return plan;
   }
 
@@ -470,64 +590,76 @@
     // Đường đất ngang ở đồng cỏ.
     fill('farm/dirt_path_tile', x0, COUNTRY[0] * T, ww, COUNTRY.length * T, 0.5, 0, COUNTRY[0] * T);
     for (const [x, y, wet] of plan.plots) put(wet ? 'farm/soil_plot_wet' : 'farm/soil_plot', x, y, 60, 60);
+    // Nền riêng (sân đất công trường, hồ câu, bến gỗ): ảnh lặp (có tỉ lệ k) hoặc ảnh đặt nguyên (w × h).
+    for (const [name, x, y, w, h, k] of plan.ground) {
+      if (k) fill(name, x, y, w, h, k);
+      else put(name, x, y, w, h);
+    }
     g.restore();
   }
 
   // ---------- Toà nhà, cây, đồ vật của thành phố (ảnh HTML xếp theo chiều sâu) ----------
 
-  // Mỗi món: [ảnh, x giữa đáy, y đáy, tỉ lệ, lật ngang?, class thêm].
-  function props() {
+  // Mỗi món: [ảnh, x giữa đáy, y đáy, tỉ lệ, lật ngang?, class thêm]. fx nhận các hiệu ứng động riêng của thành phố.
+  function props(fx) {
     const list = [];
     const at = (img, x, y, k = 1, flip = false, cls = '') => list.push([img, x, y, k, flip, cls]);
+    const tree = (img, x, y, k, flip = false) => at(img, x, y, k || treeK(img), flip);
 
     // Cây to nơi hai đường dọc biến mất vào xa (chân đồi).
     for (const c3 of ROAD_COLS) at('tree_big', (c3[0] + 1.5) * T, HORIZON + 14, 0.75);
 
-    // Toà nhà bờ Bắc đặt giữa lô, cửa ở đáy (sát vỉa hè hàng 8); hai bên mỗi toà có cây và chậu hoa.
+    // Toà nhà bờ Bắc đặt giữa lô, cửa ở đáy (sát vỉa hè hàng 8); hai bên mỗi toà có cây phố và chậu hoa.
     at('building_casino', 224, 8 * T, 1);
     at('building_bank', 816, 8 * T, 0.86);
     at('building_shop', 1392, 8 * T, 1);
-    for (const x of [40, 408, 1226, 1558]) at('tree_1', x, 8 * T + 2, 0.72);
+    tree('tree_phuong', 36, 8 * T + 2, 0.4);
+    tree('tree_banglang', 412, 8 * T + 2, 0.42, true);
+    tree('tree_sao', 1226, 8 * T + 2, 0.42);
+    tree('tree_bang', 1560, 8 * T + 2, 0.4);
     for (const x of [140, 308, 1272, 1512]) at('farm/flowers', x, 8 * T + 4, 0.55);
 
-    // Vỉa hè: đèn đường hai bên đường ngang.
+    // Vỉa hè: đèn đường hai bên đường ngang; cây phố dọc vỉa hè bờ Nam (chừa vạch qua đường và biển tên khu).
     for (const x of [96, 400, 700, 940, 1250, 1540]) {
       at('lamp', x, 9 * T - 2, 0.75);
       at('lamp', x + 30, 22 * T - 2, 0.75);
     }
+    tree('tree_sao', 40, 22 * T - 6, 0.4);
+    tree('farm/tree_dua', 632, 22 * T - 6, 0.38, true);
+    tree('farm/tree_dua', 1004, 22 * T - 6, 0.38);
 
-    // Công viên ven sông (vỉa hè hai bờ): cây nhỏ, bụi, ghế; chừa chỗ hai cây cầu.
+    // Công viên ven sông (vỉa hè hai bờ): dừa, mai, cây nhỏ, bụi, ghế; chừa chỗ hai cây cầu.
     const free = (x) => !(x > 13 * T && x < 20 * T) && !(x > 31 * T && x < 38 * T);
-    const kinds = ['tree_4', 'bush_2', 'tree_3', 'bush_3', 'tree_4', 'bush_4'];
+    const kinds = [['farm/tree_dua', 0.3], ['bush_2', 0.9], ['tree_3', 1.3], ['farm/tree_mai', 0.36], ['tree_4', 1.3], ['bush_4', 0.9], ['farm/tree_dao', 0.36]];
     let k = 0;
     for (let x = 40; x < W; x += 104) {
       if (!free(x)) continue;
-      const kind = kinds[k++ % kinds.length];
-      at(kind, x, 13 * T - 4, kind.startsWith('tree') ? 1.3 : 0.9);
-      if (free(x + 52)) at(kinds[(k + 2) % kinds.length], x + 52, 18 * T - 4, 1.1);
+      const [kind, kk] = kinds[k++ % kinds.length];
+      at(kind, x, 13 * T - 4, kk, k % 2 === 0);
+      if (free(x + 52)) {
+        const [k2, kk2] = kinds[(k + 3) % kinds.length];
+        at(k2, x + 52, 18 * T - 4, kk2 * 1.05, k % 3 === 0);
+      }
     }
-    for (const x of [200, 760, 1300]) {
-      at('bench', x, 13 * T - 2, 0.6);
-      at('bench', x + 60, 18 * T - 2, 0.6);
-    }
+    for (const x of [120, 300, 760, 900, 1300, 1480]) at('bench', x, 13 * T - 2, 0.75);
+    for (const x of [180, 360, 700, 860, 1360, 1540]) at('bench', x, 18 * T - 2, 0.75);
 
     // Bệnh viện: toà giữa lô, sân lát gạch trước cửa, xe cứu thương đậu trong sân, cây và hoa hai bên.
     at('building_hospital', 224, 966, 0.8);
     at('ambulance_side', 396, 1012, 0.7);
-    at('bench', 74, 1008, 0.55);
-    at('tree_1', 52, 30 * T - 24, 0.7);
-    at('tree_1', 400, 30 * T - 24, 0.7);
+    at('bench', 80, 1008, 0.72);
+    tree('tree_bang', 52, 30 * T - 24, 0.36);
+    tree('tree_banglang', 400, 30 * T - 24, 0.4);
     at('farm/flowers', 112, 30 * T - 2, 0.5);
     at('farm/flowers', 336, 30 * T - 2, 0.5);
 
-    // Quảng trường: đài phun nước giữa lô, ghế, cây và chậu hoa ở góc.
+    // Quảng trường: đài phun nước giữa lô, ghế quanh đài, phượng + bằng lăng ở góc trên, mai + đào ở góc dưới.
     at('fountain', 816, 945, 1.1);
-    at('bench', 690, 1004, 0.6);
-    at('bench', 942, 1004, 0.6);
-    at('tree_big', 650, 872, 0.55);
-    at('tree_big', 982, 872, 0.55);
-    at('tree_1', 630, 1018, 0.55);
-    at('tree_1', 1002, 1018, 0.55);
+    for (const [x, y] of [[690, 1004], [942, 1004], [668, 905], [964, 905]]) at('bench', x, y, 0.75);
+    tree('tree_phuong', 652, 816, 0.4);
+    tree('tree_banglang', 980, 816, 0.42, true);
+    tree('farm/tree_mai', 630, 1018, 0.48);
+    tree('farm/tree_dao', 1002, 1018, 0.48, true);
     at('farm/flowers', 724, 812, 0.55);
     at('farm/flowers', 908, 812, 0.55);
 
@@ -547,6 +679,12 @@
     at('farm/animal_chicken', 1424, 905, 0.5);
     at('farm/animal_chicken_white', 1460, 940, 0.5, true);
 
+    // Hiệu ứng động: đèn biển CASINO chạy vòng, đồng xu Ngân hàng, neon Thời trang, chữ thập Bệnh viện, đài phun, cờ.
+    if (fx) {
+      fx.push(['bulbs', 224, 0], ['coin', 712, 112], ['coin', 920, 112], ['neon', 1392, 36], ['cross', 224, 822],
+        ['spray', 816, 846], ['flag', 112, 40], ['flag', 336, 40, true], ['flag', 816, 66], ['bunting', 1392, 200]);
+      for (let i = 0; i < 6; i++) fx.push(['sparkle', 760 + ((i * 37) % 112), 836 + ((i * 23) % 60)]);
+    }
     return list;
   }
 
@@ -554,14 +692,82 @@
 
   const px = (n) => `${Math.round(n)}px`;
 
-  // Ảnh đồ vật đặt theo giữa đáy, z-index theo y để nhân vật đi trước / sau đúng.
+  const isTree = (name) => /(^|\/)tree_/.test(name);
+  // Lệch pha hoạt ảnh cố định theo vị trí (cây lắc không đều nhau).
+  const phase = (x, y) => -(((Math.abs(Math.round(x * 7 + y * 13)) % 997) / 997) * 6).toFixed(2);
+
+  // Ảnh đồ vật đặt theo điểm chân (neo trong manifest, mặc định giữa đáy), z-index theo y để nhân vật đi trước / sau đúng.
+  // Cây lắc theo gió (lệch pha) và mờ đi khi che nhân vật; ghế băng bấm / đến gần để ngồi (trừ ghế chỉ để trang trí).
   function propHtml([name, x, y, k, flip, cls]) {
-    const sz = sizes[name];
-    if (!sz) return '';
-    const w = sz[0] * k;
-    const h = sz[1] * k;
-    return `<img class="prop${flip ? ' flip' : ''}${cls ? ' ' + cls : ''}" src="${srcOf(name)}" alt="" draggable="false"
-      style="left:${px(x - w / 2)};top:${px(y - h)};width:${px(w)};height:${px(h)};z-index:${100 + Math.round(y)}">`;
+    const a = art[name];
+    if (!a) return '';
+    const w = a.w * k;
+    const h = a.h * k;
+    const left = flip ? x - (a.w - a.ax) * k : x - a.ax * k;
+    const top = y - a.ay * k;
+    let extra = '';
+    if (isTree(name)) cls = `${cls} tree${h > 70 ? ' sway' : ''}`;
+    if (name === 'bench' && !/\bdeco\b/.test(cls)) {
+      cls += ' bench';
+      extra = ` data-bench="${Math.round(x)},${Math.round(y)}" title="Ngồi nghỉ (hồi máu ×2)"`;
+    }
+    return `<img class="prop${flip ? ' flip' : ''}${cls ? ' ' + cls.trim() : ''}" src="${srcOf(name)}" alt="" draggable="false"${extra}
+      style="left:${px(left)};top:${px(top)};width:${px(w)};height:${px(h)};z-index:${100 + Math.round(y)};--d:${phase(x, y)}s">`;
+  }
+
+  // Hiệu ứng động (ảnh PNG + CSS animation / transform / opacity). Mỗi món: [loại, x, y, ...].
+  function fxHtml([kind, x, y, p3, p4]) {
+    const img = (name, cls, w, h, left, top, z, style = '') => (art[name]
+      ? `<img class="fx ${cls}" src="${srcOf(name)}" alt="" draggable="false" style="left:${px(left)};top:${px(top)};width:${px(w)};height:${px(h)};z-index:${z};--d:${phase(left, top)}s;${style}">`
+      : '');
+    const z = 100 + Math.round(y);
+    switch (kind) {
+      case 'crane': // cần ngang quay qua lại trên đỉnh tháp (trục ở x = 120 / 400 của ảnh)
+        return img('site_crane_jib', 'fx-crane', 300, 52, x - 90, y - 6, z + 700, 'transform-origin:90px 4px');
+      case 'beacon':
+        return img('fx_glow_orange', 'fx-blink glow', 70, 70, x - 35, y - 50, 2600) + img('site_beacon', 'fx-beacon', 24, 24, x - 12, y - 24, z + 800);
+      case 'lantern':
+        return img('fx_glow_red', 'fx-pulse glow', 54, 54, x - 27, y + 8, 2600) + img('lantern', 'fx-swing', 24, 42, x - 12, y, z + 800, 'transform-origin:12px 0');
+      case 'drift': {
+        const a = art[p3];
+        return a ? img(p3, 'fx-drift', a.w * 0.8, a.h * 0.8, x - a.w * 0.4, y - a.h * 0.8, z) : '';
+      }
+      case 'sparkle':
+        return img('fx_sparkle', 'fx-twinkle', 16, 16, x - 8, y - 8, z + 2);
+      case 'smoke':
+        return [0, 1, 2].map((i) => img('fx_smoke', 'fx-smoke', 26, 26, x - 13, y - 26, z, `animation-delay:${-i * 1.4}s`)).join('');
+      case 'butterfly':
+        return `<div class="fx fx-butterfly" style="left:${px(x - 10)};top:${px(y - 9)};z-index:${z + 40};--d:${phase(x, y)}s"><i style="background-image:url(${srcOf('fx_butterfly')})"></i></div>`;
+      case 'birds':
+        return `<div class="fx fx-birds" style="left:${px(x)};top:${px(y)};z-index:5;--d:${phase(x, y)}s">${[[0, 0], [26, 10], [50, -6], [70, 14], [92, 2]]
+          .map(([dx, dy], i) => `<i style="left:${dx}px;top:${dy}px;background-image:url(${srcOf('fx_bird')});animation-delay:${-i * 0.13}s"></i>`).join('')}</div>`;
+      case 'bulbs': { // bóng đèn chạy vòng quanh viền biển CASINO (170 × 44, tâm trên x)
+        let out = '';
+        let i = 0;
+        const L = x - 86;
+        for (let bx = L; bx <= x + 86; bx += 13) out += img('fx_bulb', 'fx-chase', 9, 9, bx - 4.5, y - 3, 400, `animation-delay:${(i++ * 0.08).toFixed(2)}s`);
+        for (let bx = x + 86; bx >= L; bx -= 13) out += img('fx_bulb', 'fx-chase', 9, 9, bx - 4.5, y + 43, 400, `animation-delay:${(i++ * 0.08).toFixed(2)}s`);
+        return out;
+      }
+      case 'coin':
+        return img('fx_glow', 'fx-pulse glow', 46, 46, x - 23, y - 23, 2600) + img('fx_coin', 'fx-spin', 26, 26, x - 13, y - 13, 400);
+      case 'neon':
+        return img('fx_glow_pink', 'fx-neon glow', 190, 70, x - 95, y - 35, 2600);
+      case 'cross':
+        return img('fx_glow_red', 'fx-pulse glow', 80, 80, x - 40, y - 40, 2600);
+      case 'spray':
+        return img('fx_spray', 'fx-spray', 54, 80, x - 27, y - 80, 100 + 946);
+      case 'flag':
+        return img('fx_flag', `fx-wave${p3 ? ' flip' : ''}`, 30, 42, x - 4, y - 42, z);
+      case 'bunting':
+        return img('fx_bunting', 'fx-bunting', 200, 36, x - 100, y, 400);
+      case 'lampglow':
+        return img('fx_glow', 'fx-night glow', 90, 90, x - 45, y - 45, 2600);
+      case 'window':
+        return img('fx_glow', 'fx-night fx-window glow', p3, p4, x - p3 / 2, y - p4 / 2, 2600);
+      default:
+        return '';
+    }
   }
 
   // Mây trôi trên trời (ba đám mỗi mảng).
@@ -650,7 +856,8 @@
   // Vùng bấm của từng khu và biển tên (HTML).
   function zonesHtml() {
     // Biển tên: bờ Bắc treo trên trời phía trên toà nhà; bờ Nam đặt ở đầu lô (dải cỏ / sân giữa vỉa hè và toà nhà).
-    const labelAt = { casino: [224, -84], bank: [816, -84], shop: [1392, -84], plaza: [816, 712], hospital: [224, 706], farm: [1262, 712] };
+    const labelAt = { casino: [224, -84], bank: [816, -84], shop: [1392, -84], plaza: [816, 712], hospital: [224, 706], farm: [1262, 712],
+      site: [SITE_X - 174, 712], fishing: [FISH_X - 174, 712] };
     return Object.entries(ZONES)
       .map(([id, z]) => {
         const [c, r, w, h] = BLOCKS[id];
@@ -681,6 +888,10 @@
   const stick = { x: 0, y: 0 }; // cần điều khiển ảo
   let locked = false; // khoá điều khiển (ví dụ đang nằm viện)
   let hurtUntil = 0; // đang nháy đỏ / miễn va chạm tới thời điểm này (ms)
+  let sitting = null; // ghế đang ngồi { x, y } (ngồi hồi máu ×2, báo ra ngoài qua opts.onSit)
+  let nearBench = null; // ghế ở gần (gợi ý "E Ngồi nghỉ")
+  let pathBench = null; // ghế sẽ ngồi khi đi hết path
+  let hintKey = null; // nội dung gợi ý đang hiện
 
   function placeMe() {
     me.el.style.transform = `translate(${me.x}px, ${me.y}px)`;
@@ -713,7 +924,7 @@
 
   const dirOf = (dx, dy) => (Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : dy < 0 ? 'up' : 'down');
 
-  // Gợi ý "vào khu" khi đứng gần cửa.
+  // Gợi ý khi đứng gần cửa khu ("Vào …"), gần ghế ("Ngồi nghỉ") hoặc đang ngồi ("Đứng dậy").
   function updateNear() {
     let found = null;
     for (const [id, z] of Object.entries(ZONES)) {
@@ -721,11 +932,100 @@
       if (Math.hypot(nx - me.x, ny - me.y) <= DOOR_RADIUS) found = id;
     }
     if (locked) found = null;
-    if (found === nearZone) return;
     nearZone = found;
+    nearBench = !found && !sitting && !locked ? findNearBench() : null;
+    const key = locked ? '' : sitting ? 'stand' : found ? 'zone:' + found : nearBench ? 'bench' : '';
+    if (key === hintKey) return;
+    hintKey = key;
     const hint = overlay.querySelector('.enter-hint');
-    hint.classList.toggle('hidden', !found);
-    if (found) hint.querySelector('.eh-name').textContent = ZONES[found].name;
+    hint.classList.toggle('hidden', !key);
+    hint.classList.toggle('sit', key === 'bench' || key === 'stand');
+    hint.querySelector('.eh-verb').textContent = sitting ? 'Đứng dậy' : found ? 'Vào' : 'Ngồi nghỉ';
+    hint.querySelector('.eh-name').textContent = found ? ZONES[found].name : nearBench ? 'hồi máu ×2' : '';
+  }
+
+  // Phím E / Enter hoặc bấm gợi ý: đứng dậy, vào khu, hoặc ngồi ghế gần đó.
+  function act() {
+    if (locked) return;
+    if (sitting) standUp();
+    else if (nearZone) enter(nearZone);
+    else if (nearBench) sitAt(nearBench);
+  }
+
+  // ---------- Ngồi ghế ----------
+
+  const SIT_RADIUS = 48;
+  // Chỗ đứng cạnh ghế: trước ghế nếu đi được (ghế ven sông thì phía trước là nước, đứng phía sau).
+  function benchSpot(b) {
+    for (const dy of [14, -10, -22, 26]) if (footFree(b.x, b.y + dy)) return [b.x, b.y + dy];
+    return cellCenter(...nearestWalkableCell(b.x, b.y));
+  }
+  function findNearBench() {
+    let best = null;
+    let bd = SIT_RADIUS;
+    for (const ch of chunks.values()) {
+      for (const b of ch.benches || []) {
+        const d = Math.hypot(b.x - me.x, b.y - me.y);
+        if (d < bd) { bd = d; best = b; }
+      }
+    }
+    return best;
+  }
+  function sitAt(b) {
+    if (locked || !b) return;
+    path = null;
+    pathZone = null;
+    pathBench = null;
+    hideMarker();
+    me.x = b.x;
+    me.y = b.y + 2;
+    me.dir = 'down';
+    me.walking = false;
+    moving = false;
+    sitting = { x: b.x, y: b.y };
+    me.el.classList.add('sitting');
+    drawMe();
+    placeMe();
+    updateNear();
+    savePos();
+    if (opts.onMove) opts.onMove(me.x, me.y);
+    if (opts.onSit) opts.onSit(true);
+  }
+  // Đứng dậy khỏi ghế (notify = false khi server đã tự cho đứng, vd bị xe tông / vào viện).
+  function standUp(notify = true) {
+    if (!sitting) return;
+    const b = sitting;
+    sitting = null;
+    me.el.classList.remove('sitting');
+    [me.x, me.y] = benchSpot(b);
+    drawMe();
+    placeMe();
+    updateNear();
+    if (notify && opts.onSit) opts.onSit(false);
+  }
+  function walkToBench(b) {
+    if (locked || !b) return;
+    if (sitting) {
+      if (sitting.x === b.x && sitting.y === b.y) return;
+      standUp();
+    }
+    hideMarker();
+    follow(findPath([me.x, me.y], benchSpot(b)), null);
+    pathBench = b;
+    if (!path) sitAt(b);
+  }
+
+  // Cây đứng trước và che nhân vật thì mờ đi.
+  function fadeTrees() {
+    for (const ch of chunks.values()) {
+      for (const t of ch.trees || []) {
+        const cover = me.x > t.l + t.w * 0.15 && me.x < t.l + t.w * 0.85 && me.y < t.t + t.h - 4 && me.y > t.t + 20;
+        if (cover !== !!t.faded) {
+          t.faded = cover;
+          t.el.classList.toggle('fade', cover);
+        }
+      }
+    }
   }
 
   function startMoving() {
@@ -743,7 +1043,8 @@
   }
 
   function savePos() {
-    try { localStorage.setItem('city.pos', JSON.stringify([Math.round(me.x), Math.round(me.y)])); } catch (e) { /* bỏ qua */ }
+    const [x, y] = sitting ? benchSpot(sitting) : [me.x, me.y];
+    try { localStorage.setItem('city.pos', JSON.stringify([Math.round(x), Math.round(y)])); } catch (e) { /* bỏ qua */ }
   }
 
   function enter(zone) {
@@ -768,6 +1069,8 @@
   function walkTo(zone) {
     const z = ZONES[zone];
     if (!z || !me || locked) return;
+    standUp();
+    pathBench = null;
     hideMarker();
     follow(findPath([me.x, me.y], NODES[z.node]), zone);
   }
@@ -775,6 +1078,8 @@
   // Bấm chuột / chạm vào một điểm trên bản đồ.
   function walkToPoint(x, y) {
     if (locked) return;
+    standUp();
+    pathBench = null;
     let target = [x, y];
     if (!footFree(x, y)) target = cellCenter(...nearestWalkableCell(x, y));
     showMarker(target);
@@ -828,11 +1133,14 @@
     }
     if (!path.length) {
       const zone = pathZone;
+      const bench = pathBench;
       path = null;
       pathZone = null;
+      pathBench = null;
       hideMarker();
       stop();
       if (zone) enter(zone);
+      else if (bench) sitAt(bench);
     }
   }
 
@@ -901,6 +1209,7 @@
   // Bị xe đâm: báo ra ngoài một lần, hất lên vỉa hè gần nhất, nháy đỏ và miễn va chạm một lúc.
   function hit(kind, car) {
     hurtUntil = performance.now() + HURT_MS;
+    standUp(false);
     path = null;
     pathZone = null;
     hideMarker();
@@ -944,6 +1253,8 @@
       const [vx, vy] = inputVector();
       if (Math.hypot(vx, vy) >= 0.15) {
         cam.free = false;
+        standUp();
+        pathBench = null;
         if (path) { path = null; pathZone = null; hideMarker(); }
         startMoving();
         stepFree(vx, vy, dt);
@@ -956,6 +1267,7 @@
         stop();
       }
     }
+    stepActors(dt);
     stepCamera(dt, false);
     requestAnimationFrame(tick);
   }
@@ -963,6 +1275,7 @@
   function afterMove() {
     placeMe();
     updateNear();
+    fadeTrees();
     if (opts.onMove) opts.onMove(me.x, me.y);
   }
 
@@ -984,9 +1297,9 @@
     if (k) {
       keys.add(k);
       e.preventDefault();
-    } else if ((e.key === 'e' || e.key === 'E' || e.key === 'Enter') && nearZone && !locked) {
+    } else if ((e.key === 'e' || e.key === 'E' || e.key === 'Enter') && (sitting || nearZone || nearBench) && !locked) {
       e.preventDefault();
-      enter(nearZone);
+      act();
     }
   }
   function onKeyUp(e) {
@@ -1074,7 +1387,13 @@
     if (!groundReady) return;
     const k0 = Math.floor((cam.x - view.w / 2) / W) - 1;
     const k1 = Math.floor((cam.x + view.w / 2) / W) + 1;
-    for (let k = k0; k <= k1; k++) if (!chunks.has(k)) makeChunk(k);
+    let made = false;
+    for (let k = k0; k <= k1; k++) {
+      if (chunks.has(k)) continue;
+      makeChunk(k);
+      made = true;
+    }
+    if (made && me && overlay) updateNear(); // ghế của mảng mới dựng có thể ở ngay cạnh
     for (const [k, ch] of chunks) {
       if (k >= k0 - 1 && k <= k1 + 1) continue;
       ch.canvas.remove();
@@ -1094,9 +1413,17 @@
     world.querySelector('.city-ground').appendChild(canvas);
     const layer = document.createElement('div');
     layer.className = 'chunk-props';
-    layer.innerHTML = cloudsHtml(kx) + plan.props.map(propHtml).join('');
+    layer.innerHTML = cloudsHtml(kx) + plan.props.map(propHtml).join('') + plan.fx.map(fxHtml).join('');
     world.querySelector('.city-props').appendChild(layer);
-    chunks.set(kx, { canvas, props: layer });
+    // Ghế ngồi được và cây (để làm mờ khi che nhân vật) của mảng này.
+    const benches = [...layer.querySelectorAll('[data-bench]')].map((el) => {
+      const [bx, by] = el.dataset.bench.split(',').map(Number);
+      return { x: bx, y: by, el };
+    });
+    const trees = [...layer.querySelectorAll('.prop.tree')].map((el) => ({
+      el, l: parseFloat(el.style.left), t: parseFloat(el.style.top), w: parseFloat(el.style.width), h: parseFloat(el.style.height),
+    }));
+    chunks.set(kx, { canvas, props: layer, benches, trees });
   }
 
   // Kéo chuột / vuốt trên bản đồ để nhìn quanh; bấm (không kéo) vẫn là đi tới điểm đó.
@@ -1151,6 +1478,7 @@
         <div class="city-inner" style="top:${px(SKY)};width:${px(W)};height:${px(H)}">
           <div class="city-ground"></div>
           <div class="city-props"></div>
+          <div class="city-dusk" aria-hidden="true"></div>
           <div class="walk-target hidden"></div>
           <div id="me" class="me">
             <div id="me-tag" class="me-tag"><span class="tag-name"></span><span class="tag-lv"></span></div>
@@ -1158,6 +1486,7 @@
           </div>
         </div>
       </div>
+      <div class="city-light" aria-hidden="true"></div>
     </div>`;
     world = el.querySelector('.city-inner');
     worldEl = el.querySelector('.city-world');
@@ -1182,12 +1511,12 @@
     let helpHidden = false;
     try { helpHidden = localStorage.getItem('city.help') === 'off'; } catch (e) { /* bỏ qua */ }
     overlay.innerHTML = `
-      <button class="enter-hint hidden" type="button"><span class="eh-key">E</span><span class="eh-key">Enter</span>Vào <b class="eh-name"></b></button>
+      <button class="enter-hint hidden" type="button"><span class="eh-key">E</span><span class="eh-key">Enter</span><span class="eh-verb">Vào</span> <b class="eh-name"></b></button>
       <div class="city-help${helpHidden ? ' hidden' : ''}">WASD / ↑↓←→ để đi · Bấm chuột để tới · E / Enter để vào
         <button class="link icon-only city-help-close" type="button" title="Ẩn">×</button></div>
       <div class="joystick" aria-label="Cần điều khiển"><div class="joy-knob"></div></div>`;
     el.parentElement.appendChild(overlay);
-    overlay.querySelector('.enter-hint').addEventListener('click', () => nearZone && !locked && enter(nearZone));
+    overlay.querySelector('.enter-hint').addEventListener('click', act);
     overlay.querySelector('.city-help-close').addEventListener('click', () => {
       overlay.querySelector('.city-help').classList.add('hidden');
       try { localStorage.setItem('city.help', 'off'); } catch (e) { /* bỏ qua */ }
@@ -1211,6 +1540,12 @@
     const stage = el.querySelector('.city-stage');
     bindDrag(stage);
     stage.addEventListener('click', (e) => {
+      const seat = e.target.closest && e.target.closest('[data-bench]');
+      if (seat) {
+        const [bx, by] = seat.dataset.bench.split(',').map(Number);
+        walkToBench({ x: bx, y: by });
+        return;
+      }
       const r = world.getBoundingClientRect();
       walkToPoint((e.clientX - r.left) / scale, (e.clientY - r.top) / scale);
     });
@@ -1220,6 +1555,8 @@
     window.addEventListener('blur', () => keys.clear());
     fit();
     window.addEventListener('resize', fit);
+    applyTime();
+    setInterval(applyTime, 60000);
     if (window.ResizeObserver) new ResizeObserver(fit).observe(el);
     updateNear();
     requestAnimationFrame(tick);
@@ -1248,8 +1585,10 @@
   function teleport(zone) {
     const z = ZONES[zone];
     if (!z || !me) return;
+    standUp(false);
     path = null;
     pathZone = null;
+    pathBench = null;
     hideMarker();
     [me.x, me.y] = NODES[z.node];
     me.dir = 'down';
@@ -1265,6 +1604,7 @@
 
   // Khoá / mở điều khiển. Khi khoá nhân vật đứng yên (nằm nếu ảnh nhân vật hỗ trợ).
   function setLocked(on) {
+    if (on) standUp(false);
     locked = !!on;
     keys.clear();
     stick.x = stick.y = 0;
@@ -1284,8 +1624,136 @@
   // Vị trí ngang của khu trên màn hình, quy về thang 0–1600 (≥ 900 là nửa phải), để đặt bảng thông tin không che khu đó.
   const zoneX = (zone) => ((NODES[ZONES[zone].node][0] - cam.x) / view.w + 0.5) * W;
 
+  // ---------- Người chơi khác (quảng trường), bong bóng chat, biểu cảm ----------
+
+  const actors = new Map(); // id → { x, y, tx, ty, dir, walking, sitting, look, el, auto, drawn }
+  const EMOTES = ['wave', 'heart', 'laugh', 'clap', 'dance'];
+
+  function actorEl(id) {
+    const el = document.createElement('div');
+    el.className = 'me actor';
+    el.dataset.actorId = id;
+    el.innerHTML = '<div class="me-tag"><span class="tag-name"></span><span class="tag-lv"></span></div><div class="me-body"></div>';
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // Không ai đăng ký thì giao cho quảng trường (plaza.js) mở thẻ hồ sơ.
+      if (opts.onActorClick) opts.onActorClick(id);
+      else if (window.Plaza) window.Plaza.openProfile(id);
+    });
+    world.appendChild(el);
+    return el;
+  }
+  function placeActor(a) {
+    a.el.style.transform = `translate(${a.x}px, ${a.y}px)`;
+    a.el.style.zIndex = String(100 + Math.round(a.y));
+    const walking = !a.sitting && (a.walking || a.auto);
+    const dir = a.dir || 'down';
+    const key = `${dir}|${walking}|${a.sitting}|${JSON.stringify(a.look || {})}`;
+    if (key === a.drawn || !C || typeof C.sprite !== 'function') return;
+    a.drawn = key;
+    a.el.querySelector('.me-body').innerHTML = C.sprite(a.look || {}, { dir: a.sitting ? 'down' : dir, walking, size: SPRITE_SIZE });
+    a.el.classList.toggle('sitting', !!a.sitting);
+  }
+  // Đi mượt tới vị trí mới nhận được (nội suy); xa quá thì nhảy luôn.
+  function stepActors(dt) {
+    for (const a of actors.values()) {
+      const dx = a.tx - a.x;
+      const dy = a.ty - a.y;
+      const d = Math.hypot(dx, dy);
+      const was = a.auto;
+      if (d > 0.5) {
+        const step = Math.max(SPEED * 1.1 * dt, d * (1 - Math.exp(-dt * 4)));
+        if (step >= d) { a.x = a.tx; a.y = a.ty; } else { a.x += (dx / d) * step; a.y += (dy / d) * step; }
+        a.auto = d > 3;
+        if (a.autoDir) a.dir = dirOf(dx, dy);
+      } else {
+        a.auto = false;
+      }
+      if (d > 0.5 || was !== a.auto) placeActor(a);
+    }
+  }
+  function showBubble(el, text, ms) {
+    if (!el) return;
+    let b = el.querySelector('.say');
+    if (!b) {
+      b = document.createElement('div');
+      b.className = 'say';
+      el.appendChild(b);
+    }
+    b.textContent = String(text || '').slice(0, 120);
+    el.classList.add('talking'); // đang nói: nổi lên trên cây / biển tên để đọc được
+    clearTimeout(b.timer);
+    b.timer = setTimeout(() => {
+      b.remove();
+      el.classList.remove('talking');
+    }, ms || 5000);
+  }
+  function showEmote(el, kind) {
+    if (!el || !EMOTES.includes(kind)) return;
+    const i = document.createElement('img');
+    i.className = 'emote';
+    i.alt = '';
+    i.src = srcOf('emote_' + kind);
+    el.appendChild(i);
+    EMOTES.forEach((k) => el.classList.remove('emo-' + k));
+    void el.offsetWidth;
+    el.classList.add('emo-' + kind);
+    setTimeout(() => {
+      i.remove();
+      el.classList.remove('emo-' + kind);
+    }, 2200);
+  }
+
+  const Actors = {
+    // Thêm / cập nhật người chơi khác: { look, name, level, x, y, dir, walking, sitting } (trường nào thiếu thì giữ nguyên).
+    upsert(id, st = {}) {
+      if (!world) return;
+      let a = actors.get(id);
+      if (!a) {
+        a = { x: st.x || 0, y: st.y || 0, tx: st.x || 0, ty: st.y || 0, dir: 'down', el: actorEl(id) };
+        actors.set(id, a);
+      }
+      if (typeof st.x === 'number') a.tx = st.x;
+      if (typeof st.y === 'number') a.ty = st.y;
+      if (Math.hypot(a.tx - a.x, a.ty - a.y) > 640) { a.x = a.tx; a.y = a.ty; }
+      for (const k of ['look', 'walking', 'sitting']) if (st[k] !== undefined) a[k] = st[k];
+      if (st.dir) { a.dir = st.dir; a.autoDir = false; } else if (a.autoDir === undefined) a.autoDir = true;
+      if (st.name !== undefined) a.el.querySelector('.tag-name').textContent = st.name;
+      if (st.level !== undefined) a.el.querySelector('.tag-lv').textContent = 'Lv ' + st.level;
+      placeActor(a);
+    },
+    remove(id) {
+      const a = actors.get(id);
+      if (!a) return;
+      a.el.remove();
+      actors.delete(id);
+    },
+    bubble(id, text, ms) { const a = actors.get(id); if (a) showBubble(a.el, text, ms); },
+    emote(id, kind) { const a = actors.get(id); if (a) showEmote(a.el, kind); },
+    ids: () => [...actors.keys()],
+  };
+
+  // Ban đêm (18h–6h theo giờ máy, hoặc ?time=night|day / localStorage 'city.time'): bản đồ tối ấm, đèn đường và cửa sổ sáng.
+  function applyTime() {
+    if (!root) return;
+    let mode = null;
+    try { mode = new URLSearchParams(location.search).get('time') || localStorage.getItem('city.time'); } catch (e) { /* bỏ qua */ }
+    const h = new Date().getHours();
+    const night = mode === 'night' || (mode !== 'day' && (h >= 18 || h < 6));
+    root.classList.toggle('night', night);
+    root.classList.toggle('dusk', !night && mode !== 'day' && (h === 17 || h === 6));
+  }
+
   window.City = {
     ZONES, mount, walkTo, setLook, setTag, setSub, setBadge, teleport, setLocked, zoneX,
     position: () => me && [me.x, me.y],
+    // Trạng thái nhân vật mình (để gửi cho người khác).
+    state: () => me && { x: me.x, y: me.y, dir: me.dir, walking: !!me.walking, sitting: !!sitting, zone: nearZone },
+    isSitting: () => !!sitting,
+    // Đồng bộ theo server (vd server đã cho đứng): false = đứng dậy, không báo lại qua onSit.
+    setSitting: (on) => { if (!on) standUp(false); },
+    actors: Actors,
+    bubbleMe: (text, ms) => me && showBubble(me.el, text, ms),
+    emoteMe: (kind) => me && showEmote(me.el, kind),
   };
 })();

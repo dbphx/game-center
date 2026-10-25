@@ -1,0 +1,160 @@
+{
+ "style": "Hoạt hình 2D tươi sáng, tô bóng khối + viền đậm (định hướng giống game Avatar), không pixel",
+ "title": "Khu Công trường",
+ "images": [
+  {
+   "file": "barrier.png",
+   "w": 158,
+   "h": 81,
+   "use": "rào chắn sọc đỏ trắng có đèn",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "brick.png",
+   "w": 56,
+   "h": 34,
+   "use": "một viên gạch (mini-game khuân gạch)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "bricks_pile.png",
+   "w": 170,
+   "h": 112,
+   "use": "đống gạch trên pallet gỗ",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "building_frame.png",
+   "w": 400,
+   "h": 347,
+   "use": "nhà đang xây có giàn giáo, ván, thang, lưới an toàn",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "cement_bags.png",
+   "w": 149,
+   "h": 83,
+   "use": "chồng bao xi măng",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "cone.png",
+   "w": 50,
+   "h": 66,
+   "use": "cọc tiêu giao thông",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "crane.png",
+   "w": 336,
+   "h": 539,
+   "use": "cần cẩu tháp vàng (trang trí; mini-game dùng crane_hook + crane_load)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "crane_hook.png",
+   "w": 42,
+   "h": 90,
+   "use": "móc cẩu (mini-game lái cần cẩu)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "crane_load.png",
+   "w": 104,
+   "h": 90,
+   "use": "khối bê tông treo dây (mini-game lái cần cẩu)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "hardhat.png",
+   "w": 72,
+   "h": 46,
+   "use": "nón bảo hộ vàng (chồng lên đầu nhân vật)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "mixer.png",
+   "w": 175,
+   "h": 151,
+   "use": "máy trộn bê tông màu cam",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "mortar_tub.png",
+   "w": 164,
+   "h": 100,
+   "use": "máng vữa có xẻng (mini-game trộn vữa)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "sand_pile.png",
+   "w": 168,
+   "h": 77,
+   "use": "đống cát",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "site_sign.png",
+   "w": 247,
+   "h": 143,
+   "use": "biển công trường",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  }
+ ]
+}

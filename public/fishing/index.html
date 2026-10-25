@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hồ câu cá · DCity</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/common.css">
+  <link rel="stylesheet" href="/fishing/fishing.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"><i data-icon="arrowLeft"></i><span id="logo"></span><span class="brand-text">DCity</span></a>
+    <span class="spacer"></span>
+    <div class="user">
+      <span class="hp-pill" id="hp-pill" title="Máu"></span>
+      <span class="level-badge" id="level-badge" title="Kinh nghiệm"></span>
+      <span class="wallet-pill"><i data-icon="coins"></i><span id="balance"></span></span>
+      <span class="user-chip"><span id="user-avatar"></span><span class="user-chip-name" id="user-name"></span></span>
+    </div>
+  </header>
+
+  <!-- Hồ câu cá ngoại ô: mặt hồ, bến gỗ, cầu tre, sen, lục bình, liễu, đèn lồng. Nhân vật đi lại bằng phím hoặc chuột,
+       ra đầu bến (hoặc bờ hồ) bấm E / Space để quăng cần; phao chìm thì giật, rồi kéo cần trong mini-game. -->
+  <main class="zone hidden" id="zone">
+    <section class="stage" id="stage">
+      <div class="world" id="world">
+        <div id="objects"></div>
+        <img class="toon line-ripple hidden" id="ripple" src="/img/toon/fishing/ripple.png" alt="" draggable="false">
+        <img class="toon fish-shadow hidden" id="fish-shadow" src="/img/toon/fishing/fish_shadow.png" alt="" draggable="false">
+        <div class="bobber hidden" id="bobber"><img class="toon" src="/img/toon/fishing/bobber.png" alt="" draggable="false"><b class="bang hidden" id="bang">!</b></div>
+        <canvas class="line-cv" id="line-cv" width="1400" height="760"></canvas>
+        <div class="walker" id="me"><span class="me-tag" id="me-tag"></span><span class="me-body" id="me-body"></span></div>
+        <span class="go-mark hidden" id="go-mark"></span>
+        <button class="hint hidden" id="hint" type="button"><kbd>E</kbd><span></span></button>
+      </div>
+    </section>
+
+    <div class="zone-title">
+      <img src="/img/toon/fishing/fish_chep.png" alt="" width="54" height="31">
+      <div>
+        <h1>Hồ câu cá</h1>
+        <p class="muted">WASD / mũi tên hoặc chuột để đi · ra đầu bến bấm E quăng cần · B giỏ cá · M mồi · N sổ tay</p>
+      </div>
+    </div>
+    <div class="status hidden" id="status"></div>
+
+    <!-- Thanh công cụ: mồi đang chọn, quăng cần, giỏ cá, sổ tay -->
+    <nav class="fish-bar" id="fish-bar">
+      <button type="button" class="tool" id="btn-bait" title="Mồi câu (M)"><img id="bait-img" src="/img/toon/fishing/bait_worm.png" alt=""><span id="bait-text">Mồi</span></button>
+      <button type="button" class="tool primary" id="btn-cast" title="Quăng cần (E / Space)"><img src="/img/toon/fishing/rod.png" alt=""><span>Quăng cần</span></button>
+      <button type="button" class="tool" id="btn-basket" title="Giỏ cá (B)"><img src="/img/toon/fishing/basket.png" alt=""><span id="basket-text">Giỏ cá</span></button>
+      <button type="button" class="tool" id="btn-book" title="Sổ tay (N)"><i data-icon="scroll"></i><span>Sổ tay</span></button>
+    </nav>
+
+    <!-- Mini-game kéo cần -->
+    <div class="reel hidden" id="reel">
+      <div class="reel-title">Kéo cần! <small>giữ Space / chuột để nâng vùng xanh</small></div>
+      <div class="reel-body">
+        <div class="reel-track" id="reel-track">
+          <div class="reel-zone" id="reel-zone"></div>
+          <img class="reel-fish" id="reel-fish" src="/img/toon/fishing/fish_shadow.png" alt="">
+        </div>
+        <div class="reel-prog"><span id="reel-prog"></span></div>
+      </div>
+    </div>
+  </main>
+
+  <dialog class="modal fish-dlg" id="dlg">
+    <div class="dlg-wrap" id="dlg-body"></div>
+  </dialog>
+
+  <!-- Thẻ cá vừa câu được -->
+  <div class="catch hidden" id="catch"></div>
+
+  <script src="/icons.js"></script>
+  <script src="/character.js"></script>
+  <script src="/account.js"></script>
+  <script src="/fishing/fishing.js"></script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Công trường · DCity</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/common.css">
+  <link rel="stylesheet" href="/site/site.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"><i data-icon="arrowLeft"></i><span id="logo"></span><span class="brand-text">DCity</span></a>
+    <span class="spacer"></span>
+    <div class="user">
+      <span class="hp-pill" id="hp-pill" title="Máu"></span>
+      <span class="level-badge" id="level-badge" title="Kinh nghiệm"></span>
+      <span class="wallet-pill"><i data-icon="coins"></i><span id="balance"></span></span>
+      <span class="user-chip"><span id="user-avatar"></span><span class="user-chip-name" id="user-name"></span></span>
+    </div>
+  </header>
+
+  <!-- Cảnh công trường ngoại ô: nhà đang xây, cần cẩu, đống gạch, máy trộn. Nhân vật đội nón bảo hộ đi lại bằng
+       phím hoặc chuột; tới chỗ làm việc bấm E để nhận ca. Mỗi ca là một mini-game ngắn. -->
+  <main class="zone hidden" id="zone">
+    <section class="stage" id="stage">
+      <div class="world" id="world">
+        <div id="objects"></div>
+        <div class="walker" id="me"><span class="me-tag" id="me-tag"></span><span class="me-body" id="me-body"></span></div>
+        <span class="go-mark hidden" id="go-mark"></span>
+        <button class="hint hidden" id="hint" type="button"><kbd>E</kbd><span></span></button>
+      </div>
+    </section>
+
+    <div class="zone-title">
+      <img src="/img/toon/site/hardhat.png" alt="" width="40" height="26">
+      <div>
+        <h1>Công trường DCity</h1>
+        <p class="muted">WASD / mũi tên hoặc bấm chuột để đi · E vào việc · 1–3 chọn việc</p>
+      </div>
+    </div>
+
+    <!-- Bảng việc: 3 việc, khoá theo level; tiền công hôm nay -->
+    <aside class="job-board" id="job-board"></aside>
+  </main>
+
+  <!-- Thẻ việc (mở khi tới chỗ làm) -->
+  <dialog class="modal job-dlg" id="dlg-job">
+    <div class="job-wrap" id="job-body"></div>
+  </dialog>
+
+  <!-- Mini-game của ca làm -->
+  <div class="game-overlay hidden" id="game">
+    <div class="game-box">
+      <div class="game-head">
+        <b id="game-title"></b>
+        <span class="game-score" id="game-score"></span>
+        <span class="game-time" id="game-time"></span>
+      </div>
+      <canvas id="game-canvas" width="720" height="420"></canvas>
+      <p class="game-help" id="game-help"></p>
+    </div>
+  </div>
+
+  <script src="/icons.js"></script>
+  <script src="/character.js"></script>
+  <script src="/account.js"></script>
+  <script src="/site/site.js"></script>
+</body>
+</html>

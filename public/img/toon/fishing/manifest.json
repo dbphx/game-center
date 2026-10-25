@@ -1,0 +1,292 @@
+{
+ "style": "Hoạt hình 2D tươi sáng, tô bóng khối + viền đậm (định hướng giống game Avatar), không pixel",
+ "title": "Hồ câu cá",
+ "images": [
+  {
+   "file": "bait_shrimp.png",
+   "w": 63,
+   "h": 37,
+   "use": "mồi tép",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "bait_special.png",
+   "w": 63,
+   "h": 44,
+   "use": "mồi đặc biệt (mồi giả lấp lánh)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "bait_worm.png",
+   "w": 60,
+   "h": 33,
+   "use": "mồi giun",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "bamboo_bridge.png",
+   "w": 420,
+   "h": 147,
+   "use": "cầu tre cong bắc qua mép hồ",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "basket.png",
+   "w": 98,
+   "h": 100,
+   "use": "giỏ tre đựng cá",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "bobber.png",
+   "w": 30,
+   "h": 46,
+   "use": "phao câu đỏ trắng",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "dock.png",
+   "w": 210,
+   "h": 290,
+   "use": "bến gỗ chìa ra hồ (nhân vật đứng ở đầu bến để câu)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fish_chep.png",
+   "w": 181,
+   "h": 104,
+   "use": "cá chép",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fish_chim.png",
+   "w": 142,
+   "h": 143,
+   "use": "cá chim",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fish_dep.png",
+   "w": 128,
+   "h": 52,
+   "use": "dép cũ (rác)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fish_diec.png",
+   "w": 139,
+   "h": 112,
+   "use": "cá diếc",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fish_koi.png",
+   "w": 181,
+   "h": 100,
+   "use": "cá koi",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fish_loc.png",
+   "w": 212,
+   "h": 76,
+   "use": "cá lóc",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fish_lon.png",
+   "w": 56,
+   "h": 94,
+   "use": "lon nước (rác)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fish_ro.png",
+   "w": 135,
+   "h": 104,
+   "use": "cá rô đồng",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fish_shadow.png",
+   "w": 84,
+   "h": 32,
+   "use": "bóng cá dưới nước",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fish_tre.png",
+   "w": 209,
+   "h": 76,
+   "use": "cá trê",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fish_vang.png",
+   "w": 221,
+   "h": 95,
+   "use": "Cá Vàng Huyền Thoại",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "hyacinth.png",
+   "w": 114,
+   "h": 75,
+   "use": "lục bình hoa tím",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "lake.png",
+   "w": 1082,
+   "h": 426,
+   "use": "mặt hồ lớn có bờ cỏ, sóng lấp lánh",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "lantern.png",
+   "w": 70,
+   "h": 160,
+   "use": "đèn lồng đỏ treo cột tre",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "lilypad.png",
+   "w": 80,
+   "h": 46,
+   "use": "lá súng",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "lotus.png",
+   "w": 130,
+   "h": 89,
+   "use": "hoa sen hồng trên lá",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "ripple.png",
+   "w": 110,
+   "h": 50,
+   "use": "gợn sóng quanh phao",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "rod.png",
+   "w": 169,
+   "h": 169,
+   "use": "cần câu tre (chồng cạnh nhân vật)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "willow.png",
+   "w": 262,
+   "h": 322,
+   "use": "cây liễu rủ ven hồ",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  }
+ ]
+}

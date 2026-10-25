@@ -12,7 +12,11 @@ import (
 	"os"
 
 	"github.com/dbphx/game-center/games/baucua"
+	"github.com/dbphx/game-center/games/caro"
 	"github.com/dbphx/game-center/games/farm"
+	"github.com/dbphx/game-center/games/fishing"
+	"github.com/dbphx/game-center/games/plaza"
+	"github.com/dbphx/game-center/games/site"
 	"github.com/dbphx/game-center/games/tienlen/online"
 	"github.com/dbphx/game-center/internal/server"
 	"github.com/dbphx/game-center/internal/wallet"
@@ -53,10 +57,29 @@ func games(w *wallet.Wallet) []server.Game {
 	if err != nil {
 		log.Fatalf("nông trại: %v", err)
 	}
+	caroAuth := func(ctx context.Context, token string) (caro.User, error) {
+		u, err := w.UserByToken(ctx, token)
+		return caro.User{ID: u.ID, Name: u.Name, Gender: u.Gender, Outfit: u.Outfit, Hair: u.Hair, Wings: u.Wings, Face: u.Face,
+			Level: u.Level, HP: u.HP, HospitalUntil: u.HospitalUntil}, err
+	}
+	caroOpts := caro.DefaultOptions
+	caroOpts.MinHP = wallet.ZoneMinHP["casino"]
+	caroHub := caro.NewHub(w, caroOpts)
 	bauCua, err := baucua.New(context.Background(), w)
 	if err != nil {
 		log.Fatalf("bầu cua: %v", err)
 	}
+	siteGame, err := site.New(context.Background(), w)
+	if err != nil {
+		log.Fatalf("công trường: %v", err)
+	}
+	pond, err := fishing.New(context.Background(), w)
+	if err != nil {
+		log.Fatalf("hồ câu cá: %v", err)
+	}
+	// Quảng trường: người chơi thấy nhau đi lại, trò chuyện, tặng xu (WebSocket /ws/plaza).
+	square := plaza.NewHub(w)
+	go square.Run(context.Background())
 
 	return []server.Game{
 		{
@@ -84,6 +107,41 @@ func games(w *wallet.Wallet) []server.Game {
 			Players:     "Sòng chung",
 			Path:        "/baucua/",
 			API:         bauCua.Handler(),
+		},
+		{
+			ID:          caro.GameID,
+			Name:        "Cờ Caro",
+			Description: "Bàn 15×15, ai có 5 quân liền trước thì thắng. Chơi với bạn hoặc với máy, có cược.",
+			Players:     "2 người",
+			Path:        "/caro/",
+			Stats:       func() any { return caroHub.Stats() },
+			WS:          caroHub.Handler(caroAuth),
+			Rooms:       caroHub.RoomsHandler(),
+		},
+		{
+			ID:          site.GameID,
+			Name:        "Công trường",
+			Description: "Làm thuê theo ca ở ngoại ô: khuân gạch, trộn vữa, lái cần cẩu để kiếm xu (tốn máu).",
+			Players:     "1 người",
+			Path:        "/site/",
+			API:         siteGame.Handler(),
+		},
+		{
+			ID:          fishing.GameID,
+			Name:        "Hồ câu cá",
+			Description: "Mua mồi, thả câu, giật đúng lúc cá cắn câu; bán cá trong giỏ lấy xu.",
+			Players:     "1 người",
+			Path:        "/fishing/",
+			API:         pond.Handler(),
+		},
+		{
+			ID:          plaza.GameID,
+			Name:        "Quảng trường",
+			Description: "Gặp gỡ người chơi khác trên bản đồ: trò chuyện, biểu cảm, tặng xu, mời chơi.",
+			Players:     "Mọi người",
+			Path:        "/",
+			Stats:       func() any { return map[string]int{"players": square.Online()} },
+			WS:          square.Handler(),
 		},
 	}
 }

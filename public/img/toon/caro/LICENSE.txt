@@ -1,0 +1,6 @@
+Hình trong thư mục này đều dùng giấy phép CC0 1.0 (public domain) — không bắt buộc ghi công, nhưng DCity vẫn ghi nguồn:
+
+- DCity (vẽ / ghép bằng PIL cho dự án) — DCity — CC0 
+
+Hình "DCity" là vẽ bằng PIL cho dự án, phát hành CC0.
+Chi tiết từng file: CREDITS.csv.

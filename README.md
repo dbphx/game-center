@@ -177,6 +177,78 @@ members: [{name, …, level, total}], maxRoundTotal (0 = không giới hạn), r
 Mã lỗi: 400 mặt / chip / quỹ sai, 402 không đủ xu, 404 không có bàn, 409 hết giờ cược / vượt giới hạn / đang làm cái,
 403 / 423 HP.
 
+## Cờ Caro
+
+Khu Casino, trang `/caro/`. Bàn 15×15, X đi trước, ai có 5 quân liền (ngang / dọc / chéo) trước thì thắng.
+
+- **Luật bàn** (chủ bàn chọn): `block2` (mặc định, luật Việt Nam: đường đúng 5 quân bị quân đối thủ chặn cả hai đầu
+  thì không tính; mép bàn không tính là chặn; 6 quân trở lên vẫn thắng) hoặc `free` (5 quân trở lên là thắng).
+  Hết ô mà không ai thắng là hoà.
+- **Lượt** 30 giây, hết giờ là thua ván; đầu hàng là thua; rời bàn giữa ván (hoặc mất kết nối quá 30 giây) là thua.
+- **2 ghế**: người hoặc máy (`easy` / `normal` / `hard`). Bàn đủ 2 người thì người vào sau được xem.
+- **Cược** 0, 10, 20, 50, 100, 200, 500, 1000 xu (0 = chơi vui): người thắng ăn mức cược của người thua; hoà không đổi;
+  đánh với máy thì máy là nhà cái. Ghi sổ cái game `caro`. **XP**: thắng 20, hoà 12, thua 8 (cả bàn 0 xu).
+- Ván sau người thua cầm X đi trước (hoà thì đổi bên). Cần cả hai bấm "chơi lại", hoặc chủ bàn bấm bắt đầu.
+- Cần đủ máu vào Casino để ngồi ghế.
+
+WebSocket `/ws/caro`, danh sách bàn `GET /api/caro/rooms`
+→ `[{code, phase, bet, rule, players:[{name, gender, outfit, hair, wings, face, level, bot}], spectators, max}]`.
+
+| Client → server | |
+|---|---|
+| `{t:"create", token, bet, rule}` / `{t:"join", token, code}` | mở / vào bàn (đủ người thì vào xem) |
+| `{t:"addBot", level}`, `{t:"kick", id}`, `{t:"setBet", bet}`, `{t:"setRule", rule}`, `{t:"start"}` | chủ bàn, ngoài ván |
+| `{t:"move", x, y}`, `{t:"resign"}`, `{t:"rematch"}`, `{t:"leave"}` | |
+
+Server gửi `{t:"state", code, you, phase, size, board, turn, players:[{id, name, …, bot, botLevel, host, online, mark,
+coins, ready}], last:{x,y}, winLine:[[x,y]…], result:{winner, reason, money:{id:delta}, xp:{id:n}}, bet, gameBet,
+betOptions, rule, turnMs, spectators, moves}` (`board` là chuỗi 225 ký tự `.`/`x`/`o` theo hàng; `you` rỗng khi đang xem;
+`reason`: `five` | `timeout` | `resign` | `left` | `draw`), cùng `{t:"session", code}`, `{t:"error", msg}`, `{t:"left"}`, `{t:"auth"}`.
+
+## Công trường (ngoại ô)
+
+Làm thuê theo ca để kiếm xu. Nhận ca cần ≥ 30 HP; mỗi ca trừ máu ngay, giao diện chơi mini-game trong thời gian ca
+rồi nộp điểm (số mục tiêu hoàn thành, tối đa `seconds / 2`).
+
+| Việc | Level | HP | Thời gian | Tiền công (0 → đủ điểm) | XP |
+|---|---|---|---|---|---|
+| Khuân gạch | 1 | 8 | 30 giây | 120 → 300 | 4 |
+| Trộn vữa | 3 | 10 | 30 giây | 200 → 500 | 6 |
+| Lái cần cẩu | 6 | 12 | 40 giây | 400 → 900 | 10 |
+
+- Tiền công = `basePay + (maxPay − basePay) × điểm / số mục tiêu`. Mỗi ngày (giờ Việt Nam) kiếm tối đa 6.000 xu ở công trường.
+- Chống gian lận: chỉ nộp được trong khung [hết giờ − 2 giây, hết giờ + 30 giây], mỗi ca một lần; quá hạn thì ca mất (máu đã trừ).
+  Hết giờ một ca phải nghỉ 20 giây mới nhận ca mới; đang có ca thì không nhận ca khác. Không được làm tới 0 HP.
+
+| API (cần đăng nhập) | Mô tả |
+|---|---|
+| `GET /api/site` | `{now, jobs, today:{earned, cap}, active, cooldownUntil, user}` (thời gian là unix ms) |
+| `POST /api/site/start {job}` | nhận ca: trả như trên kèm `shift:{id, job, seconds, targets, seed, startedAt, endsAt}`; 403 thiếu level / máu, 409 đang có ca / đang nghỉ / hết suất ngày, 423 nằm viện |
+| `POST /api/site/finish {shiftId, score}` | nộp ca: thêm `pay`, `xp`, `score`; 409 sớm / muộn / đã nộp, 400 điểm sai, 404 ca lạ |
+
+## Hồ câu cá (ngoại ô)
+
+Mua mồi, thả câu, chờ cá cắn câu (3–10 giây) rồi giật và kéo cần. Câu cá cần ≥ 10 HP. Kết quả mỗi lần thả do server quay sẵn,
+giao diện chỉ biết lúc cá cắn câu (`biteAt`) và độ khó; giật trước `biteAt` thì cá chạy, quá `biteAt + 1,5 giây + 8 giây`
+thì cá ăn mồi mất. Mỗi lần thả mất 1 mồi dù câu được hay không.
+
+| Mồi | Giá | Tỉ lệ (rác / thường / khá / hiếm / quý / huyền thoại) |
+|---|---|---|
+| Giun | 10 | 8% / 55% / 27% / 8% / 1,9% / 0,1% |
+| Tép | 40 | 5% / 42% / 33% / 15% / 4,7% / 0,3% |
+| Mồi đặc biệt | 150 | 3% / 30% / 36% / 22% / 8,5% / 0,5% |
+
+Cá: rô, diếc (thường) · chép, lóc (khá) · trê, chim (hiếm) · koi (quý) · Cá Vàng Huyền Thoại; giá = cỡ (cm) × giá mỗi cm,
+mồi tốt cho cá to hơn. Vớt phải rác (dép cũ, lon) thì chỉ được 1 XP. Giỏ chứa tối đa 30 con, bán lấy xu.
+
+| API (cần đăng nhập) | Mô tả |
+|---|---|
+| `GET /api/fishing` | `{now, baits:[{id,name,price,luck,qty}], basket:[{id,fishId,name,rarity,cm,price,caughtAt}], basketMax, record:{fishId:cm}, cast, fish, user}` |
+| `POST /api/fishing/bait/buy {bait, qty}` | mua 1–50 mồi; 402 thiếu xu |
+| `POST /api/fishing/cast {bait}` | thả câu: `cast:{id, bait, createdAt, biteAt, windowMs, expiresAt, difficulty 1–5}`; 409 đang thả / hết mồi / giỏ đầy |
+| `POST /api/fishing/reel {castId, success}` | giật: `outcome` = `caught` \| `miss` \| `early` \| `late`, `message`, `caught:{fishId,name,rarity,cm,price,record}`, `gained:{xp}`; 404 lần thả lạ |
+| `POST /api/fishing/sell {ids}` hoặc `{all:true}` | bán cá trong giỏ: `gained:{coins, count}`; 409 không có gì để bán |
+
 ## Tiến Lên Miền Nam
 
 1. Ở hub chọn **Tiến Lên Miền Nam** → **Tạo phòng mới**, gửi link phòng cho bạn bè. Bạn bè mở link, tạo tài khoản (nếu chưa có) là vào thẳng phòng.
@@ -224,6 +296,9 @@ games/tienlen/           luật, luồng ván, tiền cược, bot
 games/tienlen/online/    phòng chơi online: người vào/ra, máy, hẹn giờ, trả thưởng vào ví
 games/farm/              nông trại: ô đất, chuồng, ao, kho
 games/baucua/            bầu cua: sòng chung, vòng theo đồng hồ, trả thưởng vào ví
+games/caro/              cờ caro 15×15: luật thắng, máy chơi, bàn online qua WebSocket
+games/site/              công trường: ca làm thuê, tiền công theo điểm, giới hạn ngày
+games/fishing/           hồ câu cá: mồi, thả câu (kết quả quay ở server), giỏ cá, kỷ lục
 public/                  bản đồ thành phố (index.html, hub.js, city.js), nhân vật (character.js),
                          phần dùng chung (account.js, icons.js, common.css)
 public/tienlen/          giao diện Tiến Lên

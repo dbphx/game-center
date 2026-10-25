@@ -1,0 +1,2431 @@
+{
+ "style": "Ảnh 3D dựng sẵn (pre-render three.js), tô hoạt hình mềm, nắng chiều ấm, bóng đổ mềm, viền nâu — thay cho bộ ảnh 2D ở /img/toon/city/",
+ "render": "Camera trực giao nhìn chếch từ trên-trước (pitch 30°, toà nhà xoay nhẹ -10°…-20° cho thấy khối); dựng 2× rồi thu nhỏ; xe có 2 hướng (_east, _west).",
+ "anchor_note": "\"foot\" = điểm chân (gốc vật trên mặt đất) tính theo pixel trong ảnh; anchor \"bottom-center\" thì foot nằm giữa theo chiều ngang. \"replaces\" = tên ảnh cũ trong /img/toon/city/ mà ảnh này thay thế.",
+ "images": [
+  {
+   "file": "building_casino.png",
+   "w": 371,
+   "h": 296,
+   "anchor": "bottom-center",
+   "foot": [
+    186,
+    231
+   ],
+   "use": "Toà Casino (biển CASINO có bóng đèn)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "building_casino.png",
+   "w": 371,
+   "h": 296,
+   "anchor": "bottom-center",
+   "foot": [
+    186,
+    231
+   ],
+   "use": "Toà Casino (biển CASINO có bóng đèn) (thay building_casino, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "building_casino"
+   ],
+   "scale": 0.8784
+  },
+  {
+   "file": "building_bank.png",
+   "w": 517,
+   "h": 280,
+   "anchor": "bottom-center",
+   "foot": [
+    258,
+    201
+   ],
+   "use": "Toà Ngân hàng",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "building_bank.png",
+   "w": 517,
+   "h": 280,
+   "anchor": "bottom-center",
+   "foot": [
+    258,
+    201
+   ],
+   "use": "Toà Ngân hàng (thay building_bank, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "building_bank"
+   ],
+   "scale": 0.8273
+  },
+  {
+   "file": "building_shop.png",
+   "w": 294,
+   "h": 243,
+   "anchor": "bottom-center",
+   "foot": [
+    147,
+    200
+   ],
+   "use": "Shop thời trang",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "building_shop.png",
+   "w": 294,
+   "h": 243,
+   "anchor": "bottom-center",
+   "foot": [
+    147,
+    200
+   ],
+   "use": "Shop thời trang (thay building_shop, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "building_shop"
+   ],
+   "scale": 1.0
+  },
+  {
+   "file": "building_hospital.png",
+   "w": 341,
+   "h": 260,
+   "anchor": "bottom-center",
+   "foot": [
+    170,
+    200
+   ],
+   "use": "Bệnh viện (biển + chữ thập đỏ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "building_hospital.png",
+   "w": 341,
+   "h": 260,
+   "anchor": "bottom-center",
+   "foot": [
+    170,
+    200
+   ],
+   "use": "Bệnh viện (biển + chữ thập đỏ) (thay building_hospital, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "building_hospital"
+   ],
+   "scale": 0.9524
+  },
+  {
+   "file": "house_1.png",
+   "w": 262,
+   "h": 170,
+   "anchor": "bottom-center",
+   "foot": [
+    131,
+    118
+   ],
+   "use": "Nhà dân ngoại ô",
+   "source": [
+    "Kenney — City Kit Suburban 2.0 (building-type-*), đổi màu mái ngói / tường",
+    "https://kenney.nl/assets/city-kit-suburban"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "house_1.png",
+   "w": 262,
+   "h": 170,
+   "anchor": "bottom-center",
+   "foot": [
+    131,
+    118
+   ],
+   "use": "Nhà dân ngoại ô (thay house_1, cỡ như ảnh cũ)",
+   "source": [
+    "Kenney — City Kit Suburban 2.0 (building-type-*), đổi màu mái ngói / tường",
+    "https://kenney.nl/assets/city-kit-suburban"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "house_1"
+   ],
+   "scale": 1.0119
+  },
+  {
+   "file": "house_2.png",
+   "w": 238,
+   "h": 172,
+   "anchor": "bottom-center",
+   "foot": [
+    119,
+    126
+   ],
+   "use": "Nhà dân ngoại ô",
+   "source": [
+    "Kenney — City Kit Suburban 2.0 (building-type-*), đổi màu mái ngói / tường",
+    "https://kenney.nl/assets/city-kit-suburban"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "house_2.png",
+   "w": 238,
+   "h": 172,
+   "anchor": "bottom-center",
+   "foot": [
+    119,
+    126
+   ],
+   "use": "Nhà dân ngoại ô (thay house_2, cỡ như ảnh cũ)",
+   "source": [
+    "Kenney — City Kit Suburban 2.0 (building-type-*), đổi màu mái ngói / tường",
+    "https://kenney.nl/assets/city-kit-suburban"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "house_2"
+   ],
+   "scale": 1.0
+  },
+  {
+   "file": "house_3.png",
+   "w": 260,
+   "h": 168,
+   "anchor": "bottom-center",
+   "foot": [
+    130,
+    126
+   ],
+   "use": "Nhà dân ngoại ô",
+   "source": [
+    "Kenney — City Kit Suburban 2.0 (building-type-*), đổi màu mái ngói / tường",
+    "https://kenney.nl/assets/city-kit-suburban"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "house_3.png",
+   "w": 260,
+   "h": 168,
+   "anchor": "bottom-center",
+   "foot": [
+    130,
+    126
+   ],
+   "use": "Nhà dân ngoại ô (thay house_3, cỡ như ảnh cũ)",
+   "source": [
+    "Kenney — City Kit Suburban 2.0 (building-type-*), đổi màu mái ngói / tường",
+    "https://kenney.nl/assets/city-kit-suburban"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "house_3"
+   ],
+   "scale": 1.0
+  },
+  {
+   "file": "house_4.png",
+   "w": 220,
+   "h": 172,
+   "anchor": "bottom-center",
+   "foot": [
+    110,
+    127
+   ],
+   "use": "Nhà dân ngoại ô",
+   "source": [
+    "Kenney — City Kit Suburban 2.0 (building-type-*), đổi màu mái ngói / tường",
+    "https://kenney.nl/assets/city-kit-suburban"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "house_4.png",
+   "w": 220,
+   "h": 172,
+   "anchor": "bottom-center",
+   "foot": [
+    110,
+    127
+   ],
+   "use": "Nhà dân ngoại ô (thay house_4, cỡ như ảnh cũ)",
+   "source": [
+    "Kenney — City Kit Suburban 2.0 (building-type-*), đổi màu mái ngói / tường",
+    "https://kenney.nl/assets/city-kit-suburban"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "house_4"
+   ],
+   "scale": 0.9942
+  },
+  {
+   "file": "house_5.png",
+   "w": 275,
+   "h": 170,
+   "anchor": "bottom-center",
+   "foot": [
+    138,
+    121
+   ],
+   "use": "Nhà dân ngoại ô",
+   "source": [
+    "Kenney — City Kit Suburban 2.0 (building-type-*), đổi màu mái ngói / tường",
+    "https://kenney.nl/assets/city-kit-suburban"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "house_5.png",
+   "w": 275,
+   "h": 170,
+   "anchor": "bottom-center",
+   "foot": [
+    138,
+    121
+   ],
+   "use": "Nhà dân ngoại ô (thay house_5, cỡ như ảnh cũ)",
+   "source": [
+    "Kenney — City Kit Suburban 2.0 (building-type-*), đổi màu mái ngói / tường",
+    "https://kenney.nl/assets/city-kit-suburban"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "house_5"
+   ],
+   "scale": 1.0119
+  },
+  {
+   "file": "house_6.png",
+   "w": 169,
+   "h": 173,
+   "anchor": "bottom-center",
+   "foot": [
+    85,
+    138
+   ],
+   "use": "Nhà dân ngoại ô",
+   "source": [
+    "Kenney — City Kit Suburban 2.0 (building-type-*), đổi màu mái ngói / tường",
+    "https://kenney.nl/assets/city-kit-suburban"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "house_6.png",
+   "w": 169,
+   "h": 173,
+   "anchor": "bottom-center",
+   "foot": [
+    85,
+    138
+   ],
+   "use": "Nhà dân ngoại ô (thay house_6, cỡ như ảnh cũ)",
+   "source": [
+    "Kenney — City Kit Suburban 2.0 (building-type-*), đổi màu mái ngói / tường",
+    "https://kenney.nl/assets/city-kit-suburban"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "house_6"
+   ],
+   "scale": 0.9942
+  },
+  {
+   "file": "house_7.png",
+   "w": 252,
+   "h": 173,
+   "anchor": "bottom-center",
+   "foot": [
+    126,
+    115
+   ],
+   "use": "Nhà dân ngoại ô",
+   "source": [
+    "Kenney — City Kit Suburban 2.0 (building-type-*), đổi màu mái ngói / tường",
+    "https://kenney.nl/assets/city-kit-suburban"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "house_7.png",
+   "w": 252,
+   "h": 173,
+   "anchor": "bottom-center",
+   "foot": [
+    126,
+    115
+   ],
+   "use": "Nhà dân ngoại ô (thay house_7, cỡ như ảnh cũ)",
+   "source": [
+    "Kenney — City Kit Suburban 2.0 (building-type-*), đổi màu mái ngói / tường",
+    "https://kenney.nl/assets/city-kit-suburban"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "house_7"
+   ],
+   "scale": 0.9942
+  },
+  {
+   "file": "house_8.png",
+   "w": 205,
+   "h": 171,
+   "anchor": "bottom-center",
+   "foot": [
+    102,
+    130
+   ],
+   "use": "Nhà dân ngoại ô",
+   "source": [
+    "Kenney — City Kit Suburban 2.0 (building-type-*), đổi màu mái ngói / tường",
+    "https://kenney.nl/assets/city-kit-suburban"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "house_8.png",
+   "w": 205,
+   "h": 171,
+   "anchor": "bottom-center",
+   "foot": [
+    102,
+    130
+   ],
+   "use": "Nhà dân ngoại ô (thay house_8, cỡ như ảnh cũ)",
+   "source": [
+    "Kenney — City Kit Suburban 2.0 (building-type-*), đổi màu mái ngói / tường",
+    "https://kenney.nl/assets/city-kit-suburban"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "house_8"
+   ],
+   "scale": 1.0059
+  },
+  {
+   "file": "farm_gate.png",
+   "w": 283,
+   "h": 132,
+   "anchor": "bottom-center",
+   "foot": [
+    142,
+    109
+   ],
+   "use": "Cổng gỗ khu Nông trại (biển NÔNG TRẠI)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "farm_gate.png",
+   "w": 283,
+   "h": 132,
+   "anchor": "bottom-center",
+   "foot": [
+    142,
+    109
+   ],
+   "use": "Cổng gỗ khu Nông trại (biển NÔNG TRẠI) (thay farm_gate, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "farm_gate"
+   ],
+   "scale": 1.0075
+  },
+  {
+   "file": "tree_round.png",
+   "w": 235,
+   "h": 204,
+   "anchor": "bottom-center",
+   "foot": [
+    117,
+    189
+   ],
+   "use": "Cây tán tròn",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_round.png",
+   "w": 235,
+   "h": 204,
+   "anchor": "bottom-center",
+   "foot": [
+    117,
+    189
+   ],
+   "use": "Cây tán tròn (thay tree_1, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "tree_1"
+   ],
+   "scale": 0.7465
+  },
+  {
+   "file": "tree_round.png",
+   "w": 235,
+   "h": 204,
+   "anchor": "bottom-center",
+   "foot": [
+    117,
+    189
+   ],
+   "use": "Cây tán tròn (thay tree_big, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "tree_big"
+   ],
+   "scale": 1.005
+  },
+  {
+   "file": "tree_round.png",
+   "w": 235,
+   "h": 204,
+   "anchor": "bottom-center",
+   "foot": [
+    117,
+    189
+   ],
+   "use": "Cây tán tròn (thay farm/tree_big, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "farm/tree_big"
+   ],
+   "scale": 1.206
+  },
+  {
+   "file": "tree_round.png",
+   "w": 235,
+   "h": 204,
+   "anchor": "bottom-center",
+   "foot": [
+    117,
+    189
+   ],
+   "use": "Cây tán tròn (thay farm/tree_med, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "farm/tree_med"
+   ],
+   "scale": 0.7538
+  },
+  {
+   "file": "tree_round.png",
+   "w": 235,
+   "h": 204,
+   "anchor": "bottom-center",
+   "foot": [
+    117,
+    189
+   ],
+   "use": "Cây tán tròn (thay farm/tree_round_1, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "farm/tree_round_1"
+   ],
+   "scale": 0.7465
+  },
+  {
+   "file": "tree_round_small.png",
+   "w": 164,
+   "h": 123,
+   "anchor": "bottom-center",
+   "foot": [
+    82,
+    110
+   ],
+   "use": "Cây tán tròn nhỏ",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_round_small.png",
+   "w": 164,
+   "h": 123,
+   "anchor": "bottom-center",
+   "foot": [
+    82,
+    110
+   ],
+   "use": "Cây tán tròn nhỏ (thay tree_2, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "tree_2"
+   ],
+   "scale": 0.2411
+  },
+  {
+   "file": "tree_round_small.png",
+   "w": 164,
+   "h": 123,
+   "anchor": "bottom-center",
+   "foot": [
+    82,
+    110
+   ],
+   "use": "Cây tán tròn nhỏ (thay tree_4, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "tree_4"
+   ],
+   "scale": 0.3616
+  },
+  {
+   "file": "tree_pine.png",
+   "w": 129,
+   "h": 161,
+   "anchor": "bottom-center",
+   "foot": [
+    64,
+    142
+   ],
+   "use": "Cây thông",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_pine.png",
+   "w": 129,
+   "h": 161,
+   "anchor": "bottom-center",
+   "foot": [
+    64,
+    142
+   ],
+   "use": "Cây thông (thay tree_3, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "tree_3"
+   ],
+   "scale": 0.2929
+  },
+  {
+   "file": "tree_pine.png",
+   "w": 129,
+   "h": 161,
+   "anchor": "bottom-center",
+   "foot": [
+    64,
+    142
+   ],
+   "use": "Cây thông (thay farm/tree_round_3, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "farm/tree_round_3"
+   ],
+   "scale": 0.2929
+  },
+  {
+   "file": "tree_phuong.png",
+   "w": 441,
+   "h": 345,
+   "anchor": "bottom-center",
+   "foot": [
+    220,
+    306
+   ],
+   "use": "Cây phượng vĩ hoa đỏ",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_phuong.png",
+   "w": 441,
+   "h": 345,
+   "anchor": "bottom-center",
+   "foot": [
+    220,
+    306
+   ],
+   "use": "Cây phượng vĩ hoa đỏ (thay tree_phuong, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "tree_phuong"
+   ],
+   "scale": 1.0
+  },
+  {
+   "file": "tree_phuong.png",
+   "w": 441,
+   "h": 345,
+   "anchor": "bottom-center",
+   "foot": [
+    220,
+    306
+   ],
+   "use": "Cây phượng vĩ hoa đỏ (thay tree_5, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "tree_5"
+   ],
+   "scale": 0.7438
+  },
+  {
+   "file": "tree_banglang.png",
+   "w": 418,
+   "h": 328,
+   "anchor": "bottom-center",
+   "foot": [
+    209,
+    305
+   ],
+   "use": "Cây bằng lăng hoa tím",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_banglang.png",
+   "w": 418,
+   "h": 328,
+   "anchor": "bottom-center",
+   "foot": [
+    209,
+    305
+   ],
+   "use": "Cây bằng lăng hoa tím (thay tree_banglang, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "tree_banglang"
+   ],
+   "scale": 1.0063
+  },
+  {
+   "file": "tree_mai.png",
+   "w": 256,
+   "h": 186,
+   "anchor": "bottom-center",
+   "foot": [
+    128,
+    174
+   ],
+   "use": "Cây mai vàng",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_mai.png",
+   "w": 256,
+   "h": 186,
+   "anchor": "bottom-center",
+   "foot": [
+    128,
+    174
+   ],
+   "use": "Cây mai vàng (thay farm/tree_mai, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "farm/tree_mai"
+   ],
+   "scale": 1.25
+  },
+  {
+   "file": "tree_dao.png",
+   "w": 266,
+   "h": 189,
+   "anchor": "bottom-center",
+   "foot": [
+    133,
+    170
+   ],
+   "use": "Cây đào hồng",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_dao.png",
+   "w": 266,
+   "h": 189,
+   "anchor": "bottom-center",
+   "foot": [
+    133,
+    170
+   ],
+   "use": "Cây đào hồng (thay farm/tree_dao, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "farm/tree_dao"
+   ],
+   "scale": 1.2778
+  },
+  {
+   "file": "tree_dua.png",
+   "w": 403,
+   "h": 259,
+   "anchor": "bottom-center",
+   "foot": [
+    201,
+    244
+   ],
+   "use": "Cây dừa",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_dua.png",
+   "w": 403,
+   "h": 259,
+   "anchor": "bottom-center",
+   "foot": [
+    201,
+    244
+   ],
+   "use": "Cây dừa (thay farm/tree_dua, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "farm/tree_dua"
+   ],
+   "scale": 1.28
+  },
+  {
+   "file": "tree_cau.png",
+   "w": 207,
+   "h": 183,
+   "anchor": "bottom-center",
+   "foot": [
+    104,
+    178
+   ],
+   "use": "Cây cau",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "bush.png",
+   "w": 159,
+   "h": 85,
+   "anchor": "bottom-center",
+   "foot": [
+    80,
+    66
+   ],
+   "use": "Bụi cây",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "bush.png",
+   "w": 159,
+   "h": 85,
+   "anchor": "bottom-center",
+   "foot": [
+    80,
+    66
+   ],
+   "use": "Bụi cây (thay bush_1, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "bush_1"
+   ],
+   "scale": 0.8955
+  },
+  {
+   "file": "bush.png",
+   "w": 159,
+   "h": 85,
+   "anchor": "bottom-center",
+   "foot": [
+    80,
+    66
+   ],
+   "use": "Bụi cây (thay bush_2, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "bush_2"
+   ],
+   "scale": 0.6276
+  },
+  {
+   "file": "bush.png",
+   "w": 159,
+   "h": 85,
+   "anchor": "bottom-center",
+   "foot": [
+    80,
+    66
+   ],
+   "use": "Bụi cây (thay bush_3, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "bush_3"
+   ],
+   "scale": 0.6987
+  },
+  {
+   "file": "bush.png",
+   "w": 159,
+   "h": 85,
+   "anchor": "bottom-center",
+   "foot": [
+    80,
+    66
+   ],
+   "use": "Bụi cây (thay farm/bush_1, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "farm/bush_1"
+   ],
+   "scale": 0.8955
+  },
+  {
+   "file": "bush.png",
+   "w": 159,
+   "h": 85,
+   "anchor": "bottom-center",
+   "foot": [
+    80,
+    66
+   ],
+   "use": "Bụi cây (thay farm/bush_2, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "farm/bush_2"
+   ],
+   "scale": 0.6276
+  },
+  {
+   "file": "bush_flower.png",
+   "w": 138,
+   "h": 84,
+   "anchor": "bottom-center",
+   "foot": [
+    69,
+    65
+   ],
+   "use": "Bụi cây có hoa",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "bush_flower.png",
+   "w": 138,
+   "h": 84,
+   "anchor": "bottom-center",
+   "foot": [
+    69,
+    65
+   ],
+   "use": "Bụi cây có hoa (thay bush_4, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "bush_4"
+   ],
+   "scale": 0.5921
+  },
+  {
+   "file": "lamp.png",
+   "w": 81,
+   "h": 130,
+   "anchor": "bottom-center",
+   "foot": [
+    40,
+    123
+   ],
+   "use": "Đèn đường (đèn vàng ấm)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "lamp.png",
+   "w": 81,
+   "h": 130,
+   "anchor": "bottom-center",
+   "foot": [
+    40,
+    123
+   ],
+   "use": "Đèn đường (đèn vàng ấm) (thay lamp, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "lamp"
+   ],
+   "scale": 1.0078
+  },
+  {
+   "file": "bench.png",
+   "w": 128,
+   "h": 63,
+   "anchor": "bottom-center",
+   "foot": [
+    64,
+    54
+   ],
+   "use": "Ghế băng công viên (ngồi được)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "bench.png",
+   "w": 128,
+   "h": 63,
+   "anchor": "bottom-center",
+   "foot": [
+    64,
+    54
+   ],
+   "use": "Ghế băng công viên (ngồi được) (thay bench, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "bench"
+   ],
+   "scale": 0.9677
+  },
+  {
+   "file": "flower_pot.png",
+   "w": 53,
+   "h": 49,
+   "anchor": "bottom-center",
+   "foot": [
+    27,
+    40
+   ],
+   "use": "Chậu hoa",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "fountain.png",
+   "w": 207,
+   "h": 163,
+   "anchor": "bottom-center",
+   "foot": [
+    104,
+    114
+   ],
+   "use": "Đài phun nước quảng trường",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "fountain.png",
+   "w": 207,
+   "h": 163,
+   "anchor": "bottom-center",
+   "foot": [
+    104,
+    114
+   ],
+   "use": "Đài phun nước quảng trường (thay fountain, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "fountain"
+   ],
+   "scale": 0.8148
+  },
+  {
+   "file": "car_red_east.png",
+   "w": 133,
+   "h": 81,
+   "anchor": "bottom-center",
+   "foot": [
+    67,
+    66
+   ],
+   "use": "Xe đỏ, đầu xe hướng đông (phải)",
+   "source": [
+    "Kenney — Car Kit 3.1 (sedan, hatchback-sports, taxi, suv, ambulance), đổi màu thân xe",
+    "https://kenney.nl/assets/car-kit"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "car_red_east.png",
+   "w": 133,
+   "h": 81,
+   "anchor": "bottom-center",
+   "foot": [
+    67,
+    66
+   ],
+   "use": "Xe đỏ, đầu xe hướng đông (phải) (thay car_red_side, cỡ như ảnh cũ)",
+   "source": [
+    "Kenney — Car Kit 3.1 (sedan, hatchback-sports, taxi, suv, ambulance), đổi màu thân xe",
+    "https://kenney.nl/assets/car-kit"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "car_red_side"
+   ],
+   "scale": 0.9756
+  },
+  {
+   "file": "car_red_west.png",
+   "w": 139,
+   "h": 81,
+   "anchor": "bottom-center",
+   "foot": [
+    70,
+    66
+   ],
+   "use": "Xe đỏ, đầu xe hướng tây (trái)",
+   "source": [
+    "Kenney — Car Kit 3.1 (sedan, hatchback-sports, taxi, suv, ambulance), đổi màu thân xe",
+    "https://kenney.nl/assets/car-kit"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "car_blue_east.png",
+   "w": 132,
+   "h": 69,
+   "anchor": "bottom-center",
+   "foot": [
+    66,
+    54
+   ],
+   "use": "Xe xanh dương, hướng đông",
+   "source": [
+    "Kenney — Car Kit 3.1 (sedan, hatchback-sports, taxi, suv, ambulance), đổi màu thân xe",
+    "https://kenney.nl/assets/car-kit"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "car_blue_east.png",
+   "w": 132,
+   "h": 69,
+   "anchor": "bottom-center",
+   "foot": [
+    66,
+    54
+   ],
+   "use": "Xe xanh dương, hướng đông (thay car_blue_side, cỡ như ảnh cũ)",
+   "source": [
+    "Kenney — Car Kit 3.1 (sedan, hatchback-sports, taxi, suv, ambulance), đổi màu thân xe",
+    "https://kenney.nl/assets/car-kit"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "car_blue_side"
+   ],
+   "scale": 0.9677
+  },
+  {
+   "file": "car_blue_west.png",
+   "w": 134,
+   "h": 69,
+   "anchor": "bottom-center",
+   "foot": [
+    67,
+    54
+   ],
+   "use": "Xe xanh dương, hướng tây",
+   "source": [
+    "Kenney — Car Kit 3.1 (sedan, hatchback-sports, taxi, suv, ambulance), đổi màu thân xe",
+    "https://kenney.nl/assets/car-kit"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "car_yellow_east.png",
+   "w": 134,
+   "h": 80,
+   "anchor": "bottom-center",
+   "foot": [
+    67,
+    65
+   ],
+   "use": "Taxi vàng, hướng đông",
+   "source": [
+    "Kenney — Car Kit 3.1 (sedan, hatchback-sports, taxi, suv, ambulance), đổi màu thân xe",
+    "https://kenney.nl/assets/car-kit"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "car_yellow_east.png",
+   "w": 134,
+   "h": 80,
+   "anchor": "bottom-center",
+   "foot": [
+    67,
+    65
+   ],
+   "use": "Taxi vàng, hướng đông (thay car_yellow_side, cỡ như ảnh cũ)",
+   "source": [
+    "Kenney — Car Kit 3.1 (sedan, hatchback-sports, taxi, suv, ambulance), đổi màu thân xe",
+    "https://kenney.nl/assets/car-kit"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "car_yellow_side"
+   ],
+   "scale": 0.9677
+  },
+  {
+   "file": "car_yellow_west.png",
+   "w": 138,
+   "h": 80,
+   "anchor": "bottom-center",
+   "foot": [
+    69,
+    65
+   ],
+   "use": "Taxi vàng, hướng tây",
+   "source": [
+    "Kenney — Car Kit 3.1 (sedan, hatchback-sports, taxi, suv, ambulance), đổi màu thân xe",
+    "https://kenney.nl/assets/car-kit"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "car_green_east.png",
+   "w": 139,
+   "h": 81,
+   "anchor": "bottom-center",
+   "foot": [
+    70,
+    66
+   ],
+   "use": "Xe xanh lá, hướng đông",
+   "source": [
+    "Kenney — Car Kit 3.1 (sedan, hatchback-sports, taxi, suv, ambulance), đổi màu thân xe",
+    "https://kenney.nl/assets/car-kit"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "car_green_east.png",
+   "w": 139,
+   "h": 81,
+   "anchor": "bottom-center",
+   "foot": [
+    70,
+    66
+   ],
+   "use": "Xe xanh lá, hướng đông (thay car_green_side, cỡ như ảnh cũ)",
+   "source": [
+    "Kenney — Car Kit 3.1 (sedan, hatchback-sports, taxi, suv, ambulance), đổi màu thân xe",
+    "https://kenney.nl/assets/car-kit"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "car_green_side"
+   ],
+   "scale": 0.9677
+  },
+  {
+   "file": "car_green_west.png",
+   "w": 141,
+   "h": 81,
+   "anchor": "bottom-center",
+   "foot": [
+    71,
+    66
+   ],
+   "use": "Xe xanh lá, hướng tây",
+   "source": [
+    "Kenney — Car Kit 3.1 (sedan, hatchback-sports, taxi, suv, ambulance), đổi màu thân xe",
+    "https://kenney.nl/assets/car-kit"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "ambulance_east.png",
+   "w": 137,
+   "h": 89,
+   "anchor": "bottom-center",
+   "foot": [
+    69,
+    75
+   ],
+   "use": "Xe cứu thương, hướng đông",
+   "source": [
+    "Kenney — Car Kit 3.1 (sedan, hatchback-sports, taxi, suv, ambulance), đổi màu thân xe",
+    "https://kenney.nl/assets/car-kit"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "ambulance_east.png",
+   "w": 137,
+   "h": 89,
+   "anchor": "bottom-center",
+   "foot": [
+    69,
+    75
+   ],
+   "use": "Xe cứu thương, hướng đông (thay ambulance_side, cỡ như ảnh cũ)",
+   "source": [
+    "Kenney — Car Kit 3.1 (sedan, hatchback-sports, taxi, suv, ambulance), đổi màu thân xe",
+    "https://kenney.nl/assets/car-kit"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "ambulance_side"
+   ],
+   "scale": 0.9375
+  },
+  {
+   "file": "ambulance_west.png",
+   "w": 159,
+   "h": 89,
+   "anchor": "bottom-center",
+   "foot": [
+    80,
+    75
+   ],
+   "use": "Xe cứu thương, hướng tây",
+   "source": [
+    "Kenney — Car Kit 3.1 (sedan, hatchback-sports, taxi, suv, ambulance), đổi màu thân xe",
+    "https://kenney.nl/assets/car-kit"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "boat_1.png",
+   "w": 117,
+   "h": 55,
+   "anchor": "center",
+   "foot": [
+    58,
+    28
+   ],
+   "use": "Thuyền gỗ có mui (mũi hướng phải)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "boat_1.png",
+   "w": 117,
+   "h": 55,
+   "anchor": "center",
+   "foot": [
+    58,
+    28
+   ],
+   "use": "Thuyền gỗ có mui (mũi hướng phải) (thay boat_1, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "boat_1"
+   ],
+   "scale": 0.9649
+  },
+  {
+   "file": "boat_2.png",
+   "w": 90,
+   "h": 39,
+   "anchor": "center",
+   "foot": [
+    45,
+    20
+   ],
+   "use": "Thuyền gỗ nhỏ (mũi hướng phải)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "boat_2.png",
+   "w": 90,
+   "h": 39,
+   "anchor": "center",
+   "foot": [
+    45,
+    20
+   ],
+   "use": "Thuyền gỗ nhỏ (mũi hướng phải) (thay boat_2, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "boat_2"
+   ],
+   "scale": 0.9091
+  },
+  {
+   "file": "boat_3.png",
+   "w": 84,
+   "h": 70,
+   "anchor": "center",
+   "foot": [
+    42,
+    35
+   ],
+   "use": "Thuyền thúng",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "boat_3.png",
+   "w": 84,
+   "h": 70,
+   "anchor": "center",
+   "foot": [
+    42,
+    35
+   ],
+   "use": "Thuyền thúng (thay boat_3, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "boat_3"
+   ],
+   "scale": 1.0127
+  },
+  {
+   "file": "scaffold.png",
+   "w": 221,
+   "h": 153,
+   "anchor": "bottom-center",
+   "foot": [
+    110,
+    129
+   ],
+   "use": "Công trường: giàn giáo",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "crane.png",
+   "w": 551,
+   "h": 326,
+   "anchor": "bottom-center",
+   "foot": [
+    275,
+    308
+   ],
+   "use": "Công trường: cần cẩu tháp",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "house_build.png",
+   "w": 344,
+   "h": 290,
+   "anchor": "bottom-center",
+   "foot": [
+    172,
+    217
+   ],
+   "use": "Công trường: nhà đang xây",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "house_build.png",
+   "w": 344,
+   "h": 290,
+   "anchor": "bottom-center",
+   "foot": [
+    172,
+    217
+   ],
+   "use": "Công trường: nhà đang xây (thay site_building, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "site_building"
+   ],
+   "scale": 0.8651
+  },
+  {
+   "file": "brick_pile.png",
+   "w": 131,
+   "h": 70,
+   "anchor": "bottom-center",
+   "foot": [
+    65,
+    49
+   ],
+   "use": "Công trường: đống gạch",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "brick_pile.png",
+   "w": 131,
+   "h": 70,
+   "anchor": "bottom-center",
+   "foot": [
+    65,
+    49
+   ],
+   "use": "Công trường: đống gạch (thay site_bricks, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "site_bricks"
+   ],
+   "scale": 1.0294
+  },
+  {
+   "file": "mixer.png",
+   "w": 102,
+   "h": 88,
+   "anchor": "bottom-center",
+   "foot": [
+    51,
+    74
+   ],
+   "use": "Công trường: máy trộn bê tông",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "barrier.png",
+   "w": 130,
+   "h": 63,
+   "anchor": "bottom-center",
+   "foot": [
+    65,
+    52
+   ],
+   "use": "Công trường: rào chắn sọc đỏ trắng",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "barrier.png",
+   "w": 130,
+   "h": 63,
+   "anchor": "bottom-center",
+   "foot": [
+    65,
+    52
+   ],
+   "use": "Công trường: rào chắn sọc đỏ trắng (thay site_barrier, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "site_barrier"
+   ],
+   "scale": 0.9836
+  },
+  {
+   "file": "cement_bags.png",
+   "w": 94,
+   "h": 67,
+   "anchor": "bottom-center",
+   "foot": [
+    47,
+    42
+   ],
+   "use": "Công trường: bao xi măng",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "cone.png",
+   "w": 37,
+   "h": 45,
+   "anchor": "bottom-center",
+   "foot": [
+    19,
+    35
+   ],
+   "use": "Cọc tiêu giao thông",
+   "source": [
+    "Kenney — Car Kit 3.1 (cone)",
+    "https://kenney.nl/assets/car-kit"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "cone.png",
+   "w": 37,
+   "h": 45,
+   "anchor": "bottom-center",
+   "foot": [
+    19,
+    35
+   ],
+   "use": "Cọc tiêu giao thông (thay site_cone, cỡ như ảnh cũ)",
+   "source": [
+    "Kenney — Car Kit 3.1 (cone)",
+    "https://kenney.nl/assets/car-kit"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "site_cone"
+   ],
+   "scale": 1.0
+  },
+  {
+   "file": "dock.png",
+   "w": 228,
+   "h": 122,
+   "anchor": "bottom-center",
+   "foot": [
+    114,
+    83
+   ],
+   "use": "Hồ câu: bến gỗ (ván dọc, chìa ra nước)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "dock.png",
+   "w": 228,
+   "h": 122,
+   "anchor": "bottom-center",
+   "foot": [
+    114,
+    83
+   ],
+   "use": "Hồ câu: bến gỗ (ván dọc, chìa ra nước) (thay fishing_pier, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "fishing_pier"
+   ],
+   "scale": 1.0075
+  },
+  {
+   "file": "bamboo_bridge.png",
+   "w": 236,
+   "h": 79,
+   "anchor": "bottom-center",
+   "foot": [
+    118,
+    57
+   ],
+   "use": "Hồ câu: cầu tre",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "hyacinth.png",
+   "w": 86,
+   "h": 59,
+   "anchor": "bottom-center",
+   "foot": [
+    43,
+    39
+   ],
+   "use": "Hồ câu: khóm lục bình",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "hyacinth.png",
+   "w": 86,
+   "h": 59,
+   "anchor": "bottom-center",
+   "foot": [
+    43,
+    39
+   ],
+   "use": "Hồ câu: khóm lục bình (thay fishing_hyacinth, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "fishing_hyacinth"
+   ],
+   "scale": 0.6792
+  },
+  {
+   "file": "lotus.png",
+   "w": 86,
+   "h": 54,
+   "anchor": "bottom-center",
+   "foot": [
+    43,
+    27
+   ],
+   "use": "Hồ câu: lá sen + hoa sen",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "lotus.png",
+   "w": 86,
+   "h": 54,
+   "anchor": "bottom-center",
+   "foot": [
+    43,
+    27
+   ],
+   "use": "Hồ câu: lá sen + hoa sen (thay fishing_lotus, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "fishing_lotus"
+   ],
+   "scale": 0.7547
+  },
+  {
+   "file": "tree_willow.png",
+   "w": 380,
+   "h": 316,
+   "anchor": "bottom-center",
+   "foot": [
+    190,
+    283
+   ],
+   "use": "Hồ câu: cây liễu rủ",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_willow.png",
+   "w": 380,
+   "h": 316,
+   "anchor": "bottom-center",
+   "foot": [
+    190,
+    283
+   ],
+   "use": "Hồ câu: cây liễu rủ (thay tree_lieu, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "tree_lieu"
+   ],
+   "scale": 1.0
+  },
+  {
+   "file": "lantern.png",
+   "w": 129,
+   "h": 123,
+   "anchor": "bottom-center",
+   "foot": [
+    65,
+    119
+   ],
+   "use": "Hồ câu: đèn lồng đỏ trên cột tre",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "bench_wood.png",
+   "w": 130,
+   "h": 68,
+   "anchor": "bottom-center",
+   "foot": [
+    65,
+    59
+   ],
+   "use": "Hồ câu: ghế gỗ mộc (ngồi được)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_bang.png",
+   "w": 512,
+   "h": 335,
+   "anchor": "bottom-center",
+   "foot": [
+    256,
+    304
+   ],
+   "use": "Cây bàng tán tầng (lác đác lá đỏ) — cây phố",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_bang.png",
+   "w": 512,
+   "h": 335,
+   "anchor": "bottom-center",
+   "foot": [
+    256,
+    304
+   ],
+   "use": "Cây bàng tán tầng (lác đác lá đỏ) — cây phố (thay tree_bang, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "tree_bang"
+   ],
+   "scale": 1.0031
+  },
+  {
+   "file": "tree_sao.png",
+   "w": 278,
+   "h": 361,
+   "anchor": "bottom-center",
+   "foot": [
+    139,
+    349
+   ],
+   "use": "Cây sao thân cao tán hẹp — cây phố",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_sao.png",
+   "w": 278,
+   "h": 361,
+   "anchor": "bottom-center",
+   "foot": [
+    139,
+    349
+   ],
+   "use": "Cây sao thân cao tán hẹp — cây phố (thay tree_sao, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "tree_sao"
+   ],
+   "scale": 1.0
+  },
+  {
+   "file": "site_gate.png",
+   "w": 286,
+   "h": 132,
+   "anchor": "bottom-center",
+   "foot": [
+    143,
+    109
+   ],
+   "use": "Cổng gỗ biển CÔNG TRƯỜNG",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "site_gate.png",
+   "w": 286,
+   "h": 132,
+   "anchor": "bottom-center",
+   "foot": [
+    143,
+    109
+   ],
+   "use": "Cổng gỗ biển CÔNG TRƯỜNG (thay site_gate, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "site_gate"
+   ],
+   "scale": 1.0
+  },
+  {
+   "file": "fishing_gate.png",
+   "w": 286,
+   "h": 132,
+   "anchor": "bottom-center",
+   "foot": [
+    143,
+    109
+   ],
+   "use": "Cổng gỗ biển HỒ CÂU CÁ",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "fishing_gate.png",
+   "w": 286,
+   "h": 132,
+   "anchor": "bottom-center",
+   "foot": [
+    143,
+    109
+   ],
+   "use": "Cổng gỗ biển HỒ CÂU CÁ (thay fishing_gate, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "fishing_gate"
+   ],
+   "scale": 1.0
+  },
+  {
+   "file": "crane_mast.png",
+   "w": 127,
+   "h": 352,
+   "anchor": "bottom-center",
+   "foot": [
+    64,
+    333
+   ],
+   "use": "Công trường: thân cần cẩu tháp (không có cần ngang)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "crane_mast.png",
+   "w": 127,
+   "h": 352,
+   "anchor": "bottom-center",
+   "foot": [
+    64,
+    333
+   ],
+   "use": "Công trường: thân cần cẩu tháp (không có cần ngang) (thay site_crane_mast, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "site_crane_mast"
+   ],
+   "scale": 1.0256
+  },
+  {
+   "file": "crane_jib.png",
+   "w": 400,
+   "h": 70,
+   "anchor": "top-left",
+   "foot": [
+    120,
+    4
+   ],
+   "use": "Công trường: cần ngang cần cẩu; trục quay ở 30% chiều rộng, mép trên (khớp transform-origin 90px 4px khi vẽ 300×52)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "crane_jib.png",
+   "w": 400,
+   "h": 70,
+   "anchor": "top-left",
+   "foot": [
+    120,
+    4
+   ],
+   "use": "Công trường: cần ngang cần cẩu; trục quay ở 30% chiều rộng, mép trên (khớp transform-origin 90px 4px khi vẽ 300×52) (thay site_crane_jib, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "site_crane_jib"
+   ],
+   "scale": 1
+  },
+  {
+   "file": "sand_pile.png",
+   "w": 149,
+   "h": 76,
+   "anchor": "bottom-center",
+   "foot": [
+    75,
+    52
+   ],
+   "use": "Công trường: đống cát + xô",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "sand_pile.png",
+   "w": 149,
+   "h": 76,
+   "anchor": "bottom-center",
+   "foot": [
+    75,
+    52
+   ],
+   "use": "Công trường: đống cát + xô (thay site_sand, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "site_sand"
+   ],
+   "scale": 0.8108
+  },
+  {
+   "file": "beacon.png",
+   "w": 27,
+   "h": 30,
+   "anchor": "bottom-center",
+   "foot": [
+    13,
+    22
+   ],
+   "use": "Đèn cảnh báo cam",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "beacon.png",
+   "w": 27,
+   "h": 30,
+   "anchor": "bottom-center",
+   "foot": [
+    13,
+    22
+   ],
+   "use": "Đèn cảnh báo cam (thay site_beacon, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "site_beacon"
+   ],
+   "scale": 1.0
+  },
+  {
+   "file": "lantern_hang.png",
+   "w": 38,
+   "h": 52,
+   "anchor": "bottom-center",
+   "foot": [
+    19,
+    37
+   ],
+   "use": "Đèn lồng đỏ treo (đung đưa bằng CSS)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "lantern_hang.png",
+   "w": 38,
+   "h": 52,
+   "anchor": "bottom-center",
+   "foot": [
+    19,
+    37
+   ],
+   "use": "Đèn lồng đỏ treo (đung đưa bằng CSS) (thay lantern, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "lantern"
+   ],
+   "scale": 1.0
+  },
+  {
+   "file": "sign_casino.png",
+   "w": 176,
+   "h": 54,
+   "anchor": "center",
+   "foot": [
+    88,
+    27
+   ],
+   "use": "Biển CASINO rời có bóng đèn",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "sign_casino.png",
+   "w": 176,
+   "h": 54,
+   "anchor": "center",
+   "foot": [
+    88,
+    27
+   ],
+   "use": "Biển CASINO rời có bóng đèn (thay sign_casino, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "sign_casino"
+   ],
+   "scale": 0.9714
+  },
+  {
+   "file": "tree_tre.png",
+   "w": 139,
+   "h": 234,
+   "anchor": "bottom-center",
+   "foot": [
+    69,
+    219
+   ],
+   "use": "Bụi tre",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_tre.png",
+   "w": 139,
+   "h": 234,
+   "anchor": "bottom-center",
+   "foot": [
+    69,
+    219
+   ],
+   "use": "Bụi tre (thay farm/tree_tre, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "farm/tree_tre"
+   ],
+   "scale": 1.0776
+  },
+  {
+   "file": "tree_chuoi.png",
+   "w": 239,
+   "h": 178,
+   "anchor": "bottom-center",
+   "foot": [
+    120,
+    164
+   ],
+   "use": "Cây chuối có buồng",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_chuoi.png",
+   "w": 239,
+   "h": 178,
+   "anchor": "bottom-center",
+   "foot": [
+    120,
+    164
+   ],
+   "use": "Cây chuối có buồng (thay farm/tree_chuoi, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "farm/tree_chuoi"
+   ],
+   "scale": 1.2139
+  },
+  {
+   "file": "tree_xoai.png",
+   "w": 375,
+   "h": 274,
+   "anchor": "bottom-center",
+   "foot": [
+    188,
+    248
+   ],
+   "use": "Cây xoài có quả",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_xoai.png",
+   "w": 375,
+   "h": 274,
+   "anchor": "bottom-center",
+   "foot": [
+    188,
+    248
+   ],
+   "use": "Cây xoài có quả (thay farm/tree_xoai, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "farm/tree_xoai"
+   ],
+   "scale": 1.3359
+  },
+  {
+   "file": "tree_da.png",
+   "w": 403,
+   "h": 284,
+   "anchor": "bottom-center",
+   "foot": [
+    201,
+    234
+   ],
+   "use": "Cây đa cổ thụ, rễ phụ thõng",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_da.png",
+   "w": 403,
+   "h": 284,
+   "anchor": "bottom-center",
+   "foot": [
+    201,
+    234
+   ],
+   "use": "Cây đa cổ thụ, rễ phụ thõng (thay farm/tree_da, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "farm/tree_da"
+   ],
+   "scale": 1.25
+  },
+  {
+   "file": "flower_clump.png",
+   "w": 112,
+   "h": 75,
+   "anchor": "bottom-center",
+   "foot": [
+    56,
+    58
+   ],
+   "use": "Khóm hoa nhiều màu",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "flower_clump.png",
+   "w": 112,
+   "h": 75,
+   "anchor": "bottom-center",
+   "foot": [
+    56,
+    58
+   ],
+   "use": "Khóm hoa nhiều màu (thay farm/flowers, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "farm/flowers"
+   ],
+   "scale": 1.0811
+  },
+  {
+   "file": "hay.png",
+   "w": 107,
+   "h": 86,
+   "anchor": "bottom-center",
+   "foot": [
+    53,
+    67
+   ],
+   "use": "Cuộn rơm",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "hay.png",
+   "w": 107,
+   "h": 86,
+   "anchor": "bottom-center",
+   "foot": [
+    53,
+    67
+   ],
+   "use": "Cuộn rơm (thay farm/hay, cỡ như ảnh cũ)",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "replaces": [
+    "farm/hay"
+   ],
+   "scale": 1.0
+  }
+ ]
+}

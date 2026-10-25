@@ -1,0 +1,132 @@
+/* Quảng trường / gặp gỡ: người chơi khác trên bản đồ, khung chat, biểu cảm, thẻ hồ sơ. */
+
+/* Người chơi khác (bộ vẽ dự phòng, cùng lớp với #me) */
+.plaza-actor { pointer-events: none; }
+.plaza-actor .me-body { pointer-events: auto; cursor: pointer; }
+.plaza-actor .me-tag { pointer-events: auto; cursor: pointer; }
+.plaza-actor .me-tag { background: linear-gradient(180deg, rgba(40, 80, 140, .82), rgba(25, 55, 100, .82)); }
+.plaza-actor.sitting .me-body { transform: translateX(-50%) translateY(14px) scaleY(.86); }
+.plaza-actor.dancing .me-body { animation: plaza-dance .5s ease-in-out infinite alternate; }
+@keyframes plaza-dance {
+  from { transform: translateX(-50%) rotate(-8deg) translateY(0); }
+  to { transform: translateX(-50%) rotate(8deg) translateY(-8px); }
+}
+
+/* Bong bóng chat trên đầu */
+.plaza-bubble {
+  position: absolute; left: 0; bottom: 138px; transform: translateX(-50%);
+  max-width: 220px; width: max-content; padding: 6px 12px;
+  border-radius: 16px; border: 2px solid #e6c98d; background: #fffdf4; color: #3a2a12;
+  font: 700 13px/1.35 var(--font, sans-serif); text-align: center; word-break: break-word;
+  box-shadow: 0 3px 0 rgba(120, 80, 20, .25); z-index: 5; pointer-events: none;
+  animation: plaza-pop .18s ease-out;
+}
+.plaza-bubble::after {
+  content: ''; position: absolute; left: 50%; bottom: -9px; transform: translateX(-50%);
+  border: 8px solid transparent; border-top-color: #e6c98d; border-bottom: 0;
+}
+.plaza-bubble.hidden { display: none; }
+@keyframes plaza-pop { from { transform: translateX(-50%) scale(.6); opacity: 0; } }
+
+/* Biểu cảm / chữ bay */
+.plaza-fx { position: absolute; left: 0; bottom: 120px; width: 0; height: 0; pointer-events: none; z-index: 6; }
+.plaza-emote {
+  position: absolute; left: -26px; bottom: 0; width: 52px; height: 52px;
+  filter: drop-shadow(0 3px 2px rgba(0, 0, 0, .25));
+  animation: plaza-emote 2.4s ease-out forwards;
+}
+@keyframes plaza-emote {
+  0% { transform: translateY(10px) scale(.4); opacity: 0; }
+  15% { transform: translateY(-6px) scale(1.15); opacity: 1; }
+  30% { transform: translateY(-10px) scale(1); }
+  80% { opacity: 1; }
+  100% { transform: translateY(-46px) scale(.9); opacity: 0; }
+}
+.plaza-emote.emote-wave { transform-origin: 70% 90%; }
+.plaza-float {
+  position: absolute; left: 0; bottom: 10px; transform: translateX(-50%); white-space: nowrap;
+  font: 900 18px var(--font, sans-serif); color: #ffd23f; -webkit-text-stroke: 1px #7a4a00;
+  text-shadow: 0 2px 0 #7a4a00; animation: plaza-float 2.2s ease-out forwards;
+}
+@keyframes plaza-float { to { transform: translate(-50%, -60px); opacity: 0; } }
+
+/* Số người online + tiêu đề quảng trường */
+.plaza-online {
+  position: absolute; left: 12px; top: 12px; z-index: 40;
+  display: flex; align-items: center; gap: 8px; padding: 5px 12px 5px 10px;
+  border-radius: 999px; background: rgba(255, 253, 244, .94); border: 2px solid #e6c98d;
+  font: 800 13px var(--font, sans-serif); color: #4a3412; box-shadow: 0 2px 0 rgba(120, 80, 20, .2);
+}
+.plaza-online .dot { width: 10px; height: 10px; border-radius: 50%; background: #3cc46a; box-shadow: 0 0 0 3px rgba(60, 196, 106, .25); }
+.plaza-online.hidden, .plaza-title.hidden { display: none; }
+.plaza-title {
+  position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 40;
+  display: flex; align-items: baseline; gap: 8px; padding: 6px 16px;
+  border-radius: 14px; background: linear-gradient(180deg, #fff6d8, #ffe39a); border: 3px solid #c9932f;
+  box-shadow: 0 3px 0 #9b6a16; font-family: var(--font, sans-serif); color: #5a3a06; pointer-events: none;
+}
+.plaza-title b { font-size: 17px; font-weight: 900; }
+.plaza-title span { font-size: 13px; font-weight: 700; opacity: .8; }
+
+/* Khung chat */
+.plaza-chat {
+  position: absolute; left: 12px; bottom: 96px; z-index: 45; width: min(330px, calc(100vw - 24px));
+  border-radius: 18px; background: rgba(255, 253, 244, .96); border: 3px solid #e6c98d;
+  box-shadow: 0 4px 0 rgba(120, 80, 20, .25); overflow: hidden; font-family: var(--font, sans-serif);
+}
+.plaza-chat-head {
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px;
+  border: 0; border-radius: 0; background: linear-gradient(180deg, #ffe9a8, #ffd36b); color: #5a3a06;
+  font: 900 14px var(--font, sans-serif); cursor: pointer; box-shadow: none;
+}
+.plaza-chat-head kbd { margin-left: auto; padding: 0 6px; border-radius: 6px; background: rgba(255, 255, 255, .7); font: 800 11px/1.6 inherit; }
+.plaza-unread { min-width: 20px; padding: 0 6px; border-radius: 999px; background: #e5484d; color: #fff; font: 900 11px/20px inherit; text-align: center; }
+.plaza-unread.hidden { display: none; }
+.plaza-chat.collapsed { width: auto; }
+.plaza-chat.collapsed .plaza-chat-body { display: none; }
+.plaza-log { height: 170px; overflow-y: auto; padding: 8px 12px; font-size: 13px; line-height: 1.45; color: #3a2a12; }
+.plaza-log p { margin: 0 0 4px; word-break: break-word; }
+.plaza-log b { color: #2f6fae; }
+.plaza-log .mine b { color: #c0601a; }
+.plaza-log .sys { color: #8a7650; font-style: italic; font-size: 12px; }
+.plaza-emotes { display: flex; gap: 6px; padding: 6px 10px; border-top: 2px dashed #ecd9ad; }
+.plaza-emotes button { flex: 1; padding: 3px; border-radius: 12px; background: #fff; border: 2px solid #ecd9ad; box-shadow: none; }
+.plaza-emotes button:hover { background: #fff3c9; transform: translateY(-1px); }
+.plaza-emotes img { width: 30px; height: 30px; display: block; margin: 0 auto; }
+.plaza-form { display: flex; gap: 6px; padding: 8px 10px 10px; }
+.plaza-form input { flex: 1; min-width: 0; padding: 8px 12px; border-radius: 12px; border: 2px solid #e6c98d; font: 600 14px var(--font, sans-serif); background: #fff; }
+.plaza-form button { padding: 8px 14px; }
+
+/* Lời mời */
+.plaza-invite {
+  position: absolute; left: 50%; top: 60px; transform: translateX(-50%); z-index: 50;
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+  border-radius: 16px; background: #fffdf4; border: 3px solid #c9932f; box-shadow: 0 4px 0 #9b6a16;
+  font: 700 14px var(--font, sans-serif); color: #4a3412; animation: plaza-pop .2s ease-out;
+}
+.plaza-invite.hidden { display: none; }
+.plaza-invite .btn { padding: 6px 14px; }
+
+/* Thẻ hồ sơ */
+dialog.plaza-profile { width: min(400px, calc(100vw - 32px)); }
+.plaza-profile .pp-head { display: flex; gap: 14px; align-items: center; }
+.plaza-profile .pp-art { width: 120px; height: 180px; display: grid; place-items: end center; border-radius: 16px; background: linear-gradient(180deg, #d9f0ff, #bfe6a8); overflow: hidden; }
+.plaza-profile .pp-art img { max-height: 170px; }
+.plaza-profile .pp-info h2 { margin: 0 0 6px; font-size: 22px; }
+.plaza-profile .pp-lv { display: inline-block; padding: 2px 10px; border-radius: 999px; background: linear-gradient(180deg, #ffe66b, #ffad1f); color: #6b3300; font-weight: 900; font-size: 13px; }
+.plaza-profile .pp-tag { display: block; margin-top: 8px; font-size: 13px; color: #8a6a2a; font-weight: 700; }
+.plaza-profile .pp-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.plaza-profile .pp-actions button { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.plaza-profile .pp-actions img { width: 22px; height: 22px; }
+.plaza-profile .pp-gift p { margin: 0 0 6px; }
+.plaza-profile .pp-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.plaza-profile .pp-gift.hidden { display: none; }
+
+@media (max-width: 600px) {
+  .plaza-chat { bottom: 150px; }
+  .plaza-log { height: 120px; }
+  .plaza-title { top: 52px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .plaza-emote, .plaza-float, .plaza-actor.dancing .me-body { animation-duration: .01s; }
+}

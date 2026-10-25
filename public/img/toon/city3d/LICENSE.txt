@@ -1,0 +1,13 @@
+Ảnh 3D thành phố DCity (public/img/toon/city3d/)
+
+Mọi ảnh trong thư mục này phát hành theo CC0 1.0 (Public Domain Dedication):
+http://creativecommons.org/publicdomain/zero/1.0/
+
+- Nhà dân ngoại ô (house_*.png): dựng từ mô hình Kenney "City Kit Suburban" 2.0 — CC0 1.0, Kenney (www.kenney.nl),
+  https://kenney.nl/assets/city-kit-suburban — đã đổi màu mái / tường.
+- Xe (car_*_east/west.png, ambulance_*.png) và cọc tiêu (cone.png): mô hình Kenney "Car Kit" 3.1 — CC0 1.0,
+  https://kenney.nl/assets/car-kit — đã đổi màu thân xe.
+- Các ảnh còn lại (toà Casino, Ngân hàng, Shop, Bệnh viện, cây, đèn, ghế, đài phun nước, thuyền, cổng, công trường,
+  hồ câu cá…): hình học tự dựng bằng three.js cho dự án DCity, phát hành CC0 1.0.
+
+Dựng bằng three.js r147 (MIT) trong Chrome headless; viền và bóng đổ ghép bằng Pillow.

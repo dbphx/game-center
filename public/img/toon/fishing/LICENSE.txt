@@ -1,0 +1,2 @@
+Hình trong thư mục này (Hồ câu cá) do DCity tự vẽ bằng PIL (tô bóng khối, viền đậm) và phát hành theo CC0 1.0
+(public domain): https://creativecommons.org/publicdomain/zero/1.0/

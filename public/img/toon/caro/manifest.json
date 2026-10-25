@@ -1,0 +1,66 @@
+{
+ "style": "Hoạt hình 2D tươi sáng (định hướng giống game Avatar), không pixel",
+ "images": [
+  {
+   "file": "board.png",
+   "w": 720,
+   "h": 720,
+   "use": "Bàn cờ caro gỗ 15×15: khung gỗ đậm, mặt gỗ vân sáng, lưới khắc chìm. Lề 30px, mỗi ô 44px (theo ảnh 720×720)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "piece_x.png",
+   "w": 128,
+   "h": 128,
+   "use": "Quân X đỏ: đĩa gỗ kem có độ dày, bóng đổ, chữ X đỏ khối",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "piece_o.png",
+   "w": 128,
+   "h": 128,
+   "use": "Quân O xanh: đĩa gỗ kem có độ dày, bóng đổ, vòng O xanh khối",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "table_caro.png",
+   "w": 260,
+   "h": 190,
+   "use": "Bàn gỗ nhỏ có bàn cờ thu nhỏ trên mặt (sảnh Cờ Caro, nhìn chéo từ trên)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "floor_wood.png",
+   "w": 128,
+   "h": 128,
+   "use": "Sàn gỗ lát ván (lặp)",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  }
+ ],
+ "board": {
+  "margin": 30,
+  "cell": 44,
+  "size": 15,
+  "imageSize": 720
+ }
+}
