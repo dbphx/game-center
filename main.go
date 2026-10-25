@@ -12,6 +12,7 @@ import (
 	"os"
 
 	"github.com/dbphx/game-center/games/baucua"
+	"github.com/dbphx/game-center/games/cangua"
 	"github.com/dbphx/game-center/games/caro"
 	"github.com/dbphx/game-center/games/farm"
 	"github.com/dbphx/game-center/games/fishing"
@@ -65,6 +66,14 @@ func games(w *wallet.Wallet) []server.Game {
 	caroOpts := caro.DefaultOptions
 	caroOpts.MinHP = wallet.ZoneMinHP["casino"]
 	caroHub := caro.NewHub(w, caroOpts)
+	canguaAuth := func(ctx context.Context, token string) (cangua.User, error) {
+		u, err := w.UserByToken(ctx, token)
+		return cangua.User{ID: u.ID, Name: u.Name, Gender: u.Gender, Outfit: u.Outfit, Hair: u.Hair, Wings: u.Wings, Face: u.Face,
+			Level: u.Level, HP: u.HP, HospitalUntil: u.HospitalUntil}, err
+	}
+	canguaOpts := cangua.DefaultOptions
+	canguaOpts.MinHP = wallet.ZoneMinHP["casino"]
+	canguaHub := cangua.NewHub(w, canguaOpts)
 	bauCua, err := baucua.New(context.Background(), w)
 	if err != nil {
 		log.Fatalf("bầu cua: %v", err)
@@ -117,6 +126,16 @@ func games(w *wallet.Wallet) []server.Game {
 			Stats:       func() any { return caroHub.Stats() },
 			WS:          caroHub.Handler(caroAuth),
 			Rooms:       caroHub.RoomsHandler(),
+		},
+		{
+			ID:          cangua.GameID,
+			Name:        "Cờ Cá Ngựa",
+			Description: "2–4 người đổ xúc xắc đua 4 ngựa về chuồng, đá ngựa đối thủ. Chơi với bạn hoặc với máy, có cược.",
+			Players:     "2–4 người",
+			Path:        "/cangua/",
+			Stats:       func() any { return canguaHub.Stats() },
+			WS:          canguaHub.Handler(canguaAuth),
+			Rooms:       canguaHub.RoomsHandler(),
 		},
 		{
 			ID:          site.GameID,

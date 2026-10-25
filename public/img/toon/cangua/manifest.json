@@ -1,0 +1,148 @@
+{
+ "style": "Hoạt hình 2D tươi sáng tô khối (định hướng giống game Avatar), không pixel",
+ "images": [
+  {
+   "file": "board.png",
+   "w": 720,
+   "h": 720,
+   "use": "Bàn cờ cá ngựa gỗ 15×15: lề 30px, ô 44px trên ảnh 720×720. 4 chuồng 6×6 ở 4 góc (đỏ trên-trái, xanh dương trên-phải, xanh lá dưới-phải, vàng dưới-trái), 4 ổ ngựa mỗi chuồng ở ô (1.5,1.5),(3.5,1.5),(1.5,3.5),(3.5,3.5) tính từ góc chuồng; đường chung 56 ô chiều kim đồng hồ, ô 0 = (0,6) xuất phát đỏ, ô 14·i xuất phát màu i; cột đích 6 bậc đánh số; tâm (7,7) là đích chung. Toạ độ tính trong public/cangua/cangua.js (TRACK, HOME, SLOTS).",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "confetti.png",
+   "w": 144,
+   "h": 12,
+   "use": "Dải 6 mảnh pháo giấy 24×12 (cắt bằng background-position) cho màn thắng",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "dice_1.png",
+   "w": 96,
+   "h": 96,
+   "use": "Mặt xúc xắc 1 chấm (khối bo tròn, tô bóng)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "dice_2.png",
+   "w": 96,
+   "h": 96,
+   "use": "Mặt xúc xắc 2 chấm (khối bo tròn, tô bóng)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "dice_3.png",
+   "w": 96,
+   "h": 96,
+   "use": "Mặt xúc xắc 3 chấm (khối bo tròn, tô bóng)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "dice_4.png",
+   "w": 96,
+   "h": 96,
+   "use": "Mặt xúc xắc 4 chấm (khối bo tròn, tô bóng)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "dice_5.png",
+   "w": 96,
+   "h": 96,
+   "use": "Mặt xúc xắc 5 chấm (khối bo tròn, tô bóng)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "dice_6.png",
+   "w": 96,
+   "h": 96,
+   "use": "Mặt xúc xắc 6 chấm (khối bo tròn, tô bóng)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "horse_blue.png",
+   "w": 96,
+   "h": 115,
+   "use": "Quân ngựa xanh dương",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "horse_green.png",
+   "w": 96,
+   "h": 115,
+   "use": "Quân ngựa xanh lá",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "horse_red.png",
+   "w": 96,
+   "h": 115,
+   "use": "Quân ngựa đỏ: tượng đầu ngựa hoạt hình tô khối trên đế tròn; neo chân ở giữa đế (~82% chiều cao)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "horse_yellow.png",
+   "w": 96,
+   "h": 115,
+   "use": "Quân ngựa vàng",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "table_cangua.png",
+   "w": 260,
+   "h": 190,
+   "use": "Bàn gỗ tròn trong sảnh có bàn cờ cá ngựa nhỏ trên mặt bàn",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  }
+ ]
+}

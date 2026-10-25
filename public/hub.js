@@ -438,6 +438,16 @@
             <div class="stat"><div class="muted">Mỗi lượt</div><b>${I.svg('timer')}30 giây</b></div>
           </div>
           ${enterButton('casino', '/caro/', 'Chơi Cờ Caro')}
+        </div>
+        <div class="panel-section">
+          <div class="panel-art">${['red', 'blue', 'green', 'yellow'].map((c) => `<img src="/img/toon/cangua/horse_${c}.png" alt="" width="34" height="40" draggable="false">`).join('')}</div>
+          <h2 style="margin:0">Cờ Cá Ngựa</h2>
+          <p class="muted" style="margin:0">Mỗi người 4 ngựa, đổ xúc xắc chạy một vòng rồi lên chuồng, đá ngựa đối thủ về chuồng. Ai về đủ 4 ngựa trước thì ăn cả bàn.</p>
+          <div class="stats">
+            <div class="stat"><div class="muted">Số người</div><b>${I.svg('users')}2–4 người</b></div>
+            <div class="stat"><div class="muted">Mỗi lượt</div><b>${I.svg('timer')}20 giây</b></div>
+          </div>
+          ${enterButton('casino', '/cangua/', 'Chơi Cờ Cá Ngựa')}
         </div>`;
     },
 
