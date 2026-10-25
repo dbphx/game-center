@@ -8,10 +8,20 @@ import (
 
 // Mọi khoản tiền trong package này tính bằng "mức cược"; phòng chơi nhân với số xu của một mức.
 
-// Tiền theo thứ hạng, tổng luôn bằng 0.
-var rankPoints = map[int][]int{2: {1, -1}, 3: {2, 0, -2}, 4: {3, 1, -1, -3}}
+// Luật "nhất ăn tất": chỉ người về nhất được tiền thứ hạng, mỗi người còn lại trả loseUnits mức cược
+// (bị cóng trả congUnits). Tới bằng 3♠ (bộ bài cuối có 3 bích) thì phần này nhân threeSpadesMul.
+const (
+	loseUnits      = 1
+	congUnits      = 2
+	threeSpadesMul = 2
+	instantWinLoss = 2 // tới trắng: ăn của mỗi người 2 mức
+)
 
-const instantWinLoss = 2
+// WinBy mô tả cách người nhất về: Multiplier nhân vào tiền nhất ăn tất (không nhân tiền chặt / thối).
+type WinBy struct {
+	ThreeSpades bool `json:"threeSpades"`
+	Multiplier  int  `json:"multiplier"`
+}
 
 type LastPlay struct {
 	Player int    `json:"player"`
@@ -59,14 +69,15 @@ type Game struct {
 	Over        bool
 	Instant     *Instant
 	History     []Event
-	Delta       []int      // tiền theo thứ hạng của ván vừa xong
+	Delta       []int      // tiền "nhất ăn tất" của ván vừa xong
+	WinBy       *WinBy     // cách người nhất về (tới bằng 3♠ thì ×2); nil khi chưa có người về nhất
 	Transfers   []Transfer // tiền chặt và thối của ván vừa xong
 
 	rand *rand.Rand
 }
 
 func NewGame(players int, r *rand.Rand) (*Game, error) {
-	if rankPoints[players] == nil {
+	if players < 2 || players > 4 {
 		return nil, errors.New("cần 2–4 người chơi")
 	}
 	return &Game{Players: players, Scores: make([]int, players), LastWinner: -1, rand: r}, nil
@@ -84,6 +95,7 @@ func (g *Game) Start() {
 	g.Instant = nil
 	g.History = nil
 	g.Delta = make([]int, n)
+	g.WinBy = nil
 	g.Transfers = nil
 	g.MustInclude = -1
 
@@ -205,6 +217,11 @@ func (g *Game) Play(p int, cards []Card) error {
 	if len(g.Hands[p]) == 0 {
 		g.Finished = append(g.Finished, p)
 		if len(g.Finished) == 1 {
+			// Bộ bài cuối cùng có 3 bích: tiền nhất ăn tất nhân đôi.
+			g.WinBy = &WinBy{Multiplier: 1}
+			if slices.Contains(cards, ThreeSpades) {
+				g.WinBy = &WinBy{ThreeSpades: true, Multiplier: threeSpadesMul}
+			}
 			for q := range g.Players {
 				if g.IsActive(q) && len(g.Hands[q]) == 13 {
 					g.Cong = append(g.Cong, q)
@@ -285,8 +302,18 @@ func (g *Game) finish() {
 	g.Finished = append(g.Finished, g.Cong...)
 	winner := g.Finished[0]
 	g.LastWinner = winner
-	for place, p := range g.Finished {
-		g.Delta[p] = rankPoints[g.Players][place]
+	// Nhất ăn tất: mỗi người còn lại trả cho người nhất, bị cóng trả gấp đôi.
+	mul := 1
+	if g.WinBy != nil {
+		mul = g.WinBy.Multiplier
+	}
+	for _, p := range g.Finished[1:] {
+		pay := loseUnits
+		if slices.Contains(g.Cong, p) {
+			pay = congUnits
+		}
+		g.Delta[p] = -pay * mul
+		g.Delta[winner] += pay * mul
 	}
 
 	// Thối: người về bét và người bị cóng trả heo / hàng còn trên tay cho người về nhất.

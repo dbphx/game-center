@@ -565,11 +565,19 @@
       })
       .join('');
 
-    // Chi tiết: tiền thứ hạng rồi tới từng khoản chặt / thối.
+    // Chi tiết: tiền "nhất ăn tất" (mỗi người trả người nhất) rồi tới từng khoản chặt / thối.
     const lines = [];
     if (state.delta) {
-      const rank = state.players.map((_, i) => `${escapeHtml(playerName(i))} ${signed(state.delta[i] * state.gameBet)}`);
-      lines.push(`<li>${state.instant ? 'Tới trắng' : 'Thứ hạng'}: ${rank.join(', ')}</li>`);
+      const winner = state.delta.findIndex((d) => d > 0);
+      const x2 = state.winBy && state.winBy.threeSpades;
+      if (x2) lines.push('<li class="win-by"><b>Tới bằng 3 bích ×2</b></li>');
+      if (winner >= 0) {
+        const pays = state.players
+          .map((p, i) => ({ p, i, d: state.delta[i] }))
+          .filter(({ d }) => d < 0)
+          .map(({ p, i, d }) => `${escapeHtml(playerName(i))}${p.cong ? ' (cóng)' : ''} trả ${xu(-d * state.gameBet)} xu`);
+        lines.push(`<li>${state.instant ? 'Tới trắng' : 'Nhất ăn tất'} — ${escapeHtml(playerName(winner))} +${xu(state.delta[winner] * state.gameBet)} xu: ${pays.join(', ')}</li>`);
+      }
     }
     for (const t of state.transfers || []) lines.push(`<li>${transferText(t)}</li>`);
     $('result-transfers').innerHTML = lines.join('');

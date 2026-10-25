@@ -42,7 +42,8 @@ type State struct {
 	MustInclude int                `json:"mustInclude"`
 	History     []tienlen.Event    `json:"history"`
 	Instant     *tienlen.Instant   `json:"instant"`
-	Delta       []int              `json:"delta"`     // tiền thứ hạng (mức cược)
+	Delta       []int              `json:"delta"`     // tiền "nhất ăn tất" (mức cược)
+	WinBy       *tienlen.WinBy     `json:"winBy"`     // tới bằng 3♠ thì multiplier = 2
 	Transfers   []tienlen.Transfer `json:"transfers"` // tiền chặt / thối (mức cược)
 	Money       []int              `json:"money"`     // tổng xu từng người được/mất trong ván, khi hết ván
 	XP          []int              `json:"xp"`        // XP từng người nhận được, khi hết ván (máy: 0)
@@ -63,6 +64,7 @@ func (r *Room) stateFor(viewer *Player) State {
 		s.Transfers = g.Transfers
 		if g.Over {
 			s.Delta = g.Delta
+			s.WinBy = g.WinBy
 			for _, units := range g.Money() {
 				s.Money = append(s.Money, units*r.gameBet)
 			}

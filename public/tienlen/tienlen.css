@@ -489,6 +489,7 @@ button.tseat.empty:hover .seat-join { transform: translate(-50%, -50%) scale(1.0
 .dialog ol .avatar.bot .icon { width: 14px; height: 14px; }
 #result-transfers { text-align: left; list-style: none; padding: 10px 0 0; margin: 0 0 16px; border-top: 1px solid var(--border); font-size: 13px; color: var(--muted); line-height: 1.8; }
 #result-transfers:empty { display: none; }
+#result-transfers .win-by { color: #c62828; font-size: 15px; }
 .dialog .row { justify-content: center; }
 .delta-plus { color: var(--green); font-weight: 800; }
 .delta-xp { margin-left: auto; margin-right: 10px; padding: 1px 8px; border-radius: 999px; background: #dff0ff; color: #2f6fae; font-size: 12px; font-weight: 800; white-space: nowrap; }
