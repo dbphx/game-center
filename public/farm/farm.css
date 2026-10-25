@@ -536,8 +536,8 @@ button.wide { width: 100%; justify-content: center; }
 }
 
 /* ---------- Chuồng quê: chòi mái rơm + hàng rào gỗ dày ---------- */
-.yard .fence-top { top: -14px; height: 64px; background: url('/img/toon/farm/fence_wood.png') left bottom / 120px 64px repeat-x; }
-.fence-thick { position: absolute; height: 64px; pointer-events: none; background: url('/img/toon/farm/fence_wood.png') left bottom / 120px 64px repeat-x; }
+.yard .fence-top { top: -38px; height: 88px; background: url('/img/toon/farm3d/fence_wood.png') left bottom / 120px 88px repeat-x; }
+.fence-thick { position: absolute; height: 88px; pointer-events: none; background: url('/img/toon/farm3d/fence_wood.png') left bottom / 120px 88px repeat-x; }
 .pen-shed { pointer-events: auto; cursor: pointer; }
 .pen-shed.ghost { opacity: .5; filter: saturate(.6); }
 .pen-shed img { filter: drop-shadow(0 6px 4px rgba(60, 40, 10, .3)); }
@@ -733,3 +733,7 @@ button.danger { background: linear-gradient(180deg, #ff8a7a, #e03131); border-co
   position: absolute; right: -6px; top: 4px; padding: 1px 7px; border-radius: 999px; z-index: 2;
   background: linear-gradient(180deg, #fffbe9, #ffe3a3); border: 2px solid #c9893f; color: #5a2c00; font: 900 12px var(--font-title);
 }
+
+/* Biển tên trên cổng 3D (vị trí / cỡ đặt bằng JS theo sign_box) */
+.obj.gate .gate-sign[style] { transform: translate(-50%, -50%); justify-content: center; }
+.obj.nest.big .nest-eggs[style] { right: auto; bottom: auto; width: 0; height: 0; }

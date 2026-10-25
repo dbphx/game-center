@@ -1,0 +1,247 @@
+{
+ "style": "Ảnh 3D dựng sẵn cho nông trại (three.js): mặt tiền thẳng, nhìn chếch từ trên-trước (pitch 32°), mái tranh 2 mái đầu hồi kiểu Việt, nắng chiều ấm, bóng đổ mềm, viền nâu — thay ảnh 2D ở /img/toon/farm/",
+ "anchor_note": "\"foot\" = điểm chân (giữa mép dưới mặt tiền) theo pixel trong ảnh. \"replaces\" = tên ảnh cũ trong /img/toon/farm/; \"old_size\" = kích thước ảnh cũ (farm.js vẽ theo chiều cao art.img(name,{h}) nên tỉ lệ khung mới có thể khác). nest_big_front cùng khung + foot với nest_big. farm_gate có \"sign_box\" [x1,y1,x2,y2] = vùng biển trống để đặt tên bằng HTML. fence_* giữ anchor top-left như ảnh cũ.",
+ "images": [
+  {
+   "file": "hut_seed.png",
+   "w": 168,
+   "h": 196,
+   "anchor": "bottom-center",
+   "foot": [
+    84,
+    164
+   ],
+   "replaces": [
+    "hut_seed"
+   ],
+   "use": "Kho giống: chòi mái rơm vách tre, bao hạt, nong tre",
+   "old_size": [
+    200,
+    196
+   ],
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "hut_rice.png",
+   "w": 209,
+   "h": 226,
+   "anchor": "bottom-center",
+   "foot": [
+    105,
+    185
+   ],
+   "replaces": [
+    "hut_rice"
+   ],
+   "use": "Kho thóc: kho mái rơm vách gỗ, bao thóc, đống rơm",
+   "old_size": [
+    280,
+    226
+   ],
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "pen_shed.png",
+   "w": 205,
+   "h": 198,
+   "anchor": "bottom-center",
+   "foot": [
+    102,
+    171
+   ],
+   "replaces": [
+    "pen_shed"
+   ],
+   "use": "Chuồng gỗ mái rơm, rơm lót, máng ăn",
+   "old_size": [
+    250,
+    200
+   ],
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "farm_gate.png",
+   "w": 386,
+   "h": 267,
+   "anchor": "bottom-center",
+   "foot": [
+    193,
+    239
+   ],
+   "replaces": [
+    "farm_gate"
+   ],
+   "use": "Cổng nông trại: cột gỗ, mái rơm, biển gỗ TRỐNG để ghép tên bằng HTML",
+   "old_size": [
+    320,
+    270
+   ],
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "sign_box": [
+    78,
+    85,
+    310,
+    171
+   ]
+  },
+  {
+   "file": "haystack.png",
+   "w": 227,
+   "h": 275,
+   "anchor": "bottom-center",
+   "foot": [
+    114,
+    208
+   ],
+   "replaces": [
+    "haystack"
+   ],
+   "use": "Cây rơm quanh cọc tre",
+   "old_size": [
+    274,
+    320
+   ],
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "nest_big.png",
+   "w": 265,
+   "h": 152,
+   "anchor": "bottom-center",
+   "foot": [
+    133,
+    95
+   ],
+   "replaces": [
+    "nest_big"
+   ],
+   "use": "Ổ rơm chung, lòng ổ trũng (trứng đặt bằng HTML)",
+   "old_size": [
+    240,
+    148
+   ],
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "nest_big_front.png",
+   "w": 265,
+   "h": 152,
+   "anchor": "bottom-center",
+   "foot": [
+    133,
+    95
+   ],
+   "replaces": [
+    "nest_big_front"
+   ],
+   "use": "Nửa vành trước của ổ rơm (đặt trên trứng) — cùng khung với nest_big",
+   "old_size": [
+    240,
+    148
+   ],
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "well.png",
+   "w": 150,
+   "h": 116,
+   "anchor": "bottom-center",
+   "foot": [
+    75,
+    95
+   ],
+   "replaces": [
+    "well"
+   ],
+   "use": "Giếng đá có mái ngói, trục quay, gàu",
+   "old_size": [
+    103,
+    130
+   ],
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "fence_side_full.png",
+   "w": 46,
+   "h": 440,
+   "anchor": "top-left",
+   "replaces": [
+    "fence_side_full"
+   ],
+   "use": "Hàng rào chuồng bên hông, chạy theo chiều sâu, liền; mép trên = đầu xa, mép dưới = đầu gần (góc nhìn trên-trước 32°)",
+   "old_size": [
+    46,
+    440
+   ],
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "fence_side.png",
+   "w": 46,
+   "h": 440,
+   "anchor": "top-left",
+   "replaces": [
+    "fence_side"
+   ],
+   "use": "Hàng rào chuồng bên hông có cổng mở (khoảng hở y 254–306; ảnh cũ 250–330); mép trên = đầu xa, mép dưới = đầu gần",
+   "old_size": [
+    46,
+    440
+   ],
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0",
+   "gate_gap_y": [
+    254,
+    306
+   ]
+  },
+  {
+   "file": "fence_wood.png",
+   "w": 120,
+   "h": 88,
+   "anchor": "top-left",
+   "tile": true,
+   "replaces": [
+    "fence_wood"
+   ],
+   "old_size": [
+    120,
+    64
+   ],
+   "use": "Hàng rào gỗ lặp ngang, khớp nối liền (1 cọc mỗi 120 px, 2 thanh ngang). Cao 88 px (ảnh cũ 64) — lặp theo chiều ngang, giữ tỉ lệ.",
+   "source": [
+    "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
+   ],
+   "license": "CC0 1.0"
+  }
+ ]
+}

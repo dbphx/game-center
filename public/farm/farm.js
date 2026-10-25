@@ -16,9 +16,28 @@
   let sizes = {}; // tên file (không đuôi) → [w, h], đọc từ manifest.json
   const sheets = {}; // sprite sheet: tên → { fw, fh, n, frames } (manifest frameW / frameH / frames)
 
+  // Ảnh 3D dựng sẵn (public/img/toon/farm3d, manifest: w, h, foot, old_size, sign_box…) thay ảnh 2D cùng tên.
+  const IMG3D = '/img/toon/farm3d/';
+  const art3d = {};
+  // Cỡ hiển thị của ảnh 3D: giữ tỉ lệ như ảnh cũ — h truyền vào là chiều cao muốn của ảnh cũ.
+  function m3d(name, h) {
+    const m = art3d[name];
+    if (!m) return null;
+    const oh = (m.old_size && m.old_size[1]) || m.h;
+    const k = h / oh;
+    const [fx, fy] = m.foot || [m.w / 2, m.h];
+    return { m, k, w: m.w * k, h: m.h * k, shiftX: (m.w / 2 - fx) * k, below: (m.h - fy) * k };
+  }
+
   const art = {
     // Ảnh theo chiều cao mong muốn (giữ tỉ lệ gốc). k = hệ số phóng so với kích thước gốc khi không truyền h.
-    img(name, { h, k = 1, cls = '' } = {}) {
+    // anchor: vật trong cảnh — ảnh 3D đặt theo "foot" (chân thật trong ảnh) thay vì mép dưới khung.
+    img(name, { h, k = 1, cls = '', anchor = false } = {}) {
+      if (art3d[name]) {
+        const g = m3d(name, h || Math.round(((art3d[name].old_size || [0, art3d[name].h])[1]) * k));
+        const st = anchor ? ` style="position:relative;left:${g.shiftX.toFixed(1)}px;margin-bottom:${(-g.below).toFixed(1)}px"` : '';
+        return `<img class="toon ${cls}" src="${IMG3D}${name}.png" width="${Math.round(g.w)}" height="${Math.round(g.h)}" alt="" draggable="false"${st}>`;
+      }
       const [w0, h0] = sizes[name] || [64, 64];
       const hh = h || Math.round(h0 * k);
       const ww = Math.round((w0 / h0) * hh);
@@ -227,6 +246,12 @@
     ];
   }
 
+  // Khoảng cổng hông chuồng (toạ độ thế giới) theo ảnh hàng rào (manifest gate_gap_y; ảnh cũ 250–330).
+  const gateGap = () => {
+    const g = (art3d.fence_side && art3d.fence_side.gate_gap_y) || [250, 330];
+    return [PEN.y1 - 6 + g[0], PEN.y1 - 6 + g[1]];
+  };
+
   function computeLayout() {
     sizeLayout();
     const X = (n) => n + OX;
@@ -234,8 +259,8 @@
     obstacles = [
       // Chuồng: hàng rào 4 phía, chừa cổng ở hông phải (y 410–488) để đi vào trong.
       [PEN.x1 - 4, PEN.y1, PEN.x1 + 12, PEN.y2], // rào trái
-      [PEN.x2 - 10, PEN.y1, PEN.x2 + 6, 404], // rào phải (trên cổng)
-      [PEN.x2 - 10, 494, PEN.x2 + 6, PEN.y2], // rào phải (dưới cổng)
+      [PEN.x2 - 10, PEN.y1, PEN.x2 + 6, gateGap()[0] - 4], // rào phải (trên cổng)
+      [PEN.x2 - 10, gateGap()[1] + 4, PEN.x2 + 6, PEN.y2], // rào phải (dưới cổng)
       [PEN.x1, PEN.y1, PEN.x2, PEN.y1 + 48], // rào sau
       [PEN.x1, PEN.y2 - 14, PEN.x2, PEN.y2], // rào trước
       [52, 262, 250, 300], // chòi chuồng
@@ -350,7 +375,7 @@
     const full = s.capacity && s.used >= s.capacity;
     return `<div class="obj building${full ? ' full' : ''}" data-obj="${kind}" style="${pos(x, footY)}" title="${name}">
       <span class="obj-label"><b>${name}</b>${capBar(s)}<em>${s.used}/${s.capacity}</em></span>
-      ${art.img(image, { h })}</div>`;
+      ${art.img(image, { h, anchor: true })}</div>`;
   }
 
   function penLabel(kind, pen) {
@@ -381,10 +406,10 @@
     return `<div class="obj area yard" data-obj="barn" style="left:${PEN.x1}px;top:${PEN.y1}px;width:${w}px;height:${h}px;z-index:3">
         <span class="fence-top"></span></div>
       <span class="pen-label" data-obj="barn" style="left:${PEN.x1 + w / 2}px;top:${PEN.y1 - 8}px;z-index:2000">${penLabel('barn', pen)}</span>
-      <span class="obj decor pen-shed" data-obj="barn" style="${pos(150, 300)}">${art.img('pen_shed', { h: 190 })}</span>
-      <span class="obj decor haystack" style="${pos(PEN.x2 - 76, 566)}">${art.img('haystack', { h: 176 })}</span>
+      <span class="obj decor pen-shed" data-obj="barn" style="${pos(150, 300)}">${art.img('pen_shed', { h: 190, anchor: true })}</span>
+      <span class="obj decor haystack" style="${pos(PEN.x2 - 76, 566)}">${art.img('haystack', { h: 176, anchor: true })}</span>
       <span class="obj decor" style="${pos(Math.min(PEN.x2 - 40, 290), 318)}">${art.img('trough_water', { h: 26 })}</span>
-      <span class="fence-thick" style="left:${PEN.x1}px;top:${PEN.y2 - 52}px;width:${w}px;z-index:${PEN.y2}"></span>
+      <span class="fence-thick" style="left:${PEN.x1}px;top:${PEN.y2 - 76}px;width:${w}px;z-index:${PEN.y2}"></span>
       <span class="obj decor fence-side" style="left:${PEN.x1 - 22}px;top:${PEN.y1 - 6}px;z-index:${PEN.y1 + 60}">${art.img('fence_side_full', { h: 440 })}</span>
       <span class="obj decor fence-side" style="left:${PEN.x2 - 24}px;top:${PEN.y1 - 6}px;z-index:${PEN.y1 + 60}">${art.img('fence_side', { h: 440 })}</span>`;
   }
@@ -417,9 +442,17 @@
     }
   }
 
+  // Vị trí biển tên trên cổng 3D theo sign_box (px trong khung cổng).
+  function gateSignStyle(h) {
+    const g = m3d('farm_gate', h);
+    if (!g || !g.m.sign_box) return '';
+    const [x1, y1, x2, y2] = g.m.sign_box;
+    return ` style="left:${((x1 + x2) / 2 * g.k + g.shiftX).toFixed(1)}px;top:${((y1 + y2) / 2 * g.k).toFixed(1)}px;width:${((x2 - x1) * g.k * 0.92).toFixed(1)}px;height:${((y2 - y1) * g.k).toFixed(1)}px"`;
+  }
+
   // Đồ trang trí đặt theo chân (x, y).
   const deco = (name, x, y, h, flip = false, cls = '') =>
-    `<span class="obj decor${flip ? ' flip' : ''}${cls ? ' ' + cls : ''}" data-tree="${/^tree_(mai|dao)/.test(name) ? name.slice(5) : ''}" style="${pos(x, y)}">${art.img(name, { h })}</span>`;
+    `<span class="obj decor${flip ? ' flip' : ''}${cls ? ' ' + cls : ''}" data-tree="${/^tree_(mai|dao)/.test(name) ? name.slice(5) : ''}" style="${pos(x, y)}">${art.img(name, { h, anchor: true })}</span>`;
 
   // Ổ rơm chung: trứng (gà nâu, vịt trắng xanh) chất trong lòng ổ theo số đang có — tối đa 8 quả, nhiều hơn hiện "+n".
   // Hai lớp ảnh: cả ổ ở dưới, nửa vành trước ở trên trứng để trứng nằm trong lòng ổ.
@@ -430,13 +463,16 @@
     const eggs = laidEggs();
     const shown = eggs.slice(0, EGG_SLOTS.length);
     return shown
-      .map((p, i) => `<span class="egg" style="left:calc(50% + ${EGG_SLOTS[i][0]}px);top:calc(43% + ${EGG_SLOTS[i][1]}px)">${art.item(p.kind === 'duck' ? 'duck_egg' : 'egg', 22)}</span>`)
+      .map((p, i) => `<span class="egg" style="left:${EGG_SLOTS[i][0]}px;top:${EGG_SLOTS[i][1] + 4}px">${art.item(p.kind === 'duck' ? 'duck_egg' : 'egg', 22)}</span>`)
       .join('') + (eggs.length > EGG_SLOTS.length ? `<span class="egg-more">+${eggs.length - EGG_SLOTS.length}</span>` : '');
   }
   function nestsHTML() {
     const [x, y] = NESTS[0];
-    return `<span class="obj nest big" data-obj="nest" style="${pos(x, y, y)}" title="Ổ trứng chung">${art.img('nest_big', { h: NEST_H })}
-      <span class="nest-eggs">${eggsHTML()}</span>${art.img('nest_big_front', { h: NEST_H, cls: 'nest-front' })}</span>`;
+    const g = m3d('nest_big', NEST_H);
+    const hollow = g ? `left:${(133 * g.k + g.shiftX).toFixed(1)}px;top:${(70 * g.k).toFixed(1)}px` : 'left:50%;top:43%';
+    const front = g ? art.img('nest_big_front', { h: NEST_H, cls: 'nest-front' }).replace('<img ', `<img style="left:${g.shiftX.toFixed(1)}px" `) : art.img('nest_big_front', { h: NEST_H, cls: 'nest-front' });
+    return `<span class="obj nest big" data-obj="nest" style="${pos(x, y, y)}" title="Ổ trứng chung">${art.img('nest_big', { h: NEST_H, anchor: true })}
+      <span class="nest-eggs" style="${hollow}">${eggsHTML()}</span>${front}</span>`;
   }
   function refreshNests() {
     const el = document.querySelector('.obj.nest .nest-eggs');
@@ -565,7 +601,7 @@
     // Cổng "Vào" dưới giữa (giữa kho và ruộng).
     // z của cổng thấp hơn chỗ đứng trước cổng (y 604) để nhân vật đứng TRƯỚC biển cổng.
     parts.push(`<div class="obj gate" data-obj="gate" style="${pos(X(586), 610, 592)}" title="Về thành phố">
-      ${art.img('farm_gate', { h: 140 })}<span class="gate-sign">Nông trại<b>${esc(user.name)}</b></span></div>`);
+      ${art.img('farm_gate', { h: 140, anchor: true })}<span class="gate-sign"${gateSignStyle(140)}>Nông trại<b>${esc(user.name)}</b></span></div>`);
     objs.gate = { x: X(586), y: 604, face: 'down', hx: X(586), hy: 460, verb: 'Về thành phố', run: () => (location.href = '/') };
 
     parts.push(fieldHTML());
@@ -2812,6 +2848,8 @@
       me.look = lookOf(u);
       renderHUD();
       const manifest = await fetch(IMG + 'manifest.json').then((r) => r.json()).catch(() => ({}));
+      const man3d = await fetch(IMG3D + 'manifest.json').then((r) => r.json()).catch(() => ({}));
+      for (const f of man3d.images || []) if (!f.tile) art3d[f.file.replace(/\.png$/, '')] = f;
       for (const f of manifest.images || manifest.files || []) {
         const name = f.file.replace(/\.png$/, '');
         sizes[name] = [f.w, f.h];

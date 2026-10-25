@@ -1,0 +1,12 @@
+file,source,author,license,url,notes
+hut_seed.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,"Kho giống: chòi mái rơm vách tre, bao hạt, nong tre"
+hut_rice.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,"Kho thóc: kho mái rơm vách gỗ, bao thóc, đống rơm"
+pen_shed.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,"Chuồng gỗ mái rơm, rơm lót, máng ăn"
+farm_gate.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,"Cổng nông trại: cột gỗ, mái rơm, biển gỗ TRỐNG để ghép tên bằng HTML"
+haystack.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,Cây rơm quanh cọc tre
+nest_big.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,"Ổ rơm chung, lòng ổ trũng (trứng đặt bằng HTML)"
+nest_big_front.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,Nửa vành trước của ổ rơm (đặt trên trứng) — cùng khung với nest_big
+well.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,"Giếng đá có mái ngói, trục quay, gàu"
+fence_side_full.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,"Hàng rào chuồng bên hông, chạy theo chiều sâu, liền"
+fence_side.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,Hàng rào chuồng bên hông có cổng mở (khoảng y 250–330 như ảnh cũ)
+fence_wood.png,DCity — dựng 3D bằng three.js (hình học tự dựng),DCity,CC0 1.0,—,Hàng rào gỗ lặp ngang
