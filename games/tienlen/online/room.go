@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/dbphx/game-center/games/tienlen"
+	"github.com/dbphx/game-center/internal/chat"
 )
 
 const (
@@ -109,6 +110,7 @@ type Player struct {
 
 	conn      Conn
 	graceTime *time.Timer
+	chatLim   chat.Limiter // chống spam chat
 }
 
 type Room struct {
@@ -130,6 +132,7 @@ type Room struct {
 	bet      int             // xu mỗi mức cược, chủ phòng chỉnh giữa các ván
 	gameBet  int             // mức cược của ván đang chơi / vừa xong
 	gameXP   map[int64]int64 // XP từng người nhận được ở ván vừa xong
+	chatLog  chat.Log        // 20 tin chat gần nhất của bàn
 }
 
 func randomID() string {
@@ -282,6 +285,7 @@ type Message struct {
 	Cards []int  `json:"cards,omitempty"`
 	ID    string `json:"id,omitempty"`
 	Bet   int    `json:"bet,omitempty"`
+	Text  string `json:"text,omitempty"` // tin chat
 }
 
 // Handle xử lý một hành động của người chơi đã ở trong phòng.
@@ -366,6 +370,23 @@ func (r *Room) Handle(p *Player, m Message) error {
 
 	case "leave":
 		r.leave(p)
+
+	case "chat":
+		text := chat.Prepare(m.Text)
+		if text == "" {
+			return nil
+		}
+		now := time.Now()
+		if !p.chatLim.Allow(now) {
+			return chat.ErrTooFast
+		}
+		line := r.chatLog.Add(chat.Line{ID: p.ID, Name: p.Name, Text: text, At: now.UnixMilli()})
+		msg := map[string]any{"t": "chat", "id": line.ID, "name": line.Name, "text": line.Text, "at": line.At, "seq": line.Seq}
+		for _, o := range r.players {
+			if o.conn != nil {
+				o.conn.Send(msg)
+			}
+		}
 
 	default:
 		return fmt.Errorf("không hiểu lệnh %q", m.T)

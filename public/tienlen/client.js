@@ -70,6 +70,10 @@
         break;
       case 'state':
         onState(m);
+        tchat.sync(m.chat);
+        break;
+      case 'chat':
+        tchat.add(m);
         break;
       case 'hint':
         if (!m.cards) return status('Gợi ý: nên bỏ lượt');
@@ -83,6 +87,7 @@
       case 'left':
         store(sessionStorage, ROOM_KEY, null);
         state = null;
+        tchat.reset();
         history.replaceState(null, '', location.pathname);
         render();
         break;
@@ -165,7 +170,22 @@
 
   // ---------- Hiển thị ----------
 
+  // Chat trong bàn: bong bóng hiện cạnh ghế người nói (ở phòng chờ là dòng trong danh sách người chơi).
+  const tchat = window.TableChat.mount({
+    send: (text) => send({ t: 'chat', text }),
+    isMe: (line) => !!state && line.id === state.you,
+    anchor: (line) => {
+      if (!state) return null;
+      const i = state.players.findIndex((p) => p.id === line.id);
+      if (i < 0) return null;
+      const seat = document.querySelector(`#game .seat[data-player="${i}"] .name`);
+      if (seat && seat.getClientRects().length) return seat;
+      return document.querySelector(`#lobby-players li:nth-child(${i + 1})`);
+    },
+  });
+
   function render() {
+    tchat.el.classList.toggle('hidden', !state);
     let screen = 'home';
     if (state) screen = state.phase === 'lobby' || (state.phase === 'over' && showLobby) ? 'lobby' : 'game';
     for (const id of ['home', 'lobby', 'game']) $(id).classList.toggle('hidden', id !== screen);

@@ -373,3 +373,32 @@ func TestUpgradeOldBetsTable(t *testing.T) {
 		t.Fatalf("đặt cược sau khi nâng cấp: %v", err)
 	}
 }
+
+// Chat bàn: chỉ người có mặt mới chat được, tin được lọc và mang seq tăng dần, chat dày bị chặn, bàn khác không thấy.
+func TestRoomChat(t *testing.T) {
+	e := newEnv(t, 1000)
+	ban := e.player("ban", 1000)
+	code := e.create(e.uid)
+	if _, err := e.g.Chat(ctx, code, ban, "chào"); status(err) != http.StatusConflict {
+		t.Fatalf("chưa vào bàn mà chat phải 409, được %v", err)
+	}
+	e.state(code, ban)
+	s, err := e.g.Chat(ctx, code, ban, "  chào   cả nhà  đm ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(s.Chat) != 1 || s.Chat[0].Text != "chào cả nhà ***" || s.Chat[0].Name != "ban" || s.Chat[0].Seq != 1 {
+		t.Fatalf("tin chat sai: %+v", s.Chat)
+	}
+	if _, err := e.g.Chat(ctx, code, ban, "nữa"); status(err) != http.StatusConflict {
+		t.Fatalf("chat dày phải 409, được %v", err)
+	}
+	e.clock = e.clock.Add(2 * time.Second)
+	e.g.Chat(ctx, code, e.uid, "ok")
+	if s := e.state(code, e.uid); len(s.Chat) != 2 || s.Chat[1].Seq != 2 || s.Chat[1].Name != "Người chơi" {
+		t.Fatalf("chủ bàn phải thấy 2 tin: %+v", s.Chat)
+	}
+	if s := e.state(Lobby, e.uid); len(s.Chat) != 0 {
+		t.Fatalf("sòng chung không thấy chat bàn riêng: %+v", s.Chat)
+	}
+}

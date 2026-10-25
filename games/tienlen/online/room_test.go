@@ -469,3 +469,40 @@ func TestHairAndWingsVisible(t *testing.T) {
 		t.Fatalf("sảnh: %+v", s)
 	}
 }
+
+// chatMsgs trả các tin {t:"chat"} đã nhận.
+func (f *fakeConn) chatMsgs() []map[string]any {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	var out []map[string]any
+	for _, m := range f.msgs {
+		if mm, ok := m.(map[string]any); ok && mm["t"] == "chat" {
+			out = append(out, mm)
+		}
+	}
+	return out
+}
+
+// Chat trong bàn: mọi người trong bàn nhận tin (đã lọc), state mang lịch sử, chat dày bị chặn.
+func TestTableChat(t *testing.T) {
+	h := NewHub(richBank(), slowOptions)
+	host, hc := mustCreate(t, h, an)
+	_, gc := mustJoin(t, h, host.Room.Code, binh)
+	if err := host.Room.Handle(host.Player, Message{T: "chat", Text: "  chào   đm  "}); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []*fakeConn{hc, gc} {
+		got := c.chatMsgs()
+		if len(got) != 1 || got[0]["text"] != "chào ***" || got[0]["name"] != an.Name {
+			t.Fatalf("tin chat nhận được sai: %v", got)
+		}
+	}
+	if err := host.Room.Handle(host.Player, Message{T: "chat", Text: "nữa"}); err == nil || err.Error() != "Bạn chat nhanh quá" {
+		t.Fatalf("chat dày phải bị chặn, được %v", err)
+	}
+	host.Room.Handle(host.Player, Message{T: "chat", Text: "   "}) // rỗng: bỏ qua
+	host.Room.Handle(host.Player, Message{T: "addBot"})
+	if st := gc.lastState(); len(st.Chat) != 1 || st.Chat[0].Text != "chào ***" || st.Chat[0].Seq != 1 {
+		t.Fatalf("state phải mang lịch sử chat: %+v", st.Chat)
+	}
+}

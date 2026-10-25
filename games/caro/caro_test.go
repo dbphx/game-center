@@ -455,3 +455,40 @@ func TestDisconnectGrace(t *testing.T) {
 		t.Fatalf("quá hạn chờ phải thua: %+v", r)
 	}
 }
+
+func (f *fakeConn) chats() []map[string]any {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	var out []map[string]any
+	for _, m := range f.msgs {
+		if mm, ok := m.(map[string]any); ok && mm["t"] == "chat" {
+			out = append(out, mm)
+		}
+	}
+	return out
+}
+
+// Chat trong bàn: người chơi và người xem đều nhận tin; người xem cũng được chat; chat dày bị chặn.
+func TestTableChat(t *testing.T) {
+	h, _, a, ca, _, cb := table(t, fast, 0)
+	cc := &fakeConn{}
+	sc, err := h.Join(a.Room.Code, chi, cc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := sc.Room.Handle(sc.Player, Message{T: "chat", Text: "hay quá  vcl"}); err != nil {
+		t.Fatalf("người xem phải chat được: %v", err)
+	}
+	for _, c := range []*fakeConn{ca, cb, cc} {
+		if got := c.chats(); len(got) != 1 || got[0]["text"] != "hay quá ***" || got[0]["name"] != chi.Name {
+			t.Fatalf("tin chat nhận được sai: %v", got)
+		}
+	}
+	if err := sc.Room.Handle(sc.Player, Message{T: "chat", Text: "nữa"}); err == nil || err.Error() != "Bạn chat nhanh quá" {
+		t.Fatalf("chat dày phải bị chặn, được %v", err)
+	}
+	a.Room.Handle(a.Player, Message{T: "setRule", Rule: RuleFree})
+	if st := cb.last(); len(st.Chat) != 1 || st.Chat[0].Seq != 1 {
+		t.Fatalf("state phải mang lịch sử chat: %+v", st.Chat)
+	}
+}

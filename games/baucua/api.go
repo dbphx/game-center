@@ -71,6 +71,7 @@ func (g *Game) Handler() http.Handler {
 		Face     string `json:"face"`
 		Amount   int64  `json:"amount"`
 		Bankroll int64  `json:"bankroll"`
+		Text     string `json:"text"`
 	}
 	// post bọc xác thực, kiểm máu (nếu cần) và đọc body.
 	post := func(pattern string, needHP bool, op func(r *http.Request, uid int64, b body) (any, error)) {
@@ -114,6 +115,9 @@ func (g *Game) Handler() http.Handler {
 	})
 	post("POST /api/baucua/bank", true, func(r *http.Request, uid int64, b body) (any, error) {
 		return g.Bank(r.Context(), b.Room, uid, b.Bankroll)
+	})
+	post("POST /api/baucua/chat", false, func(r *http.Request, uid int64, b body) (any, error) {
+		return g.Chat(r.Context(), b.Room, uid, b.Text)
 	})
 	post("POST /api/baucua/unbank", false, func(r *http.Request, uid int64, b body) (any, error) {
 		return g.Unbank(r.Context(), b.Room, uid)

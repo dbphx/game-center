@@ -16,6 +16,8 @@ import (
 	"slices"
 	"sync"
 	"time"
+
+	"github.com/dbphx/game-center/internal/chat"
 )
 
 const (
@@ -104,6 +106,7 @@ type Player struct {
 
 	conn      Conn
 	graceTime *time.Timer
+	chatLim   chat.Limiter // chống spam chat
 }
 
 // Result là kết quả ván vừa xong.
@@ -140,6 +143,7 @@ type Room struct {
 	botSeq     int
 	closed     bool
 	rng        *mrand.Rand
+	chatLog    chat.Log // 20 tin chat gần nhất của bàn
 }
 
 func randomID() string {
@@ -336,6 +340,7 @@ type Message struct {
 	ID    string `json:"id,omitempty"`
 	X     int    `json:"x"`
 	Y     int    `json:"y"`
+	Text  string `json:"text,omitempty"` // tin chat
 }
 
 // Handle xử lý một hành động của người đã ở trong bàn.
@@ -352,6 +357,23 @@ func (r *Room) Handle(p *Player, m Message) error {
 	switch m.T {
 	case "leave":
 		r.leave(p)
+		return nil
+	case "chat": // người xem cũng được chat
+		text := chat.Prepare(m.Text)
+		if text == "" {
+			return nil
+		}
+		now := time.Now()
+		if !p.chatLim.Allow(now) {
+			return chat.ErrTooFast
+		}
+		line := r.chatLog.Add(chat.Line{ID: p.ID, Name: p.Name, Text: text, At: now.UnixMilli()})
+		msg := map[string]any{"t": "chat", "id": line.ID, "name": line.Name, "text": line.Text, "at": line.At, "seq": line.Seq}
+		for _, o := range append(slices.Clone(r.players), r.spectators...) {
+			if o.conn != nil {
+				o.conn.Send(msg)
+			}
+		}
 		return nil
 	}
 	if !seated {
@@ -721,12 +743,14 @@ type State struct {
 	TurnMs     int          `json:"turnMs"`
 	Spectators int          `json:"spectators"`
 	Moves      int          `json:"moves"`
+	Chat       []chat.Line  `json:"chat"` // 20 tin chat gần nhất của bàn
 }
 
 func (r *Room) stateFor(viewer *Player) State {
 	s := State{T: "state", Code: r.Code, Phase: r.phase, Size: Size, Board: r.board.String(), Turn: string(r.turn),
 		Players: []PlayerView{}, WinLine: r.winLine, Result: r.result, Bet: r.bet, GameBet: r.gameBet,
-		BetOptions: BetOptions, Rule: r.rule, Spectators: len(r.spectators), Moves: r.moves}
+		BetOptions: BetOptions, Rule: r.rule, Spectators: len(r.spectators), Moves: r.moves,
+		Chat: r.chatLog.List()}
 	if r.seatOf(viewer) >= 0 {
 		s.You = viewer.ID
 	}

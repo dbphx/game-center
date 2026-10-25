@@ -77,6 +77,10 @@
         break;
       case 'state':
         onState(m);
+        tchat.sync(m.chat);
+        break;
+      case 'chat':
+        tchat.add(m);
         break;
       case 'error':
         A.toast(m.msg);
@@ -86,6 +90,7 @@
       case 'left':
         store(ROOM_KEY, null);
         state = null;
+        tchat.reset();
         history.replaceState(null, '', location.pathname);
         render();
         break;
@@ -146,8 +151,16 @@
 
   // ---------- Hiển thị ----------
 
+  // Chat trong bàn (người xem cũng chat được): bong bóng hiện trên nhân vật ở thẻ người chơi.
+  const tchat = window.TableChat.mount({
+    send: (text) => send({ t: 'chat', text }),
+    isMe: (line) => !!state && !!state.you && line.id === state.you,
+    anchor: (line) => document.querySelector(`.pcard[data-pid="${CSS.escape(line.id || '')}"] .pbody`),
+  });
+
   function render() {
     const inRoom = !!state;
+    tchat.el.classList.toggle('hidden', !inRoom);
     $('home').classList.toggle('hidden', inRoom);
     $('room').classList.toggle('hidden', !inRoom);
     setHallPolling(!inRoom);
@@ -341,7 +354,7 @@
     const kick = isHost() && !mine && s.phase === 'lobby'
       ? `<button class="link kick" data-kick="${escapeHtml(p.id)}" title="Mời ra">${I.svg('x')}Mời ra</button>` : '';
     const coins = p.bot ? '' : `<div class="pcoins">${I.svg('coins')}${xu(p.coins)}</div>`;
-    return `<div class="pcard${turn ? ' turn' : ''}${mine ? ' mine' : ''}" data-mark="${mark}">
+    return `<div class="pcard${turn ? ' turn' : ''}${mine ? ' mine' : ''}" data-mark="${mark}" data-pid="${escapeHtml(p.id)}">
         <div class="pmark">${piece(mark)}<span class="timer" data-timer="${mark}"><span class="timer-num"></span></span></div>
         <div class="pbody">${C.sprite(lookOf(p), { dir: 'down', size: 130, cls: 'p-char' })}</div>
         <div class="pname">${escapeHtml(p.name)}${lvl}</div>

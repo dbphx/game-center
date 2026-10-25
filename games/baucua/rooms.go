@@ -7,6 +7,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/dbphx/game-center/internal/chat"
 )
 
 // Lobby là mã sòng chung: luôn mở, máy luôn làm cái.
@@ -57,11 +59,13 @@ type room struct {
 	dice       map[int64][3]string // kết quả các vòng đã quay
 	history    []int64             // các vòng đã quay, mới nhất trước (giữ tối đa historyKeep)
 	bankNet    map[int64]int64     // lãi / lỗ của quỹ cái theo vòng
+	chat       chat.Log            // 20 tin chat gần nhất
+	chatLim    map[int64]*chat.Limiter
 }
 
 func newRoom(code string, host int64, now time.Time) *room {
 	return &room{code: code, host: host, seenAt: map[int64]time.Time{}, lastActive: now,
-		dice: map[int64][3]string{}, bankNet: map[int64]int64{}}
+		dice: map[int64][3]string{}, bankNet: map[int64]int64{}, chatLim: map[int64]*chat.Limiter{}}
 }
 
 func (r *room) seen(uid int64, now time.Time) {
@@ -226,6 +230,36 @@ func (g *Game) Create(ctx context.Context, uid int64) (string, error) {
 // Join ghi nhận người chơi có mặt ở bàn và trả trạng thái.
 func (g *Game) Join(ctx context.Context, code string, uid int64) (State, error) {
 	return g.State(ctx, code, uid)
+}
+
+// Chat gửi một tin vào bàn. Chỉ người đang có mặt mới chat được; chat dày bị chặn (409).
+func (g *Game) Chat(ctx context.Context, code string, uid int64, text string) (State, error) {
+	r, c, err := g.begin(ctx, code)
+	defer g.mu.Unlock()
+	if err != nil {
+		return State{}, err
+	}
+	now := g.now()
+	if r.absentFor(uid, now) > 0 {
+		return State{}, conflict("bạn chưa vào bàn này")
+	}
+	r.seen(uid, now)
+	if text = chat.Prepare(text); text != "" {
+		lim := r.chatLim[uid]
+		if lim == nil {
+			lim = &chat.Limiter{}
+			r.chatLim[uid] = lim
+		}
+		if !lim.Allow(now) {
+			return State{}, conflict(chat.ErrTooFast.Error())
+		}
+		u, err := g.w.User(ctx, uid)
+		if err != nil {
+			return State{}, err
+		}
+		r.chat.Add(chat.Line{Name: u.Name, Text: text, At: now.UnixMilli()})
+	}
+	return g.state(ctx, r, c, uid)
 }
 
 // Leave cho người chơi rời bàn ngay (không chờ hết hạn poll).

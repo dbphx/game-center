@@ -142,7 +142,7 @@
     const players = all.filter((p) => !(b && p.name === b.name)).slice(0, 10);
     const tag = (p) => `<span class="p-tag"><span class="lv">Lv ${p.level || 1}</span>${esc(p.name)}</span>
       <span class="p-bet">${p.total ? `${I.svg('coins')}${xu(p.total)}` : 'Đang xem'}</span>`;
-    const person = (p, dir) => `<div class="person${isMe(p) ? ' me' : ''}">
+    const person = (p, dir) => `<div class="person${isMe(p) ? ' me' : ''}" data-name="${esc(p.name)}">
         ${C.sprite(p, { size: 110, dir })}<span class="shadow"></span>${tag(p)}</div>`;
     const left = players.filter((_, i) => i % 2 === 0);
     const right = players.filter((_, i) => i % 2 === 1);
@@ -338,8 +338,25 @@
 
   // ---------- Đồng bộ với server ----------
 
+  // Chat trong bàn (chỉ khi đã vào bàn): bong bóng hiện trên nhân vật người nói (hoặc người làm cái).
+  const tchat = roomCode === null ? null : window.TableChat.mount({
+    send: async (text) => {
+      const data = await A.api('/api/baucua/chat', { method: 'POST', body: { room: roomCode || LOBBY, text } });
+      if (data && data.round !== undefined) apply(data);
+    },
+    isMe: (line) => !!user && line.name === user.name,
+    anchor: (line) => {
+      for (const el of document.querySelectorAll('.person[data-name]')) {
+        if (el.dataset.name === line.name && el.getClientRects().length) return el;
+      }
+      const b = banker();
+      return b && b.name === line.name ? $('banker') : null;
+    },
+  });
+
   function apply(s) {
     if (!s || s.round === undefined) return;
+    if (tchat) tchat.sync(s.chat);
     if (typeof s.now === 'number') offset = s.now - Date.now();
     const prev = st;
     st = s;

@@ -19,6 +19,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dbphx/game-center/internal/chat"
 	"github.com/dbphx/game-center/internal/wallet"
 )
 
@@ -479,6 +480,7 @@ type State struct {
 	Balance  *int64           `json:"balance,omitempty"`
 	Room     RoomInfo         `json:"room"`
 	Invite   string           `json:"invite"`
+	Chat     []chat.Line      `json:"chat"` // 20 tin chat gần nhất của bàn; seq tăng dần để client chỉ hiện tin mới
 }
 
 const maxPlayers = 12
@@ -545,6 +547,7 @@ func (g *Game) state(ctx context.Context, r *room, c clock, uid int64) (State, e
 		Chips: Chips, MaxTotal: MaxTotal, Faces: Faces,
 		Room:   RoomInfo{Code: r.code, Members: []Member{}},
 		Invite: "/baucua/?room=" + r.code,
+		Chat:   r.chat.List(),
 	}
 	var dice [3]string
 	if c.phase == PhaseResult {

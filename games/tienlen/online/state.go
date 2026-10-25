@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/dbphx/game-center/games/tienlen"
+	"github.com/dbphx/game-center/internal/chat"
 )
 
 type PlayerView struct {
@@ -51,11 +52,12 @@ type State struct {
 	GameBet     int                `json:"gameBet"`   // mức cược của ván đang hiển thị
 	BetOptions  []int              `json:"betOptions"`
 	GameNo      int                `json:"gameNo"`
+	Chat        []chat.Line        `json:"chat"` // 20 tin chat gần nhất của bàn
 }
 
 func (r *Room) stateFor(viewer *Player) State {
 	s := State{T: "state", Code: r.Code, You: viewer.ID, Phase: r.phase, Turn: -1, MustInclude: -1, Hand: []int{},
-		Bet: r.bet, GameBet: r.gameBet, BetOptions: BetOptions}
+		Bet: r.bet, GameBet: r.gameBet, BetOptions: BetOptions, Chat: r.chatLog.List()}
 	g := r.game
 	inGame := r.phase != PhaseLobby && g != nil
 	if inGame {
