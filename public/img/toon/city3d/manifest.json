@@ -5,14 +5,14 @@
  "images": [
   {
    "file": "building_casino.png",
-   "w": 371,
-   "h": 296,
+   "w": 382,
+   "h": 319,
    "anchor": "bottom-center",
    "foot": [
-    186,
-    231
+    191,
+    249
    ],
-   "use": "Toà Casino (biển CASINO có bóng đèn)",
+   "use": "Toà Casino (biển CASINO có bóng đèn) (mặt tiền thẳng song song đường, nhìn từ trên-trước, không xoay)",
    "source": [
     "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
    ],
@@ -20,14 +20,14 @@
   },
   {
    "file": "building_casino.png",
-   "w": 371,
-   "h": 296,
+   "w": 382,
+   "h": 319,
    "anchor": "bottom-center",
    "foot": [
-    186,
-    231
+    191,
+    249
    ],
-   "use": "Toà Casino (biển CASINO có bóng đèn) (thay building_casino, cỡ như ảnh cũ)",
+   "use": "Toà Casino (biển CASINO có bóng đèn) (thay building_casino, cỡ như ảnh cũ) (mặt tiền thẳng song song đường, nhìn từ trên-trước, không xoay)",
    "source": [
     "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
    ],
@@ -35,18 +35,18 @@
    "replaces": [
     "building_casino"
    ],
-   "scale": 0.8784
+   "scale": 0.8202
   },
   {
    "file": "building_bank.png",
-   "w": 517,
-   "h": 280,
+   "w": 530,
+   "h": 266,
    "anchor": "bottom-center",
    "foot": [
-    258,
-    201
+    265,
+    202
    ],
-   "use": "Toà Ngân hàng",
+   "use": "Toà Ngân hàng (mặt tiền thẳng song song đường, nhìn từ trên-trước, không xoay)",
    "source": [
     "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
    ],
@@ -54,14 +54,14 @@
   },
   {
    "file": "building_bank.png",
-   "w": 517,
-   "h": 280,
+   "w": 530,
+   "h": 266,
    "anchor": "bottom-center",
    "foot": [
-    258,
-    201
+    265,
+    202
    ],
-   "use": "Toà Ngân hàng (thay building_bank, cỡ như ảnh cũ)",
+   "use": "Toà Ngân hàng (thay building_bank, cỡ như ảnh cũ) (mặt tiền thẳng song song đường, nhìn từ trên-trước, không xoay)",
    "source": [
     "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
    ],
@@ -69,18 +69,18 @@
    "replaces": [
     "building_bank"
    ],
-   "scale": 0.8273
+   "scale": 0.8712
   },
   {
    "file": "building_shop.png",
-   "w": 294,
-   "h": 243,
+   "w": 303,
+   "h": 259,
    "anchor": "bottom-center",
    "foot": [
-    147,
-    200
+    152,
+    220
    ],
-   "use": "Shop thời trang",
+   "use": "Shop thời trang (mặt tiền thẳng song song đường, nhìn từ trên-trước, không xoay)",
    "source": [
     "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
    ],
@@ -88,14 +88,14 @@
   },
   {
    "file": "building_shop.png",
-   "w": 294,
-   "h": 243,
+   "w": 303,
+   "h": 259,
    "anchor": "bottom-center",
    "foot": [
-    147,
-    200
+    152,
+    220
    ],
-   "use": "Shop thời trang (thay building_shop, cỡ như ảnh cũ)",
+   "use": "Shop thời trang (thay building_shop, cỡ như ảnh cũ) (mặt tiền thẳng song song đường, nhìn từ trên-trước, không xoay)",
    "source": [
     "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
    ],
@@ -103,18 +103,18 @@
    "replaces": [
     "building_shop"
    ],
-   "scale": 1.0
+   "scale": 0.9449
   },
   {
    "file": "building_hospital.png",
-   "w": 341,
-   "h": 260,
+   "w": 350,
+   "h": 270,
    "anchor": "bottom-center",
    "foot": [
-    170,
-    200
+    175,
+    208
    ],
-   "use": "Bệnh viện (biển + chữ thập đỏ)",
+   "use": "Bệnh viện (biển + chữ thập đỏ) (mặt tiền thẳng song song đường, nhìn từ trên-trước, không xoay)",
    "source": [
     "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
    ],
@@ -122,14 +122,14 @@
   },
   {
    "file": "building_hospital.png",
-   "w": 341,
-   "h": 260,
+   "w": 350,
+   "h": 270,
    "anchor": "bottom-center",
    "foot": [
-    170,
-    200
+    175,
+    208
    ],
-   "use": "Bệnh viện (biển + chữ thập đỏ) (thay building_hospital, cỡ như ảnh cũ)",
+   "use": "Bệnh viện (biển + chữ thập đỏ) (thay building_hospital, cỡ như ảnh cũ) (mặt tiền thẳng song song đường, nhìn từ trên-trước, không xoay)",
    "source": [
     "DCity — dựng 3D bằng three.js (hình học tự dựng) cho dự án"
    ],
@@ -137,7 +137,7 @@
    "replaces": [
     "building_hospital"
    ],
-   "scale": 0.9524
+   "scale": 0.916
   },
   {
    "file": "house_1.png",

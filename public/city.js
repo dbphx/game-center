@@ -232,7 +232,7 @@
   function register(name, dir, it, file) {
     const k = it.scale || 1;
     const [ax, ay] = anchorOf(it, it.w, it.h);
-    art[name] = { src: dir + (file || it.file), w: it.w * k, h: it.h * k, ax: ax * k, ay: ay * k };
+    art[name] = { src: dir + (file || it.file), w: it.w * k, h: it.h * k, ax: ax * k, ay: ay * k, pw: it.w };
     sizes[name] = [it.w * k, it.h * k];
   }
   function artSet() {
@@ -751,7 +751,7 @@
     for (const c3 of ROAD_COLS) at('tree_big', (c3[0] + 1.5) * T, HORIZON + 14, 0.75);
 
     // Toà nhà bờ Bắc đặt giữa lô, cửa ở đáy (sát vỉa hè hàng 8); hai bên mỗi toà có cây phố và chậu hoa.
-    const BK = art3d ? { casino: 1.2, bank: 1.02, shop: 1.22, hospital: 0.96 } : { casino: 1, bank: 0.86, shop: 1, hospital: 0.8 };
+    const BK = art3d ? CITY3D_K : { casino: 1, bank: 0.86, shop: 1, hospital: 0.8 };
     const footC = northFoot('building_casino', BK.casino);
     const footB = northFoot('building_bank', BK.bank);
     const footS = northFoot('building_shop', BK.shop);
@@ -829,11 +829,13 @@
     if (fx) {
       const [sx, sy] = casinoSignAt();
       if (art3d) {
-        const dB = footB - 8 * T;
-        const dS = footS - 8 * T;
-        const dC = footC - 8 * T;
-        fx.push(['bulbs', sx, sy - 22], ['coin', 700, 150 + dB], ['coin', 932, 150 + dB], ['neon', 1402, 92 + dS], ['cross', 214, 774],
-          ['spray', 816, 862], ['flag', 120, 26 + dC], ['flag', 300, 26 + dC, true], ['flag', 640, 70 + dB], ['bunting', 1402, 196 + dS]);
+        const C = (ix, iy) => onBuilding('building_casino', 224, footC, BK.casino, ix, iy);
+        const B = (ix, iy) => onBuilding('building_bank', 816, footB, BK.bank, ix, iy);
+        const S = (ix, iy) => onBuilding('building_shop', 1402, footS, BK.shop, ix, iy);
+        const Hs = (ix, iy) => onBuilding('building_hospital', 224, 966, BK.hospital, ix, iy);
+        fx.push(['bulbs', sx, sy - 22], ['coin', ...B(170, 112)], ['coin', ...B(360, 112)], ['neon', ...S(151, 130)],
+          ['cross', ...Hs(175, 51)], ['spray', 816, 862], ['flag', ...C(64, 30)], ['flag', ...C(318, 30), true],
+          ['flag', ...B(265, 8)], ['bunting', ...S(151, 196)]);
       } else {
         fx.push(['bulbs', 224, 0], ['coin', 712, 112], ['coin', 920, 112], ['neon', 1392, 36], ['cross', 224, 822],
           ['spray', 816, 846], ['flag', 112, 40], ['flag', 336, 40, true], ['flag', 816, 66], ['bunting', 1392, 200]);
@@ -1044,16 +1046,24 @@
 
   // Biển CASINO nhấp nháy đè đúng lên biển trên nóc toà Casino.
   // Tâm biển CASINO rời: bộ 3D đặt trên mép mái trước của toà (điểm (175, 58) trong ảnh toà), bộ 2D đè lên biển vẽ sẵn.
+  // Tỉ lệ các toà bộ 3D (mặt tiền song song đường) để vừa lô đất.
+  const CITY3D_K = { casino: 1.12, bank: 0.88, shop: 1.24, hospital: 0.95 };
+  // Toạ độ bản đồ của điểm (ix, iy) tính bằng px trong ảnh gốc của toà đặt chân ở (fx, fy) với tỉ lệ k.
+  function onBuilding(name, fx, fy, k, ix, iy) {
+    const a = art[name];
+    if (!a) return [fx, fy];
+    const u = a.w / (a.pw || a.w);
+    return [fx + (ix * u - a.ax) * k, fy + (iy * u - a.ay) * k];
+  }
+  // Tâm biển CASINO rời: bộ 3D đặt trên mái trước của toà (điểm (191, 66) trong ảnh toà), bộ 2D đè lên biển vẽ sẵn.
   function casinoSignAt() {
-    const b = art.building_casino;
-    if (!art3d || !b) {
+    if (!art3d || !art.building_casino) {
       const [, bh] = sizes.building_casino || [262, 260];
       const [, sh] = sizes.sign_casino || [170, 44];
       return [224, 8 * T - bh + 4 + sh / 2];
     }
-    const k = 1.2; // = BK.casino của bộ 3D trong props()
-    const u = b.w / 371; // ảnh gốc 371 × 296 → đơn vị hiển thị
-    return [224 + (175 * u - b.ax) * k, northFoot('building_casino', k) - (b.ay - 58 * u) * k];
+    const k = CITY3D_K.casino;
+    return onBuilding('building_casino', 224, northFoot('building_casino', k), k, 191, 66);
   }
   function signHtml() {
     const [sw, sh] = sizes.sign_casino || [170, 44];
