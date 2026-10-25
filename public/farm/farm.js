@@ -256,11 +256,11 @@
       [X(644), W, FRONT_Y],
       [b.x + 6, b.x + b.w - 6, b.y + b.h + 8], // viền dưới ao
       // Quanh cụm hai nhà kho + đống rơm: mặt trước, chừa lối vào trước cửa mỗi kho.
-      // Rào gỗ sơn kem kiểu vườn quanh cụm kho (khác rào tre hoa ranh giới), sân trước cửa kho rộng, bao cả đống rơm.
-      [X(400), X(444), 388, 'picket'],
-      [X(566), X(644), 388, 'picket'],
-      [X(768), X(806), 388, 'picket'],
-      [X(400), X(806), 214, 'picket'], // mặt sau cụm kho (sau hai mái, trước luỹ tre)
+      // Rào hoa quanh cụm kho: cùng khung tre như rào chính nhưng hoa khác (cúc vàng / trắng + dâm bụt đỏ, tông ấm).
+      [X(400), X(444), 388, 'store'],
+      [X(566), X(644), 388, 'store'],
+      [X(768), X(806), 388, 'store'],
+      [X(400), X(806), 214, 'store'], // mặt sau cụm kho (sau hai mái, trước luỹ tre)
     ];
   }
   // Rào hoa chạy dọc hai bên cụm kho: [x, y1, y2 (chân)].
@@ -667,10 +667,10 @@
     });
     parts.push(flowersHTML());
     for (const [x1, x2, y, kind] of HEDGES) {
-      const hh = kind === 'picket' ? 56 : 72;
+      const hh = 72;
       parts.push(`<span class="hedge${kind ? ' ' + kind : ''}" style="left:${x1}px;top:${y - hh}px;width:${x2 - x1}px;z-index:${y}"></span>`);
     }
-    for (const [x, y1, y2] of hedgeSides(X)) parts.push(`<span class="hedge-side picket" style="left:${x - 20}px;top:${y1 - 30}px;height:${y2 - y1 + 22}px;z-index:${y2 - 1}"></span>`);
+    for (const [x, y1, y2] of hedgeSides(X)) parts.push(`<span class="hedge-side store" style="left:${x - 20}px;top:${y1 - 30}px;height:${y2 - y1 + 22}px;z-index:${y2 - 1}"></span>`);
 
     $('objects').innerHTML = parts.join('');
     fitText(document.querySelector('.gate-sign b'), 16, 8);
@@ -695,7 +695,7 @@
     const badge = (n) => (n ? `<span class="badge">${n}</span>` : '');
     let n = 0;
     const btn = (attr, pic, label, extra = '', on = false) =>
-      `<button class="tool${on ? ' on' : ''}" ${attr} title="${label} (phím ${++n})"><span class="ic">${pic}</span><b>${label}</b>${extra}<kbd class="tool-key">${n}</kbd></button>`;
+      `<button class="tool${on ? ' on' : ''}" ${attr} title="${label} (phím ${++n})"><span class="ic">${pic}</span><b>${label}</b>${extra}</button>`;
     const seedPic = seedSel ? art.seed(seedSel, 40) : art.seed('carrot', 40);
     $('toolbar').innerHTML = [
       btn('data-tool="plant"', seedPic, tool === 'plant' && seedSel ? find('crops', seedSel).name : 'Gieo hạt', '', tool === 'plant'),
@@ -745,6 +745,7 @@
       ${row('plant-all', art.seed(seedSel || 'carrot', 36), 'Gieo tất cả', `${empty} ô trống`, 'Shift+1', !empty)}
       ${row('harvest-all', art.item('corn', 36), 'Thu hoạch tất cả', `${ripe} ô chín`, 'H', !ripe)}
       ${row('feed-all', art.item('feed_poultry', 30), 'Cho ăn tất cả', hungry ? `${hungry} con · cần ${planText(feedPlan())}${planShort(feedPlan()).length ? ' ⚠ thiếu' : ''}` : '0 con đói', 'Shift+F', !hungry)}
+      ${row('fish-all', art.img('fish_tilapia', { h: 22 }), 'Thu cá', `${readyFish().length} con lớn`, 'Shift+C', !readyFish().length)}
       ${row('produce-all', art.item('egg', 34), 'Trứng & sản phẩm', `${goods} con`, 'Shift+P', !goods)}
       ${row('yard', art.img('nest', { h: 24 }), 'Đàn gia cầm', farm.yard ? `${farm.yard.used}/${farm.yard.capacity}` : '—', 'G', false)}
     </div>`;
@@ -815,7 +816,7 @@
   function feedPlan() {
     const plan = {};
     for (const p of pets.values()) {
-      if (p.decor || !isHungry(p.data)) continue;
+      if (p.decor || !canFeed(p.data)) continue;
       const n = feedNeed(p);
       plan[n.id] = plan[n.id] || { need: 0, have: feedHave(n.id), name: n.feed.name };
       plan[n.id].need += n.portions;
@@ -827,7 +828,7 @@
 
   async function feedAll() {
     $('quick-menu').classList.add('hidden');
-    const hungry = [...pets.values()].filter((p) => !p.decor && isHungry(p.data));
+    const hungry = [...pets.values()].filter((p) => !p.decor && canFeed(p.data));
     if (!hungry.length) return A.toast('Không con nào đang đói');
     const plan = feedPlan();
     const short = planShort(plan);
@@ -931,8 +932,20 @@
 
   function renderHarvestAll() {
     const ripe = farm.plots.filter((p) => p.crop && nowS() >= p.readyAt).length;
-    $('btn-harvest-all').classList.toggle('hidden', ripe < 2);
-    $('btn-harvest-all').querySelector('span').textContent = `Thu hoạch tất cả (${ripe})`;
+    const fish = readyFish().length;
+    $('btn-harvest-all').classList.toggle('hidden', ripe < 2 && !fish);
+    $('btn-harvest-all').querySelector('span').textContent = `Thu hoạch tất cả (${ripe + fish})`;
+    $('btn-harvest-all').title = `${ripe} ô chín${fish ? ` + ${fish} cá lớn` : ''} (phím H)`;
+    // Nút nổi "Cho ăn tất cả (N)": chỉ hiện khi có con đói; tooltip ghi số phần thức ăn sẽ dùng.
+    const hungry = [...pets.values()].filter((p) => !p.decor && isHungry(p.data)).length;
+    const fb = $('btn-feed-all');
+    fb.classList.toggle('hidden', !hungry);
+    if (hungry) {
+      const plan = feedPlan();
+      fb.querySelector('span').textContent = `Cho ăn tất cả (${hungry})`;
+      fb.title = `Cần ${planText(plan)}${planShort(plan).length ? ' — thiếu thức ăn' : ''} · phím Shift+F`;
+      fb.classList.toggle('short', planShort(plan).length > 0);
+    }
   }
 
   function render() {
@@ -968,8 +981,9 @@
       else if (left > 0) el.textContent = countdown(left);
     });
     const young = [...((farm.barn && farm.barn.animals) || []), ...((farm.pond && farm.pond.fish) || [])];
-    if (young.some((a) => a.readyAt > nowS() - 1 && a.readyAt <= nowS())) changed = true;
+    if (young.some((a) => (a.wasGrown = a.wasGrown || false) !== grown(a) && (a.wasGrown = grown(a)))) changed = true;
     pets.forEach(drawBadges);
+    renderHarvestAll();
     const eggSig = laidEggs().map((p) => p.id).join(',');
     if (eggSig !== tick.eggs) {
       tick.eggs = eggSig;
@@ -1015,16 +1029,53 @@
   const apiOf = (p) => (p.fish ? 'fish' : p.yard ? 'poultry' : 'animals');
   // Con đã lớn có sản phẩm (trứng / sữa / lông) sẵn sàng chưa (tính theo giờ server, không cần tải lại).
   const yieldOf = (kind) => allStock().find((x) => x.id === kind) || {};
-  const prodReady = (a) => a.readyAt <= nowS() && !!yieldOf(a.kind).product && ((a.productReadyAt && nowS() >= a.productReadyAt) || (!a.productReadyAt && a.productReady));
+  const prodReady = (a) => {
+    if (!yieldOf(a.kind).product || !grown(a)) return false;
+    if (typeof a.productProgress === 'number') return prodP(a) >= 1;
+    return (a.productReadyAt && nowS() >= a.productReadyAt) || (!a.productReadyAt && a.productReady);
+  };
   const PRODUCE_VERB = { egg: 'Lấy trứng', duck_egg: 'Lấy trứng', milk: 'Vắt sữa', wool: 'Cắt lông' };
   const LAYERS = new Set(['chicken', 'duck']); // đẻ trứng vào ổ rơm
   const NESTS = [[492, 404], [534, 424], [496, 452]]; // ổ rơm trên lô cỏ giữa (dời theo OX)
+  // Luật đói: con đói thì ngừng lớn và không cho trứng / sữa / lông.
+  // Server mới trả fedUntil, progress, paused, productProgress (lúc farm.now); máy khách ngoại suy theo giờ
+  // khi còn no. Server cũ (chưa có các trường này) thì tính như trước.
+  const newRules = (a) => typeof a.fedUntil === 'number';
+  const statOf = (a) => allStock().find((x) => x.id === a.kind) || ((cat && cat.fish) || []).find((x) => x.id === a.kind) || {};
+  const fullFor = (a) => a.fullFor || statOf(a).fullFor || (cat && (cat.fullFor || cat.feedCooldown)) || 600;
   const isHungry = (a) => {
+    if (newRules(a)) return nowS() >= a.fedUntil && needsFood(a);
     if (a.readyAt <= nowS()) return false;
     if (typeof a.fedAt !== 'number' && typeof a.hungry === 'boolean') return a.hungry;
     const cd = (cat && cat.feedCooldown) || 600;
     return nowS() - Math.max(a.fedAt || 0, a.boughtAt) >= cd;
   };
+  // Mức no 0..1 (còn bao lâu tới lúc đói / thời gian no tối đa).
+  const fullness = (a) => (newRules(a) ? Math.max(0, Math.min(1, (a.fedUntil - nowS()) / fullFor(a))) : isHungry(a) ? 0 : 1);
+  // Giây đã trôi từ lúc tải trạng thái mà con còn no (phần đói thì không tính).
+  const fedSince = (a) => Math.max(0, Math.min(nowS(), a.fedUntil) - farm.now);
+  // Tiến độ lớn 0..1.
+  function growP(a) {
+    if (typeof a.progress !== 'number') return progress(a.boughtAt, a.readyAt);
+    if (a.progress >= 1) return 1;
+    const g = statOf(a).growSeconds || 1;
+    return Math.min(1, a.progress + (newRules(a) ? fedSince(a) : 0) / g);
+  }
+  const grown = (a) => a.grown === true || (typeof a.progress === 'number' ? growP(a) >= 1 : nowS() >= a.readyAt);
+  // Cho ăn được: đang đói, hoặc phần no còn dưới 1/4 (cho thêm để khỏi bị gián đoạn) — theo luật server.
+  // Còn cần ăn: chưa lớn, hoặc đã lớn mà đang chờ ra sản phẩm (heo, cá đã lớn thì thu hoạch, không cho ăn nữa).
+  const needsFood = (a) => !grown(a) || (!!yieldOf(a.kind).product && !prodReady(a));
+  const canFeed = (a) => (newRules(a) ? needsFood(a) && a.fedUntil - nowS() < fullFor(a) / 4 : isHungry(a));
+  // Giây còn lại tới khi lớn nếu được ăn no liên tục.
+  const growLeft = (a) => (typeof a.progress === 'number' ? (1 - growP(a)) * (statOf(a).growSeconds || 0) : a.readyAt - nowS());
+  // Tiến độ trứng / sữa / lông 0..1.
+  function prodP(a) {
+    const prod = yieldOf(a.kind).product;
+    if (!prod) return 0;
+    if (typeof a.productProgress !== 'number') return a.productReadyAt ? progress(a.productReadyAt - prod.every, a.productReadyAt) : 0;
+    if (a.productProgress >= 1) return 1;
+    return Math.min(1, a.productProgress + (newRules(a) ? fedSince(a) : 0) / (prod.every || 1));
+  }
   // Ảnh 3D (pet3d_*, sprite sheet nhiều hoạt ảnh) nếu manifest có; không thì ảnh cũ.
   const imgOf = (p) => {
     const n3 = `pet3d_${p.fish ? p.kind : p.look}`;
@@ -1038,7 +1089,7 @@
   }
   // Hệ số hiển thị: ảnh gấp 2; xa (y nhỏ) thì nhỏ lại, gần thì to; con chưa lớn nhỏ hơn.
   function scaleOf(p) {
-    const young = p.data.readyAt > nowS() ? 0.78 : 1;
+    const young = grown(p.data) ? 1 : 0.78;
     if (p.fish) return 0.56 * young * (0.9 + 0.2 * ((p.y - (POND.cy - POND.ry)) / (2 * POND.ry)));
     const fix = SIZE_FIX[p.look] && sheets[imgOf(p)] && imgOf(p).startsWith('pet3d_') ? SIZE_FIX[p.look] : 1;
     if (p.free) return 0.62 * fix * young * (0.84 + 0.26 * ((p.y - SKY) / (BOTTOM - SKY)));
@@ -1183,23 +1234,35 @@
   // Bong bóng "Đói bụng" / lấp lánh khi lớn / thanh lớn nhỏ.
   function drawBadges(p) {
     const a = p.data;
-    const ready = nowS() >= a.readyAt;
+    if (p.decor) return;
+    const ready = grown(a);
     const hungry = isHungry(a);
     const pr0 = prodReady(a);
-    const key = `${ready}|${hungry}|${pr0}|${Math.round(progress(a.boughtAt, a.readyAt) * 20)}`;
+    const full = fullness(a);
+    const g = growP(a);
+    const pp = prodP(a);
+    const key = `${ready}|${hungry}|${pr0}|${Math.round(g * 20)}|${Math.round(full * 10)}|${Math.round(pp * 20)}`;
     if (key === p.badgeKey) return;
     p.badgeKey = key;
-    const pr = progress(a.boughtAt, a.readyAt);
     const prod = yieldOf(a.kind).product;
     p.el.classList.toggle('woolly', pr0 && a.kind === 'sheep');
-    p.badges.innerHTML = ready && pr0 && prod && !LAYERS.has(a.kind)
-      ? `<span class="pet-goods">${prod.id === 'wool' ? art.img('icon_scissors', { h: 24 }) : art.item(prod.id, 26)}</span>`
-      : ready
-      ? `<span class="pet-ready">!</span><span class="twinkle t1">${I.svg('sparkles')}</span><span class="twinkle t2">${I.svg('sparkles')}</span>`
-      : `${hungry ? '<span class="bubble-hungry">Đói bụng</span>' : ''}<span class="mini-bar"><span style="width:${Math.round(pr * 100)}%"></span></span>`;
-    p.el.classList.toggle('ready', ready);
+    // Chén cơm nhỏ cạn dần theo mức no; sắp đói (< 20%) thì nhấp nháy.
+    const bowl = !p.fish ? `<span class="bowl${full < 0.2 ? ' low' : ''}" title="No còn ${Math.round(full * 100)}%"><span style="height:${Math.round(full * 100)}%"></span></span>` : '';
+    let html;
+    if (ready && pr0 && prod && !LAYERS.has(a.kind)) {
+      html = `<span class="pet-goods">${prod.id === 'wool' ? art.img('icon_scissors', { h: 24 }) : art.item(prod.id, 26)}</span>`;
+    } else if (ready && !prod) {
+      html = `<span class="pet-ready">!</span><span class="twinkle t1">${I.svg('sparkles')}</span><span class="twinkle t2">${I.svg('sparkles')}</span>`;
+    } else {
+      const v = ready ? pp : g; // đã lớn: thanh sản phẩm; chưa lớn: thanh lớn
+      html = `${hungry ? '<span class="bubble-hungry">Đói bụng</span>' : ''}<span class="pet-bars">
+        <span class="mini-bar${hungry ? ' paused' : ''}${ready ? ' prod' : ''}"><span style="width:${Math.round(v * 100)}%"></span></span>${hungry ? '<i class="pause">⏸</i>' : ''}${bowl}</span>`;
+    }
+    p.badges.innerHTML = html;
+    p.el.classList.toggle('ready', ready && (pr0 || !prod));
     p.el.classList.toggle('hungry', hungry);
   }
+
 
   // ---------- Bộ phát hoạt ảnh (đọc từ manifest) ----------
   // manifest có thể khai "animations": [{ name, start, frames, fps }] (sprite sheet nhiều khung từ mô hình 3D):
@@ -1258,8 +1321,10 @@
     for (const p of list) {
       p.ft += dt;
       p.at = (p.at || 0) + dt;
+      // Đói: thỉnh thoảng kêu đòi ăn.
+      if (!p.decor && !p.fish && isHungry(p.data) && Math.random() < dt / 9) hungryCall(p);
       p.until -= dt;
-      const sp = p.fish ? 34 : (PET[p.look] || PET.chicken).speed;
+      const sp = (p.fish ? 34 : (PET[p.look] || PET.chicken).speed) * (!p.decor && isHungry(p.data) ? 0.5 : 1);
       if (p.state === 'walk' || p.state === 'food') {
         const dx = p.tx - p.x;
         const dy = p.ty - p.y;
@@ -1393,6 +1458,15 @@
     if (card) placeCard();
   }
 
+  function hungryCall(p) {
+    if (p.el.querySelector('.pet-say')) return;
+    const say = document.createElement('span');
+    say.className = 'pet-say hungry';
+    say.textContent = `${(PET[p.look] || PET.chicken).say.replace('!', '')}… đói quá!`;
+    p.el.appendChild(say);
+    setTimeout(() => say.remove(), 1500);
+  }
+
   // Phản ứng khi được bấm: dừng, quay về phía nhân vật, nhảy, kêu, tim bay.
   function react(p) {
     p.state = 'look';
@@ -1467,9 +1541,10 @@
     if (!p) return closeCard();
     const a = p.data;
     const info = find(p.fish ? 'fish' : 'animals', a.kind);
-    const ready = nowS() >= a.readyAt;
+    const ready = grown(a);
     const hungry = isHungry(a);
-    const pr = progress(a.boughtAt, a.readyAt);
+    const pr = growP(a);
+    const full = fullness(a);
     const need = feedNeed(p);
     const have = feedHave(need.id);
     const feedBtn = have >= need.portions
@@ -1486,27 +1561,32 @@
     } else if (p.fish) {
       btns = ready
         ? `<button class="primary" data-card="collect">${I.svg('sprout')}Thu hoạch <kbd>H</kbd></button>`
-        : hungry ? feedBtn : '';
+        : canFeed(a) ? feedBtn : '';
     } else if (ready) {
       const list = [];
       if (y.product) {
         const verb = PRODUCE_VERB[y.product.id] || `Lấy ${y.product.name.toLowerCase()}`;
         list.push(prodReady(a)
           ? `<button class="primary" data-card="produce">${art.item(y.product.id, 18)}${verb} <kbd>P</kbd></button>`
-          : `<button disabled>${art.item(y.product.id, 18)}${verb} sau ${countdown((a.productReadyAt || nowS()) - nowS())}</button>`);
+          : `<button disabled>${art.item(y.product.id, 18)}${verb} ${hungry ? '— đang đói, ngừng' : `sau ${countdown((1 - prodP(a)) * (y.product.every || 0))}`}</button>`);
+        if (canFeed(a)) list.push(feedBtn);
       }
       list.push(`<button data-card="meat">${y.meat ? art.item(y.meat.id, 18) : ''}Lấy thịt <kbd>M</kbd></button>`);
       btns = list.join('');
     } else {
-      btns = hungry
+      btns = canFeed(a)
         ? feedBtn
-        : `<span class="muted">Cho ăn lại sau ${countdown(((cat && cat.feedCooldown) || 600) - (nowS() - Math.max(a.fedAt || 0, a.boughtAt)))}</span>`;
+        : `<span class="muted">No thêm ${countdown(newRules(a) ? a.fedUntil - nowS() : ((cat && cat.feedCooldown) || 600) - (nowS() - Math.max(a.fedAt || 0, a.boughtAt)))}</span>`;
     }
     el.innerHTML = `<button class="link icon-only pc-close" data-card="close" title="Đóng">${I.svg('x')}</button>
       <b>${esc(info.name)}</b>
-      <span class="pc-bar"><span style="width:${Math.round(pr * 100)}%"></span></span>
-      <span class="pc-time">${ready ? (p.fish ? 'Đã lớn — thu hoạch được' : y.product ? `Đã lớn — cho ${esc(y.product.name.toLowerCase())}` : 'Đã lớn') : `Còn ${countdown(a.readyAt - nowS())}`}</span>
-      ${ready ? '' : `<span class="pc-state ${hungry ? 'hungry' : 'full'}">${hungry ? 'Đói bụng' : 'No'}</span>`}
+      <span class="pc-bar${hungry && !ready ? ' paused' : ''}"><span style="width:${Math.round(pr * 100)}%"></span></span>
+      <span class="pc-time">${ready
+        ? (p.fish ? 'Đã lớn — thu hoạch được' : y.product ? `Đã lớn — cho ${esc(y.product.name.toLowerCase())}${prodReady(a) ? '' : ` (${Math.round(prodP(a) * 100)}%)`}` : 'Đã lớn')
+        : hungry ? `⏸ Đói — ngừng lớn (còn ${countdown(growLeft(a))} nếu no)` : `Còn ${countdown(growLeft(a))}`}</span>
+      ${ready && !y.product && !p.fish ? '' : `<span class="pc-state ${hungry ? 'hungry' : 'full'}">${hungry ? 'Đói bụng' : `No · còn ${countdown(newRules(a) ? a.fedUntil - nowS() : 0)}`}</span>
+      <span class="pc-full"><span style="width:${Math.round(full * 100)}%"></span></span>`}
+      <span class="pc-note">Đói thì vật nuôi ngừng lớn và không cho sản phẩm.</span>
       <span class="pc-btns">${btns}</span>`;
     el.classList.remove('hidden');
     placeCard();
@@ -1585,8 +1665,13 @@
     const el = $('pet-card');
     const s = scaleOf(p);
     const h = sheetOf(p).fh * s;
-    el.style.left = `${Math.round(p.x)}px`;
-    el.style.top = `${Math.round(p.y - (p.fish ? 0 : h) - 10)}px`;
+    // Giữ thẻ nằm trọn trong khung nhìn (con vật sát mép chuồng / mép cảnh).
+    const sc = $('scene');
+    const half = el.offsetWidth / 2 + 8;
+    const minX = sc.scrollLeft / zoom + half;
+    const maxX = (sc.scrollLeft + sc.clientWidth) / zoom - half;
+    el.style.left = `${Math.round(Math.min(Math.max(p.x, minX), Math.max(minX, maxX)))}px`;
+    el.style.top = `${Math.round(Math.max(el.offsetHeight + 8, p.y - (p.fish ? 0 : h) - 10))}px`;
   }
 
   // Bao thức ăn bay từ kho giống tới con vật.
@@ -1991,7 +2076,7 @@
       return true;
     }
     if (k === 'm' && !p.fish) {
-      if (nowS() >= p.data.readyAt) {
+      if (grown(p.data)) {
         card.confirm = true;
         renderCard();
       } else A.toast('Con này chưa lớn');
@@ -1999,22 +2084,22 @@
     }
     if (k === 'f') {
       const need = feedNeed(p);
-      if (isHungry(p.data) && feedHave(need.id) < need.portions) {
+      if (canFeed(p.data) && feedHave(need.id) < need.portions) {
         closeCard();
         openShop('feeds');
-      } else if (isHungry(p.data)) feedPet(p);
-      else A.toast(nowS() >= p.data.readyAt ? 'Con này đã lớn — bấm H để thu hoạch' : 'Con này đang no');
+      } else if (canFeed(p.data)) feedPet(p);
+      else A.toast(grown(p.data) ? 'Con này đã lớn — bấm H để thu hoạch' : 'Con này đang no');
       return true;
     }
     if (k === 'h' || k === 'e' || k === 'enter' || k === ' ') {
-      if (p.fish && nowS() >= p.data.readyAt) {
+      if (p.fish && grown(p.data)) {
         closeCard();
         collect(true, p.id, p.el);
       } else if (!p.fish && prodReady(p.data)) producePet(p).then(renderCard);
-      else if (!p.fish && nowS() >= p.data.readyAt) {
+      else if (!p.fish && grown(p.data)) {
         card.confirm = true;
         renderCard();
-      } else if (isHungry(p.data)) feedPet(p);
+      } else if (canFeed(p.data)) feedPet(p);
       else A.toast(`${find(p.fish ? 'fish' : 'animals', p.kind).name} chưa lớn`);
       return true;
     }
@@ -2099,6 +2184,10 @@
       e.preventDefault();
       return cycleTarget(e.shiftKey ? -1 : 1);
     }
+    if (e.shiftKey && !e.repeat && e.code === 'KeyC') {
+      e.preventDefault();
+      return collectAllFish();
+    }
     if (e.shiftKey && !e.repeat && (e.code === 'Digit1' || e.code === 'KeyF' || e.code === 'KeyP')) {
       e.preventDefault();
       return e.code === 'Digit1' ? plantAll() : e.code === 'KeyF' ? feedAll() : produceAll();
@@ -2115,9 +2204,7 @@
     }
     if (e.key.toLowerCase() === 'h' && !e.repeat) {
       e.preventDefault();
-      const b = $('btn-harvest-all');
-      if (!b.classList.contains('hidden')) b.click();
-      else A.toast('Chưa có ô nào chín');
+      harvestEverything($('btn-harvest-all'));
       return;
     }
     if ((e.key === '[' || e.key === ']') && tool === 'plant') {
@@ -2516,7 +2603,7 @@
     const it = items.find((x) => x.id === id);
     if (!it) return;
     const info = find(isFish ? 'fish' : 'animals', it.kind);
-    if (nowS() < it.readyAt) return A.toast(`${info.name} còn ${fmtDur(it.readyAt - nowS())} nữa mới lớn`);
+    if (!grown(it)) return A.toast(`${info.name} còn ${fmtDur(growLeft(it))} nữa mới lớn${isHungry(it) ? ' (đang đói — ngừng lớn)' : ''}`);
     const anchor = el && el.isConnected ? el : document.querySelector(`[data-obj="${isFish ? 'pond' : 'barn'}"]`);
     const pp = pets.get(id);
     const res = await call(`/api/farm/${pp ? apiOf(pp) : isFish ? 'fish' : 'animals'}/collect`, { id });
@@ -2698,25 +2785,25 @@
       ? items
         .map((it) => {
           const info = find(list, it.kind);
-          const ready = nowS() >= it.readyAt;
+          const ready = grown(it);
           const draw = isBarn ? art.animal(it.kind === 'duck' ? 'chicken_white' : it.kind, 30) : art.fish(it.kind, 18);
-          const hungry = !ready && isHungry(it);
+          const hungry = isHungry(it);
           const yd = yieldOf(it.kind);
+          const feedB = canFeed(it) ? `<button class="${hungry ? 'primary' : ''}" data-feed-${isBarn ? 'animal' : 'fish'}="${it.id}" title="Cho ăn">${art.item(feedNeed({ kind: it.kind, fish: !isBarn, yard: isYard }).id, 16)}Cho ăn</button>` : '';
           const action = ready && isBarn
-            ? `${yd.product && prodReady(it) ? `<button class="primary" data-produce="${it.id}">${art.item(yd.product.id, 16)}${PRODUCE_VERB[yd.product.id] || 'Lấy'}</button>` : ''}<button data-collect-animal="${it.id}" title="Lấy thịt (con vật mất)">Lấy thịt</button>`
+            ? `${yd.product && prodReady(it) ? `<button class="primary" data-produce="${it.id}">${art.item(yd.product.id, 16)}${PRODUCE_VERB[yd.product.id] || 'Lấy'}</button>` : ''}${feedB}<button data-collect-animal="${it.id}" title="Lấy thịt (con vật mất)">Lấy thịt</button>`
             : ready
             ? `<button class="primary" data-collect-fish="${it.id}">${I.svg('sprout')}Thu hoạch</button>`
-            : hungry
-              ? `<button data-feed-${isBarn ? 'animal' : 'fish'}="${it.id}" title="Cho ăn">${I.svg('coins')}Cho ăn ${xu(info.feedPrice || 0)}</button>`
-              : '';
+            : feedB;
           return `<li>${draw}<span class="grow"><span>${esc(info.name)}</span>
-            <span class="t"><span data-left-at="${it.readyAt}">${ready ? 'Đã lớn' : countdown(it.readyAt - nowS())}</span>${hungry ? ' · <b class="hungry-tag">Đói bụng</b>' : ''}</span></span>${action}</li>`;
+            <span class="t"><span${hungry ? '' : ` data-left-at="${Math.round(nowS() + growLeft(it))}"`}>${ready ? 'Đã lớn' : hungry ? `⏸ ngừng lớn (còn ${countdown(growLeft(it))} nếu no)` : countdown(growLeft(it))}</span>${hungry ? ' · <b class="hungry-tag">Đói bụng</b>' : ''}</span></span>${action}</li>`;
         })
         .join('')
       : `<li class="empty">Chưa có ${isBarn ? 'vật nuôi' : 'cá'} — mua ở cửa hàng</li>`;
     $('pen-body').innerHTML = `
       <div class="cap"><span>${pen.used}/${pen.capacity} đơn vị</span><span class="cap-bar"><span style="width:${pct}%"></span></span>${expand}</div>
       <p class="muted">${isYard ? 'Gà, vịt đi lại khắp trang trại; đã lớn thì về ổ rơm cạnh kho đẻ trứng — nhặt ở ổ (Shift+P lấy hết sản phẩm).' : 'Con đã lớn: lấy trứng / sữa / lông hoặc lấy thịt, cất vào kho thóc rồi bán.'}</p>
+      ${kind === 'pond' && readyFish().length ? `<button class="primary wide" data-fish-all>${art.img('fish_tilapia', { h: 18 })}Thu hoạch tất cả cá (${readyFish().length})</button>` : ''}
       <ul class="critter-list">${rows}</ul>
       <button class="primary wide" data-open-shop="${isYard ? 'poultry' : list}">${I.svg('plus')}Mua ${isYard ? 'gà, vịt' : isBarn ? 'con giống' : 'cá giống'}</button>`;
   }
@@ -2861,6 +2948,7 @@
       if (d.quick === 'harvest-all') return $('btn-harvest-all').click();
       if (d.quick === 'feed-all') return feedAll();
       if (d.quick === 'produce-all') return produceAll();
+      if (d.quick === 'fish-all') return collectAllFish();
       if (d.quick === 'yard') return openPen(farm.yard ? 'yard' : 'barn');
     }
     if (d.seedSel) return selectSeed(d.seedSel);
@@ -2908,6 +2996,7 @@
       if (!(await ask(`Mở rộng ${d.expand === 'yard' ? 'sân gia cầm' : d.expand === 'barn' ? 'chuồng' : 'ao'} thêm ${units} đơn vị với giá ${xu(pen.nextExpandPrice)} xu?`, { title: 'Mở rộng', ok: 'Mở rộng' }))) return;
       return call(`/api/farm/${d.expand}/expand`, {});
     }
+    if (d.fishAll !== undefined) return collectAllFish();
     if (d.buyFeed) {
       const f = feedOf(d.buyFeed);
       const res = await call('/api/farm/feeds/buy', { feed: d.buyFeed, qty: buyQty });
@@ -2949,17 +3038,59 @@
     shopMode = { tab: b.dataset.tab, plot: null };
     renderShop();
   }));
-  $('btn-harvest-all').addEventListener('click', async (e) => {
-    const btn = e.currentTarget;
-    const ripe = farm.plots.filter((p) => p.crop && nowS() >= p.readyAt).map((p) => document.querySelector(`[data-obj="plot${p.index}"]`));
-    const res = await call('/api/farm/harvest-all', {});
-    if (!res) return;
-    const items = (res.gained && res.gained.items) || {};
-    // Mỗi ô chín bay một món về kho.
-    const flat = Object.entries(items).flatMap(([id, n]) => Array(n).fill(id));
-    ripe.slice(0, 8).forEach((el, i) => flat[i] && flyToStore(el, { [flat[i]]: 1 }));
-    floatGain(btn, res.gained, itemsText(items));
+  $('btn-feed-all').addEventListener('click', (e) => {
+    e.currentTarget.blur();
+    feedAll();
   });
+  // Thu hoạch tất cả: ô chín (harvest-all) + cá đã lớn (fish/collect-all), toast tổng hợp.
+  const readyFish = () => ((farm.pond && farm.pond.fish) || []).filter((f) => grown(f));
+  async function harvestEverything(btn) {
+    const ripe = farm.plots.filter((p) => p.crop && nowS() >= p.readyAt).map((p) => document.querySelector(`[data-obj="plot${p.index}"]`));
+    const fishEls = readyFish().map((f) => pets.get(f.id)).filter(Boolean).map((q) => q.el);
+    const items = {};
+    let xp = 0;
+    if (ripe.length) {
+      const res = await call('/api/farm/harvest-all', {});
+      if (res) {
+        Object.assign(items, (res.gained && res.gained.items) || {});
+        xp += (res.gained && res.gained.xp) || 0;
+        const flat = Object.entries(items).flatMap(([id, n]) => Array(n).fill(id));
+        ripe.slice(0, 8).forEach((el, i) => flat[i] && flyToStore(el, { [flat[i]]: 1 }));
+      }
+    }
+    if (fishEls.length) xp += (await collectAllFish(fishEls, items)) || 0;
+    if (Object.keys(items).length) floatGain(btn || $('me'), { xp }, itemsText(items));
+    else if (!ripe.length && !fishEls.length) A.toast('Chưa có gì để thu hoạch');
+  }
+  // Thu mọi cá đã lớn (fish/collect-all); cá bay vào kho thóc. Trả XP.
+  async function collectAllFish(fishEls, items = {}) {
+    fishEls = fishEls || readyFish().map((f) => pets.get(f.id)).filter(Boolean).map((q) => q.el);
+    if (!fishEls.length) return A.toast('Chưa có cá nào lớn'), 0;
+    const snap = fishEls.map((el) => el.getBoundingClientRect());
+    let res = await bulk('/api/farm/fish/collect-all');
+    if (res === null) {
+      // Server cũ: thu từng con.
+      for (const f of readyFish()) await call('/api/farm/fish/collect', { id: f.id });
+      res = { gained: {} };
+    }
+    if (!res) return 0;
+    const got = (res.gained && res.gained.items) || {};
+    for (const [k, v] of Object.entries(got)) items[k] = (items[k] || 0) + v;
+    const target = document.querySelector('[data-obj="products"] img');
+    snap.slice(0, 6).forEach((r, i) => {
+      const id = Object.keys(got)[i % Math.max(1, Object.keys(got).length)];
+      if (!id || !target) return;
+      const ghost = document.createElement('span');
+      ghost.style.cssText = `position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px`;
+      document.body.appendChild(ghost);
+      flyToStore(ghost, { [id]: 1 });
+      setTimeout(() => ghost.remove(), 50);
+    });
+    A.toast(`Đã thu ${res.gained && res.gained.count ? res.gained.count : fishEls.length} con cá vào kho thóc`);
+    return (res.gained && res.gained.xp) || 0;
+  }
+  $('btn-harvest-all').addEventListener('click', (e) => harvestEverything(e.currentTarget));
+
   document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && load());
   window.addEventListener('resize', () => setZoom());
 
@@ -3013,7 +3144,7 @@
         newTarget(p);
       }
     },
-    pets: () => [...pets.values()].map((p) => ({ id: p.id, kind: p.kind, free: !!p.free, x: Math.round(p.x), y: Math.round(p.y), grown: nowS() >= p.data.readyAt, product: prodReady(p.data), state: p.state })),
+    pets: () => [...pets.values()].map((p) => ({ id: p.id, kind: p.kind, free: !!p.free, x: Math.round(p.x), y: Math.round(p.y), grown: grown(p.data), product: prodReady(p.data), state: p.state })),
     // Đặt con vật đứng yên tại (x, y) — cho kiểm thử sắp lớp.
     placePet: (id, x, y) => {
       const p = pets.get(id);

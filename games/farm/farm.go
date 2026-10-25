@@ -36,7 +36,12 @@ CREATE TABLE IF NOT EXISTS farm_stock (
 	bought_at INTEGER NOT NULL,
 	ready_at  INTEGER NOT NULL,
 	fed_at      INTEGER NOT NULL DEFAULT 0, -- lần cho ăn gần nhất (0 = chưa cho ăn)
-	produced_at INTEGER NOT NULL DEFAULT 0  -- lần lấy trứng / sữa / lông gần nhất
+	produced_at INTEGER NOT NULL DEFAULT 0, -- lần lấy trứng / sữa / lông gần nhất
+	-- Con vật chỉ lớn / cho sản phẩm trong lúc no (tới fed_until); tiến độ tính lười tới progress_at.
+	fed_until        INTEGER NOT NULL DEFAULT 0,
+	grow_progress    INTEGER NOT NULL DEFAULT 0, -- số giây đã lớn
+	progress_at      INTEGER NOT NULL DEFAULT 0,
+	product_progress INTEGER NOT NULL DEFAULT 0  -- số giây tích luỹ cho sản phẩm kế tiếp
 );
 CREATE INDEX IF NOT EXISTS farm_stock_user ON farm_stock(user_id, place);
 CREATE TABLE IF NOT EXISTS farm_storage (
@@ -99,7 +104,7 @@ func New(ctx context.Context, w *wallet.Wallet) (*Farm, error) {
 	if err := w.ExecSchema(ctx, schema); err != nil {
 		return nil, fmt.Errorf("tạo bảng nông trại: %w", err)
 	}
-	if err := migrate(ctx, w); err != nil {
+	if err := migrate(ctx, w, time.Now().Unix()); err != nil {
 		return nil, fmt.Errorf("nâng cấp bảng nông trại: %w", err)
 	}
 	return &Farm{w: w, now: time.Now}, nil
@@ -114,17 +119,25 @@ type Plot struct {
 	ReadyAt   int64  `json:"readyAt"`
 }
 
+// Animal là một con trong chuồng / sân / ao. Con vật chỉ lớn và cho sản phẩm trong lúc no (now < fedUntil).
 type Animal struct {
 	ID       int64  `json:"id"`
 	Kind     string `json:"kind"`
 	BoughtAt int64  `json:"boughtAt"`
-	ReadyAt  int64  `json:"readyAt"`
-	FedAt    int64  `json:"fedAt"`
-	Hungry   bool   `json:"hungry"` // chưa lớn và đã qua FeedCooldown kể từ lần ăn gần nhất (hoặc lúc mua)
-	// Trứng / sữa / lông: lúc sẵn sàng (0 nếu con này không cho sản phẩm) và đã sẵn sàng chưa.
-	ProductReadyAt int64 `json:"productReadyAt"`
-	ProductReady   bool  `json:"productReady"`
-	producedAt     int64
+	// ReadyAt: lúc đã lớn (≤ now), hoặc lúc dự kiến lớn nếu cứ no như hiện tại; 0 nếu đói / hết no trước khi lớn (paused).
+	ReadyAt  int64   `json:"readyAt"`
+	Grown    bool    `json:"grown"`
+	Progress float64 `json:"progress"` // tiến độ lớn 0..1
+	Paused   bool    `json:"paused"`   // không kịp lớn / ra sản phẩm với phần no còn lại: cần cho ăn
+	FedAt    int64   `json:"fedAt"`
+	FedUntil int64   `json:"fedUntil"`
+	Hungry   bool    `json:"hungry"` // now ≥ fedUntil
+	FullFor  int64   `json:"fullFor"`
+	// Trứng / sữa / lông (0 / false nếu con này không cho sản phẩm): lúc dự kiến có, đã có chưa, tiến độ 0..1.
+	ProductReadyAt      int64   `json:"productReadyAt"`
+	ProductReady        bool    `json:"productReady"`
+	ProductProgress     float64 `json:"productProgress"`
+	growSec, productSec int64
 }
 
 type Pen struct {
@@ -212,33 +225,49 @@ func loadPen(ctx context.Context, q querier, uid int64, place string, now int64)
 	if pen.Capacity < b.MaxCapacity {
 		pen.NextExpandPrice = b.expandPrice(pen.expansions)
 	}
-	rows, err := q.QueryContext(ctx, `SELECT id, kind, bought_at, ready_at, fed_at, produced_at FROM farm_stock WHERE user_id = ? AND place = ? ORDER BY id`, uid, place)
+	rows, err := q.QueryContext(ctx, `SELECT id, kind, bought_at, ready_at, fed_at, fed_until, grow_progress, progress_at, product_progress
+		FROM farm_stock WHERE user_id = ? AND place = ? ORDER BY id`, uid, place)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 	list := []Animal{}
+	at := []int64{}
 	for rows.Next() {
 		var a Animal
-		if err := rows.Scan(&a.ID, &a.Kind, &a.BoughtAt, &a.ReadyAt, &a.FedAt, &a.producedAt); err != nil {
+		var progressAt int64
+		if err := rows.Scan(&a.ID, &a.Kind, &a.BoughtAt, &a.ReadyAt, &a.FedAt, &a.FedUntil, &a.growSec, &progressAt, &a.productSec); err != nil {
+			rows.Close()
 			return nil, err
 		}
-		a.Hungry = a.hungry(now)
-		if y, ok := yields[a.Kind]; ok && y.Product != nil {
-			a.ProductReadyAt = max(a.ReadyAt, a.producedAt) + y.Product.Every
-			a.ProductReady = now >= a.ProductReadyAt
-		}
-		if s, ok := findStock(place, a.Kind); ok {
-			pen.Used += s.Units
-		}
 		list = append(list, a)
+		at = append(at, progressAt)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	// Cộng tiến độ tới bây giờ rồi ghi lại (tính lười như HP), sau đó mới đổi fed_until khi cho ăn.
+	for i := range list {
+		a := &list[i]
+		st, ok := findStock(place, a.Kind)
+		if !ok {
+			continue
+		}
+		pen.Used += st.Units
+		a.settle(st, at[i], now)
+		// progress_at không lùi: hai yêu cầu đọc đồng hồ lệch thứ tự thì không cộng trùng một khoảng.
+		if _, err := q.ExecContext(ctx, `UPDATE farm_stock SET grow_progress = ?, product_progress = ?, ready_at = ?, progress_at = ? WHERE id = ?`,
+			a.growSec, a.productSec, a.ReadyAt, max(at[i], now), a.ID); err != nil {
+			return nil, err
+		}
+		a.derive(st, now)
 	}
 	if place == placePond {
 		pen.Fish = list
 	} else {
 		pen.Animals = list
 	}
-	return pen, rows.Err()
+	return pen, nil
 }
 
 func (f *Farm) load(ctx context.Context, q querier, uid int64) (State, error) {
@@ -564,8 +593,9 @@ func (f *Farm) BuyStock(ctx context.Context, uid int64, place, kind string) (Sta
 			return err
 		}
 		now := f.now().Unix()
-		_, err := tx.ExecContext(ctx, `INSERT INTO farm_stock (user_id, place, kind, bought_at, ready_at) VALUES (?, ?, ?, ?, ?)`,
-			uid, place, st.ID, now, now+st.GrowSeconds)
+		// Con mới mua đã no sẵn FullFor giây.
+		_, err := tx.ExecContext(ctx, `INSERT INTO farm_stock (user_id, place, kind, bought_at, ready_at, fed_until, progress_at)
+			VALUES (?, ?, ?, ?, 0, ?, ?)`, uid, place, st.ID, now, now+fullFor(st.ID), now)
 		return err
 	})
 }
@@ -578,7 +608,7 @@ func (f *Farm) SellStock(ctx context.Context, uid int64, place string, id int64)
 		if err != nil {
 			return err
 		}
-		if a.ReadyAt > f.now().Unix() {
+		if !a.Grown {
 			return conflict(st.Name + " chưa lớn")
 		}
 		if err := tx.Credit(uid, st.SellPrice, GameID, "Bán "+st.Name); err != nil {

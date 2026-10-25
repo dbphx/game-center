@@ -428,7 +428,11 @@ button.wide { width: 100%; justify-content: center; }
   background: linear-gradient(180deg, #ff7a6b, #e03131); color: #fff; font: 900 12px/20px var(--font-title);
   border: 2px solid #fff; box-shadow: 0 2px 0 rgba(120, 20, 20, .4);
 }
-.harvest-all { position: absolute; right: 14px; bottom: 70px; z-index: 12; box-shadow: var(--shadow); }
+.quick-float { position: absolute; right: 14px; bottom: 70px; z-index: 12; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.quick-float button { box-shadow: var(--shadow); }
+.quick-float button.feed-all { background: linear-gradient(180deg, #a8e06b, #5aa82a); border-color: #3f7d1c; color: #fff; }
+.quick-float button.feed-all.short { background: linear-gradient(180deg, #ffd38a, #f08c1a); border-color: #b45309; }
+.feed-all img { margin-right: 4px; }
 .tool-tip {
   position: absolute; left: 50%; bottom: 108px; transform: translateX(-50%); z-index: 12;
   display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 10px; border-radius: 999px; white-space: nowrap;
@@ -480,7 +484,7 @@ button.wide { width: 100%; justify-content: center; }
   .tool .ic { width: 44px; height: 44px; }
   .tool .ic img { max-width: 34px; max-height: 34px; }
   .tool b { font-size: 10px; max-width: 58px; }
-  .harvest-all, .tool-tip, .seed-pick { bottom: 92px; }
+  .quick-float, .tool-tip, .seed-pick { bottom: 92px; }
   .tool-tip { white-space: normal; width: calc(100% - 20px); font-size: 12px; }
   .pan-btns { display: none; }
 }
@@ -759,3 +763,25 @@ button.danger { background: linear-gradient(180deg, #ff8a7a, #e03131); border-co
 /* Rào gỗ sơn kem quanh cụm kho */
 .hedge.picket { height: 56px; background: url('/img/toon/farm/fence_picket.png') left bottom / 96px 56px repeat-x; }
 .hedge-side.picket { width: 36px; background: url('/img/toon/farm/fence_picket_side.png') left top / 36px 48px repeat-y; }
+
+/* Rào hoa quanh cụm kho (hoa cúc + dâm bụt, khác rào chính) */
+.hedge.store { background-image: url('/img/toon/farm/fence_flower_store.png'); }
+.hedge-side.store { background-image: url('/img/toon/farm/fence_flower_store_side.png'); }
+
+/* ---------- Đói: ngừng lớn, chén cơm no ---------- */
+.pet-bars { display: inline-flex; align-items: center; gap: 3px; }
+.pet .mini-bar.paused > span, .pc-bar.paused > span { background: linear-gradient(90deg, #c9c9c9, #9a9a9a); }
+.pet .mini-bar.prod > span { background: linear-gradient(90deg, #ffe08a, #f2a516); }
+.pet .pause { font-style: normal; font-size: 11px; line-height: 1; filter: grayscale(1); }
+.bowl { position: relative; width: 14px; height: 9px; border-radius: 0 0 8px 8px; background: #fff; border: 2px solid #8a5a2a; overflow: hidden; }
+.bowl > span { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(180deg, #fffaf0, #f3e2b8); }
+.bowl.low { animation: blink .8s steps(2) infinite; border-color: #e8590c; }
+@keyframes blink { 50% { opacity: .35; } }
+.pet.hungry .pet-body { filter: saturate(.75); }
+.pet.hungry .pet-jump { transform: rotate(4deg); transform-origin: 50% 100%; }
+.bubble-hungry { font-size: 12px; padding: 3px 10px; border-width: 3px; }
+.pet-say.hungry { border-color: #e8590c; color: #c2410c; }
+.pc-full { width: 140px; height: 6px; border-radius: 999px; background: #f1e6d0; overflow: hidden; }
+.pc-full > span { display: block; height: 100%; background: linear-gradient(90deg, #ffd27a, #ff9f1c); }
+.pc-note { font-size: 11px; color: var(--muted); max-width: 200px; text-align: center; }
+.pet-card [data-card=feed] { animation: glow 1.4s ease-in-out infinite; }

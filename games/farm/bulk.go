@@ -68,7 +68,7 @@ func (f *Farm) PlantAll(ctx context.Context, uid int64, cropID string) (State, G
 	return s, g, err
 }
 
-// FeedAll cho mọi con đang đói (chuồng, sân, ao) ăn, trừ thức ăn trong kho giống tới khi hết.
+// FeedAll cho mọi con đang đói / sắp đói mà còn cần ăn (chưa lớn, hoặc đang chờ ra sản phẩm) ở chuồng, sân, ao ăn, trừ thức ăn trong kho giống tới khi hết.
 func (f *Farm) FeedAll(ctx context.Context, uid int64) (State, Gained, error) {
 	var g Gained
 	s, err := f.do(ctx, uid, func(tx *wallet.Tx, s State) error {
@@ -82,7 +82,7 @@ func (f *Farm) FeedAll(ctx context.Context, uid int64) (State, Gained, error) {
 			}
 			fd := feedFor(place)
 			for _, a := range append(pen.Animals, pen.Fish...) {
-				if !a.Hungry {
+				if !a.canFeed(now) || !a.needsFood() {
 					continue
 				}
 				hungry++
@@ -161,12 +161,11 @@ func (f *Farm) CollectAllFish(ctx context.Context, uid int64) (State, Gained, er
 		if s.Pond == nil {
 			return missing(placePond)
 		}
-		now := f.now().Unix()
 		free := s.Storage.Products.free()
 		g.Items = map[string]int{}
 		ready := 0
 		for _, a := range s.Pond.Fish {
-			if a.ReadyAt > now {
+			if !a.Grown {
 				continue
 			}
 			ready++

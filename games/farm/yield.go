@@ -72,10 +72,13 @@ func (f *Farm) ProduceStock(ctx context.Context, uid int64, place string, id int
 		if p == nil {
 			return conflict(st.Name + " không cho sản phẩm, chỉ lấy thịt được")
 		}
-		if a.ReadyAt > now {
+		if !a.Grown {
 			return conflict(st.Name + " chưa lớn")
 		}
 		if !a.ProductReady {
+			if a.Paused {
+				return conflict(fmt.Sprintf("%s chưa có, %s đang đói — cho ăn để %s tiếp", p.Name, st.Name, produceVerb(p)))
+			}
 			return conflict(fmt.Sprintf("%s chưa có, chờ thêm %s", p.Name, fmtWait(a.ProductReadyAt-now)))
 		}
 		if s.Storage.Products.free() < 1 {
@@ -95,6 +98,17 @@ func produced(ctx context.Context, tx *wallet.Tx, uid, id int64, p *Product, now
 	if err := tx.AddXP(uid, p.XP); err != nil {
 		return err
 	}
-	_, err := tx.ExecContext(ctx, `UPDATE farm_stock SET produced_at = ? WHERE id = ? AND user_id = ?`, now, id, uid)
+	_, err := tx.ExecContext(ctx, `UPDATE farm_stock SET produced_at = ?, product_progress = 0 WHERE id = ? AND user_id = ?`, now, id, uid)
 	return err
+}
+
+// produceVerb là động từ ra sản phẩm: đẻ trứng, cho sữa, ra lông.
+func produceVerb(p *Product) string {
+	switch p.ID {
+	case "milk":
+		return "cho sữa"
+	case "wool":
+		return "ra lông"
+	}
+	return "đẻ trứng"
 }

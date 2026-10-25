@@ -2088,6 +2088,28 @@
    "source": [
     "DCity (vẽ bằng PIL)"
    ]
+  },
+  {
+   "file": "fence_flower_store.png",
+   "w": 128,
+   "h": 72,
+   "use": "Rào tre hoa quanh kho: hoa cúc vàng / trắng / cam + dâm bụt đỏ, lặp ngang 128×72",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ bằng PIL)"
+   ]
+  },
+  {
+   "file": "fence_flower_store_side.png",
+   "w": 40,
+   "h": 56,
+   "use": "Rào tre hoa quanh kho chạy dọc (3/4), lặp dọc 40×56",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ bằng PIL)"
+   ]
   }
  ]
 }

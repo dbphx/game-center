@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -90,7 +91,7 @@ func wantStatus(t *testing.T, err error, status int) {
 func levelXP(level int) int64 { return wallet.LevelStart(level) }
 
 func TestPlotsPriceGrowsAndStopsAt48(t *testing.T) {
-	e := newEnv(t, 10_000_000, 0)
+	e := newEnv(t, 100_000_000, 0)
 	s := e.ok(e.f.State(ctx, e.uid))
 	if len(s.Plots) != FreePlots || s.NextPlotPrice != 10000 || s.MaxPlots != 48 {
 		t.Fatalf("nông trại mới: %d ô, giá ô tiếp %d", len(s.Plots), s.NextPlotPrice)
@@ -109,8 +110,8 @@ func TestPlotsPriceGrowsAndStopsAt48(t *testing.T) {
 	}
 	_, err := e.f.BuyPlot(ctx, e.uid)
 	wantStatus(t, err, http.StatusConflict)
-	if b := e.user().Balance; b != 10_000_000-spent {
-		t.Fatalf("số dư %d, muốn %d", b, 10_000_000-spent)
+	if b := e.user().Balance; b != 100_000_000-spent {
+		t.Fatalf("số dư %d, muốn %d", b, 100_000_000-spent)
 	}
 	h, _ := e.w.History(ctx, e.uid, 1)
 	if h[0].Game != GameID || h[0].Note != "Mua ô đất số 48" {
@@ -193,7 +194,7 @@ func TestBarnUnitsAndExpand(t *testing.T) {
 	wantStatus(t, err, http.StatusConflict)
 
 	s := e.ok(e.f.BuyBuilding(ctx, e.uid, placeBarn))
-	if s.Barn == nil || s.Barn.Capacity != 5 || s.Barn.Used != 0 || s.Barn.NextExpandPrice != 2000 {
+	if s.Barn == nil || s.Barn.Capacity != 5 || s.Barn.Used != 0 || s.Barn.NextExpandPrice != 20000 {
 		t.Fatalf("chuồng mới: %+v", s.Barn)
 	}
 	_, err = e.f.BuyBuilding(ctx, e.uid, placeBarn)
@@ -215,7 +216,7 @@ func TestBarnUnitsAndExpand(t *testing.T) {
 		prices = append(prices, s.Barn.NextExpandPrice)
 		s = e.ok(e.f.ExpandBuilding(ctx, e.uid, placeBarn))
 	}
-	if len(prices) != 5 || prices[0] != 2000 || prices[4] != 10000 || s.Barn.NextExpandPrice != 0 {
+	if len(prices) != 5 || prices[0] != 20000 || prices[4] != 100000 || s.Barn.NextExpandPrice != 0 {
 		t.Fatalf("giá mở rộng: %v, giá tiếp %d", prices, s.Barn.NextExpandPrice)
 	}
 	_, err = e.f.ExpandBuilding(ctx, e.uid, placeBarn)
@@ -239,6 +240,7 @@ func TestSellAnimalAndLevel(t *testing.T) {
 	_, _, err = e.f.SellStock(ctx, e.uid, placeBarn, 99999)
 	wantStatus(t, err, http.StatusNotFound)
 
+	e.wellFed()
 	e.clock = e.clock.Add(time.Hour)
 	before := e.user()
 	s, g, err := e.f.SellStock(ctx, e.uid, placeBarn, id)
@@ -260,7 +262,7 @@ func TestPond(t *testing.T) {
 	_, err := e.f.BuyStock(ctx, e.uid, placePond, "tilapia")
 	wantStatus(t, err, http.StatusConflict) // chưa có ao
 	s := e.ok(e.f.BuyBuilding(ctx, e.uid, placePond))
-	if s.Pond.Capacity != 5 || s.Pond.NextExpandPrice != 1500 || s.Pond.Fish == nil {
+	if s.Pond.Capacity != 5 || s.Pond.NextExpandPrice != 15000 || s.Pond.Fish == nil {
 		t.Fatalf("ao mới: %+v", s.Pond)
 	}
 	e.ok(e.f.BuyStock(ctx, e.uid, placePond, "koi"))
@@ -271,9 +273,10 @@ func TestPond(t *testing.T) {
 	_, err = e.f.BuyStock(ctx, e.uid, placePond, "tilapia")
 	wantStatus(t, err, http.StatusConflict)
 	s = e.ok(e.f.ExpandBuilding(ctx, e.uid, placePond))
-	if s.Pond.Capacity != 10 || s.Pond.NextExpandPrice != 3000 {
+	if s.Pond.Capacity != 10 || s.Pond.NextExpandPrice != 30000 {
 		t.Fatalf("ao sau mở rộng: %+v", s.Pond)
 	}
+	e.wellFed()
 	e.clock = e.clock.Add(4 * time.Hour)
 	_, g, err := e.f.SellStock(ctx, e.uid, placePond, s.Pond.Fish[0].ID)
 	if err != nil || g.Coins != 4800 || g.XP != 50 {
@@ -288,10 +291,10 @@ func TestPond(t *testing.T) {
 func TestSeedStore(t *testing.T) {
 	e := newEnv(t, 10_000, 0)
 	s := e.ok(e.f.State(ctx, e.uid))
-	if sd := s.Storage.Seeds; sd.Capacity != 50 || sd.Used != 0 || sd.MaxCapacity != 300 || sd.NextExpandPrice != 1000 || sd.Items == nil {
+	if sd := s.Storage.Seeds; sd.Capacity != 50 || sd.Used != 0 || sd.MaxCapacity != 300 || sd.NextExpandPrice != 10000 || sd.Items == nil {
 		t.Fatalf("kho giống mới: %+v", sd)
 	}
-	if p := s.Storage.Products; p.Capacity != 50 || p.MaxCapacity != 500 || p.NextExpandPrice != 1500 || p.Items == nil {
+	if p := s.Storage.Products; p.Capacity != 50 || p.MaxCapacity != 500 || p.NextExpandPrice != 15000 || p.Items == nil {
 		t.Fatalf("kho sản phẩm mới: %+v", p)
 	}
 	s = e.ok(e.f.BuySeeds(ctx, e.uid, "carrot", 5))
@@ -436,6 +439,7 @@ func TestCollectStock(t *testing.T) {
 	_, _, err = e.f.CollectStock(ctx, e.uid, placePond, id)
 	wantStatus(t, err, http.StatusConflict) // chưa có ao
 
+	e.wellFed()
 	e.clock = e.clock.Add(time.Hour)
 	before := e.user()
 	s, g, err := e.f.CollectStock(ctx, e.uid, placeBarn, id)
@@ -454,12 +458,12 @@ func TestCollectStock(t *testing.T) {
 }
 
 func TestExpandStores(t *testing.T) {
-	e := newEnv(t, 10_000_000, 0)
+	e := newEnv(t, 100_000_000, 0)
 	for _, c := range []struct {
 		store      string
 		max, steps int
 		base       int64
-	}{{storeSeeds, 300, 10, 1000}, {storeProducts, 500, 18, 1500}} {
+	}{{storeSeeds, 300, 10, 10000}, {storeProducts, 500, 18, 15000}} {
 		s := e.ok(e.f.State(ctx, e.uid))
 		spent, steps := int64(0), 0
 		for st := storeOf(s, c.store); st.Capacity < c.max; st = storeOf(s, c.store) {
@@ -489,23 +493,24 @@ func TestExpandStores(t *testing.T) {
 func TestFeedStock(t *testing.T) {
 	e := newEnv(t, 100_000, levelXP(2))
 	e.ok(e.f.BuyBuilding(ctx, e.uid, placeBarn))
-	s := e.ok(e.f.BuyStock(ctx, e.uid, placeBarn, "pig")) // heo: 600 xu, lớn sau 3600 s
+	s := e.ok(e.f.BuyStock(ctx, e.uid, placeBarn, "pig")) // heo: lớn sau 3600 s, no 1800 s mỗi lần ăn
 	a := s.Barn.Animals[0]
-	if a.Hungry || a.FedAt != 0 {
-		t.Fatalf("heo mới mua chưa đói: %+v", a)
+	now := e.clock.Unix()
+	if a.Hungry || a.FedUntil != now+1800 || a.FullFor != 1800 || a.Progress != 0 || a.Grown || !a.Paused || a.ReadyAt != 0 {
+		t.Fatalf("heo mới mua no sẵn 30 phút, chưa đủ để lớn: %+v", a)
 	}
 	_, _, err := e.f.FeedStock(ctx, e.uid, placeBarn, a.ID)
-	wantStatus(t, err, http.StatusConflict) // chưa đói
-	if !strings.Contains(err.Error(), "Heo chưa đói") || !strings.Contains(err.Error(), "10 phút") {
-		t.Fatalf("thông báo: %v", err)
+	if wantStatus(t, err, http.StatusConflict); !strings.Contains(err.Error(), "Heo còn no, cho ăn lại sau 22 phút 30 giây") {
+		t.Fatalf("còn no: %v", err)
 	}
 	_, _, err = e.f.FeedStock(ctx, e.uid, placeBarn, 99999)
 	wantStatus(t, err, http.StatusNotFound)
 
-	e.clock = e.clock.Add(FeedCooldown * time.Second)
-	s = e.ok(e.f.State(ctx, e.uid))
-	if !s.Barn.Animals[0].Hungry {
-		t.Fatalf("sau %d s heo phải đói: %+v", FeedCooldown, s.Barn.Animals[0])
+	// No 30 phút thì lớn được nửa, sau đó đói: tua thêm 2 giờ cũng không lớn thêm.
+	e.clock = e.clock.Add(3 * time.Hour)
+	a = e.animal(a.ID)
+	if !a.Hungry || a.Grown || a.Progress != 0.5 || !a.Paused || a.ReadyAt != 0 {
+		t.Fatalf("đói thì dừng lớn: %+v", a)
 	}
 	_, _, err = e.f.FeedStock(ctx, e.uid, placeBarn, a.ID)
 	if wantStatus(t, err, http.StatusConflict); !strings.Contains(err.Error(), "Hết Cám gia súc, mua thêm ở cửa hàng") {
@@ -520,33 +525,35 @@ func TestFeedStock(t *testing.T) {
 		t.Fatalf("sổ cái: %+v", h[0])
 	}
 	before := e.user()
-	now := e.clock.Unix()
+	now = e.clock.Unix()
 	s, g, err := e.f.FeedStock(ctx, e.uid, placeBarn, a.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	after := e.user()
 	fed := s.Barn.Animals[0]
-	wantReady := a.ReadyAt - (a.ReadyAt-now)/4 // còn 3000 s → bớt 750 s
+	// Còn 1800 s phải lớn, vừa đủ với 1800 s no → dự kiến lớn lúc now + 1800.
 	if g.XP != 1 || g.Used["feed_livestock"] != 1 || after.Balance != before.Balance || after.XP != before.XP+1 ||
-		fed.ReadyAt != wantReady || fed.ReadyAt != a.ReadyAt-750 || fed.FedAt != now || fed.Hungry ||
+		fed.FedAt != now || fed.FedUntil != now+1800 || fed.Hungry || fed.Paused || fed.ReadyAt != now+1800 ||
 		s.Storage.Seeds.Items["feed_livestock"] != 2 {
 		t.Fatalf("cho heo ăn: %+v, con %+v, số dư %d→%d", g, fed, before.Balance, after.Balance)
 	}
-	e.clock = e.clock.Add(4 * time.Minute)
-	_, _, err = e.f.FeedStock(ctx, e.uid, placeBarn, a.ID)
-	if wantStatus(t, err, http.StatusConflict); !strings.Contains(err.Error(), "6 phút") {
-		t.Fatalf("chưa đói lại: %v", err)
+	e.clock = e.clock.Add(1799 * time.Second)
+	if a = e.animal(a.ID); a.Grown {
+		t.Fatalf("chưa đủ giờ: %+v", a)
 	}
-
-	// Đã lớn thì không cho ăn nữa.
-	e.clock = e.clock.Add(time.Hour)
+	// Còn no < 1/4 (450 s) thì cho ăn thêm được: no tiếp FullFor kể từ bây giờ.
+	if _, _, err := e.f.FeedStock(ctx, e.uid, placeBarn, a.ID); err != nil {
+		t.Fatalf("cho ăn sớm khi sắp đói: %v", err)
+	}
+	e.clock = e.clock.Add(time.Second)
+	if a = e.animal(a.ID); !a.Grown || a.ReadyAt != e.clock.Unix() || a.Progress != 1 {
+		t.Fatalf("lớn đúng lúc: %+v", a)
+	}
+	// Heo đã lớn (không có sản phẩm) thì không cho ăn nữa.
 	_, _, err = e.f.FeedStock(ctx, e.uid, placeBarn, a.ID)
 	if wantStatus(t, err, http.StatusConflict); !strings.Contains(err.Error(), "đã lớn") {
 		t.Fatalf("con đã lớn: %v", err)
-	}
-	if s = e.ok(e.f.State(ctx, e.uid)); s.Barn.Animals[0].Hungry {
-		t.Fatal("con đã lớn không còn đói")
 	}
 }
 
@@ -563,7 +570,8 @@ func TestFeedPortionsAndStore(t *testing.T) {
 	e.ok(e.f.BuyStock(ctx, e.uid, placePond, "catfish")) // rô phi lớn sau 600 s nên dùng cá trê
 	s := e.ok(e.f.BuyStock(ctx, e.uid, placeYard, "duck"))
 	cow, koi, tilapia, duck := s.Barn.Animals[0].ID, s.Pond.Fish[0].ID, s.Pond.Fish[1].ID, s.Yard.Animals[0].ID
-	e.clock = e.clock.Add(FeedCooldown * time.Second)
+	e.clock = e.clock.Add(1200 * time.Second) // cá, vịt vừa hết no; cho bò đói luôn
+	e.exec(`UPDATE farm_stock SET fed_until = ? WHERE id = ?`, e.clock.Unix(), cow)
 
 	e.ok(e.f.BuyFeeds(ctx, e.uid, "feed_livestock", 1))
 	_, _, err = e.f.FeedStock(ctx, e.uid, placeBarn, cow)
@@ -615,19 +623,16 @@ func TestFeedPortionsAndStore(t *testing.T) {
 
 func TestCatalogFeed(t *testing.T) {
 	c := Catalog()
-	if c["feedCooldown"] != FeedCooldown {
-		t.Fatalf("feedCooldown: %v", c["feedCooldown"])
-	}
 	b, _ := json.Marshal(c["animals"])
-	if !strings.Contains(string(b), `"id":"cow","name":"Bò","level":4,"units":2,"price":1500,"growSeconds":10800,"sellPrice":3400,"xp":35,"feed":"feed_livestock","portions":2,"feedPrice":100`) ||
-		!strings.Contains(string(b), `"feed":"feed_livestock","portions":1,"feedPrice":50`) ||
+	if !strings.Contains(string(b), `"id":"cow","name":"Bò","level":4,"units":2,"price":1500,"growSeconds":10800,"sellPrice":3400,"xp":35,"feed":"feed_livestock","portions":2,"feedPrice":100,"fullFor":2400`) ||
+		!strings.Contains(string(b), `"feed":"feed_livestock","portions":1,"feedPrice":50,"fullFor":1800`) ||
 		strings.Contains(string(b), `"chicken"`) ||
 		!strings.Contains(string(b), `"product":null,"meat":{"id":"meat_pig","name":"Thịt heo","sellPrice":1300,"xp":12}`) ||
 		!strings.Contains(string(b), `"product":{"id":"milk","name":"Sữa bò","every":1200,"sellPrice":300,"xp":5}`) {
 		t.Fatalf("catalog vật nuôi: %s", b)
 	}
 	b, _ = json.Marshal(c["poultry"])
-	if !strings.Contains(string(b), `{"id":"duck","name":"Vịt","level":1,"units":1,"price":250,"growSeconds":1200,"sellPrice":520,"xp":6,"feed":"feed_poultry","portions":1,"feedPrice":15,`+
+	if !strings.Contains(string(b), `{"id":"duck","name":"Vịt","level":1,"units":1,"price":250,"growSeconds":1200,"sellPrice":520,"xp":6,"feed":"feed_poultry","portions":1,"feedPrice":15,"fullFor":1200,`+
 		`"product":{"id":"duck_egg","name":"Trứng vịt","every":900,"sellPrice":80,"xp":2},"meat":{"id":"meat_duck","name":"Thịt vịt","sellPrice":520,"xp":6}}`) ||
 		!strings.Contains(string(b), `"id":"chicken"`) {
 		t.Fatalf("catalog gia cầm: %s", b)
@@ -639,8 +644,8 @@ func TestCatalogFeed(t *testing.T) {
 	if strings.Contains(string(b), `"meat"`) || strings.Contains(string(b), `"product"`) {
 		t.Fatalf("cá không có sản phẩm / thịt: %s", b)
 	}
-	if !strings.Contains(string(b), `"feed":"feed_fish","portions":1,"feedPrice":10`) ||
-		!strings.Contains(string(b), `"id":"koi","name":"Cá Koi","level":5,"units":3,"price":2000,"growSeconds":14400,"sellPrice":4800,"xp":50,"feed":"feed_fish","portions":2,"feedPrice":20`) {
+	if !strings.Contains(string(b), `"feed":"feed_fish","portions":1,"feedPrice":10,"fullFor":1200`) ||
+		!strings.Contains(string(b), `"id":"koi","name":"Cá Koi","level":5,"units":3,"price":2000,"growSeconds":14400,"sellPrice":4800,"xp":50,"feed":"feed_fish","portions":2,"feedPrice":20,"fullFor":1200`) {
 		t.Fatalf("catalog cá: %s", b)
 	}
 	b, _ = json.Marshal(c["feeds"])
@@ -650,7 +655,7 @@ func TestCatalogFeed(t *testing.T) {
 	}
 }
 
-// Database từ bản cũ: farm_stock chưa có cột fed_at / produced_at → New thêm cột, giữ dữ liệu cũ.
+// Database từ bản cũ: farm_stock chưa có các cột cho ăn / tiến độ → New thêm cột, giữ dữ liệu cũ và tính lại tiến độ.
 func TestMigrateFedAt(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "old.db")
 	w, err := wallet.Open(path)
@@ -669,18 +674,22 @@ func TestMigrateFedAt(t *testing.T) {
 	if err := w.ExecSchema(ctx, old); err != nil {
 		t.Fatal(err)
 	}
+	now := time.Now().Unix()
 	tx, err := w.Begin(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	tx.ExecContext(ctx, `INSERT INTO farm_buildings (user_id, place, capacity) VALUES (?, 'barn', 5)`, u.ID)
-	tx.ExecContext(ctx, `INSERT INTO farm_stock (user_id, place, kind, bought_at, ready_at) VALUES (?, 'barn', 'pig', 100, 9999999999)`, u.ID)
+	tx.ExecContext(ctx, `INSERT INTO farm_buildings (user_id, place, capacity) VALUES (?, 'barn', 30)`, u.ID)
+	// Heo mua 1000 s trước (chưa lớn theo luật cũ), bò đã lớn từ 500 s trước, cừu nuôi rất lâu nhưng ready_at chưa tới.
+	tx.ExecContext(ctx, `INSERT INTO farm_stock (user_id, place, kind, bought_at, ready_at) VALUES (?, 'barn', 'pig', ?, ?)`, u.ID, now-1000, now+2600)
+	tx.ExecContext(ctx, `INSERT INTO farm_stock (user_id, place, kind, bought_at, ready_at) VALUES (?, 'barn', 'cow', ?, ?)`, u.ID, now-20000, now-500)
+	tx.ExecContext(ctx, `INSERT INTO farm_stock (user_id, place, kind, bought_at, ready_at) VALUES (?, 'barn', 'sheep', ?, ?)`, u.ID, now-99999, now+10)
 	if err := tx.Commit(); err != nil {
 		t.Fatal(err)
 	}
 	w.Close()
 
-	for range 2 { // chạy hai lần: lần sau không thêm cột trùng
+	for i := range 2 { // chạy hai lần: lần sau không thêm cột trùng, không tính lại tiến độ
 		w, err = wallet.Open(path)
 		if err != nil {
 			t.Fatal(err)
@@ -689,21 +698,34 @@ func TestMigrateFedAt(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		f.now = func() time.Time { return time.Unix(now, 0) }
 		s, err := f.State(ctx, u.ID)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if a := s.Barn.Animals; len(a) != 1 || a[0].Kind != "pig" || a[0].FedAt != 0 || !a[0].Hungry || a[0].ProductReadyAt != 0 {
-			t.Fatalf("heo cũ sau nâng cấp: %+v", a)
+		a := s.Barn.Animals
+		if len(a) != 3 {
+			t.Fatalf("lần %d: %+v", i, a)
+		}
+		pig, cow, sheep := a[0], a[1], a[2]
+		// Ân hạn: no thêm FullFor kể từ lúc nâng cấp (đồng hồ thật, lệch vài giây).
+		if pig.Grown || pig.growSec < 1000 || pig.growSec > 1010 || pig.FedUntil < now+1800 || pig.FedUntil > now+1810 || pig.Hungry {
+			t.Fatalf("heo cũ sau nâng cấp: %+v", pig)
+		}
+		if !cow.Grown || cow.ReadyAt != now-500 || cow.ProductProgress != 0 || cow.ProductReady {
+			t.Fatalf("bò cũ đã lớn: %+v", cow)
+		}
+		if !sheep.Grown || sheep.Progress != 1 {
+			t.Fatalf("cừu nuôi đủ lâu thì đã lớn: %+v", sheep)
 		}
 		w.Close()
 	}
 }
 
 func TestPoultryInYard(t *testing.T) {
-	e := newEnv(t, 100_000, 0)
+	e := newEnv(t, 1_000_000, 0)
 	s := e.ok(e.f.State(ctx, e.uid))
-	if y := s.Yard; y == nil || y.Capacity != 10 || y.MaxCapacity != 40 || y.NextExpandPrice != 1000 || y.Animals == nil || s.Barn != nil {
+	if y := s.Yard; y == nil || y.Capacity != 10 || y.MaxCapacity != 40 || y.NextExpandPrice != 10000 || y.Animals == nil || s.Barn != nil {
 		t.Fatalf("sân gia cầm có sẵn: %+v, chuồng %+v", s.Yard, s.Barn)
 	}
 	_, err := e.f.BuyBuilding(ctx, e.uid, placeYard)
@@ -728,7 +750,7 @@ func TestPoultryInYard(t *testing.T) {
 	for s = e.ok(e.f.State(ctx, e.uid)); s.Yard.Capacity < 40; s = e.ok(e.f.ExpandBuilding(ctx, e.uid, placeYard)) {
 		prices = append(prices, s.Yard.NextExpandPrice)
 	}
-	if len(prices) != 6 || prices[0] != 1000 || prices[5] != 6000 || s.Yard.NextExpandPrice != 0 {
+	if len(prices) != 6 || prices[0] != 10000 || prices[5] != 60000 || s.Yard.NextExpandPrice != 0 {
 		t.Fatalf("giá mở rộng sân: %v", prices)
 	}
 
@@ -761,43 +783,64 @@ func (e *env) exec(query string, args ...any) {
 
 func TestProduceCycle(t *testing.T) {
 	e := newEnv(t, 100_000, 0)
-	s := e.ok(e.f.BuyStock(ctx, e.uid, placeYard, "chicken")) // gà thả sân (không cần chuồng), lớn sau 900 s, trứng mỗi 600 s
+	s := e.ok(e.f.BuyStock(ctx, e.uid, placeYard, "chicken")) // gà thả sân, lớn sau 900 s no, trứng mỗi 600 s no; no 1200 s
 	a := s.Yard.Animals[0]
-	if a.ProductReadyAt != a.ReadyAt+600 || a.ProductReady {
-		t.Fatalf("gà mới: %+v", a)
+	t0 := e.clock.Unix()
+	if a.ReadyAt != t0+900 || a.ProductReadyAt != 0 || a.Paused || a.ProductProgress != 0 {
+		t.Fatalf("gà mới: lớn kịp trong lúc no, trứng thì không: %+v", a)
 	}
 	_, _, err := e.f.ProduceStock(ctx, e.uid, placeYard, a.ID)
 	if wantStatus(t, err, http.StatusConflict); !strings.Contains(err.Error(), "chưa lớn") {
 		t.Fatalf("gà chưa lớn: %v", err)
 	}
-	e.clock = e.clock.Add(900 * time.Second) // vừa lớn, trứng chưa có
+	e.clock = e.clock.Add(900 * time.Second) // vừa lớn, no còn 300 s: không kịp đẻ trứng
+	if a = e.animal(a.ID); !a.Grown || a.ReadyAt != t0+900 || !a.Paused || a.ProductReadyAt != 0 {
+		t.Fatalf("gà vừa lớn: %+v", a)
+	}
 	_, _, err = e.f.ProduceStock(ctx, e.uid, placeYard, a.ID)
-	if wantStatus(t, err, http.StatusConflict); !strings.Contains(err.Error(), "Trứng gà chưa có, chờ thêm 10 phút") {
+	if wantStatus(t, err, http.StatusConflict); !strings.Contains(err.Error(), "Trứng gà chưa có") {
 		t.Fatalf("trứng chưa có: %v", err)
 	}
-	e.clock = e.clock.Add(3 * 600 * time.Second) // để lâu vẫn chỉ 1 trứng
-	s = e.ok(e.f.State(ctx, e.uid))
-	if !s.Yard.Animals[0].ProductReady {
-		t.Fatalf("trứng phải sẵn sàng: %+v", s.Yard.Animals[0])
+	// Hết no lúc 1200 s: trứng dừng ở nửa chừng dù để lâu.
+	e.clock = e.clock.Add(3 * time.Hour)
+	if a = e.animal(a.ID); !a.Hungry || a.ProductProgress != 0.5 || a.ProductReady {
+		t.Fatalf("đói thì không đẻ: %+v", a)
+	}
+	_, _, err = e.f.ProduceStock(ctx, e.uid, placeYard, a.ID)
+	if wantStatus(t, err, http.StatusConflict); !strings.Contains(err.Error(), "đang đói — cho ăn để đẻ trứng tiếp") {
+		t.Fatalf("đói: %v", err)
+	}
+	e.ok(e.f.BuyFeeds(ctx, e.uid, "feed_poultry", 5))
+	s, _, err = e.f.FeedStock(ctx, e.uid, placeYard, a.ID)
+	if err != nil || s.Yard.Animals[0].ProductReadyAt != e.clock.Unix()+300 || s.Yard.Animals[0].Paused {
+		t.Fatalf("cho ăn rồi đẻ tiếp phần còn lại: %v %+v", err, s.Yard.Animals[0])
+	}
+	e.clock = e.clock.Add(900 * time.Second) // trứng có sau 300 s, để thêm 600 s vẫn chỉ 1 trứng
+	if a = e.animal(a.ID); !a.ProductReady || a.ProductProgress != 1 {
+		t.Fatalf("trứng phải sẵn sàng: %+v", a)
 	}
 	xp := e.user().XP
 	s, g, err := e.f.ProduceStock(ctx, e.uid, placeYard, a.ID)
 	if err != nil || g.XP != 2 || g.Items["egg"] != 1 || e.user().XP != xp+2 || s.Storage.Products.Items["egg"] != 1 {
 		t.Fatalf("lấy trứng: %+v %v", g, err)
 	}
-	now := e.clock.Unix()
-	if b := s.Yard.Animals[0]; b.ProductReady || b.ProductReadyAt != now+600 {
-		t.Fatalf("sau khi lấy chờ lại 600 s: %+v", b)
+	if b := s.Yard.Animals[0]; b.ProductReady || b.ProductProgress != 0 || !b.Paused {
+		t.Fatalf("sau khi lấy: không cộng dồn, no còn 300 s < 600 s: %+v", b)
 	}
 	_, _, err = e.f.ProduceStock(ctx, e.uid, placeYard, a.ID)
 	wantStatus(t, err, http.StatusConflict) // không cộng dồn
-	e.clock = e.clock.Add(600 * time.Second)
+	e.clock = e.clock.Add(100 * time.Second)
+	if _, _, err = e.f.FeedStock(ctx, e.uid, placeYard, a.ID); err != nil { // còn no 200 s < 300 s (1/4) nên cho ăn được
+		t.Fatal(err)
+	}
+	e.clock = e.clock.Add(500 * time.Second) // 100 + 500 = 600 s no
 	s, _, err = e.f.ProduceStock(ctx, e.uid, placeYard, a.ID)
 	if err != nil || s.Storage.Products.Items["egg"] != 2 {
 		t.Fatalf("trứng thứ hai: %v %+v", err, s.Storage.Products)
 	}
 
 	// Kho đầy thì không lấy được.
+	e.wellFed()
 	e.clock = e.clock.Add(600 * time.Second)
 	e.exec(`UPDATE farm_storage SET capacity = 2 WHERE user_id = ? AND store = 'products'`, e.uid)
 	_, _, err = e.f.ProduceStock(ctx, e.uid, placeYard, a.ID)
@@ -938,8 +981,8 @@ func TestFeedAll(t *testing.T) {
 	e.ok(e.f.BuyStock(ctx, e.uid, placeYard, "duck"))    // 1 phần thóc
 	e.ok(e.f.BuyStock(ctx, e.uid, placePond, "catfish")) // 1 phần thức ăn cá
 	_, _, err = e.f.FeedAll(ctx, e.uid)
-	wantStatus(t, err, http.StatusConflict) // chưa con nào đói
-	e.clock = e.clock.Add(FeedCooldown * time.Second)
+	wantStatus(t, err, http.StatusConflict)   // chưa con nào đói
+	e.clock = e.clock.Add(2400 * time.Second) // tất cả đều đã hết no
 	_, _, err = e.f.FeedAll(ctx, e.uid)
 	if wantStatus(t, err, http.StatusConflict); !strings.Contains(err.Error(), "Hết thức ăn") {
 		t.Fatalf("chưa có thức ăn: %v", err)
@@ -984,6 +1027,7 @@ func TestProduceAllAndCollectAllFish(t *testing.T) {
 	e.ok(e.f.BuyStock(ctx, e.uid, placePond, "tilapia"))
 	e.ok(e.f.BuyStock(ctx, e.uid, placePond, "tilapia"))
 	e.ok(e.f.BuyStock(ctx, e.uid, placePond, "carp"))
+	e.wellFed()
 	e.clock = e.clock.Add(4 * time.Hour) // bò lớn sau 3 giờ + sữa 20 phút; gà có trứng; cá đều đã lớn
 	s, g, err := e.f.ProduceAll(ctx, e.uid)
 	if err != nil {
@@ -1005,9 +1049,101 @@ func TestProduceAllAndCollectAllFish(t *testing.T) {
 	if wantStatus(t, err, http.StatusConflict); !strings.Contains(err.Error(), "kho sản phẩm đầy") {
 		t.Fatalf("kho đầy: %v", err)
 	}
+	e.wellFed()
 	e.clock = e.clock.Add(time.Hour)
 	_, _, err = e.f.ProduceAll(ctx, e.uid)
 	if wantStatus(t, err, http.StatusConflict); !strings.Contains(err.Error(), "kho sản phẩm đầy") {
 		t.Fatalf("kho đầy: %v", err)
+	}
+}
+
+// wellFed cho mọi con của người chơi no rất lâu (để test luật cũ chỉ cần tua thời gian).
+func (e *env) wellFed() {
+	e.t.Helper()
+	e.ok(e.f.State(ctx, e.uid)) // cộng tiến độ tới bây giờ trước khi đổi fed_until
+	e.exec(`UPDATE farm_stock SET fed_until = ? WHERE user_id = ?`, int64(4_000_000_000), e.uid)
+}
+
+// animal đọc lại một con theo id ở chuồng / sân / ao.
+func (e *env) animal(id int64) Animal {
+	e.t.Helper()
+	s := e.ok(e.f.State(ctx, e.uid))
+	for _, pen := range []*Pen{s.Barn, s.Yard, s.Pond} {
+		if pen == nil {
+			continue
+		}
+		for _, a := range append(pen.Animals, pen.Fish...) {
+			if a.ID == id {
+				return a
+			}
+		}
+	}
+	e.t.Fatalf("không thấy con %d", id)
+	return Animal{}
+}
+
+// Cá cũng chỉ lớn khi no; feed-all bỏ qua con đã lớn không còn cần ăn (heo).
+func TestFishPauseAndFeedAllSkipsGrown(t *testing.T) {
+	e := newEnv(t, 100_000, levelXP(2))
+	e.ok(e.f.BuyBuilding(ctx, e.uid, placePond))
+	e.ok(e.f.BuyBuilding(ctx, e.uid, placeBarn))
+	s := e.ok(e.f.BuyStock(ctx, e.uid, placePond, "catfish")) // lớn sau 1800 s, no 1200 s
+	fish := s.Pond.Fish[0].ID
+	if a := s.Pond.Fish[0]; !a.Paused || a.ReadyAt != 0 {
+		t.Fatalf("cá trê không kịp lớn với 1200 s no: %+v", a)
+	}
+	s = e.ok(e.f.BuyStock(ctx, e.uid, placeBarn, "pig"))
+	pig := s.Barn.Animals[0].ID
+	e.exec(`UPDATE farm_stock SET grow_progress = 3600, ready_at = ? WHERE id = ?`, e.clock.Unix(), pig) // heo đã lớn
+	e.clock = e.clock.Add(5 * time.Hour)
+	if a := e.animal(fish); a.Grown || a.Progress != float64(1200)/1800 || !a.Hungry {
+		t.Fatalf("cá đói dừng lớn: %+v", a)
+	}
+	_, _, err := e.f.CollectAllFish(ctx, e.uid)
+	wantStatus(t, err, http.StatusConflict) // chưa con nào lớn
+	e.ok(e.f.BuyFeeds(ctx, e.uid, "feed_fish", 2))
+	e.ok(e.f.BuyFeeds(ctx, e.uid, "feed_livestock", 2))
+	s, g, err := e.f.FeedAll(ctx, e.uid)
+	if err != nil || g.Count != 1 || g.Used["feed_fish"] != 1 || g.Used["feed_livestock"] != 0 || s.Pond.Fish[0].ReadyAt != e.clock.Unix()+600 {
+		t.Fatalf("feed-all chỉ cho cá: %+v %v, cá %+v", g, err, s.Pond.Fish[0])
+	}
+	e.clock = e.clock.Add(600 * time.Second)
+	if s, g, err = e.f.CollectAllFish(ctx, e.uid); err != nil || g.Count != 1 || g.Items["catfish"] != 1 {
+		t.Fatalf("thu cá: %+v %v", g, err)
+	}
+}
+
+// Nhiều yêu cầu cùng lúc trên một người chơi: tiến độ không bị cộng hai lần, không lỗi máy chủ.
+func TestConcurrentSettle(t *testing.T) {
+	e := newEnv(t, 100_000, 0)
+	s := e.ok(e.f.BuyStock(ctx, e.uid, placeYard, "chicken"))
+	id := s.Yard.Animals[0].ID
+	e.ok(e.f.BuyFeeds(ctx, e.uid, "feed_poultry", 50))
+	var mu sync.Mutex
+	clock := e.clock
+	e.f.now = func() time.Time { mu.Lock(); defer mu.Unlock(); return clock }
+	var wg sync.WaitGroup
+	for i := range 16 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			mu.Lock()
+			clock = clock.Add(30 * time.Second)
+			mu.Unlock()
+			var err error
+			if i%2 == 0 {
+				_, err = e.f.State(ctx, e.uid)
+			} else {
+				_, _, err = e.f.FeedStock(ctx, e.uid, placeYard, id)
+			}
+			if err != nil && errStatus(err) == http.StatusInternalServerError {
+				t.Errorf("lỗi máy chủ: %v", err)
+			}
+		}()
+	}
+	wg.Wait()
+	// Tổng thời gian trôi 480 s, gà luôn no (cho ăn liên tục) → tiến độ đúng 480 s, không hơn.
+	if a := e.animal(id); a.growSec != 480 || a.Grown {
+		t.Fatalf("tiến độ sau khi chạy song song: %+v", a)
 	}
 }

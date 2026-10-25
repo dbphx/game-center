@@ -83,9 +83,9 @@ const (
 )
 
 var Buildings = map[string]Building{
-	placeBarn: {Name: "chuồng", Price: 3000, Level: 1, Capacity: 5, ExpandUnits: 5, MaxCapacity: 30, expandBase: 2000},
-	placeYard: {Name: "sân gia cầm", Price: 0, Level: 1, Capacity: 10, ExpandUnits: 5, MaxCapacity: 40, expandBase: 1000},
-	placePond: {Name: "ao cá", Price: 2500, Level: 1, Capacity: 5, ExpandUnits: 5, MaxCapacity: 30, expandBase: 1500},
+	placeBarn: {Name: "chuồng", Price: 3000, Level: 1, Capacity: 5, ExpandUnits: 5, MaxCapacity: 30, expandBase: 20000},
+	placeYard: {Name: "sân gia cầm", Price: 0, Level: 1, Capacity: 10, ExpandUnits: 5, MaxCapacity: 40, expandBase: 10000},
+	placePond: {Name: "ao cá", Price: 2500, Level: 1, Capacity: 5, ExpandUnits: 5, MaxCapacity: 30, expandBase: 15000},
 }
 
 const (
@@ -106,8 +106,8 @@ type StoreSpec struct {
 func (s StoreSpec) expandPrice(expansions int) int64 { return s.ExpandBase * int64(expansions+1) }
 
 var Stores = map[string]StoreSpec{
-	storeSeeds:    {Name: "kho giống", Capacity: 50, ExpandUnits: 25, MaxCapacity: 300, ExpandBase: 1000},
-	storeProducts: {Name: "kho sản phẩm", Capacity: 50, ExpandUnits: 25, MaxCapacity: 500, ExpandBase: 1500},
+	storeSeeds:    {Name: "kho giống", Capacity: 50, ExpandUnits: 25, MaxCapacity: 300, ExpandBase: 10000},
+	storeProducts: {Name: "kho sản phẩm", Capacity: 50, ExpandUnits: 25, MaxCapacity: 500, ExpandBase: 15000},
 }
 
 // product trả tên và giá bán của một món trong kho sản phẩm: nông sản, trứng / sữa / lông, thịt,
@@ -164,16 +164,15 @@ func findStock(place, id string) (Stock, bool) {
 // Catalog là danh mục gửi cho giao diện (GET /api/farm/catalog).
 func Catalog() map[string]any {
 	return map[string]any{
-		"crops":        Crops,
-		"animals":      withYields(withFeed(Animals, placeBarn)),
-		"poultry":      withYields(withFeed(Poultry, placeYard)),
-		"feeds":        Feeds,
-		"yard":         Buildings[placeYard],
-		"fish":         withFeed(Fish, placePond),
-		"feedCooldown": FeedCooldown,
-		"plots":        map[string]int{"free": FreePlots, "max": MaxPlots, "basePrice": PlotBasePrice, "step": PlotStep},
-		"barn":         Buildings[placeBarn],
-		"pond":         Buildings[placePond],
-		"storage":      Stores,
+		"crops":   Crops,
+		"animals": withYields(withFeed(Animals, placeBarn)),
+		"poultry": withYields(withFeed(Poultry, placeYard)),
+		"feeds":   Feeds,
+		"yard":    Buildings[placeYard],
+		"fish":    withFeed(Fish, placePond),
+		"plots":   map[string]int{"free": FreePlots, "max": MaxPlots, "basePrice": PlotBasePrice, "step": PlotStep},
+		"barn":    Buildings[placeBarn],
+		"pond":    Buildings[placePond],
+		"storage": Stores,
 	}
 }

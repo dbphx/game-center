@@ -9,9 +9,6 @@ import (
 
 // ---------- Cho vật nuôi / cá ăn ----------
 
-// FeedCooldown là số giây sau lần ăn gần nhất (hoặc lúc mua) thì con vật đói lại.
-const FeedCooldown = 600
-
 // Feed là một loại thức ăn: mua trước, cất trong kho giống (mỗi phần chiếm 1 chỗ), cho ăn thì trừ phần.
 type Feed struct {
 	ID    string `json:"id"`
@@ -55,11 +52,6 @@ func portions(kind string) int {
 	return 1
 }
 
-// hungry: con chưa lớn và đã qua FeedCooldown kể từ lần ăn gần nhất (chưa ăn lần nào thì tính từ lúc mua).
-func (a Animal) hungry(now int64) bool {
-	return a.ReadyAt > now && now-max(a.FedAt, a.BoughtAt) >= FeedCooldown
-}
-
 // stockJSON là một loại vật nuôi / cá trong catalog, kèm thức ăn: loại, số phần mỗi lần
 // và feedPrice = giá quy đổi một lần ăn (số phần × giá thức ăn), chỉ để hiển thị — cho ăn trừ thức ăn trong kho, không trừ xu.
 type stockJSON struct {
@@ -67,6 +59,7 @@ type stockJSON struct {
 	Feed      string `json:"feed"`
 	Portions  int    `json:"portions"`
 	FeedPrice int64  `json:"feedPrice"`
+	FullFor   int64  `json:"fullFor"` // số giây no sau mỗi lần ăn
 }
 
 func withFeed(list []Stock, place string) []stockJSON {
@@ -74,7 +67,7 @@ func withFeed(list []Stock, place string) []stockJSON {
 	out := make([]stockJSON, len(list))
 	for i, s := range list {
 		n := portions(s.ID)
-		out[i] = stockJSON{s, fd.ID, n, int64(n) * fd.Price}
+		out[i] = stockJSON{s, fd.ID, n, int64(n) * fd.Price, fullFor(s.ID)}
 	}
 	return out
 }
@@ -107,10 +100,14 @@ func (f *Farm) BuyFeeds(ctx context.Context, uid int64, feedID string, qty int) 
 var columns = []struct{ name, def string }{
 	{"fed_at", "INTEGER NOT NULL DEFAULT 0"},
 	{"produced_at", "INTEGER NOT NULL DEFAULT 0"},
+	{"fed_until", "INTEGER NOT NULL DEFAULT 0"},
+	{"grow_progress", "INTEGER NOT NULL DEFAULT 0"},
+	{"progress_at", "INTEGER NOT NULL DEFAULT 0"},
+	{"product_progress", "INTEGER NOT NULL DEFAULT 0"},
 }
 
 // migrate nâng cấp bảng từ bản cũ: thêm cột mới (CREATE TABLE IF NOT EXISTS không thêm cột), chuyển gà vịt ra sân.
-func migrate(ctx context.Context, w *wallet.Wallet) error {
+func migrate(ctx context.Context, w *wallet.Wallet, now int64) error {
 	tx, err := w.Begin(ctx)
 	if err != nil {
 		return err
@@ -141,6 +138,11 @@ func migrate(ctx context.Context, w *wallet.Wallet) error {
 			return err
 		}
 	}
+	if !has["fed_until"] {
+		if err := backfillGrowth(ctx, tx, now); err != nil {
+			return err
+		}
+	}
 	// Gà vịt từ bản cũ nuôi trong chuồng → chuyển ra sân gia cầm; sân đủ chỗ cho cả đàn (tối đa MaxCapacity).
 	yard := Buildings[placeYard]
 	if _, err := tx.ExecContext(ctx, `UPDATE farm_stock SET place = ? WHERE place = ? AND kind IN ('chicken', 'duck')`,
@@ -155,7 +157,53 @@ func migrate(ctx context.Context, w *wallet.Wallet) error {
 	return tx.Commit()
 }
 
-// FeedStock cho một con đang đói ăn: trừ thức ăn trong kho giống, rút ngắn 25% thời gian còn lại tới lúc lớn, +1 XP.
+// backfillGrowth chuyển con vật từ bản cũ (lớn theo đồng hồ) sang luật "chỉ lớn khi no": tiến độ = thời gian đã nuôi
+// (con đã tới ready_at thì coi như đã lớn), cho no sẵn FullFor giây làm ân hạn, sản phẩm tính lại từ 0.
+func backfillGrowth(ctx context.Context, tx *wallet.Tx, now int64) error {
+	rows, err := tx.QueryContext(ctx, `SELECT id, kind, bought_at, ready_at FROM farm_stock`)
+	if err != nil {
+		return err
+	}
+	type row struct {
+		id, bought, ready int64
+		kind              string
+	}
+	var list []row
+	for rows.Next() {
+		var r row
+		if err := rows.Scan(&r.id, &r.kind, &r.bought, &r.ready); err != nil {
+			rows.Close()
+			return err
+		}
+		list = append(list, r)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for _, r := range list {
+		grow := int64(0)
+		for _, place := range []string{placeBarn, placeYard, placePond} {
+			if st, ok := findStock(place, r.kind); ok {
+				grow = st.GrowSeconds
+			}
+		}
+		progress, ready := min(grow, max(0, now-r.bought)), int64(0)
+		if r.ready <= now {
+			progress, ready = grow, r.ready
+		}
+		if progress >= grow && ready == 0 {
+			ready = now
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE farm_stock SET grow_progress = ?, progress_at = ?, fed_until = ?, product_progress = 0,
+			ready_at = ? WHERE id = ?`, progress, now, now+fullFor(r.kind), ready, r.id); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// FeedStock cho một con ăn (khi đói, hoặc phần no còn dưới 1/4): trừ thức ăn trong kho giống, no thêm FullFor giây, +1 XP.
 func (f *Farm) FeedStock(ctx context.Context, uid int64, place string, id int64) (State, Gained, error) {
 	var g Gained
 	s, err := f.do(ctx, uid, func(tx *wallet.Tx, s State) error {
@@ -164,12 +212,12 @@ func (f *Farm) FeedStock(ctx context.Context, uid int64, place string, id int64)
 			return err
 		}
 		now := f.now().Unix()
-		if a.ReadyAt <= now {
+		if a.Grown && yields[a.Kind].Product == nil {
 			return conflict(st.Name + " đã lớn, hãy thu hoạch")
 		}
-		if !a.hungry(now) {
-			left := max(a.FedAt, a.BoughtAt) + FeedCooldown - now
-			return conflict(fmt.Sprintf("%s chưa đói, cho ăn lại sau %s", st.Name, fmtWait(left)))
+		if !a.canFeed(now) {
+			left := a.FedUntil - a.FullFor/4 - now
+			return conflict(fmt.Sprintf("%s còn no, cho ăn lại sau %s", st.Name, fmtWait(left)))
 		}
 		fd, n := feedFor(pl), portions(a.Kind)
 		if s.Storage.Seeds.Items[fd.ID] < n {
@@ -184,13 +232,14 @@ func (f *Farm) FeedStock(ctx context.Context, uid int64, place string, id int64)
 	return s, g, err
 }
 
-// fed ghi lần cho ăn của một con (đã trả tiền): rút ngắn 25% thời gian còn lại, cộng xp.
+// fed ghi lần cho ăn của một con (đã trừ thức ăn): no tới now + FullFor, cộng xp.
+// Tiến độ đã được loadPen cộng tới now nên đổi fed_until không làm mất / thêm thời gian lớn.
 func fed(ctx context.Context, tx *wallet.Tx, uid int64, a Animal, now, xp int64) error {
 	if err := tx.AddXP(uid, xp); err != nil {
 		return err
 	}
-	ready := a.ReadyAt - (a.ReadyAt-now)/4
-	_, err := tx.ExecContext(ctx, `UPDATE farm_stock SET ready_at = ?, fed_at = ? WHERE id = ? AND user_id = ?`, ready, now, a.ID, uid)
+	_, err := tx.ExecContext(ctx, `UPDATE farm_stock SET fed_until = ?, fed_at = ? WHERE id = ? AND user_id = ?`,
+		now+fullFor(a.Kind), now, a.ID, uid)
 	return err
 }
 

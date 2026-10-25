@@ -133,7 +133,7 @@ func (f *Farm) CollectStock(ctx context.Context, uid int64, place string, id int
 		if err != nil {
 			return err
 		}
-		if a.ReadyAt > f.now().Unix() {
+		if !a.Grown {
 			return conflict(st.Name + " chưa lớn")
 		}
 		if s.Storage.Products.free() < 1 {

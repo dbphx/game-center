@@ -50,7 +50,10 @@
         </div>
       </div>
       <!-- Thanh công cụ kiểu game: chọn công cụ rồi bấm ô đất, nhân vật đi tới làm -->
-      <button id="btn-harvest-all" class="primary harvest-all hidden"><i data-icon="sprout"></i><span>Thu hoạch tất cả</span></button>
+      <div class="quick-float">
+        <button id="btn-feed-all" class="primary feed-all hidden" title="Cho ăn tất cả con đói (Shift+F)"><img src="/img/toon/farm/item_feed_poultry.png" alt="" width="20" height="20"><span>Cho ăn tất cả</span></button>
+        <button id="btn-harvest-all" class="primary harvest-all hidden" title="Thu hoạch tất cả ô chín (H)"><i data-icon="sprout"></i><span>Thu hoạch tất cả</span></button>
+      </div>
       <div class="tool-tip hidden" id="tool-tip"></div>
       <div class="seed-pick hidden" id="seed-pick"></div>
       <div class="seed-pick quick-menu hidden" id="quick-menu"></div>
@@ -63,8 +66,8 @@
           <dt>E · Space · Enter</dt><dd>Tương tác đối tượng gần (gieo / thu hoạch ô, mở kho, chuồng, ao, cổng, con vật)</dd>
           <dt>Tab · Q</dt><dd>Đổi mục tiêu khi đứng gần nhiều thứ</dd>
           <dt>1 – 7</dt><dd>Gieo hạt · Thu hoạch · Kho giống · Kho thóc · Cửa hàng · Về thành phố · Làm nhanh</dd>
-          <dt>H</dt><dd>Thu hoạch tất cả ô chín</dd>
-          <dt>Shift+1 · Shift+F · Shift+P</dt><dd>Gieo tất cả · Cho ăn tất cả · Lấy hết trứng / sữa / lông</dd>
+          <dt>H</dt><dd>Thu hoạch tất cả (ô chín + cá lớn)</dd>
+          <dt>Shift+1 · Shift+F · Shift+P · Shift+C</dt><dd>Gieo tất cả · Cho ăn tất cả · Lấy hết trứng / sữa / lông · Thu cá</dd>
           <dt>7 · G</dt><dd>Menu làm nhanh · Đàn gia cầm</dd>
           <dt>Shift + đi / kéo chuột</dt><dd>Đang cầm công cụ gieo / thu hoạch: làm liên tiếp từng ô đi qua</dd>
           <dt>[ ]</dt><dd>Đổi hạt khi đang cầm công cụ gieo</dd>
