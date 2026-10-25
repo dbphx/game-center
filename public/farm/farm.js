@@ -226,14 +226,14 @@
     BX[0] = 834 + OX;
     BX[1] = BX[0] + BLOCK_W + 48;
     POND_BOX.w = Math.round(260 + 310 * capK(pondCap));
-    POND_BOX.h = 200; // ao chỉ nới ngang về bên phải (cạnh trái cố định), không lấn xuống dưới
+    POND_BOX.h = 236; // cao cố định (+18%); ao chỉ nới ngang về bên phải (cạnh trái cố định)
     POND_BOX.x = BX[1] + BLOCK_W + 40;
     POND_BOX.y = 272;
     W = POND_BOX.x + POND_BOX.w + 40;
     CORE_W = 834 + 28 + 2 * BLOCK_W + 48 + 40 + 260 + 40;
     Object.assign(ROAM, { x1: PEN.x1 + 34, y1: 330, x2: PEN.x2 - 30, y2: PEN.y2 - 24 });
     const ww = POND_BOX.w - 30;
-    Object.assign(POND, { cx: POND_BOX.x + POND_BOX.w / 2, cy: POND_BOX.y + 18 + 58, rx: ww * 0.34, ry: 28 });
+    Object.assign(POND, { cx: POND_BOX.x + POND_BOX.w / 2, cy: POND_BOX.y + 18 + 76, rx: ww * 0.34, ry: 36 });
     NESTS.splice(0, NESTS.length, [584 + OX, 446]); // một ổ rơm chung giữa lô cỏ
   }
   let OY = 0; // khoảng trời thêm phía trên khi khung nhìn cao hơn cảnh
@@ -256,11 +256,11 @@
       [X(644), W, FRONT_Y],
       [b.x + 6, b.x + b.w - 6, b.y + b.h + 8], // viền dưới ao
       // Quanh cụm hai nhà kho + đống rơm: mặt trước, chừa lối vào trước cửa mỗi kho.
-      // Rào tre hoa quanh cụm kho (sân trước cửa kho rộng, bao cả đống rơm), lối vào rộng trước mỗi cửa.
-      [X(400), X(444), 388],
-      [X(566), X(644), 388],
-      [X(768), X(806), 388],
-      [X(400), X(806), 214], // mặt sau cụm kho (sau hai mái, trước luỹ tre)
+      // Rào gỗ sơn kem kiểu vườn quanh cụm kho (khác rào tre hoa ranh giới), sân trước cửa kho rộng, bao cả đống rơm.
+      [X(400), X(444), 388, 'picket'],
+      [X(566), X(644), 388, 'picket'],
+      [X(768), X(806), 388, 'picket'],
+      [X(400), X(806), 214, 'picket'], // mặt sau cụm kho (sau hai mái, trước luỹ tre)
     ];
   }
   // Rào hoa chạy dọc hai bên cụm kho: [x, y1, y2 (chân)].
@@ -666,8 +666,11 @@
       parts.push(el.replace('style="', `style="--sway-delay:-${(i * 0.73) % 6}s;`));
     });
     parts.push(flowersHTML());
-    for (const [x1, x2, y] of HEDGES) parts.push(`<span class="hedge" style="left:${x1}px;top:${y - 72}px;width:${x2 - x1}px;z-index:${y}"></span>`);
-    for (const [x, y1, y2] of hedgeSides(X)) parts.push(`<span class="hedge-side" style="left:${x - 20}px;top:${y1 - 30}px;height:${y2 - y1 + 22}px;z-index:${y2 - 1}"></span>`);
+    for (const [x1, x2, y, kind] of HEDGES) {
+      const hh = kind === 'picket' ? 56 : 72;
+      parts.push(`<span class="hedge${kind ? ' ' + kind : ''}" style="left:${x1}px;top:${y - hh}px;width:${x2 - x1}px;z-index:${y}"></span>`);
+    }
+    for (const [x, y1, y2] of hedgeSides(X)) parts.push(`<span class="hedge-side picket" style="left:${x - 20}px;top:${y1 - 30}px;height:${y2 - y1 + 22}px;z-index:${y2 - 1}"></span>`);
 
     $('objects').innerHTML = parts.join('');
     fitText(document.querySelector('.gate-sign b'), 16, 8);

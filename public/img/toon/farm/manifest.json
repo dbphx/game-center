@@ -2066,6 +2066,28 @@
    "source": [
     "DCity (vẽ bằng PIL)"
    ]
+  },
+  {
+   "file": "fence_picket.png",
+   "w": 96,
+   "h": 56,
+   "use": "Rào gỗ sơn kem kiểu vườn (quanh cụm kho), lặp ngang 96×56",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ bằng PIL)"
+   ]
+  },
+  {
+   "file": "fence_picket_side.png",
+   "w": 36,
+   "h": 48,
+   "use": "Rào gỗ sơn kem chạy dọc (3/4), lặp dọc 36×48",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ bằng PIL)"
+   ]
   }
  ]
 }

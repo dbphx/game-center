@@ -755,3 +755,7 @@ button.danger { background: linear-gradient(180deg, #ff8a7a, #e03131); border-co
 .pond-area .pond-water .pond-img { width: 100%; height: 100%; object-fit: fill; }
 .sky-top { background: none; }
 .scene { background: #5dbcf2; }
+
+/* Rào gỗ sơn kem quanh cụm kho */
+.hedge.picket { height: 56px; background: url('/img/toon/farm/fence_picket.png') left bottom / 96px 56px repeat-x; }
+.hedge-side.picket { width: 36px; background: url('/img/toon/farm/fence_picket_side.png') left top / 36px 48px repeat-y; }
