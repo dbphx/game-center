@@ -25,7 +25,9 @@ còn mình chốt hợp đồng, theo dõi, kiểm tra, ghép và commit. Tự l
    tự xem ảnh chụp; chỉ commit các file đã xong (`git add <đường dẫn cụ thể>`), không commit file agent khác đang sửa.
    Yêu cầu mới giữa chừng → `SendMessage` cho agent liên quan hoặc fork agent mới; không dừng agent đang chạy nếu không cần.
 6. **Ghép và thử trọn luồng** trên trình duyệt khi các phần xong, rồi mới cập nhật server 8090 của người dùng
-   (sao lưu `data/gamehub.db` trước nếu schema đổi).
+   (sao lưu `data/gamehub.db` trước nếu schema đổi). Bàn Tiến Lên / Cờ Caro / Bầu cua chỉ nằm trong bộ nhớ:
+   trước khi khởi động lại 8090, xem `/api/games` (`online.rooms`) — còn bàn đang mở thì chờ, vì khởi động lại
+   giữa ván làm người chơi mất bàn (người dùng từng báo là "crash").
 7. **Báo người dùng** bằng bảng ngắn: agent nào làm gì, xong / đang chạy, còn thiếu gì; câu hỏi cần quyết định.
 
 ## Quy tắc chung đưa vào mọi prompt
