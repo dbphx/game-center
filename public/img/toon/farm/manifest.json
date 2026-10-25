@@ -1978,6 +1978,72 @@
    "source": [
     "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
    ]
+  },
+  {
+   "file": "hedge_flower_side.png",
+   "w": 40,
+   "h": 48,
+   "use": "Hàng rào hoa chạy dọc (3/4), lặp dọc",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ bằng PIL)"
+   ]
+  },
+  {
+   "file": "tree_khe.png",
+   "w": 320,
+   "h": 350,
+   "use": "Cây khế: tán lá kép nhỏ, hoa tím, chùm quả khế 5 múi",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "item_khe.png",
+   "w": 20,
+   "h": 24,
+   "use": "Quả khế rụng (hiệu ứng)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "item_feed_poultry.png",
+   "w": 90,
+   "h": 100,
+   "use": "Bao thóc cho gà vịt",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "item_feed_livestock.png",
+   "w": 90,
+   "h": 100,
+   "use": "Bao cám gia súc",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
+  },
+  {
+   "file": "item_feed_fish.png",
+   "w": 92,
+   "h": 92,
+   "use": "Hộp thức ăn cá",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tô bóng khối bằng PIL + numpy)"
+   ]
   }
  ]
 }

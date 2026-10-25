@@ -165,10 +165,11 @@ func findStock(place, id string) (Stock, bool) {
 func Catalog() map[string]any {
 	return map[string]any{
 		"crops":        Crops,
-		"animals":      withYields(withFeed(Animals)),
-		"poultry":      withYields(withFeed(Poultry)),
+		"animals":      withYields(withFeed(Animals, placeBarn)),
+		"poultry":      withYields(withFeed(Poultry, placeYard)),
+		"feeds":        Feeds,
 		"yard":         Buildings[placeYard],
-		"fish":         withFeed(Fish),
+		"fish":         withFeed(Fish, placePond),
 		"feedCooldown": FeedCooldown,
 		"plots":        map[string]int{"free": FreePlots, "max": MaxPlots, "basePrice": PlotBasePrice, "step": PlotStep},
 		"barn":         Buildings[placeBarn],

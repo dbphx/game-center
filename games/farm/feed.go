@@ -12,26 +12,95 @@ import (
 // FeedCooldown là số giây sau lần ăn gần nhất (hoặc lúc mua) thì con vật đói lại.
 const FeedCooldown = 600
 
-// feedPrice là giá một lần cho ăn: 1/10 giá mua, ít nhất 5 xu.
-func (s Stock) feedPrice() int64 { return max(5, s.Price/10) }
+// Feed là một loại thức ăn: mua trước, cất trong kho giống (mỗi phần chiếm 1 chỗ), cho ăn thì trừ phần.
+type Feed struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Price int64  `json:"price"`
+	For   string `json:"for"` // "poultry" (sân gia cầm), "barn" (chuồng), "pond" (ao)
+}
+
+var Feeds = []Feed{
+	{"feed_poultry", "Thóc cho gà vịt", 15, "poultry"},
+	{"feed_livestock", "Cám gia súc", 50, placeBarn},
+	{"feed_fish", "Thức ăn cá", 10, placePond},
+}
+
+// feedFor là thức ăn của con ở place.
+func feedFor(place string) Feed {
+	switch place {
+	case placeYard:
+		return Feeds[0]
+	case placeBarn:
+		return Feeds[1]
+	}
+	return Feeds[2]
+}
+
+func findFeed(id string) (Feed, bool) {
+	for _, f := range Feeds {
+		if f.ID == id {
+			return f, true
+		}
+	}
+	return Feed{}, false
+}
+
+// portions là số phần thức ăn mỗi lần cho ăn: bò, cừu, cá koi ăn 2 phần, con khác 1.
+func portions(kind string) int {
+	switch kind {
+	case "cow", "sheep", "koi":
+		return 2
+	}
+	return 1
+}
 
 // hungry: con chưa lớn và đã qua FeedCooldown kể từ lần ăn gần nhất (chưa ăn lần nào thì tính từ lúc mua).
 func (a Animal) hungry(now int64) bool {
 	return a.ReadyAt > now && now-max(a.FedAt, a.BoughtAt) >= FeedCooldown
 }
 
-// stockJSON là một loại vật nuôi / cá trong catalog, kèm giá thức ăn.
+// stockJSON là một loại vật nuôi / cá trong catalog, kèm thức ăn: loại, số phần mỗi lần
+// và feedPrice = giá quy đổi một lần ăn (số phần × giá thức ăn), chỉ để hiển thị — cho ăn trừ thức ăn trong kho, không trừ xu.
 type stockJSON struct {
 	Stock
-	FeedPrice int64 `json:"feedPrice"`
+	Feed      string `json:"feed"`
+	Portions  int    `json:"portions"`
+	FeedPrice int64  `json:"feedPrice"`
 }
 
-func withFeed(list []Stock) []stockJSON {
+func withFeed(list []Stock, place string) []stockJSON {
+	fd := feedFor(place)
 	out := make([]stockJSON, len(list))
 	for i, s := range list {
-		out[i] = stockJSON{s, s.feedPrice()}
+		n := portions(s.ID)
+		out[i] = stockJSON{s, fd.ID, n, int64(n) * fd.Price}
 	}
 	return out
+}
+
+// BuyFeeds mua qty phần thức ăn (1..100) cất vào kho giống.
+func (f *Farm) BuyFeeds(ctx context.Context, uid int64, feedID string, qty int) (State, error) {
+	fd, ok := findFeed(feedID)
+	if !ok {
+		return State{}, bad("không có loại thức ăn này")
+	}
+	if qty == 0 {
+		qty = 1
+	}
+	if qty < 0 || qty > 100 {
+		return State{}, bad("mỗi lần mua từ 1 đến 100 phần")
+	}
+	return f.do(ctx, uid, func(tx *wallet.Tx, s State) error {
+		seeds := s.Storage.Seeds
+		if seeds.free() < qty {
+			return conflict(fmt.Sprintf("kho giống đầy (%d/%d), còn chỗ cho %d phần", seeds.Used, seeds.Capacity, max(0, seeds.free())))
+		}
+		if err := tx.Charge(uid, fd.Price*int64(qty), GameID, fmt.Sprintf("Mua %d %s", qty, fd.Name)); err != nil {
+			return err
+		}
+		return addItem(ctx, tx, uid, storeSeeds, fd.ID, qty)
+	})
 }
 
 // columns là các cột thêm sau vào farm_stock; database từ bản cũ được ALTER TABLE thêm vào khi khởi động.
@@ -86,11 +155,11 @@ func migrate(ctx context.Context, w *wallet.Wallet) error {
 	return tx.Commit()
 }
 
-// FeedStock cho một con đang đói ăn: trừ tiền thức ăn, rút ngắn 25% thời gian còn lại tới lúc lớn, +1 XP.
+// FeedStock cho một con đang đói ăn: trừ thức ăn trong kho giống, rút ngắn 25% thời gian còn lại tới lúc lớn, +1 XP.
 func (f *Farm) FeedStock(ctx context.Context, uid int64, place string, id int64) (State, Gained, error) {
 	var g Gained
 	s, err := f.do(ctx, uid, func(tx *wallet.Tx, s State) error {
-		_, a, st, err := findAnimal(s, place, id)
+		pl, a, st, err := findAnimal(s, place, id)
 		if err != nil {
 			return err
 		}
@@ -102,10 +171,14 @@ func (f *Farm) FeedStock(ctx context.Context, uid int64, place string, id int64)
 			left := max(a.FedAt, a.BoughtAt) + FeedCooldown - now
 			return conflict(fmt.Sprintf("%s chưa đói, cho ăn lại sau %s", st.Name, fmtWait(left)))
 		}
-		if err := tx.Charge(uid, st.feedPrice(), GameID, "Cho "+st.Name+" ăn"); err != nil {
+		fd, n := feedFor(pl), portions(a.Kind)
+		if s.Storage.Seeds.Items[fd.ID] < n {
+			return conflict(fmt.Sprintf("Hết %s, mua thêm ở cửa hàng (%s ăn %d phần)", fd.Name, st.Name, n))
+		}
+		if err := addItem(ctx, tx, uid, storeSeeds, fd.ID, -n); err != nil {
 			return err
 		}
-		g = Gained{XP: 1}
+		g = Gained{XP: 1, Used: map[string]int{fd.ID: n}}
 		return fed(ctx, tx, uid, a, now, 1)
 	})
 	return s, g, err

@@ -154,7 +154,8 @@ type Gained struct {
 	XP    int64          `json:"xp"`
 	Count int            `json:"count,omitempty"`
 	Items map[string]int `json:"items,omitempty"` // nông sản / sản phẩm vừa vào kho
-	Spent int64          `json:"spent,omitempty"` // xu đã tiêu (gieo / cho ăn hàng loạt)
+	Spent int64          `json:"spent,omitempty"` // xu đã tiêu (gieo hàng loạt)
+	Used  map[string]int `json:"used,omitempty"`  // thức ăn đã dùng (feed_x → số phần)
 }
 
 type querier interface {

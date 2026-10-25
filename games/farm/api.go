@@ -56,6 +56,7 @@ func (f *Farm) Handler() http.Handler {
 		ID   int64  `json:"id"`
 		Qty  int    `json:"qty"`
 		Item string `json:"item"`
+		Feed string `json:"feed"`
 	}
 	// handle bọc xác thực, đọc body và gọi thao tác; thao tác trả State và (tuỳ chọn) phần thưởng.
 	handle := func(pattern string, op func(r *http.Request, uid int64, b body) (State, *Gained, error)) {
@@ -155,6 +156,9 @@ func (f *Farm) Handler() http.Handler {
 	})
 
 	// Kho giống và kho sản phẩm.
+	handle("POST /api/farm/feeds/buy", func(r *http.Request, uid int64, b body) (State, *Gained, error) {
+		return noGain(f.BuyFeeds(r.Context(), uid, b.Feed, b.Qty))
+	})
 	handle("POST /api/farm/seeds/buy", func(r *http.Request, uid int64, b body) (State, *Gained, error) {
 		return noGain(f.BuySeeds(r.Context(), uid, b.Crop, b.Qty))
 	})

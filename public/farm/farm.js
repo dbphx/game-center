@@ -78,7 +78,19 @@
   const store = (kind) => (farm && farm.storage && farm.storage[kind]) || EMPTY_STORE;
 
   // Món trong kho sản phẩm: nông sản, vật nuôi hoặc cá.
+  // Thức ăn (catalog.feeds): cất trong kho giống, hình item_<id>.png.
+  const feedOf = (id) => ((cat && cat.feeds) || []).find((f) => f.id === id);
+  const feedHave = (id) => store('seeds').items[id] || 0;
+  // Thức ăn + số phần của một con.
+  function feedNeed(p) {
+    const info = find(p.fish ? 'fish' : 'animals', p.kind);
+    const id = info.feed || (p.fish ? 'feed_fish' : p.yard || LAYERS.has(p.kind) ? 'feed_poultry' : 'feed_livestock');
+    return { id, portions: info.portions || 1, feed: feedOf(id) || { id, name: 'thức ăn', price: 0 } };
+  }
+
   function product(id) {
+    const f = feedOf(id);
+    if (f) return { ...f, sellPrice: 0, list: 'feeds', draw: (h) => art.item(id, h) };
     // Trứng / sữa / lông / thịt: lấy từ catalog.animals[i].product / .meat, hình item_<id>.png.
     for (const a of allStock()) {
       for (const it of [a.product, a.meat]) {
@@ -243,7 +255,15 @@
       [X(462), X(524), 504], // viền hai góc dưới lô cỏ giữa (chừa lối rộng ở giữa)
       [X(654), X(708), 504],
       [b.x + 6, b.x + b.w - 6, b.y + b.h + 8], // viền dưới ao
+      // Quanh cụm hai nhà kho + đống rơm: mặt trước, chừa lối vào trước cửa mỗi kho.
+      [X(398), X(472), 340],
+      [X(538), X(670), 340],
+      [X(742), X(792), 340],
     ];
+  }
+  // Rào hoa chạy dọc hai bên cụm kho: [x, y1, y2 (chân)].
+  function hedgeSides(X) {
+    return [[X(392), 216, 340], [X(796), 216, 340]];
   }
 
   // Khoảng cổng hông chuồng (toạ độ thế giới) theo ảnh hàng rào (manifest gate_gap_y; ảnh cũ 250–330).
@@ -275,6 +295,7 @@
       [X(628), 592, X(652), 608], // cột cổng phải
       [POND_BOX.x + 14, POND_BOX.y + 22, POND_BOX.x + POND_BOX.w - 14, POND_BOX.y + POND_BOX.h - 12], // ao
       ...HEDGES.map(([x1, x2, y]) => [x1, y - 12, x2, y]), // hàng rào hoa
+      ...hedgeSides(X).map(([x, y1, y2]) => [x - 14, y1, x + 14, y2]),
     ];
   }
 
@@ -403,8 +424,13 @@
     const h = PEN.y2 - PEN.y1;
     if (!pen) return emptyLot('barn', PEN.x1, PEN.y1, w, h);
     // Nền cỏ chuồng nằm dưới cùng; chòi + hàng rào là vật riêng để con vật đứng trước / sau đúng chiều sâu.
+    // Sàn chuồng: đất be, vài khóm cỏ nhỏ (vị trí cố định theo seed) và ít rơm rải gần máng.
+    let seed = 7;
+    const r = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+    const tufts = Array.from({ length: 7 }, () =>
+      `<span class="tuft" style="left:${Math.round(20 + r() * (w - 60))}px;top:${Math.round(150 + r() * (h - 210))}px">${art.img(`bush_${1 + Math.floor(r() * 4)}`, { h: Math.round(14 + r() * 8) })}</span>`).join('');
     return `<div class="obj area yard" data-obj="barn" style="left:${PEN.x1}px;top:${PEN.y1}px;width:${w}px;height:${h}px;z-index:3">
-        <span class="fence-top"></span></div>
+        <span class="fence-top"></span>${tufts}<span class="straw-bits" style="left:${Math.min(w - 120, 200)}px;top:150px"></span></div>
       <span class="pen-label" data-obj="barn" style="left:${PEN.x1 + w / 2}px;top:${PEN.y1 - 8}px;z-index:2000">${penLabel('barn', pen)}</span>
       <span class="obj decor pen-shed" data-obj="barn" style="${pos(150, 300)}">${art.img('pen_shed', { h: 190, anchor: true })}</span>
       <span class="obj decor haystack" style="${pos(PEN.x2 - 76, 566)}">${art.img('haystack', { h: 176, anchor: true })}</span>
@@ -485,7 +511,6 @@
     const r = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
     const colors = ['red', 'yellow', 'pink', 'purple', 'white'];
     const zones = [
-      [PEN.x1 + 24, 340, PEN.x2 - 24, PEN.y2 - 30, 10], // trong chuồng
       [480 + OX, 362, 700 + OX, 455, 5], // lô cỏ giữa
       [POND_BOX.x + 10, POND_BOX.y + POND_BOX.h - 26, POND_BOX.x + POND_BOX.w - 10, POND_BOX.y + POND_BOX.h - 8, 6], // bờ ao dưới
       [POND_BOX.x + 10, POND_BOX.y + 6, POND_BOX.x + POND_BOX.w - 10, POND_BOX.y + 18, 3], // bờ ao trên
@@ -533,7 +558,7 @@
     const img = t.querySelector('img');
     const el = document.createElement('img');
     el.className = 'mango-fall';
-    el.src = `${IMG}item_mango.png`;
+    el.src = `${IMG}item_${t.dataset.fruit || 'mango'}.png`;
     el.alt = '';
     el.style.left = `${Math.round(t.offsetLeft + (Math.random() - 0.5) * img.width * 0.6)}px`;
     el.style.top = `${Math.round(t.offsetTop - img.height * 0.45)}px`;
@@ -618,7 +643,7 @@
     parts.push(deco('tree_da', POND_BOX.x + POND_BOX.w / 2 + 10, POND_BOX.y + 4, 400, false, 'sway slow big'));
     parts.push(deco('well', POND_BOX.x + 42, POND_BOX.y - 4, 76));
     // Xoài ở góc sau, giữa ruộng và ao (tán ở trên hàng rào, không che ruộng / mặt ao).
-    parts.push(deco('tree_xoai', POND_BOX.x - 24, Math.min(POND_BOX.y - 30, 230), 250, true, 'sway slow mango'));
+    parts.push(deco('tree_khe', POND_BOX.x - 24, Math.min(POND_BOX.y - 30, 230), 250, true, 'sway slow mango').replace('class="obj decor', 'data-fruit="khe" class="obj decor'));
     // Dừa cạnh ao + góc phải; luỹ tre dọc hàng rào sau.
     // Dừa sau ao, mép phải (gốc sau lô ao, tán vươn lên trên / ra ngoài — không che mặt nước hay biển "Mua ao").
     parts.push(deco('tree_dua', POND_BOX.x + POND_BOX.w - 24, POND_BOX.y - 4, 330, false, 'sway slow'));
@@ -637,6 +662,7 @@
     });
     parts.push(flowersHTML());
     for (const [x1, x2, y] of HEDGES) parts.push(`<span class="hedge" style="left:${x1}px;top:${y - 60}px;width:${x2 - x1}px;z-index:${y}"></span>`);
+    for (const [x, y1, y2] of hedgeSides(X)) parts.push(`<span class="hedge-side" style="left:${x - 20}px;top:${y1 - 30}px;height:${y2 - y1 + 22}px;z-index:${y2 - 1}"></span>`);
 
     $('objects').innerHTML = parts.join('');
     fitText(document.querySelector('.gate-sign b'), 16, 8);
@@ -710,7 +736,7 @@
     $('quick-menu').innerHTML = `<p>Làm nhanh</p><div class="chips">
       ${row('plant-all', art.seed(seedSel || 'carrot', 36), 'Gieo tất cả', `${empty} ô trống`, 'Shift+1', !empty)}
       ${row('harvest-all', art.item('corn', 36), 'Thu hoạch tất cả', `${ripe} ô chín`, 'H', !ripe)}
-      ${row('feed-all', art.img('feed_grain', { h: 22 }), 'Cho ăn tất cả', `${hungry} con đói`, 'Shift+F', !hungry)}
+      ${row('feed-all', art.item('feed_poultry', 30), 'Cho ăn tất cả', hungry ? `${hungry} con · cần ${planText(feedPlan())}${planShort(feedPlan()).length ? ' ⚠ thiếu' : ''}` : '0 con đói', 'Shift+F', !hungry)}
       ${row('produce-all', art.item('egg', 34), 'Trứng & sản phẩm', `${goods} con`, 'Shift+P', !goods)}
       ${row('yard', art.img('nest', { h: 24 }), 'Đàn gia cầm', farm.yard ? `${farm.yard.used}/${farm.yard.capacity}` : '—', 'G', false)}
     </div>`;
@@ -777,13 +803,37 @@
     A.toast(`Đã gieo ${find('crops', crop).name} vào ${n} ô`);
   }
 
+  // Số phần thức ăn cần cho mọi con đang đói: { feed_id: { need, have, name } }.
+  function feedPlan() {
+    const plan = {};
+    for (const p of pets.values()) {
+      if (p.decor || !isHungry(p.data)) continue;
+      const n = feedNeed(p);
+      plan[n.id] = plan[n.id] || { need: 0, have: feedHave(n.id), name: n.feed.name };
+      plan[n.id].need += n.portions;
+    }
+    return plan;
+  }
+  const planText = (plan) => Object.values(plan).map((x) => `${x.need} ${x.name}`).join(', ');
+  const planShort = (plan) => Object.values(plan).filter((x) => x.have < x.need);
+
   async function feedAll() {
     $('quick-menu').classList.add('hidden');
-    const hungry = [...pets.values()].filter((p) => isHungry(p.data));
+    const hungry = [...pets.values()].filter((p) => !p.decor && isHungry(p.data));
     if (!hungry.length) return A.toast('Không con nào đang đói');
+    const plan = feedPlan();
+    const short = planShort(plan);
+    if (short.length) {
+      const msg = `Cần ${planText(plan)}. Không đủ: ${short.map((x) => `${x.name} (có ${x.have}/${x.need})`).join(', ')}. Cho ăn những con đủ thức ăn, hay mua thêm?`;
+      const go = await ask(msg, { title: 'Thiếu thức ăn', ok: 'Cho ăn phần có', cancel: 'Mua thức ăn' });
+      if (!go) return openShop('feeds');
+    }
     workFx(2);
+    for (const p of hungry.slice(0, 6)) flyFeed(feedNeed(p).id, p.el);
     let res = await bulk('/api/farm/feed-all');
     let xp = res && res.gained ? res.gained.xp : 0;
+    const used = (res && res.gained && res.gained.used) || null;
+    const fed = (res && res.gained && res.gained.count) || hungry.length;
     if (res === null) {
       xp = 0;
       for (const p of hungry) {
@@ -800,7 +850,8 @@
       p.state = 'peck';
       p.until = 2.2;
     }
-    A.toast(`Đã cho ${hungry.length} con ăn${xp ? ` · +${xp} XP` : ''}`);
+    const usedTxt = used ? ` · dùng ${Object.entries(used).map(([id, n]) => `${n} ${(feedOf(id) || { name: id }).name}`).join(', ')}` : '';
+    A.toast(`Đã cho ${fed} con ăn${usedTxt}${xp ? ` · +${xp} XP` : ''}`);
   }
 
   async function produceAll() {
@@ -1411,7 +1462,11 @@
     const ready = nowS() >= a.readyAt;
     const hungry = isHungry(a);
     const pr = progress(a.boughtAt, a.readyAt);
-    const price = info.feedPrice || Math.max(5, Math.round((info.price || 50) / 10));
+    const need = feedNeed(p);
+    const have = feedHave(need.id);
+    const feedBtn = have >= need.portions
+      ? `<button class="primary" data-card="feed">${art.item(need.id, 18)}Cho ăn (dùng ${need.portions} ${esc(need.feed.name)} — còn ${have}) <kbd>F</kbd></button>`
+      : `<span class="pc-ask">Hết ${esc(need.feed.name)}${need.portions > 1 ? ` (ăn ${need.portions} phần)` : ''}</span><button class="primary" data-card="buy-feed">${art.item(need.id, 18)}Mua thức ăn</button>`;
     const y = yieldOf(a.kind);
     const el = $('pet-card');
     let btns;
@@ -1423,7 +1478,7 @@
     } else if (p.fish) {
       btns = ready
         ? `<button class="primary" data-card="collect">${I.svg('sprout')}Thu hoạch <kbd>H</kbd></button>`
-        : hungry ? `<button class="primary" data-card="feed">${I.svg('coins')}Cho ăn (${xu(price)} xu) <kbd>F</kbd></button>` : '';
+        : hungry ? feedBtn : '';
     } else if (ready) {
       const list = [];
       if (y.product) {
@@ -1436,7 +1491,7 @@
       btns = list.join('');
     } else {
       btns = hungry
-        ? `<button class="primary" data-card="feed">${I.svg('coins')}Cho ăn (${xu(price)} xu) <kbd>F</kbd></button>`
+        ? feedBtn
         : `<span class="muted">Cho ăn lại sau ${countdown(((cat && cat.feedCooldown) || 600) - (nowS() - Math.max(a.fedAt || 0, a.boughtAt)))}</span>`;
     }
     el.innerHTML = `<button class="link icon-only pc-close" data-card="close" title="Đóng">${I.svg('x')}</button>
@@ -1526,7 +1581,32 @@
     el.style.top = `${Math.round(p.y - (p.fish ? 0 : h) - 10)}px`;
   }
 
+  // Bao thức ăn bay từ kho giống tới con vật.
+  function flyFeed(id, toEl) {
+    const from = document.querySelector('[data-obj="seeds"] img');
+    if (!from || !toEl) return;
+    const a = from.getBoundingClientRect();
+    const b = toEl.getBoundingClientRect();
+    const el = document.createElement('span');
+    el.className = 'fly';
+    el.innerHTML = art.item(id, 34);
+    el.style.left = `${a.left + a.width / 2}px`;
+    el.style.top = `${a.top + a.height / 2}px`;
+    document.body.appendChild(el);
+    setTimeout(() => {
+      el.style.transform = `translate(${b.left + b.width / 2 - a.left - a.width / 2}px, ${b.top + b.height / 2 - a.top - a.height / 2}px) scale(.6)`;
+      el.style.opacity = '.3';
+    }, 30);
+    setTimeout(() => el.remove(), 1100);
+  }
+
   async function feedPet(p) {
+    const need = feedNeed(p);
+    if (feedHave(need.id) < need.portions) {
+      A.toast(`Hết ${need.feed.name} — mua thêm ở cửa hàng`);
+      return openShop('feeds');
+    }
+    flyFeed(need.id, p.el);
     const res = await call(`/api/farm/${apiOf(p)}/feed`, { id: p.id });
     if (!res) return;
     dropFood(p.fish ? 'feed_pellet' : 'feed_grain', p.x + (p.fish ? 0 : -p.dir * 6), p.y + (p.fish ? 0 : 2), p.fish);
@@ -1910,7 +1990,11 @@
       return true;
     }
     if (k === 'f') {
-      if (isHungry(p.data)) feedPet(p);
+      const need = feedNeed(p);
+      if (isHungry(p.data) && feedHave(need.id) < need.portions) {
+        closeCard();
+        openShop('feeds');
+      } else if (isHungry(p.data)) feedPet(p);
       else A.toast(nowS() >= p.data.readyAt ? 'Con này đã lớn — bấm H để thu hoạch' : 'Con này đang no');
       return true;
     }
@@ -2313,6 +2397,10 @@
       if (act.dataset.card === 'close' || !p) return closeCard();
       const c = act.dataset.card;
       if (c === 'feed') return feedPet(p);
+      if (c === 'buy-feed') {
+        closeCard();
+        return openShop('feeds');
+      }
       if (c === 'produce') return producePet(p).then(renderCard);
       if (c === 'meat') return ((card.confirm = true), renderCard());
       if (c === 'meat-no') return ((card.confirm = false), renderCard());
@@ -2482,8 +2570,9 @@
     return `<span class="meta">${parts.filter(Boolean).map(([icon, text]) => `<span>${I.svg(icon)}${text}</span>`).join('')}</span>`;
   }
 
-  const qtyPicker = () =>
-    `<div class="qty-pick"><span>Mua mỗi lần</span>${[1, 5, 10]
+  const FEED_FOR = { poultry: 'cho gà, vịt', barn: 'cho heo, cừu, bò', pond: 'cho cá' };
+  const qtyPicker = (big) =>
+    `<div class="qty-pick"><span>Mua mỗi lần</span>${(big ? [1, 5, 10, 50] : [1, 5, 10])
       .map((n) => `<button class="${n === buyQty ? 'active' : ''}" data-qty="${n}">×${n}</button>`)
       .join('')}</div>`;
 
@@ -2511,7 +2600,7 @@
     $('store-title').textContent = kind === 'seeds' ? 'Kho giống' : 'Kho thóc';
     const head = `<div class="store-hero">${kind === 'seeds' ? art.img('hut_seed', { h: 74 }) : art.img('hut_rice', { h: 74 })}
       <div><p class="muted">${kind === 'seeds'
-        ? 'Hạt mua sẵn để gieo; gieo vào ô trống sẽ lấy hạt trong kho trước. Mỗi hạt chiếm 1 chỗ.'
+        ? 'Hạt mua sẵn để gieo (gieo vào ô trống lấy hạt trong kho trước) và thức ăn cho gà vịt, gia súc, cá. Mỗi hạt / phần chiếm 1 chỗ.'
         : 'Nông sản thu hoạch, gia súc và cá đã lớn được cất ở đây — bán lấy xu. Mỗi món chiếm 1 chỗ.'}</p>
       ${capRow(s, kind, units)}</div></div>`;
     if (!cat) {
@@ -2533,7 +2622,17 @@
           <span class="pic">${art.seed(c.id, 58)}</span><b>${esc(c.name)}</b>
           <span class="sub">${xu(c.seedPrice)} xu/hạt · ${fmtDur(c.growSeconds)}</span>${btn}</div>`;
       });
-      body = `${qtyPicker()}<div class="store-grid">${cards.join('')}</div>`;
+      const feeds = ((cat && cat.feeds) || []).map((f) => {
+        const have = s.items[f.id] || 0;
+        const cost = f.price * buyQty;
+        const room = s.capacity - s.used >= buyQty;
+        return `<div class="store-card feed${have ? ' has' : ''}">${have ? `<span class="count">×${have}</span>` : ''}
+          <span class="pic">${art.item(f.id, 58)}</span><b>${esc(f.name)}</b>
+          <span class="sub">${xu(f.price)} xu/phần · ${FEED_FOR[f.for] || ''}</span>
+          <button class="primary" data-buy-feed="${f.id}" ${user.balance < cost || !room ? 'disabled' : ''}>${I.svg('coins')}+${buyQty} · ${xu(cost)}</button></div>`;
+      });
+      body = `${qtyPicker()}<div class="store-grid">${cards.join('')}</div>
+        ${feeds.length ? `<h3 class="store-sub">Thức ăn vật nuôi</h3><div class="store-grid">${feeds.join('')}</div>` : ''}`;
     } else {
       const entries = Object.entries(s.items).filter(([, n]) => n > 0);
       const total = entries.reduce((sum, [id, n]) => sum + (product(id).sellPrice || 0) * n, 0);
@@ -2662,6 +2761,18 @@
             <div><b>${esc(c.name)}</b>${have ? `<span class="have">×${have} trong kho</span>` : ''}${metaLine([['coins', `${xu(c.seedPrice)}/hạt`], ['timer', fmtDur(c.growSeconds)], ['trophy', `+${c.xp} XP`], ['sparkles', `Lv ${c.level}`]])}</div>${btn}</div>`);
         }
       }
+    } else if (tab === 'feeds') {
+      const seeds = store('seeds');
+      $('shop-note').innerHTML = `Thức ăn cất trong <b>Kho giống</b> (${seeds.used}/${seeds.capacity} chỗ, mỗi phần 1 chỗ). Bò, cừu, cá Koi ăn 2 phần mỗi lần.`;
+      rows.push(qtyPicker(true));
+      for (const f of (cat && cat.feeds) || []) {
+        const have = seeds.items[f.id] || 0;
+        const cost = f.price * buyQty;
+        const room = seeds.capacity - seeds.used >= buyQty;
+        rows.push(`<div class="shop-row"><span class="thumb">${art.item(f.id, 44)}</span>
+          <div><b>${esc(f.name)}</b>${have ? `<span class="have">×${have} trong kho</span>` : ''}${metaLine([['coins', `${xu(f.price)}/phần`], ['users', FEED_FOR[f.for] || '']])}</div>
+          <button class="primary" data-buy-feed="${f.id}" ${user.balance < cost || !room ? 'disabled' : ''} title="${room ? '' : 'Kho giống đầy'}">${I.svg('coins')}+${buyQty} · ${xu(cost)}</button></div>`);
+      }
     } else if (tab === 'poultry') {
       // Gia cầm thả rông: sân gia cầm (state.yard, có sẵn) — backend cũ thì nuôi chung chuồng.
       const yard = farm.yard;
@@ -2788,6 +2899,12 @@
       const units = (cat[d.expand] && cat[d.expand].expandUnits) || 5;
       if (!(await ask(`Mở rộng ${d.expand === 'yard' ? 'sân gia cầm' : d.expand === 'barn' ? 'chuồng' : 'ao'} thêm ${units} đơn vị với giá ${xu(pen.nextExpandPrice)} xu?`, { title: 'Mở rộng', ok: 'Mở rộng' }))) return;
       return call(`/api/farm/${d.expand}/expand`, {});
+    }
+    if (d.buyFeed) {
+      const f = feedOf(d.buyFeed);
+      const res = await call('/api/farm/feeds/buy', { feed: d.buyFeed, qty: buyQty });
+      if (res) A.toast(`Đã cất ${buyQty} phần ${f ? f.name : 'thức ăn'} vào kho giống`);
+      return;
     }
     if (d.buyAnimal) return call('/api/farm/animals/buy', { kind: d.buyAnimal });
     if (d.buyPoultry) return call('/api/farm/poultry/buy', { kind: d.buyPoultry });

@@ -68,31 +68,29 @@ func (f *Farm) PlantAll(ctx context.Context, uid int64, cropID string) (State, G
 	return s, g, err
 }
 
-// FeedAll cho mọi con đang đói (chuồng, sân, ao) ăn, tới khi hết xu; ghi một dòng sổ cái.
+// FeedAll cho mọi con đang đói (chuồng, sân, ao) ăn, trừ thức ăn trong kho giống tới khi hết.
 func (f *Farm) FeedAll(ctx context.Context, uid int64) (State, Gained, error) {
 	var g Gained
 	s, err := f.do(ctx, uid, func(tx *wallet.Tx, s State) error {
 		now := f.now().Unix()
-		bal, err := balance(ctx, tx, uid)
-		if err != nil {
-			return err
-		}
+		g.Used = map[string]int{}
 		hungry := 0
 		for _, place := range []string{placeBarn, placeYard, placePond} {
 			pen := penOf(s, place)
 			if pen == nil {
 				continue
 			}
+			fd := feedFor(place)
 			for _, a := range append(pen.Animals, pen.Fish...) {
 				if !a.Hungry {
 					continue
 				}
 				hungry++
-				st, _ := findStock(place, a.Kind)
-				if g.Spent+st.feedPrice() > bal {
+				n := portions(a.Kind)
+				if s.Storage.Seeds.Items[fd.ID]-g.Used[fd.ID] < n {
 					continue
 				}
-				g.Spent += st.feedPrice()
+				g.Used[fd.ID] += n
 				g.Count++
 				g.XP++
 				if err := fed(ctx, tx, uid, a, now, 1); err != nil {
@@ -104,9 +102,14 @@ func (f *Farm) FeedAll(ctx context.Context, uid int64) (State, Gained, error) {
 			return conflict("không có con nào đang đói")
 		}
 		if g.Count == 0 {
-			return noCoins()
+			return conflict("Hết thức ăn, mua thêm ở cửa hàng")
 		}
-		return tx.Charge(uid, g.Spent, GameID, fmt.Sprintf("Cho %d con ăn", g.Count))
+		for id, n := range g.Used {
+			if err := addItem(ctx, tx, uid, storeSeeds, id, -n); err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 	return s, g, err
 }
