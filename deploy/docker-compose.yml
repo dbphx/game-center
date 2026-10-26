@@ -1,0 +1,19 @@
+# DCity — giống các app khác trên máy: container app + container cloudflared riêng (tunnel "dcity").
+services:
+  dcity-app:
+    build: .
+    image: dcity-app
+    container_name: dcity-app
+    restart: unless-stopped
+    volumes:
+      - ./data:/data
+
+  dcity-cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: dcity-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --config /etc/cloudflared/dcity.yml run
+    volumes:
+      - /home/dbx-linux/.cloudflared:/etc/cloudflared
+    depends_on:
+      - dcity-app
