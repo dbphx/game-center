@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"net/http"
 	"path"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -18,18 +19,23 @@ import (
 //   - mỗi file có ETag theo nội dung, trình duyệt hỏi lại thì nhận 304 (không tải lại);
 //   - file chữ (html, js, css, json) được nén gzip sẵn lúc khởi động;
 //   - /sw.js là service worker giữ ảnh (/img/) trong Cache Storage theo phiên bản bản build,
-//     nên lần sau mở trang không phải tải lại ảnh; cập nhật server đổi phiên bản thì bộ đệm cũ bị xoá.
+//     nên lần sau mở trang không phải tải lại ảnh; cập nhật server đổi phiên bản thì bộ đệm cũ bị xoá;
+//   - trang HTML gắn ?v=<ETag> vào link js / css: Cloudflare ghi đè Cache-Control thành max-age 12 giờ,
+//     nên không có phiên bản trong URL thì sau khi cập nhật trình duyệt vẫn chạy code cũ.
 type staticFiles struct {
 	fs      fs.FS
 	files   http.Handler
 	etags   map[string]string // đường dẫn (không có "/" đầu) → ETag
 	gz      map[string][]byte // bản nén gzip của file chữ
+	pages   map[string][]byte // trang HTML đã gắn phiên bản vào link js / css
 	version string            // băm của toàn bộ file, đổi mỗi khi giao diện đổi
 	started time.Time
 }
 
 func newStaticFiles(static fs.FS) *staticFiles {
-	s := &staticFiles{fs: static, files: http.FileServer(http.FS(static)), etags: map[string]string{}, gz: map[string][]byte{}, started: time.Now()}
+	s := &staticFiles{fs: static, files: http.FileServer(http.FS(static)), etags: map[string]string{}, gz: map[string][]byte{},
+		pages: map[string][]byte{}, started: time.Now()}
+	datas := map[string][]byte{}
 	var names []string
 	fs.WalkDir(static, ".", func(p string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
@@ -39,9 +45,22 @@ func newStaticFiles(static fs.FS) *staticFiles {
 		if err != nil {
 			return nil
 		}
-		sum := sha256.Sum256(data)
-		s.etags[p] = `"` + hex.EncodeToString(sum[:8]) + `"`
+		datas[p] = data
+		s.etags[p] = etagOf(data)
 		names = append(names, p)
+		return nil
+	})
+	// Trang HTML: đã biết ETag của mọi js / css thì mới gắn phiên bản được.
+	for _, p := range names {
+		if path.Ext(p) == ".html" {
+			page := s.versioned(datas[p])
+			s.pages[p] = page
+			datas[p] = page
+			s.etags[p] = etagOf(page)
+		}
+	}
+	for _, p := range names {
+		data := datas[p]
 		if compressible(p) && len(data) > 512 {
 			var buf bytes.Buffer
 			zw, _ := gzip.NewWriterLevel(&buf, gzip.BestCompression)
@@ -51,8 +70,7 @@ func newStaticFiles(static fs.FS) *staticFiles {
 				s.gz[p] = buf.Bytes()
 			}
 		}
-		return nil
-	})
+	}
 	sort.Strings(names)
 	h := sha256.New()
 	for _, n := range names {
@@ -60,6 +78,26 @@ func newStaticFiles(static fs.FS) *staticFiles {
 	}
 	s.version = hex.EncodeToString(h.Sum(nil)[:6])
 	return s
+}
+
+func etagOf(data []byte) string {
+	sum := sha256.Sum256(data)
+	return `"` + hex.EncodeToString(sum[:8]) + `"`
+}
+
+// Link js / css tuyệt đối trong trang, vd src="/city.js" hay href="/hub.css" (chưa có ?query).
+var assetRef = regexp.MustCompile(`((?:src|href)=")(/[^"?#]+\.(?:js|css))"`)
+
+// versioned gắn ?v=<ETag rút gọn> vào link js / css có trong bộ file; file đổi nội dung thì URL đổi theo.
+func (s *staticFiles) versioned(page []byte) []byte {
+	return assetRef.ReplaceAllFunc(page, func(m []byte) []byte {
+		sub := assetRef.FindSubmatch(m)
+		etag, ok := s.etags[strings.TrimPrefix(string(sub[2]), "/")]
+		if !ok {
+			return m
+		}
+		return []byte(fmt.Sprintf(`%s%s?v=%s"`, sub[1], sub[2], strings.Trim(etag, `"`)[:10]))
+	})
 }
 
 func compressible(p string) bool {
@@ -99,6 +137,11 @@ func (s *staticFiles) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		h.Set("Content-Encoding", "gzip")
 		http.ServeContent(w, r, name, s.started, bytes.NewReader(gz))
+		return
+	}
+	if page, ok := s.pages[name]; ok {
+		h.Set("Content-Type", contentType(name))
+		http.ServeContent(w, r, name, s.started, bytes.NewReader(page))
 		return
 	}
 	s.files.ServeHTTP(w, r) // FileServer tự trả 304 khi If-None-Match khớp ETag đã đặt

@@ -84,3 +84,50 @@ func newHTTPTest(t *testing.T, h http.Handler) string {
 	t.Cleanup(srv.Close)
 	return srv.URL
 }
+
+// Trang HTML gắn ?v= theo nội dung js / css: Cloudflare giữ js / css 12 giờ, URL phải đổi khi file đổi.
+func TestStaticVersionedAssets(t *testing.T) {
+	page := `<link rel="stylesheet" href="/app.css"><script src="/app.js"></script><script src="/khong-co.js"></script><a href="/farm/">x</a>`
+	mk := func(js string) (*staticFiles, string) {
+		st := newStaticFiles(fstest.MapFS{
+			"index.html":      {Data: []byte(page)},
+			"farm/index.html": {Data: []byte(page)},
+			"app.js":          {Data: []byte(js)},
+			"app.css":         {Data: []byte("body{}")},
+		})
+		srv := newHTTPTest(t, st)
+		res, err := http.Get(srv + "/farm/")
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, _ := io.ReadAll(res.Body)
+		res.Body.Close()
+		if !strings.HasPrefix(res.Header.Get("Content-Type"), "text/html") || res.Header.Get("ETag") != st.etags["farm/index.html"] {
+			t.Fatalf("trang: %v", res.Header)
+		}
+		// Hỏi lại với ETag của trang đã gắn phiên bản thì 304.
+		req, _ := http.NewRequest("GET", srv+"/farm/", nil)
+		req.Header.Set("If-None-Match", res.Header.Get("ETag"))
+		res2, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res2.Body.Close()
+		if res2.StatusCode != http.StatusNotModified {
+			t.Fatalf("hỏi lại trang phải 304, được %d", res2.StatusCode)
+		}
+		return st, string(body)
+	}
+	st, a := mk("console.log(1)")
+	want := `src="/app.js?v=` + strings.Trim(st.etags["app.js"], `"`)[:10] + `"`
+	if !strings.Contains(a, want) || !strings.Contains(a, `href="/app.css?v=`) {
+		t.Fatalf("thiếu phiên bản: %s", a)
+	}
+	if !strings.Contains(a, `src="/khong-co.js"`) || !strings.Contains(a, `href="/farm/"`) {
+		t.Fatalf("link không phải file js / css có thật phải giữ nguyên: %s", a)
+	}
+	_, b := mk("console.log(2)")
+	if a == b {
+		t.Fatal("đổi js thì link trong trang phải đổi")
+	}
+}
