@@ -535,6 +535,45 @@
 .topbar .xp-bar > span, .xp-block .xp-bar > span { background: linear-gradient(180deg, #7fd0ff, #3b8fe0); }
 .xp-block .level-badge { background: #e8f3ff; border: 2px solid #9cc8f0; color: #1f4f8a; width: fit-content; }
 
+/* ---------- Khu danh vọng: bảng top 10 tổng tài sản ---------- */
+.fame-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.fame-bar .muted { font-size: 12px; }
+.fame-bar button { padding: 6px 12px; font-size: 13px; }
+.fame-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.fame-row {
+  display: grid;
+  grid-template-columns: 34px 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 6px 6px;
+  border-radius: 16px;
+  background: #fff;
+  border: 2px solid var(--border);
+  box-shadow: 0 3px 0 #ecd0a0;
+}
+.fame-rank { display: flex; flex-direction: column; align-items: center; line-height: 1; font-family: var(--font-title); font-size: 16px; color: #8a4b00; }
+.fame-rank .icon { width: 16px; height: 16px; }
+.fame-avatar { width: 38px; height: 38px; }
+.fame-who { display: flex; flex-direction: column; min-width: 0; }
+.fame-name { display: flex; align-items: center; gap: 6px; min-width: 0; font-weight: 800; }
+.fame-name > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fame-lv { flex-shrink: 0; padding: 1px 6px; border-radius: 999px; background: #4f9cf9; color: #fff; font-style: normal; font-size: 10px; font-weight: 800; }
+.fame-name em { font-style: normal; font-weight: 700; color: #b45309; }
+.fame-parts { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font-size: 11px; }
+.fame-parts > span { display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
+.fame-parts .icon { width: 11px; height: 11px; }
+.fame-total { font-family: var(--font-title); font-size: 16px; white-space: nowrap; }
+.fame-row.gold { background: linear-gradient(180deg, #fff6c8, #ffe27a); border-color: #f0b429; }
+.fame-row.gold .fame-rank { color: #b7791f; }
+.fame-row.silver { background: linear-gradient(180deg, #fbfcff, #e3e8f0); border-color: #b8c2d0; }
+.fame-row.silver .fame-rank { color: #6b7686; }
+.fame-row.bronze { background: linear-gradient(180deg, #fff1e4, #f6cfaa); border-color: #d08b52; }
+.fame-row.bronze .fame-rank { color: #a0522d; }
+.fame-row.mine { outline: 3px solid #4f9cf9; outline-offset: 1px; }
+.fame-me { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; padding-top: 10px; border-top: 2px dashed var(--border); }
+.fame-me > .muted { font-size: 12px; font-weight: 800; }
+.fame-empty { margin: 0; padding: 14px; text-align: center; border-radius: 16px; background: #fff; border: 2px dashed var(--border); }
+
 @media (max-width: 860px) {
   .auth-card { grid-template-columns: 1fr; }
   .auth-hero { padding: 22px; }

@@ -298,6 +298,22 @@ mồi tốt cho cá to hơn. Vớt phải rác (dép cũ, lon) thì chỉ đư�
 | `POST /api/fishing/reel {castId, success}` | giật: `outcome` = `caught` \| `miss` \| `early` \| `late`, `message`, `caught:{fishId,name,rarity,cm,price,record}`, `gained:{xp}`; 404 lần thả lạ |
 | `POST /api/fishing/sell {ids}` hoặc `{all:true}` | bán cá trong giỏ: `gained:{coins, count}`; 409 không có gì để bán |
 
+## Khu danh vọng
+
+Bảng vàng top 10 người giàu nhất theo **tổng tài sản** (xu), tính lại tối đa 30 giây một lần:
+
+- **Xu** trong ví.
+- **Đồ thời trang** đã có (quần áo, tóc, cánh, gương mặt) theo giá shop; món miễn phí / không còn bán tính 0.
+- **Nông trại** theo giá trong game: ô đất đã mua (6 ô miễn phí tính 0) + hạt của cây đang trồng; chuồng / ao (giá mua +
+  các lần mở rộng; sân gia cầm chỉ tính mở rộng) và mở rộng kho; vật nuôi / cá đang nuôi theo giá mua;
+  kho giống (hạt, thức ăn) theo giá mua, kho sản phẩm theo giá bán.
+
+Bằng tổng thì ai tạo tài khoản trước đứng trên. Bảng chỉ có tên hiển thị và ngoại hình, không có tên đăng nhập.
+
+| API (không cần đăng nhập) | Mô tả |
+|---|---|
+| `GET /api/fame` | `{updatedAt (ms), top:[{rank,id,name,level,gender,outfit,hair,wings,face,total,coins,items,farm}], me}`; `me` (cùng dạng một dòng, hạng thật trong mọi người chơi) chỉ có khi gửi token hợp lệ |
+
 ## Tiến Lên Miền Nam
 
 1. Ở hub chọn **Tiến Lên Miền Nam** → **Tạo phòng mới**, gửi link phòng cho bạn bè. Bạn bè mở link, tạo tài khoản (nếu chưa có) là vào thẳng phòng.
@@ -349,6 +365,7 @@ games/caro/              cờ caro 15×15: luật thắng, máy chơi, bàn onli
 games/cangua/            cờ cá ngựa 2–4 người: luật đi / đá / lên đích, máy chơi, bàn online qua WebSocket
 games/site/              công trường: ca làm thuê, tiền công theo điểm, giới hạn ngày
 games/fishing/           hồ câu cá: mồi, thả câu (kết quả quay ở server), giỏ cá, kỷ lục
+games/fame/              khu danh vọng: xếp hạng tổng tài sản (xu + đồ thời trang + nông trại)
 public/                  bản đồ thành phố (index.html, hub.js, city.js), nhân vật (character.js),
                          phần dùng chung (account.js, icons.js, common.css)
 public/tienlen/          giao diện Tiến Lên

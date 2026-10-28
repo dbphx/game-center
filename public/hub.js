@@ -7,7 +7,7 @@
   const City = window.City;
   const $ = (id) => document.getElementById(id);
 
-  const ZONE_ICON = { plaza: 'mapPin', casino: 'layers', shop: 'shirt', bank: 'landmark', farm: 'sprout', hospital: 'hospital', site: 'hammer', fishing: 'fish' };
+  const ZONE_ICON = { plaza: 'mapPin', casino: 'layers', shop: 'shirt', bank: 'landmark', farm: 'sprout', hospital: 'hospital', site: 'hammer', fishing: 'fish', fame: 'trophy' };
   const GAME_PATH = { tienlen: '/tienlen/' };
 
   let user = null;
@@ -20,7 +20,7 @@
       { id: 'sport', name: 'Thể thao', level: 1, price: 0, starter: true },
     ],
     // HP tối thiểu để vào từng khu, và quy tắc bệnh viện.
-    zoneMinHP: { plaza: 0, bank: 0, hospital: 0, shop: 10, casino: 30, farm: 40, site: 30, fishing: 10 },
+    zoneMinHP: { plaza: 0, bank: 0, hospital: 0, shop: 10, casino: 30, farm: 40, site: 30, fishing: 10, fame: 0 },
     hospital: { dischargePrice: 200, healPerHP: 2, stayMinutes: 5, regenPerMinute: 1, carDamage: 20 },
   };
   const outfitName = (id) => (config.catalog.find((o) => o.id === id) || C.OUTFITS[id] || { name: id }).name;
@@ -259,6 +259,7 @@
   function tick() {
     if (!user) return;
     renderHP();
+    if (current === 'fame' && $('fame-ago')) $('fame-ago').textContent = fameAgo();
     checkHospital();
     const left = $('hosp-left');
     if (left && inHospital()) {
@@ -319,7 +320,81 @@
       </div>`;
   }
 
+  // ---------- Khu danh vọng: top 10 tổng tài sản ----------
+
+  let fame = null; // lần tải gần nhất { updatedAt, top, me }
+  let fameErr = '';
+  let fameLoading = false;
+  let fameAt = 0; // lúc tải xong (giờ máy)
+
+  const MEDALS = ['gold', 'silver', 'bronze'];
+  function fameRow(p, mine) {
+    const medal = MEDALS[p.rank - 1] || '';
+    return `<li class="fame-row${medal ? ' ' + medal : ''}${mine ? ' mine' : ''}">
+        <span class="fame-rank">${p.rank <= 3 ? I.svg(p.rank === 1 ? 'crown' : 'trophy') : ''}<b>${p.rank}</b></span>
+        ${C.head(look(p), { cls: 'fame-avatar' })}
+        <span class="fame-who">
+          <span class="fame-name"><span>${A.escapeHtml(p.name)}${mine ? ' <em>(bạn)</em>' : ''}</span><i class="fame-lv">Lv ${p.level}</i></span>
+          <span class="fame-parts muted" title="Xu · Đồ shop · Nông trại"><span>${I.svg('coins')}${A.xu(p.coins || 0)}</span><span>${I.svg('shirt')}${A.xu(p.items || 0)}</span><span>${I.svg('sprout')}${A.xu(p.farm || 0)}</span></span>
+        </span>
+        <b class="fame-total gold">${A.xu(p.total || 0)}</b>
+      </li>`;
+  }
+  function fameAgo() {
+    if (!fame || !fame.updatedAt) return '';
+    const sec = Math.max(0, Math.round((serverNow() * 1000 - fame.updatedAt) / 1000));
+    return sec < 60 ? `cập nhật ${sec} giây trước` : `cập nhật ${Math.floor(sec / 60)} phút trước`;
+  }
+  function fameBody() {
+    if (!fame) return fameErr ? `<p class="fame-empty">${A.escapeHtml(fameErr)}</p>` : '<p class="fame-empty muted">Đang tải bảng xếp hạng…</p>';
+    const top = fame.top || [];
+    const me = fame.me;
+    if (!top.length) return '<p class="fame-empty muted">Chưa có ai trên bảng xếp hạng.</p>';
+    const meInTop = me && top.some((p) => p.id === me.id);
+    return `<ol class="fame-list">${top.map((p) => fameRow(p, me && p.id === me.id)).join('')}</ol>
+      ${me && !meInTop ? `<div class="fame-me"><div class="muted">Hạng của bạn</div><ol class="fame-list">${fameRow(me, true)}</ol></div>` : ''}
+      ${fameErr ? `<p class="fame-empty">${A.escapeHtml(fameErr)}</p>` : ''}`;
+  }
+  function renderFame() {
+    const box = $('fame-board');
+    if (!box) return;
+    box.innerHTML = fameBody();
+    const ago = $('fame-ago');
+    if (ago) ago.textContent = fameAgo();
+    const btn = $('btn-fame-refresh');
+    if (btn) btn.disabled = fameLoading;
+  }
+  async function loadFame() {
+    if (fameLoading) return;
+    fameLoading = true;
+    renderFame();
+    try {
+      fame = await A.api('/api/fame');
+      fameAt = Date.now();
+      fameErr = '';
+    } catch (e) {
+      fameErr = 'Không tải được bảng xếp hạng: ' + (e.message || 'lỗi mạng');
+    }
+    fameLoading = false;
+    if (current === 'fame') renderFame();
+  }
+  function bindFame() {
+    $('btn-fame-refresh').onclick = loadFame;
+    renderFame();
+    // Dữ liệu cũ hơn 30 giây thì tải lại (server cũng chỉ tính lại theo chu kỳ).
+    if (!fame || Date.now() - fameAt > 30000) loadFame();
+  }
+
   const PANELS = {
+    fame() {
+      return `${panelHead('fame', 'Khu danh vọng', 'Top 10 đại gia của DCity')}
+        <div class="panel-section">
+          <p class="muted" style="margin:0">Tổng tài sản = xu trong ví + đồ đã mua ở shop + giá trị nông trại.</p>
+          <div class="fame-bar"><span class="muted" id="fame-ago"></span>
+            <button id="btn-fame-refresh">${I.svg('undo')}Làm mới</button></div>
+          <div id="fame-board"></div>
+        </div>`;
+    },
     site() {
       return `${panelHead('site', 'Công trường', 'Khu ngoại ô · làm thợ xây kiếm xu')}
         <div class="panel-section">
@@ -547,6 +622,7 @@
     if (zone === 'bank') bindBank();
     if (zone === 'shop') bindShop();
     if (zone === 'hospital') bindHospital();
+    if (zone === 'fame') bindFame();
     tick();
   }
 

@@ -968,6 +968,65 @@
    "source": [
     "DCity (vẽ / ghép bằng PIL cho dự án)"
    ]
+  },
+  {
+   "file": "fame_hall.png",
+   "w": 380,
+   "h": 300,
+   "use": "Khu danh vọng: Đại sảnh danh vọng (hàng cột, mái đỏ, sao vàng, biển DANH VỌNG)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fame_gate.png",
+   "w": 240,
+   "h": 130,
+   "use": "Cổng đỏ biển DANH VỌNG của Khu danh vọng (chân cột thò xuống dưới hàng rào như cổng 3D)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "foot": [
+    120,
+    100
+   ]
+  },
+  {
+   "file": "fame_podium.png",
+   "w": 210,
+   "h": 130,
+   "use": "Khu danh vọng: bục vinh danh hạng 1–2–3 (vàng, bạc, đồng)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fame_trophy.png",
+   "w": 90,
+   "h": 150,
+   "use": "Khu danh vọng: cúp vàng trên bệ đỏ",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fame_carpet.png",
+   "w": 64,
+   "h": 64,
+   "use": "Khu danh vọng: thảm đỏ viền vàng, lát dọc theo lối vào",
+   "anchor": "bottom-center",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
   }
  ]
 }

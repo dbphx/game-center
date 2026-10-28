@@ -14,6 +14,7 @@ import (
 	"github.com/dbphx/game-center/games/baucua"
 	"github.com/dbphx/game-center/games/cangua"
 	"github.com/dbphx/game-center/games/caro"
+	"github.com/dbphx/game-center/games/fame"
 	"github.com/dbphx/game-center/games/farm"
 	"github.com/dbphx/game-center/games/fishing"
 	"github.com/dbphx/game-center/games/plaza"
@@ -152,6 +153,14 @@ func games(w *wallet.Wallet) []server.Game {
 			Players:     "1 người",
 			Path:        "/fishing/",
 			API:         pond.Handler(),
+		},
+		{
+			ID:          fame.GameID,
+			Name:        "Khu danh vọng",
+			Description: "Bảng vàng top 10 người giàu nhất DCity theo tổng tài sản: xu, đồ thời trang, nông trại.",
+			Players:     "Bảng xếp hạng",
+			Path:        "/",
+			API:         fame.New(w, farmGame).Handler(),
 		},
 		{
 			ID:          plaza.GameID,
