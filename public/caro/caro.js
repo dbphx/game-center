@@ -10,6 +10,7 @@
   const signed = (n) => (n > 0 ? '+' : n < 0 ? '−' : '') + xu(Math.abs(n));
 
   const IMG = '/img/toon/caro/';
+  const RESULT_DELAY = 2500; // ms giữ bàn cờ trước khi hiện bảng kết quả
   const CASINO = '/img/toon/casino/';
   const N = 15; // cỡ bàn mặc định, server gửi kèm trong state
   const ROOM_KEY = 'caro.room'; // bàn đang ngồi, tải lại trang thì vào lại đúng ghế
@@ -33,6 +34,7 @@
   let armed = null; // điện thoại: ô đã chạm một lần, chạm lại để đánh
   let keyboardUsed = false;
   let hideResult = false; // người chơi bấm "Xem bàn cờ" sau khi hết ván
+  let resultTimer = 0; // vừa hết ván: chờ một lúc cho người chơi nhìn bàn cờ rồi mới hiện bảng kết quả
   let user = null;
   let dropped = -1; // số nước đã chạy hiệu ứng thả quân (không chạy lại khi chỉ vẽ lại bàn)
 
@@ -124,7 +126,13 @@
     state = s;
     if (s.code) store(ROOM_KEY, s.code);
     deadline = s.phase === 'playing' && s.turnMs > 0 ? Date.now() + s.turnMs : 0;
-    if (s.phase !== 'over') hideResult = false;
+    if (s.phase !== 'over') { hideResult = false; clearTimeout(resultTimer); resultTimer = 0; }
+    // Vừa hết ván ngay trước mắt: giữ bảng kết quả lại ~2,5 s để thấy nước cuối trên bàn cờ.
+    if (s.phase === 'over' && prev && prev.phase === 'playing' && prev.code === s.code) {
+      hideResult = true;
+      clearTimeout(resultTimer);
+      resultTimer = setTimeout(() => { resultTimer = 0; hideResult = false; if (state && state.phase === 'over') renderResult(); }, RESULT_DELAY);
+    }
     if (!prev || prev.phase !== 'playing' || s.phase !== 'playing') armed = null;
     if (armed && cellAt(s, armed.x, armed.y) !== '.') armed = null;
     const mine = me();
@@ -458,6 +466,8 @@
     const s = state;
     const el = $('result');
     const show = s.phase === 'over' && !hideResult;
+    $('over-controls').classList.toggle('hidden', s.phase !== 'over' || show || !me() || !!resultTimer);
+    $('btn-rematch-bar').disabled = !me() || !!me().ready;
     el.classList.toggle('hidden', !show);
     if (!show) return;
     const r = s.result || {};
@@ -568,6 +578,8 @@
   $('btn-resign').addEventListener('click', resign);
   $('btn-rematch').addEventListener('click', rematch);
   $('btn-board').addEventListener('click', () => { hideResult = true; renderResult(); });
+  $('btn-show-result').addEventListener('click', () => { hideResult = false; renderResult(); });
+  $('btn-rematch-bar').addEventListener('click', rematch);
   $('btn-hall').addEventListener('click', () => send({ t: 'leave' }));
   $('btn-add-bot').addEventListener('click', () => send({ t: 'addBot', level: $('sel-bot').value }));
   $('btn-start').addEventListener('click', () => send({ t: 'start' }));

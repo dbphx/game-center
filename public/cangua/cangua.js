@@ -11,6 +11,7 @@
   const signed = (n) => (n > 0 ? '+' : n < 0 ? '−' : '') + xu(Math.abs(n));
 
   const IMG = '/img/toon/cangua/';
+  const RESULT_DELAY = 2500; // ms giữ bàn cờ trước khi hiện bảng kết quả
   const ROOM_KEY = 'cangua.room'; // bàn đang ngồi, tải lại trang thì vào lại đúng ghế
   const DEFAULT_BETS = [0, 10, 20, 50, 100, 200, 500, 1000];
   const DEFAULT_BET = 10;
@@ -86,6 +87,7 @@
   let stopped = false;
   let deadline = 0;
   let hideResult = false;
+  let resultTimer = 0; // vừa hết ván: chờ một lúc cho người chơi nhìn bàn cờ rồi mới hiện bảng kết quả
   let user = null;
   let pick = 0; // ngựa đang chọn bằng bàn phím
   let shown = null; // vị trí ngựa đang vẽ trên bàn (trễ hơn state khi đang chạy hiệu ứng)
@@ -249,7 +251,13 @@
     state = s;
     if (s.code) store(ROOM_KEY, s.code);
     deadline = s.phase === 'playing' && s.turnMs > 0 ? (s._at || Date.now()) + s.turnMs : 0;
-    if (s.phase !== 'over') hideResult = false;
+    if (s.phase !== 'over') { hideResult = false; clearTimeout(resultTimer); resultTimer = 0; }
+    // Vừa hết ván ngay trước mắt: giữ bảng kết quả lại ~2,5 s để thấy nước cuối trên bàn cờ.
+    if (s.phase === 'over' && prev && prev.phase === 'playing' && prev.code === s.code) {
+      hideResult = true;
+      clearTimeout(resultTimer);
+      resultTimer = setTimeout(() => { resultTimer = 0; hideResult = false; if (state && state.phase === 'over') renderResult(); }, RESULT_DELAY);
+    }
     const mine = me();
     if (mine) showBalance(mine.coins);
     if (s.phase === 'over' && prev && prev.phase === 'playing') {
@@ -738,6 +746,8 @@
     const s = state;
     const el = $('result');
     const show = s.phase === 'over' && !hideResult;
+    $('over-controls').classList.toggle('hidden', s.phase !== 'over' || show || !me() || !!resultTimer);
+    $('btn-rematch-bar').disabled = !me() || !!me().ready;
     const wasHidden = el.classList.contains('hidden');
     el.classList.toggle('hidden', !show);
     if (!show) return;
@@ -857,6 +867,8 @@
   $('dice-box').addEventListener('click', roll);
   $('btn-rematch').addEventListener('click', rematch);
   $('btn-board').addEventListener('click', () => { hideResult = true; renderResult(); });
+  $('btn-show-result').addEventListener('click', () => { hideResult = false; renderResult(); });
+  $('btn-rematch-bar').addEventListener('click', rematch);
   $('btn-hall').addEventListener('click', () => send({ t: 'leave' }));
   $('btn-add-bot').addEventListener('click', () => send({ t: 'addBot', level: $('sel-bot').value }));
   $('btn-start').addEventListener('click', () => send({ t: 'start' }));
