@@ -48,7 +48,12 @@
             <p class="help">Đi: WASD / mũi tên / chuột · E tương tác · Tab đổi mục tiêu · 1–7 công cụ · <kbd>?</kbd> phím tắt</p>
           </div>
         </div>
+        <button class="thefts-btn" id="btn-thefts" title="Ai đã trộm nhà bạn"><i data-icon="shield"></i><span>Nhật ký trộm</span></button>
       </div>
+      <!-- Đang ở nhà bạn (?visit=id): chủ nhà, lượt trộm còn lại, chó canh hay đói, nút về nhà -->
+      <div class="visit-bar hidden" id="visit-bar"></div>
+      <!-- Bị chó đuổi: chạy ra cổng -->
+      <div class="chase-bar hidden" id="chase-bar" role="alert"></div>
       <!-- Thanh công cụ kiểu game: chọn công cụ rồi bấm ô đất, nhân vật đi tới làm -->
       <div class="quick-float">
         <button id="btn-feed-all" class="primary feed-all hidden" title="Cho ăn tất cả con đói (Shift+F)"><img src="/img/toon/farm/item_feed_poultry.png" alt="" width="20" height="20"><span>Cho ăn tất cả</span></button>
@@ -126,6 +131,17 @@
   </dialog>
 
   <!-- Hộp xác nhận kiểu game (thay confirm()) -->
+  <!-- Nhật ký trộm: ai đã trộm / bị chó bắt ở nhà mình -->
+  <dialog class="modal shop-dlg" id="dlg-thefts">
+    <div class="shop-wrap">
+      <div class="shop-head">
+        <h2><i data-icon="shield"></i><span>Nhật ký trộm</span></h2>
+        <button class="link icon-only" data-close title="Đóng"><i data-icon="x"></i></button>
+      </div>
+      <div id="thefts-body" class="thefts-body"></div>
+    </div>
+  </dialog>
+
   <dialog class="modal ask-dlg" id="dlg-ask">
     <div class="shop-wrap">
       <h2 id="ask-title">Xác nhận</h2>
@@ -137,6 +153,7 @@
   <script src="/icons.js"></script>
   <script src="/character.js"></script>
   <script src="/account.js"></script>
+  <script src="/farm/friends.js"></script>
   <script src="/farm/farm.js"></script>
 </body>
 </html>

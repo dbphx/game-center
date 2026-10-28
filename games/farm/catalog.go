@@ -38,13 +38,25 @@ type Building struct {
 
 func (b Building) expandPrice(expansions int) int64 { return b.expandBase * int64(expansions+1) }
 
+// Cây ngắn lãi / giờ cao cho người chơi liên tục; cây dài (4–12 giờ) cho người treo máy. Cùng thời gian thì
+// cây level cao lãi hơn.
 var Crops = []Crop{
+	{"water_spinach", "Rau muống", 1, 30, 60, 52, 1},
 	{"carrot", "Cà rốt", 1, 50, 120, 90, 2},
 	{"corn", "Ngô", 1, 80, 300, 160, 4},
 	{"tomato", "Cà chua", 2, 120, 600, 260, 6},
+	{"sweet_potato", "Khoai lang", 2, 100, 900, 290, 5},
 	{"rice", "Lúa", 2, 150, 1200, 360, 8},
+	{"cabbage", "Bắp cải", 3, 180, 1800, 520, 10},
 	{"strawberry", "Dâu tây", 3, 300, 2700, 750, 15},
+	{"chili", "Ớt", 3, 220, 3600, 820, 14},
+	{"eggplant", "Cà tím", 4, 260, 1500, 700, 9},
 	{"watermelon", "Dưa hấu", 4, 500, 7200, 1400, 30},
+	{"pineapple", "Dứa", 5, 400, 3600, 1250, 18},
+	{"pumpkin", "Bí ngô", 5, 600, 14400, 2600, 45},
+	{"dragon_fruit", "Thanh long", 6, 800, 21600, 4400, 70},
+	{"grape", "Nho", 7, 1000, 10800, 3700, 55},
+	{"durian", "Sầu riêng", 8, 2000, 43200, 12800, 150},
 }
 
 // Poultry là gia cầm thả rông trong sân (đi quanh trang trại), không nuôi trong chuồng.

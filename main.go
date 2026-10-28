@@ -17,6 +17,7 @@ import (
 	"github.com/dbphx/game-center/games/fame"
 	"github.com/dbphx/game-center/games/farm"
 	"github.com/dbphx/game-center/games/fishing"
+	"github.com/dbphx/game-center/games/friends"
 	"github.com/dbphx/game-center/games/plaza"
 	"github.com/dbphx/game-center/games/site"
 	"github.com/dbphx/game-center/games/tienlen/online"
@@ -58,6 +59,10 @@ func games(w *wallet.Wallet) []server.Game {
 	farmGame, err := farm.New(context.Background(), w)
 	if err != nil {
 		log.Fatalf("nông trại: %v", err)
+	}
+	friendsGame, err := friends.New(context.Background(), w, farmGame)
+	if err != nil {
+		log.Fatalf("bạn bè: %v", err)
 	}
 	caroAuth := func(ctx context.Context, token string) (caro.User, error) {
 		u, err := w.UserByToken(ctx, token)
@@ -161,6 +166,14 @@ func games(w *wallet.Wallet) []server.Game {
 			Players:     "Bảng xếp hạng",
 			Path:        "/",
 			API:         fame.New(w, farmGame).Handler(),
+		},
+		{
+			ID:          friends.GameID,
+			Name:        "Bạn bè",
+			Description: "Kết bạn theo tên đăng nhập, ghé nông trại của bạn và trộm nông sản chín (coi chừng chó giữ nhà).",
+			Players:     "Bạn bè",
+			Path:        "/",
+			API:         friendsGame.Handler(),
 		},
 		{
 			ID:          plaza.GameID,

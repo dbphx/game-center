@@ -14,13 +14,14 @@ type Feed struct {
 	ID    string `json:"id"`
 	Name  string `json:"name"`
 	Price int64  `json:"price"`
-	For   string `json:"for"` // "poultry" (sân gia cầm), "barn" (chuồng), "pond" (ao)
+	For   string `json:"for"` // "poultry" (sân gia cầm), "barn" (chuồng), "pond" (ao), "dog" (chó giữ nhà)
 }
 
 var Feeds = []Feed{
 	{"feed_poultry", "Thóc cho gà vịt", 15, "poultry"},
 	{"feed_livestock", "Cám gia súc", 50, placeBarn},
 	{"feed_fish", "Thức ăn cá", 10, placePond},
+	{"feed_dog", "Thức ăn cho chó", 40, "dog"},
 }
 
 // feedFor là thức ăn của con ở place.
@@ -59,7 +60,7 @@ type stockJSON struct {
 	Feed      string `json:"feed"`
 	Portions  int    `json:"portions"`
 	FeedPrice int64  `json:"feedPrice"`
-	FullFor   int64  `json:"fullFor"` // số giây no sau mỗi lần ăn
+	FullFor   int64  `json:"fullFor"` // số giây no sau bữa đầu: lớn + lứa sản phẩm đầu (mỗi chu kỳ ăn một lần)
 }
 
 func withFeed(list []Stock, place string) []stockJSON {
@@ -67,7 +68,7 @@ func withFeed(list []Stock, place string) []stockJSON {
 	out := make([]stockJSON, len(list))
 	for i, s := range list {
 		n := portions(s.ID)
-		out[i] = stockJSON{s, fd.ID, n, int64(n) * fd.Price, fullFor(s.ID)}
+		out[i] = stockJSON{s, fd.ID, n, int64(n) * fd.Price, cycleSeconds(s, false)}
 	}
 	return out
 }
@@ -203,7 +204,7 @@ func backfillGrowth(ctx context.Context, tx *wallet.Tx, now int64) error {
 	return nil
 }
 
-// FeedStock cho một con ăn (khi đói, hoặc phần no còn dưới 1/4): trừ thức ăn trong kho giống, no thêm FullFor giây, +1 XP.
+// FeedStock cho một con ăn (mỗi chu kỳ một lần): trừ thức ăn trong kho giống, no tới hết chu kỳ, +1 XP.
 func (f *Farm) FeedStock(ctx context.Context, uid int64, place string, id int64) (State, Gained, error) {
 	var g Gained
 	s, err := f.do(ctx, uid, func(tx *wallet.Tx, s State) error {
@@ -216,8 +217,10 @@ func (f *Farm) FeedStock(ctx context.Context, uid int64, place string, id int64)
 			return conflict(st.Name + " đã lớn, hãy thu hoạch")
 		}
 		if !a.canFeed(now) {
-			left := a.FedUntil - a.FullFor/4 - now
-			return conflict(fmt.Sprintf("%s còn no, cho ăn lại sau %s", st.Name, fmtWait(left)))
+			if p := yields[a.Kind].Product; p != nil && a.ProductReady {
+				return conflict(fmt.Sprintf("%s đã có %s, lấy trước rồi mới cho ăn chu kỳ sau", st.Name, p.Name))
+			}
+			return conflict(fmt.Sprintf("%s đã ăn cho chu kỳ này, no tới khi %s (còn %s)", st.Name, cycleGoal(a), fmtWait(a.FedUntil-now)))
 		}
 		fd, n := feedFor(pl), portions(a.Kind)
 		if s.Storage.Seeds.Items[fd.ID] < n {
@@ -232,15 +235,27 @@ func (f *Farm) FeedStock(ctx context.Context, uid int64, place string, id int64)
 	return s, g, err
 }
 
-// fed ghi lần cho ăn của một con (đã trừ thức ăn): no tới now + FullFor, cộng xp.
+// fed ghi lần cho ăn của một con (đã trừ thức ăn): no tới hết chu kỳ hiện tại, cộng xp.
 // Tiến độ đã được loadPen cộng tới now nên đổi fed_until không làm mất / thêm thời gian lớn.
 func fed(ctx context.Context, tx *wallet.Tx, uid int64, a Animal, now, xp int64) error {
 	if err := tx.AddXP(uid, xp); err != nil {
 		return err
 	}
 	_, err := tx.ExecContext(ctx, `UPDATE farm_stock SET fed_until = ?, fed_at = ? WHERE id = ? AND user_id = ?`,
-		now+fullFor(a.Kind), now, a.ID, uid)
+		a.fedUntilAfterMeal(now), now, a.ID, uid)
 	return err
+}
+
+// cycleGoal là cái chu kỳ hiện tại đang chờ: "lớn", "lớn và đẻ trứng", "cho sữa", "ra lông"...
+func cycleGoal(a Animal) string {
+	p := yields[a.Kind].Product
+	switch {
+	case p == nil:
+		return "lớn"
+	case a.Grown:
+		return produceVerb(p)
+	}
+	return "lớn và " + produceVerb(p)
 }
 
 // fmtWait ghi số giây chờ kiểu "4 phút 10 giây".

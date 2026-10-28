@@ -801,3 +801,52 @@
 @media (prefers-reduced-motion: reduce) {
   .city-toon .fx, .city-toon .fx i, .city-toon .prop.sway, .city-toon .cloud, .city-toon .river-flow, .city-toon .boat-sheet, .city-toon .wake { animation: none !important; }
 }
+
+/* ---------- Bạn bè ---------- */
+.friends-btn { position: relative; display: inline-flex; align-items: center; gap: 6px; font-weight: 800; }
+.friends-btn .icon { width: 18px; height: 18px; }
+.friends-badge {
+  position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px;
+  background: #ef4444; border: 2px solid #fff; color: #fff; font-size: 11px; font-weight: 900; line-height: 16px; text-align: center;
+}
+@media (max-width: 760px) { .friends-btn .friends-label { display: none; } .friends-btn { padding: 7px 9px; } }
+.fr-box h3 .fr-count { padding: 0 7px; border-radius: 999px; background: #ffe9a6; color: #8a4b00; font-size: 12px; }
+.fr-add { display: flex; gap: 8px; }
+.fr-add .input-icon { flex: 1; min-width: 0; }
+.fr-add input { width: 100%; }
+.fr-add button { flex-shrink: 0; }
+.fr-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.fr-row {
+  display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; gap: 8px;
+  padding: 6px 8px 6px 6px; border-radius: 16px; background: #fff; border: 2px solid var(--border); box-shadow: 0 3px 0 #ecd0a0;
+}
+.fr-row.invite { background: linear-gradient(180deg, #fffbe6, #fff0c4); border-color: #e7c27a; }
+.fr-avatar { width: 38px; height: 38px; }
+.fr-who { display: flex; flex-direction: column; min-width: 0; }
+.fr-name { display: flex; align-items: center; gap: 6px; min-width: 0; font-weight: 800; }
+.fr-name > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fr-lv { flex-shrink: 0; padding: 1px 6px; border-radius: 999px; background: #4f9cf9; color: #fff; font-style: normal; font-size: 10px; font-weight: 800; }
+.fr-meta { display: flex; flex-wrap: wrap; gap: 2px 8px; font-size: 11px; }
+.fr-meta > span { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.fr-meta .icon { width: 12px; height: 12px; }
+.fr-ripe.has { color: #15803d; font-weight: 800; }
+.fr-dog.on { color: #b45309; font-weight: 800; }
+.fr-dog.off { color: #94a3b8; }
+.fr-btns { display: flex; align-items: center; gap: 4px; }
+.fr-btns button, .fr-btns .btn { padding: 6px 10px; font-size: 13px; white-space: nowrap; }
+.fr-btns .icon-only { padding: 6px; }
+.fr-empty { margin: 0; font-size: 13px; }
+.fr-note { margin: 0; font-size: 12px; line-height: 1.45; }
+@media (max-width: 420px) {
+  .fr-row { grid-template-columns: 38px minmax(0, 1fr); }
+  .fr-btns { grid-column: 1 / -1; justify-content: flex-end; }
+}
+/* Điện thoại hẹp: thêm nút Bạn bè thì thu gọn thanh trên cùng để không tràn ngang. */
+@media (max-width: 430px) {
+  .topbar .user { gap: 5px; }
+  .friends-btn { padding: 6px 7px; }
+  .topbar .wallet-pill { gap: 5px; padding: 4px 9px 4px 5px; }
+  .topbar .wallet-pill .icon { width: 17px; height: 17px; }
+  .topbar .user-chip { padding-left: 2px; padding-right: 2px; }
+  .topbar .user-chip .icon { display: none; }
+}

@@ -104,6 +104,9 @@ func New(ctx context.Context, w *wallet.Wallet) (*Farm, error) {
 	if err := w.ExecSchema(ctx, schema); err != nil {
 		return nil, fmt.Errorf("tạo bảng nông trại: %w", err)
 	}
+	if err := w.ExecSchema(ctx, stealSchema); err != nil {
+		return nil, fmt.Errorf("tạo bảng chó / trộm: %w", err)
+	}
 	if err := migrate(ctx, w, time.Now().Unix()); err != nil {
 		return nil, fmt.Errorf("nâng cấp bảng nông trại: %w", err)
 	}
@@ -117,6 +120,7 @@ type Plot struct {
 	Crop      string `json:"crop"`
 	PlantedAt int64  `json:"plantedAt"`
 	ReadyAt   int64  `json:"readyAt"`
+	Stolen    bool   `json:"stolen"` // vụ này đã bị bạn bè trộm mất nông sản (thu hoạch chỉ còn XP), xem steal.go
 }
 
 // Animal là một con trong chuồng / sân / ao. Con vật chỉ lớn và cho sản phẩm trong lúc no (now < fedUntil).
@@ -138,6 +142,7 @@ type Animal struct {
 	ProductReady        bool    `json:"productReady"`
 	ProductProgress     float64 `json:"productProgress"`
 	growSec, productSec int64
+	cycleLeft           int64 // giây còn lại của chu kỳ hiện tại (lớn / ra sản phẩm), xem growth.go
 }
 
 type Pen struct {
@@ -159,16 +164,19 @@ type State struct {
 	Yard          *Pen    `json:"yard"` // sân gia cầm, luôn có
 	Pond          *Pen    `json:"pond"`
 	Storage       Storage `json:"storage"`
+	Dog           Dog     `json:"dog"`    // chó giữ nhà, xem dog.go
+	Thefts        []Theft `json:"thefts"` // nhật ký bạn bè vào trộm, mới nhất trước
 }
 
 // Gained là phần thưởng của một lần thu hoạch / bán.
 type Gained struct {
-	Coins int64          `json:"coins"`
-	XP    int64          `json:"xp"`
-	Count int            `json:"count,omitempty"`
-	Items map[string]int `json:"items,omitempty"` // nông sản / sản phẩm vừa vào kho
-	Spent int64          `json:"spent,omitempty"` // xu đã tiêu (gieo hàng loạt)
-	Used  map[string]int `json:"used,omitempty"`  // thức ăn đã dùng (feed_x → số phần)
+	Coins  int64          `json:"coins"`
+	XP     int64          `json:"xp"`
+	Count  int            `json:"count,omitempty"`
+	Items  map[string]int `json:"items,omitempty"`  // nông sản / sản phẩm vừa vào kho
+	Spent  int64          `json:"spent,omitempty"`  // xu đã tiêu (gieo hàng loạt / mua thức ăn khi cho ăn tất cả)
+	Used   map[string]int `json:"used,omitempty"`   // thức ăn đã dùng (feed_x → số phần)
+	Bought map[string]int `json:"bought,omitempty"` // thức ăn tự mua thêm khi cho ăn tất cả (feed_x → số phần)
 }
 
 type querier interface {
@@ -188,7 +196,9 @@ func ensurePlots(ctx context.Context, q querier, uid int64) error {
 }
 
 func loadPlots(ctx context.Context, q querier, uid int64) ([]Plot, error) {
-	rows, err := q.QueryContext(ctx, `SELECT idx, crop, planted_at, ready_at FROM farm_plots WHERE user_id = ? ORDER BY idx`, uid)
+	rows, err := q.QueryContext(ctx, `SELECT p.idx, p.crop, p.planted_at, p.ready_at,
+		p.crop != '' AND EXISTS (SELECT 1 FROM farm_stolen s WHERE s.user_id = p.user_id AND s.idx = p.idx AND s.planted_at = p.planted_at)
+		FROM farm_plots p WHERE p.user_id = ? ORDER BY p.idx`, uid)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +206,7 @@ func loadPlots(ctx context.Context, q querier, uid int64) ([]Plot, error) {
 	plots := []Plot{}
 	for rows.Next() {
 		var p Plot
-		if err := rows.Scan(&p.Index, &p.Crop, &p.PlantedAt, &p.ReadyAt); err != nil {
+		if err := rows.Scan(&p.Index, &p.Crop, &p.PlantedAt, &p.ReadyAt, &p.Stolen); err != nil {
 			return nil, err
 		}
 		plots = append(plots, p)
@@ -306,6 +316,12 @@ func (f *Farm) load(ctx context.Context, q querier, uid int64) (State, error) {
 	if s.Storage.Products, err = loadStore(ctx, q, uid, storeProducts); err != nil {
 		return State{}, err
 	}
+	if s.Dog, err = loadDog(ctx, q, uid, s.Now); err != nil {
+		return State{}, err
+	}
+	if s.Thefts, err = loadThefts(ctx, q, uid); err != nil {
+		return State{}, err
+	}
 	return s, nil
 }
 
@@ -316,6 +332,10 @@ func (f *Farm) State(ctx context.Context, uid int64) (State, error) {
 		return State{}, err
 	}
 	defer tx.Rollback()
+	// Cuộc chó đuổi quá hạn (kẻ trộm bỏ chạy giữa chừng) được chốt ở đây để nhật ký / máu cập nhật.
+	if err := settleChases(ctx, tx, f.now().UnixMilli()); err != nil {
+		return State{}, err
+	}
 	s, err := f.load(ctx, tx, uid)
 	if err != nil {
 		return State{}, err
@@ -330,6 +350,9 @@ func (f *Farm) do(ctx context.Context, uid int64, op func(tx *wallet.Tx, s State
 		return State{}, err
 	}
 	defer tx.Rollback()
+	if err := settleChases(ctx, tx, f.now().UnixMilli()); err != nil {
+		return State{}, err
+	}
 	s, err := f.load(ctx, tx, uid)
 	if err != nil {
 		return State{}, err
@@ -406,7 +429,10 @@ func (f *Farm) Plant(ctx context.Context, uid int64, plot int, cropID string) (S
 }
 
 func clearPlot(ctx context.Context, tx *wallet.Tx, uid int64, plot int) error {
-	_, err := tx.ExecContext(ctx, `UPDATE farm_plots SET crop = '', planted_at = 0, ready_at = 0 WHERE user_id = ? AND idx = ?`, uid, plot)
+	if _, err := tx.ExecContext(ctx, `UPDATE farm_plots SET crop = '', planted_at = 0, ready_at = 0 WHERE user_id = ? AND idx = ?`, uid, plot); err != nil {
+		return err
+	}
+	_, err := tx.ExecContext(ctx, `DELETE FROM farm_stolen WHERE user_id = ? AND idx = ?`, uid, plot)
 	return err
 }
 
@@ -424,6 +450,14 @@ func (f *Farm) Harvest(ctx context.Context, uid int64, plot int) (State, Gained,
 		}
 		if p.ReadyAt > f.now().Unix() {
 			return conflict(c.Name + " chưa chín")
+		}
+		if p.Stolen {
+			// Nông sản đã bị trộm: dọn ô, chỉ còn XP.
+			g = Gained{XP: c.XP, Count: 1}
+			if err := tx.AddXP(uid, c.XP); err != nil {
+				return err
+			}
+			return clearPlot(ctx, tx, uid, plot)
 		}
 		if s.Storage.Products.free() < 1 {
 			return productsFull(s.Storage.Products)
@@ -447,16 +481,26 @@ func (f *Farm) HarvestAll(ctx context.Context, uid int64) (State, Gained, error)
 		now := f.now().Unix()
 		free := s.Storage.Products.free()
 		g.Items = map[string]int{}
-		ripe := 0
+		ripe, stored := 0, 0 // stored: số nông sản cất vào kho (ô bị trộm không tốn chỗ)
 		for _, p := range s.Plots {
 			c, ok := findCrop(p.Crop)
 			if !ok || p.ReadyAt > now {
 				continue
 			}
 			ripe++
-			if g.Count >= free {
+			if p.Stolen {
+				// Ô bị trộm: dọn ô, chỉ còn XP, không tốn chỗ trong kho.
+				g.XP += c.XP
+				g.Count++
+				if err := clearPlot(ctx, tx, uid, p.Index); err != nil {
+					return err
+				}
 				continue
 			}
+			if stored >= free {
+				continue
+			}
+			stored++
 			g.XP += c.XP
 			g.Count++
 			g.Items[c.ID]++
@@ -593,9 +637,9 @@ func (f *Farm) BuyStock(ctx context.Context, uid int64, place, kind string) (Sta
 			return err
 		}
 		now := f.now().Unix()
-		// Con mới mua đã no sẵn FullFor giây.
+		// Con mới mua đang đói: cho ăn một lần là no tới lúc lớn.
 		_, err := tx.ExecContext(ctx, `INSERT INTO farm_stock (user_id, place, kind, bought_at, ready_at, fed_until, progress_at)
-			VALUES (?, ?, ?, ?, 0, ?, ?)`, uid, place, st.ID, now, now+fullFor(st.ID), now)
+			VALUES (?, ?, ?, ?, 0, ?, ?)`, uid, place, st.ID, now, now, now)
 		return err
 	})
 }

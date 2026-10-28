@@ -1,8 +1,30 @@
 package farm
 
 // ---------- Lớn và cho sản phẩm chỉ trong lúc no ----------
+//
+// Luật đói: mỗi chu kỳ chỉ cần cho ăn MỘT lần — ăn xong no tới hết chu kỳ đó. Con mới mua đang đói; bữa đầu
+// phủ cả lúc lớn lẫn lứa trứng / sữa / lông đầu tiên (con không cho sản phẩm thì no tới lúc lớn, chờ lấy thịt).
+// Sản phẩm có rồi mà chưa lấy thì chưa cần ăn; lấy xong thì đói, cho ăn một lần là ra lứa kế. Vd gà: mua → đói →
+// ăn → lớn và đẻ trứng → lấy trứng → đói → ăn → đẻ trứng...
 
-// fullFor là số giây một con no sau mỗi lần ăn (con mới mua cũng no sẵn chừng ấy).
+// feedSlack: phần no thiếu vài giây so với hết chu kỳ (đồng hồ lệch, làm tròn) thì coi như đã ăn đủ chu kỳ này.
+const feedSlack = 5
+
+// cycleSeconds là độ dài chu kỳ hiện tại của con: chưa lớn thì lớn + lứa sản phẩm đầu (nếu có), đã lớn thì một
+// lứa sản phẩm (Every); 0 nếu đã lớn mà không cho sản phẩm (chỉ còn lấy thịt / thu cá).
+func cycleSeconds(st Stock, grown bool) int64 {
+	every := int64(0)
+	if p := yields[st.ID].Product; p != nil {
+		every = p.Every
+	}
+	if !grown {
+		return st.GrowSeconds + every
+	}
+	return every
+}
+
+// fullFor là số giây no theo luật cũ (trước khi đổi sang mỗi chu kỳ ăn một lần) — chỉ còn dùng khi nâng cấp
+// database từ bản lớn theo đồng hồ.
 func fullFor(kind string) int64 {
 	switch kind {
 	case "chicken", "duck":
@@ -37,11 +59,19 @@ func (a *Animal) settle(st Stock, progressAt, now int64) {
 
 // derive tính các trường hiển thị từ tiến độ đã cộng tới now.
 func (a *Animal) derive(st Stock, now int64) {
-	a.FullFor = fullFor(st.ID)
+	a.FullFor = cycleSeconds(st, a.Grown)
 	a.Hungry = now >= a.FedUntil
 	a.Progress = min(1, float64(a.growSec)/float64(st.GrowSeconds))
 	fedLeft := max(0, a.FedUntil-now)
 	p := yields[st.ID].Product
+	// Phần còn lại của chu kỳ hiện tại (0: đã lớn mà không cho sản phẩm, hoặc sản phẩm đang chờ lấy).
+	a.cycleLeft = 0
+	if !a.Grown {
+		a.cycleLeft = st.GrowSeconds - a.growSec
+	}
+	if p != nil {
+		a.cycleLeft += max(0, p.Every-a.productSec)
+	}
 	if !a.Grown {
 		if left := st.GrowSeconds - a.growSec; left <= fedLeft {
 			a.ReadyAt = now + left
@@ -73,7 +103,13 @@ func (a Animal) needsFood() bool {
 	return !a.Grown || (yields[a.Kind].Product != nil && !a.ProductReady)
 }
 
-// canFeed: đói, hoặc phần no còn lại dưới 1/4 FullFor (cho ăn thêm để không bị gián đoạn).
+// canFeed: còn cần ăn và phần no chưa phủ hết chu kỳ hiện tại — tức là chưa ăn trong chu kỳ này
+// (con no theo luật cũ, chưa đủ tới hết chu kỳ, cũng cho ăn được một lần để no tới hết chu kỳ).
 func (a Animal) canFeed(now int64) bool {
-	return a.FedUntil-now < a.FullFor/4
+	return a.needsFood() && a.cycleLeft > 0 && a.FedUntil+feedSlack < now+a.cycleLeft
+}
+
+// fedUntilAfterMeal là lúc hết no nếu cho ăn bây giờ: hết chu kỳ hiện tại.
+func (a Animal) fedUntilAfterMeal(now int64) int64 {
+	return now + a.cycleLeft
 }

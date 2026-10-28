@@ -68,12 +68,23 @@ func (f *Farm) PlantAll(ctx context.Context, uid int64, cropID string) (State, G
 	return s, g, err
 }
 
-// FeedAll cho mọi con đang đói / sắp đói mà còn cần ăn (chưa lớn, hoặc đang chờ ra sản phẩm) ở chuồng, sân, ao ăn, trừ thức ăn trong kho giống tới khi hết.
-func (f *Farm) FeedAll(ctx context.Context, uid int64) (State, Gained, error) {
+// FeedAll cho mọi con chưa ăn trong chu kỳ này mà còn cần ăn (chưa lớn, hoặc đã lớn mà đang chờ ra sản phẩm)
+// ở chuồng, sân, ao ăn, trừ thức ăn trong kho giống. autoBuy: thiếu thức ăn thì mua đúng số phần còn thiếu
+// (trong cùng transaction, không quá chỗ trống kho giống và số xu) — không đủ thì mua được bao nhiêu cho ăn bấy nhiêu.
+func (f *Farm) FeedAll(ctx context.Context, uid int64, autoBuy bool) (State, Gained, error) {
 	var g Gained
 	s, err := f.do(ctx, uid, func(tx *wallet.Tx, s State) error {
 		now := f.now().Unix()
 		g.Used = map[string]int{}
+		g.Bought = map[string]int{}
+		bal := int64(0)
+		if autoBuy {
+			var err error
+			if bal, err = balance(ctx, tx, uid); err != nil {
+				return err
+			}
+		}
+		room := s.Storage.Seeds.free() // chỗ trống cho thức ăn mua thêm
 		hungry := 0
 		for _, place := range []string{placeBarn, placeYard, placePond} {
 			pen := penOf(s, place)
@@ -82,13 +93,19 @@ func (f *Farm) FeedAll(ctx context.Context, uid int64) (State, Gained, error) {
 			}
 			fd := feedFor(place)
 			for _, a := range append(pen.Animals, pen.Fish...) {
-				if !a.canFeed(now) || !a.needsFood() {
+				if !a.canFeed(now) {
 					continue
 				}
 				hungry++
 				n := portions(a.Kind)
-				if s.Storage.Seeds.Items[fd.ID]-g.Used[fd.ID] < n {
-					continue
+				have := s.Storage.Seeds.Items[fd.ID] + g.Bought[fd.ID] - g.Used[fd.ID]
+				if short := n - max(0, have); short > 0 {
+					if !autoBuy || short > room || int64(short)*fd.Price > bal-g.Spent {
+						continue
+					}
+					g.Bought[fd.ID] += short
+					g.Spent += int64(short) * fd.Price
+					room -= short
 				}
 				g.Used[fd.ID] += n
 				g.Count++
@@ -102,14 +119,69 @@ func (f *Farm) FeedAll(ctx context.Context, uid int64) (State, Gained, error) {
 			return conflict("không có con nào đang đói")
 		}
 		if g.Count == 0 {
+			if autoBuy {
+				return conflict("Không đủ xu hoặc kho giống đầy, không mua được thức ăn")
+			}
 			return conflict("Hết thức ăn, mua thêm ở cửa hàng")
 		}
-		for id, n := range g.Used {
-			if err := addItem(ctx, tx, uid, storeSeeds, id, -n); err != nil {
+		if g.Spent > 0 {
+			if err := tx.Charge(uid, g.Spent, GameID, "Mua thức ăn khi cho ăn tất cả"); err != nil {
 				return err
 			}
 		}
+		for id, n := range g.Used {
+			if err := addItem(ctx, tx, uid, storeSeeds, id, g.Bought[id]-n); err != nil {
+				return err
+			}
+		}
+		if len(g.Bought) == 0 {
+			g.Bought = nil
+		}
 		return nil
+	})
+	return s, g, err
+}
+
+// CollectAllAnimals thu mọi gia súc (chuồng) và gia cầm (sân) đã lớn lấy thịt vào kho sản phẩm, tới khi kho đầy.
+func (f *Farm) CollectAllAnimals(ctx context.Context, uid int64) (State, Gained, error) {
+	var g Gained
+	s, err := f.do(ctx, uid, func(tx *wallet.Tx, s State) error {
+		free := s.Storage.Products.free()
+		g.Items = map[string]int{}
+		ready := 0
+		for _, pen := range []*Pen{s.Barn, s.Yard} {
+			if pen == nil {
+				continue
+			}
+			for _, a := range pen.Animals {
+				if !a.Grown {
+					continue
+				}
+				ready++
+				if g.Count >= free {
+					continue
+				}
+				m := yields[a.Kind].Meat
+				if _, err := tx.ExecContext(ctx, `DELETE FROM farm_stock WHERE id = ? AND user_id = ?`, a.ID, uid); err != nil {
+					return err
+				}
+				g.Count++
+				g.XP += m.XP
+				g.Items[m.ID]++
+			}
+		}
+		if ready == 0 {
+			return conflict("chưa có con nào lớn để lấy thịt")
+		}
+		if g.Count == 0 {
+			return productsFull(s.Storage.Products)
+		}
+		for item, n := range g.Items {
+			if err := addItem(ctx, tx, uid, storeProducts, item, n); err != nil {
+				return err
+			}
+		}
+		return tx.AddXP(uid, g.XP)
 	})
 	return s, g, err
 }

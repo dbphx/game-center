@@ -105,15 +105,38 @@ Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè c
 ## Nông trại
 
 - 6 ô đất miễn phí, ô thứ 7 giá 10.000 xu, mỗi ô sau +2.000 xu, tối đa 48 ô. Cây có thời gian chín, level tối thiểu.
+  Cây ngắn lãi / giờ cao cho người chơi liên tục; cây dài (4–12 giờ) cho người treo máy:
+
+| Cây | Level | Hạt | Chín sau | Bán | XP |
+|---|---|---|---|---|---|
+| Rau muống | 1 | 30 | 1 phút | 52 | 1 |
+| Cà rốt | 1 | 50 | 2 phút | 90 | 2 |
+| Ngô | 1 | 80 | 5 phút | 160 | 4 |
+| Cà chua | 2 | 120 | 10 phút | 260 | 6 |
+| Khoai lang | 2 | 100 | 15 phút | 290 | 5 |
+| Lúa | 2 | 150 | 20 phút | 360 | 8 |
+| Bắp cải | 3 | 180 | 30 phút | 520 | 10 |
+| Dâu tây | 3 | 300 | 45 phút | 750 | 15 |
+| Ớt | 3 | 220 | 1 giờ | 820 | 14 |
+| Cà tím | 4 | 260 | 25 phút | 700 | 9 |
+| Dưa hấu | 4 | 500 | 2 giờ | 1.400 | 30 |
+| Dứa | 5 | 400 | 1 giờ | 1.250 | 18 |
+| Bí ngô | 5 | 600 | 4 giờ | 2.600 | 45 |
+| Thanh long | 6 | 800 | 6 giờ | 4.400 | 70 |
+| Nho | 7 | 1.000 | 3 giờ | 3.700 | 55 |
+| Sầu riêng | 8 | 2.000 | 12 giờ | 12.800 | 150 |
+
 - **Chuồng** (heo 1, cừu / bò 2 đơn vị) và **ao cá** (koi 3 đơn vị...): đều mở từ level 1, mặc định 5 đơn vị, mở rộng +5 tới 30.
   Chuồng 3.000 xu, mở rộng lần thứ n 20.000 × n; ao 2.500 xu, mở rộng lần thứ n 15.000 × n.
 - **Sân gia cầm**: gà, vịt (1 đơn vị) không ở chuồng mà đi quanh trang trại. Có sẵn cho mọi người, mặc định 10 đơn vị,
   mở rộng +5 tới 40, lần thứ n giá 10.000 × n xu. Gà vịt trong chuồng từ bản cũ được chuyển ra sân khi khởi động.
-- **Đói thì không lớn**: mỗi con (chuồng, sân, ao) chỉ lớn và ra trứng / sữa / lông **trong lúc no**. Mỗi lần ăn no
-  một khoảng: gà / vịt 20 phút, heo 30, cừu / bò 40, cá 20; con mới mua no sẵn chừng ấy. Hết no thì dừng lớn / dừng ra
-  sản phẩm (tiến độ giữ nguyên), cho ăn lại thì lớn tiếp phần còn lại. Cho ăn được khi đói hoặc phần no còn dưới 1/4.
+- **Mỗi chu kỳ đói một lần**: mỗi con (chuồng, sân, ao) chỉ lớn và ra trứng / sữa / lông **trong lúc no**, và mỗi chu kỳ
+  chỉ cần cho ăn **một lần** — ăn xong no tới hết chu kỳ. Con mới mua đang đói; bữa đầu no tới lúc lớn **và** ra lứa
+  sản phẩm đầu (heo, cá: no tới lúc lớn). Sản phẩm có rồi thì chưa cần ăn; lấy xong thì đói, một bữa cho một lứa kế.
+  Vd gà: mua → đói → ăn → lớn và đẻ trứng → lấy trứng → đói → ăn → đẻ trứng... Đói thì dừng (tiến độ giữ nguyên).
+  Đã ăn cho chu kỳ này thì không cho ăn thêm được. Con no theo luật cũ (chưa đủ hết chu kỳ) được ăn một lần cho đủ.
 - **Thức ăn** là **vật phẩm mua trước** ở cửa hàng, cất trong kho giống (mỗi phần chiếm 1 chỗ): Thóc cho gà vịt 15 xu,
-  Cám gia súc 50 xu, Thức ăn cá 10 xu mỗi phần. Mỗi lần ăn 1 phần (bò, cừu, cá koi 2 phần); hết thức ăn thì không cho
+  Cám gia súc 50 xu, Thức ăn cá 10 xu, Thức ăn cho chó 40 xu mỗi phần. Mỗi lần ăn 1 phần (bò, cừu, cá koi 2 phần); hết thức ăn thì không cho
   ăn được. Cho ăn +1 XP. Con đã lớn không cho sản phẩm (heo, cá) thì không cần ăn nữa.
 - **Sản phẩm vật nuôi**: con đã lớn cứ mỗi chu kỳ (tính trong lúc no) cho 1 món (để lâu vẫn chỉ 1 món chờ lấy), lấy vào kho sản phẩm;
   hoặc **lấy thịt** (con vật mất, được thịt vào kho). Cá thu nguyên con như cũ.
@@ -127,7 +150,9 @@ Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè c
 | Bò | Sữa bò — 20 phút, 300 xu, 5 XP | 3.400 xu, 35 XP |
 
 - **Làm nhanh**: gieo hạt mọi ô trống (dùng hạt trong kho trước, thiếu thì mua tới khi hết xu), thu hoạch tất cả,
-  cho mọi con đói ăn (tới khi hết thức ăn), lấy hết trứng / sữa / lông, thu hết cá đã lớn (tới khi kho đầy).
+  cho mọi con đói ăn (tới khi hết thức ăn; `autoBuy` thì tự mua đúng phần thức ăn còn thiếu, trong giới hạn xu và
+  chỗ trống kho giống — giao diện hỏi trước, vd "Thiếu 6 Cám gia súc, 4 Thóc — mua 315 xu rồi cho ăn?"), lấy hết trứng /
+  sữa / lông, thu hết cá đã lớn, lấy thịt tất cả gia súc / gia cầm đã lớn (tới khi kho đầy; phím Shift+M).
 - **Kho giống**: mua hạt theo số lượng (1–100 hạt/lần) cất vào kho; gieo hạt lấy từ kho, hết hạt thì tự mua 1 hạt.
   Sức chứa 50, mở rộng +25 tới 300, lần mở rộng thứ n giá 10.000 × n xu.
 - **Kho sản phẩm**: thu hoạch cây và thu vật nuôi / cá đã lớn → vào kho (cộng XP lúc thu); bán ở kho mới được xu.
@@ -145,7 +170,7 @@ Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè c
 | `POST /api/farm/{animals,poultry,fish}/buy` (chuồng / sân / ao) | `{kind}` |
 | `POST /api/farm/{animals,poultry,fish}/feed` (cho ăn), `/collect` (vật nuôi, gia cầm: lấy thịt; cá: vào kho), `/sell` (bán thẳng) | `{id}` |
 | `POST /api/farm/{animals,poultry}/produce` (lấy trứng / sữa / lông vào kho) | `{id}` |
-| `POST /api/farm/plant-all`, `/feed-all`, `/produce-all`, `/fish/collect-all` (làm nhanh; `gained.spent` = xu đã tiêu, `gained.used` = thức ăn đã dùng) | `{crop}` / — |
+| `POST /api/farm/plant-all`, `/feed-all`, `/produce-all`, `/fish/collect-all`, `/animals/collect-all` (làm nhanh; `gained.spent` = xu đã tiêu, `gained.used` = thức ăn đã dùng, `gained.bought` = thức ăn tự mua thêm) | `{crop}` / `{autoBuy}` / — |
 | `POST /api/farm/products/sell` (qty 0 = bán hết món đó), `/products/sell-all` | `{item, qty}` / — |
 | `POST /api/farm/storage/{seeds,products}/expand` | |
 
@@ -314,6 +339,31 @@ Bằng tổng thì ai tạo tài khoản trước đứng trên. Bảng chỉ c�
 |---|---|
 | `GET /api/fame` | `{updatedAt (ms), top:[{rank,id,name,level,gender,outfit,hair,wings,face,total,coins,items,farm}], me}`; `me` (cùng dạng một dòng, hạng thật trong mọi người chơi) chỉ có khi gửi token hợp lệ |
 
+## Bạn bè, trộm nông trại và chó giữ nhà
+
+- **Kết bạn**: mời theo tên đăng nhập (không phân biệt hoa thường) hoặc id; người kia chấp nhận / từ chối (người mời cũng
+  rút lại được bằng decline); huỷ kết bạn xoá cả hai chiều. Tối đa 100 bạn. Hai người mời chéo nhau thì thành bạn luôn.
+- **Trộm**: chỉ vào được nông trại của bạn bè, chỉ trộm ô cây đã chín. Mỗi ô chỉ ra 1 nông sản nên kẻ trộm lấy đúng
+  nông sản đó vào kho sản phẩm của mình (kho đầy thì không trộm được); chủ thu hoạch ô bị trộm chỉ còn XP. Mỗi vụ một ô
+  chỉ bị trộm thành công một lần, và mỗi người chỉ được **thử** mỗi ô một lần mỗi vụ (bị bắt cũng mất lượt thử).
+  Mỗi người được thử 5 lần / ngày (giờ Việt Nam) trên một nhà.
+- **Chó giữ nhà**: cho ăn 1 phần *Thức ăn cho chó* (40 xu, mua ở cửa hàng, cất kho giống) thì no **4 giờ**; chỉ cho ăn
+  được khi đói hoặc còn no dưới 1 giờ. Chó đói không canh: trộm lấy được ngay. Chó no thì **đuổi theo** kẻ trộm
+  (tốc độ 255, người chơi 230 đơn vị / giây): chạy ra tới cổng là thoát, lấy được đồ; bị chó chạm thì mất **50 máu**
+  (hết máu thì nằm viện như bị xe đụng), không lấy được gì. Trong lúc đuổi ô đó khoá với người khác. Server kiểm tra:
+  báo thoát sớm hơn 1,5 giây kể từ lúc bắt đầu, hoặc không báo kết quả trong 20 giây, đều tính là bị bắt.
+  Chủ nhà xem nhật ký 50 lần trộm gần nhất trong `GET /api/farm` (`thefts`).
+
+| API (cần đăng nhập) | Body | Mô tả |
+|---|---|---|
+| `GET /api/friends` | | `{friends:[{id,name,level,gender,outfit,hair,wings,face,online,ripe,dogGuarding}], incoming:[…], outgoing:[…]}`; `ripe` = số ô chín chưa bị trộm |
+| `POST /api/friends/request` | `{username}` hoặc `{id}` | gửi lời mời (trùng / đã là bạn → 409); trả như GET |
+| `POST /api/friends/accept`, `/decline`, `/remove` | `{id}` | trả như GET |
+| `GET /api/friends/{id}/farm` | | `{owner, now, plots:[{index,crop,plantedAt,readyAt,ripe,stolen,tried,locked}], dog:{fedUntil,guarding,fullFor}, stealsLeft}`; không phải bạn → 403 |
+| `POST /api/friends/{id}/steal` | `{plot}` | chó đói: `{result:"stolen", item, qty, hpLost:0, farm, user}`; chó canh: `{result:"chase", chase:{id,plot,item,qty,startedAt,dogSpeed,minMs,expiresAt}, …}` (ms); chưa chín / đã bị trộm / đã thử / đang có người trộm / hết lượt / kho đầy → 409 |
+| `POST /api/friends/{id}/steal/finish` | `{chase, escaped}` | `{result:"stolen"\|"caught"\|"gone", item, qty, hpLost, farm, user}`; `gone` = chủ đã thu hoạch trong lúc đuổi; token sai → 404, đã dùng → 409 |
+| `POST /api/farm/dog/feed` | | cho chó ăn; `GET /api/farm` có thêm `dog:{fedUntil,guarding,fullFor}` và `thefts:[{at,thief:{id,name},item,qty,caught,hpLost,chasing}]` |
+
 ## Tiến Lên Miền Nam
 
 1. Ở hub chọn **Tiến Lên Miền Nam** → **Tạo phòng mới**, gửi link phòng cho bạn bè. Bạn bè mở link, tạo tài khoản (nếu chưa có) là vào thẳng phòng.
@@ -366,6 +416,7 @@ games/cangua/            cờ cá ngựa 2–4 người: luật đi / đá / lê
 games/site/              công trường: ca làm thuê, tiền công theo điểm, giới hạn ngày
 games/fishing/           hồ câu cá: mồi, thả câu (kết quả quay ở server), giỏ cá, kỷ lục
 games/fame/              khu danh vọng: xếp hạng tổng tài sản (xu + đồ thời trang + nông trại)
+games/friends/           bạn bè: lời mời, chấp nhận, huỷ; xem và trộm nông trại của bạn (luật trộm, chó ở games/farm/)
 public/                  bản đồ thành phố (index.html, hub.js, city.js), nhân vật (character.js),
                          phần dùng chung (account.js, icons.js, common.css)
 public/tienlen/          giao diện Tiến Lên

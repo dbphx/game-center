@@ -2110,6 +2110,667 @@
    "source": [
     "DCity (vẽ bằng PIL)"
    ]
+  },
+  {
+   "file": "crop_water_spinach_1.png",
+   "w": 96,
+   "h": 120,
+   "use": "Rau muống giai đoạn 1 (mầm)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "water_spinach",
+   "stage": 1
+  },
+  {
+   "file": "crop_water_spinach_2.png",
+   "w": 96,
+   "h": 120,
+   "use": "Rau muống giai đoạn 2 (đang lớn)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "water_spinach",
+   "stage": 2
+  },
+  {
+   "file": "crop_water_spinach_ripe.png",
+   "w": 96,
+   "h": 120,
+   "use": "Rau muống chín, chờ thu hoạch",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "water_spinach",
+   "stage": 3
+  },
+  {
+   "file": "item_water_spinach.png",
+   "w": 44,
+   "h": 60,
+   "use": "Nông sản Rau muống (biểu tượng cửa hàng / hiệu ứng thu hoạch)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "seed_water_spinach.png",
+   "w": 72,
+   "h": 80,
+   "use": "Túi hạt giống Rau muống (kho giống, chọn hạt)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "crop": "water_spinach"
+  },
+  {
+   "file": "crop_sweet_potato_1.png",
+   "w": 96,
+   "h": 120,
+   "use": "Khoai lang giai đoạn 1 (mầm)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "sweet_potato",
+   "stage": 1
+  },
+  {
+   "file": "crop_sweet_potato_2.png",
+   "w": 96,
+   "h": 120,
+   "use": "Khoai lang giai đoạn 2 (đang lớn)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "sweet_potato",
+   "stage": 2
+  },
+  {
+   "file": "crop_sweet_potato_ripe.png",
+   "w": 96,
+   "h": 120,
+   "use": "Khoai lang chín, chờ thu hoạch",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "sweet_potato",
+   "stage": 3
+  },
+  {
+   "file": "item_sweet_potato.png",
+   "w": 60,
+   "h": 40,
+   "use": "Nông sản Khoai lang (biểu tượng cửa hàng / hiệu ứng thu hoạch)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "seed_sweet_potato.png",
+   "w": 72,
+   "h": 80,
+   "use": "Túi hạt giống Khoai lang (kho giống, chọn hạt)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "crop": "sweet_potato"
+  },
+  {
+   "file": "crop_cabbage_1.png",
+   "w": 96,
+   "h": 120,
+   "use": "Bắp cải giai đoạn 1 (mầm)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "cabbage",
+   "stage": 1
+  },
+  {
+   "file": "crop_cabbage_2.png",
+   "w": 96,
+   "h": 120,
+   "use": "Bắp cải giai đoạn 2 (đang lớn)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "cabbage",
+   "stage": 2
+  },
+  {
+   "file": "crop_cabbage_ripe.png",
+   "w": 96,
+   "h": 120,
+   "use": "Bắp cải chín, chờ thu hoạch",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "cabbage",
+   "stage": 3
+  },
+  {
+   "file": "item_cabbage.png",
+   "w": 56,
+   "h": 52,
+   "use": "Nông sản Bắp cải (biểu tượng cửa hàng / hiệu ứng thu hoạch)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "seed_cabbage.png",
+   "w": 72,
+   "h": 80,
+   "use": "Túi hạt giống Bắp cải (kho giống, chọn hạt)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "crop": "cabbage"
+  },
+  {
+   "file": "crop_chili_1.png",
+   "w": 96,
+   "h": 120,
+   "use": "Ớt giai đoạn 1 (mầm)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "chili",
+   "stage": 1
+  },
+  {
+   "file": "crop_chili_2.png",
+   "w": 96,
+   "h": 120,
+   "use": "Ớt giai đoạn 2 (đang lớn)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "chili",
+   "stage": 2
+  },
+  {
+   "file": "crop_chili_ripe.png",
+   "w": 96,
+   "h": 120,
+   "use": "Ớt chín, chờ thu hoạch",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "chili",
+   "stage": 3
+  },
+  {
+   "file": "item_chili.png",
+   "w": 46,
+   "h": 60,
+   "use": "Nông sản Ớt (biểu tượng cửa hàng / hiệu ứng thu hoạch)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "seed_chili.png",
+   "w": 72,
+   "h": 80,
+   "use": "Túi hạt giống Ớt (kho giống, chọn hạt)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "crop": "chili"
+  },
+  {
+   "file": "crop_eggplant_1.png",
+   "w": 96,
+   "h": 120,
+   "use": "Cà tím giai đoạn 1 (mầm)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "eggplant",
+   "stage": 1
+  },
+  {
+   "file": "crop_eggplant_2.png",
+   "w": 96,
+   "h": 120,
+   "use": "Cà tím giai đoạn 2 (đang lớn)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "eggplant",
+   "stage": 2
+  },
+  {
+   "file": "crop_eggplant_ripe.png",
+   "w": 96,
+   "h": 120,
+   "use": "Cà tím chín, chờ thu hoạch",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "eggplant",
+   "stage": 3
+  },
+  {
+   "file": "item_eggplant.png",
+   "w": 40,
+   "h": 62,
+   "use": "Nông sản Cà tím (biểu tượng cửa hàng / hiệu ứng thu hoạch)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "seed_eggplant.png",
+   "w": 72,
+   "h": 80,
+   "use": "Túi hạt giống Cà tím (kho giống, chọn hạt)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "crop": "eggplant"
+  },
+  {
+   "file": "crop_pineapple_1.png",
+   "w": 96,
+   "h": 120,
+   "use": "Dứa giai đoạn 1 (mầm)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "pineapple",
+   "stage": 1
+  },
+  {
+   "file": "crop_pineapple_2.png",
+   "w": 96,
+   "h": 120,
+   "use": "Dứa giai đoạn 2 (đang lớn)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "pineapple",
+   "stage": 2
+  },
+  {
+   "file": "crop_pineapple_ripe.png",
+   "w": 96,
+   "h": 120,
+   "use": "Dứa chín, chờ thu hoạch",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "pineapple",
+   "stage": 3
+  },
+  {
+   "file": "item_pineapple.png",
+   "w": 42,
+   "h": 70,
+   "use": "Nông sản Dứa (biểu tượng cửa hàng / hiệu ứng thu hoạch)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "seed_pineapple.png",
+   "w": 72,
+   "h": 80,
+   "use": "Túi hạt giống Dứa (kho giống, chọn hạt)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "crop": "pineapple"
+  },
+  {
+   "file": "crop_pumpkin_1.png",
+   "w": 96,
+   "h": 120,
+   "use": "Bí ngô giai đoạn 1 (mầm)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "pumpkin",
+   "stage": 1
+  },
+  {
+   "file": "crop_pumpkin_2.png",
+   "w": 96,
+   "h": 120,
+   "use": "Bí ngô giai đoạn 2 (đang lớn)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "pumpkin",
+   "stage": 2
+  },
+  {
+   "file": "crop_pumpkin_ripe.png",
+   "w": 96,
+   "h": 120,
+   "use": "Bí ngô chín, chờ thu hoạch",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "pumpkin",
+   "stage": 3
+  },
+  {
+   "file": "item_pumpkin.png",
+   "w": 64,
+   "h": 54,
+   "use": "Nông sản Bí ngô (biểu tượng cửa hàng / hiệu ứng thu hoạch)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "seed_pumpkin.png",
+   "w": 72,
+   "h": 80,
+   "use": "Túi hạt giống Bí ngô (kho giống, chọn hạt)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "crop": "pumpkin"
+  },
+  {
+   "file": "crop_dragon_fruit_1.png",
+   "w": 96,
+   "h": 120,
+   "use": "Thanh long giai đoạn 1 (mầm)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "dragon_fruit",
+   "stage": 1
+  },
+  {
+   "file": "crop_dragon_fruit_2.png",
+   "w": 96,
+   "h": 120,
+   "use": "Thanh long giai đoạn 2 (đang lớn)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "dragon_fruit",
+   "stage": 2
+  },
+  {
+   "file": "crop_dragon_fruit_ripe.png",
+   "w": 96,
+   "h": 120,
+   "use": "Thanh long chín, chờ thu hoạch",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "dragon_fruit",
+   "stage": 3
+  },
+  {
+   "file": "item_dragon_fruit.png",
+   "w": 50,
+   "h": 62,
+   "use": "Nông sản Thanh long (biểu tượng cửa hàng / hiệu ứng thu hoạch)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "seed_dragon_fruit.png",
+   "w": 72,
+   "h": 80,
+   "use": "Túi hạt giống Thanh long (kho giống, chọn hạt)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "crop": "dragon_fruit"
+  },
+  {
+   "file": "crop_grape_1.png",
+   "w": 96,
+   "h": 120,
+   "use": "Nho giai đoạn 1 (mầm)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "grape",
+   "stage": 1
+  },
+  {
+   "file": "crop_grape_2.png",
+   "w": 96,
+   "h": 120,
+   "use": "Nho giai đoạn 2 (đang lớn)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "grape",
+   "stage": 2
+  },
+  {
+   "file": "crop_grape_ripe.png",
+   "w": 96,
+   "h": 120,
+   "use": "Nho chín, chờ thu hoạch",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "grape",
+   "stage": 3
+  },
+  {
+   "file": "item_grape.png",
+   "w": 46,
+   "h": 62,
+   "use": "Nông sản Nho (biểu tượng cửa hàng / hiệu ứng thu hoạch)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "seed_grape.png",
+   "w": 72,
+   "h": 80,
+   "use": "Túi hạt giống Nho (kho giống, chọn hạt)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "crop": "grape"
+  },
+  {
+   "file": "crop_durian_1.png",
+   "w": 96,
+   "h": 120,
+   "use": "Sầu riêng giai đoạn 1 (mầm)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "durian",
+   "stage": 1
+  },
+  {
+   "file": "crop_durian_2.png",
+   "w": 96,
+   "h": 120,
+   "use": "Sầu riêng giai đoạn 2 (đang lớn)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "durian",
+   "stage": 2
+  },
+  {
+   "file": "crop_durian_ripe.png",
+   "w": 96,
+   "h": 120,
+   "use": "Sầu riêng chín, chờ thu hoạch",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Cooking & Farming Game Pack"
+   ],
+   "crop": "durian",
+   "stage": 3
+  },
+  {
+   "file": "item_durian.png",
+   "w": 60,
+   "h": 60,
+   "use": "Nông sản Sầu riêng (biểu tượng cửa hàng / hiệu ứng thu hoạch)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "seed_durian.png",
+   "w": 72,
+   "h": 80,
+   "use": "Túi hạt giống Sầu riêng (kho giống, chọn hạt)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "crop": "durian"
+  },
+  {
+   "file": "item_feed_dog.png",
+   "w": 90,
+   "h": 100,
+   "use": "Thức ăn cho chó (kho giống, cửa hàng)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
   }
  ]
 }

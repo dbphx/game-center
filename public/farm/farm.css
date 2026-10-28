@@ -785,3 +785,96 @@ button.danger { background: linear-gradient(180deg, #ff8a7a, #e03131); border-co
 .pc-full > span { display: block; height: 100%; background: linear-gradient(90deg, #ffd27a, #ff9f1c); }
 .pc-note { font-size: 11px; color: var(--muted); max-width: 200px; text-align: center; }
 .pet-card [data-card=feed] { animation: glow 1.4s ease-in-out infinite; }
+
+/* ---------- Chó giữ nhà ---------- */
+/* Đói: nằm bẹp, xám màu, không đi tuần (farm.js giữ đứng yên). */
+.pet.decor-pet.dog-hungry .pet-jump { transform: scaleY(.8) rotate(-5deg); transform-origin: 50% 100%; }
+.pet.decor-pet.dog-hungry .pet-body { filter: grayscale(.45) brightness(.92); }
+.dog-guard {
+  position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); display: inline-flex; padding: 3px;
+  border-radius: 999px; background: #fff7d6; border: 2px solid #f0b429; color: #b45309; box-shadow: 0 2px 0 rgba(120, 70, 0, .25);
+}
+.dog-guard .icon { width: 14px; height: 14px; }
+.gain.lose { color: #ef4444; -webkit-text-stroke: 1px #7f1d1d; }
+
+/* Nhật ký trộm */
+.thefts-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; font-weight: 800; box-shadow: var(--shadow); }
+.thefts-btn .icon { width: 18px; height: 18px; color: #b45309; }
+.thefts-btn.new { animation: thefts-new 1s ease-in-out 4; border-color: #ef4444; }
+@keyframes thefts-new { 50% { transform: scale(1.08); } }
+.thefts-body { overflow-y: auto; min-height: 0; }
+.theft-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.theft-list li {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 14px;
+  background: #fff6e2; border: 2px solid #e7c27a; font-size: 14px;
+}
+.theft-list li.caught { background: #eefbe7; border-color: #9fd97a; }
+.theft-list li > span { display: flex; flex-direction: column; min-width: 0; }
+.theft-list small { font-size: 12px; }
+.theft-list img { flex-shrink: 0; object-fit: contain; }
+
+/* ---------- Đang ở nhà bạn ---------- */
+.visiting .toolbar, .visiting .quick-float, .visiting .tool-tip, .visiting .thefts-btn, .visiting .farm-title .help { display: none !important; }
+.visiting .obj-label.offer, .visiting .obj.building .obj-label .cap-mini, .visiting .obj.building .obj-label em { display: none; }
+/* Nhà bạn: lô chuồng / ao chưa mua chỉ là bãi cỏ, không hiện biển "Mua … xu". */
+.visiting .empty-lot .lot-sign { display: none; }
+.visit-bar {
+  position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 6000; /* trên cây / hàng rào trong cảnh (z tới ~5000) */
+  display: flex; align-items: center; gap: 10px; max-width: calc(100% - 24px); padding: 6px 8px 6px 6px; border-radius: 22px;
+  background: rgba(255, 251, 236, .96); border: 3px solid var(--border); box-shadow: var(--shadow);
+}
+.vb-avatar { width: 42px; height: 42px; flex-shrink: 0; }
+.vb-text { display: flex; flex-direction: column; min-width: 0; font-size: 14px; }
+.vb-text b { font-family: var(--font-title); }
+.vb-meta { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 12px; font-weight: 800; color: var(--muted); }
+.vb-meta > span { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.vb-meta .icon { width: 13px; height: 13px; }
+.vb-steal { color: #b45309; }
+.vb-steal.none { color: #94a3b8; }
+.vb-steal.pop { animation: bag-pop .35s ease-out; }
+@keyframes bag-pop { 50% { transform: scale(1.25); } }
+.vb-dog.on { color: #b91c1c; }
+.vb-dog.off { color: #15803d; }
+.vb-home { flex-shrink: 0; white-space: nowrap; }
+.steal-fly {
+  position: fixed; z-index: 60; width: 44px; height: 44px; object-fit: contain; pointer-events: none;
+  transition: transform .7s cubic-bezier(.4, -.3, .6, 1), opacity .7s ease-in;
+}
+.tag-pill.steal { background: linear-gradient(180deg, #ff9b7a, #e8590c); border-color: #9a3412; }
+.tag-pill.stolen { color: #6b7280; background: #f3f4f6; border-color: #cbd5e1; }
+.plot-top.stolen .crop img { filter: grayscale(.7) opacity(.55); animation: none; }
+.vb-text { flex: 1 1 auto; }
+@media (max-width: 600px) {
+  .visit-bar { bottom: 10px; gap: 6px; left: 10px; right: 10px; transform: none; max-width: none; }
+  .vb-meta { gap: 0 8px; }
+  .vb-long { display: none; }
+  .vb-text { font-size: 13px; }
+  .vb-home { padding: 7px 10px; font-size: 13px; }
+  .thefts-btn span { display: none; }
+  .thefts-btn { padding: 8px; }
+}
+.visiting .plot.stolen, .visiting .plot.empty.visit { cursor: default; }
+
+/* Bị chó đuổi: băng "Chạy ra cổng!", mũi tên trên đầu chỉ về cổng, cổng nhấp nháy. */
+.chase-bar {
+  position: fixed; left: 50%; top: 74px; transform: translateX(-50%); z-index: 6100; white-space: nowrap; max-width: calc(100vw - 20px);
+  display: flex; align-items: center; gap: 12px; padding: 8px 18px; border-radius: 999px;
+  background: linear-gradient(180deg, #ff6b5a, #d6331f); border: 3px solid #fff; color: #fff;
+  box-shadow: 0 4px 0 #8f1d10, var(--shadow); font: 900 18px var(--font-title); animation: chase-pulse .6s ease-in-out infinite alternate;
+}
+.chase-bar b { display: inline-flex; align-items: center; gap: 6px; }
+.chase-bar span { font-size: 14px; opacity: .95; }
+@keyframes chase-pulse { to { transform: translateX(-50%) scale(1.05); } }
+.chase-arrow {
+  position: absolute; z-index: 4000; display: inline-flex; padding: 6px; border-radius: 50%; pointer-events: none;
+  background: #ffd34d; border: 3px solid #fff; color: #8a2b00; box-shadow: 0 3px 0 #a14b00;
+}
+.chase-arrow .icon { width: 22px; height: 22px; stroke-width: 3; }
+.obj.gate.chase-goal img { animation: goal-glow .7s ease-in-out infinite alternate; }
+@keyframes goal-glow { to { filter: drop-shadow(0 0 14px #ffe14d) brightness(1.15); } }
+.chasing .visit-bar { opacity: .6; }
+@media (max-width: 600px) { .chase-bar { top: 70px; gap: 8px; font-size: 16px; padding: 6px 14px; } }
+/* Thẻ con vật / chó đang mở: ẩn gợi ý "E …" (đè lên nút trong thẻ, bấm nhầm thành thao tác khác). */
+.pet-card:not(.hidden) ~ .hint { display: none; }
+/* Nhà bạn: thông báo nổi phía trên băng "Đang ở nhà …" thay vì bị băng che. */
+.visiting .toast { z-index: 7000; bottom: 96px; }

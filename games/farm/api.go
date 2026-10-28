@@ -57,6 +57,8 @@ func (f *Farm) Handler() http.Handler {
 		Qty  int    `json:"qty"`
 		Item string `json:"item"`
 		Feed string `json:"feed"`
+		// AutoBuy: cho ăn tất cả thì tự mua thức ăn còn thiếu.
+		AutoBuy bool `json:"autoBuy"`
 	}
 	// handle bọc xác thực, đọc body và gọi thao tác; thao tác trả State và (tuỳ chọn) phần thưởng.
 	handle := func(pattern string, op func(r *http.Request, uid int64, b body) (State, *Gained, error)) {
@@ -145,14 +147,22 @@ func (f *Farm) Handler() http.Handler {
 	handle("POST /api/farm/plant-all", func(r *http.Request, uid int64, b body) (State, *Gained, error) {
 		return gain(f.PlantAll(r.Context(), uid, b.Crop))
 	})
-	handle("POST /api/farm/feed-all", func(r *http.Request, uid int64, _ body) (State, *Gained, error) {
-		return gain(f.FeedAll(r.Context(), uid))
+	handle("POST /api/farm/feed-all", func(r *http.Request, uid int64, b body) (State, *Gained, error) {
+		return gain(f.FeedAll(r.Context(), uid, b.AutoBuy))
+	})
+	handle("POST /api/farm/animals/collect-all", func(r *http.Request, uid int64, _ body) (State, *Gained, error) {
+		return gain(f.CollectAllAnimals(r.Context(), uid))
 	})
 	handle("POST /api/farm/produce-all", func(r *http.Request, uid int64, _ body) (State, *Gained, error) {
 		return gain(f.ProduceAll(r.Context(), uid))
 	})
 	handle("POST /api/farm/fish/collect-all", func(r *http.Request, uid int64, _ body) (State, *Gained, error) {
 		return gain(f.CollectAllFish(r.Context(), uid))
+	})
+
+	// Chó giữ nhà: cho ăn một phần thức ăn cho chó, no 4 giờ.
+	handle("POST /api/farm/dog/feed", func(r *http.Request, uid int64, _ body) (State, *Gained, error) {
+		return noGain(f.FeedDog(r.Context(), uid))
 	})
 
 	// Kho giống và kho sản phẩm.

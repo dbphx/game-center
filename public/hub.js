@@ -7,7 +7,7 @@
   const City = window.City;
   const $ = (id) => document.getElementById(id);
 
-  const ZONE_ICON = { plaza: 'mapPin', casino: 'layers', shop: 'shirt', bank: 'landmark', farm: 'sprout', hospital: 'hospital', site: 'hammer', fishing: 'fish', fame: 'trophy' };
+  const ZONE_ICON = { plaza: 'mapPin', casino: 'layers', shop: 'shirt', bank: 'landmark', farm: 'sprout', hospital: 'hospital', site: 'hammer', fishing: 'fish', fame: 'trophy', friends: 'users' };
   const GAME_PATH = { tienlen: '/tienlen/' };
 
   let user = null;
@@ -385,7 +385,22 @@
     if (!fame || Date.now() - fameAt > 30000) loadFame();
   }
 
+  // ---------- Bạn bè (bảng mở từ nút trên thanh trên cùng, không phải một khu trên bản đồ) ----------
+
+  function friendsBadge(d) {
+    const n = (d && d.incoming && d.incoming.length) || 0;
+    const el = $('friends-badge');
+    el.textContent = n;
+    el.classList.toggle('hidden', !n);
+    $('btn-friends').title = n ? `Bạn bè · ${n} lời mời kết bạn` : 'Bạn bè';
+  }
+  window.Friends.onChange(friendsBadge);
+
   const PANELS = {
+    friends() {
+      return `${panelHead('friends', 'Bạn bè', 'Kết bạn · sang nhà bạn trộm cây chín')}
+        <div class="panel-section fr-box" id="friends-box"></div>`;
+    },
     fame() {
       return `${panelHead('fame', 'Khu danh vọng', 'Top 10 đại gia của DCity')}
         <div class="panel-section">
@@ -609,7 +624,7 @@
     let x = 0;
     try { x = City.zoneX(zone); } catch (e) { /* khu chưa có trên bản đồ */ }
     $('panel').classList.toggle('left', x >= 900);
-    const allowed = canEnter(zone);
+    const allowed = zone === 'friends' || canEnter(zone);
     $('panel-body').innerHTML = allowed ? PANELS[zone]() : gatePanel(zone);
     // Chỉ nút vào đầu tiên mang nhãn Enter (Enter bấm nút đó).
     $('panel-body').querySelectorAll('.enter-kbd').forEach((k, i) => i > 0 && k.remove());
@@ -623,6 +638,7 @@
     if (zone === 'shop') bindShop();
     if (zone === 'hospital') bindHospital();
     if (zone === 'fame') bindFame();
+    if (zone === 'friends') window.Friends.mount($('friends-box'));
     tick();
   }
 
@@ -782,6 +798,9 @@
       setInterval(() => A.me().then((u) => u && (setUser(u), renderHUD())).catch(() => {}), 30000);
       await loadGames();
       setInterval(loadGames, 15000);
+      // Số lời mời kết bạn mới trên nút Bạn bè.
+      window.Friends.load();
+      setInterval(() => current !== 'friends' && window.Friends.load(), 60000);
     } else {
       City.setLook(look(user));
     }
@@ -826,6 +845,11 @@
   });
 
   $('panel-close').addEventListener('click', closePanel);
+  $('btn-friends').addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (current === 'friends' && !$('panel').classList.contains('hidden')) return closePanel();
+    openPanel('friends');
+  });
 
   $('btn-menu').addEventListener('click', (e) => {
     e.stopPropagation();
