@@ -955,11 +955,13 @@
     renderToolbar();
     updateHint();
     const sig = focusSig();
+    const scrolls = saveScroll();
     if (!$('seed-pick').classList.contains('hidden')) renderSeedPick();
     if ($('dlg-shop').open) renderShop();
     if ($('dlg-store').open) renderStore();
     if ($('dlg-pen').open) renderPen();
     restoreFocus(sig, document.querySelector('dialog[open]') || (!$('seed-pick').classList.contains('hidden') ? $('seed-pick') : null));
+    restoreScroll(scrolls);
   }
 
   // Mỗi giây: cập nhật đếm ngược, thanh tiến độ; vẽ lại khi có thứ vừa chín / lớn.
@@ -1987,13 +1989,13 @@
   }
 
   // Focus nút hợp lý đầu tiên khi mở hộp thoại / bảng.
-  function focusFirst(root) {
+  function focusFirst(root, opts) {
     // Ưu tiên theo thứ tự (không theo thứ tự trong trang): gieo / chọn hạt, bán tất cả, mua hạt, thu hoạch, cho ăn...
     const order = ['[data-plant]', '[data-seed-sel]', '[data-sell-all]', '[data-buy-seed]', '[data-collect-animal]', '[data-collect-fish]',
       '[data-feed-animal]', '[data-feed-fish]', '[data-sell-item]', '.shop-list button', '.pen-body button', '#store-body button', 'button'];
     for (const sel of order) {
       const el = [...root.querySelectorAll(sel)].find((x) => !x.disabled && x.offsetParent !== null);
-      if (el) return el.focus();
+      if (el) return el.focus(opts);
     }
   }
 
@@ -2004,11 +2006,26 @@
     const attr = [...el.attributes].find((x) => x.name.startsWith('data-'));
     return attr ? `[${attr.name}="${CSS.escape(attr.value)}"]` : null;
   }
+  // Vẽ lại (15 giây / khi cây chín) không được kéo khung đang cuộn về chỗ nút được focus.
   function restoreFocus(sig, root) {
     if (!sig) return;
     const el = (root || document).querySelector(`${sig}:not([disabled])`);
-    if (el) el.focus();
-    else if (root) focusFirst(root);
+    if (el) el.focus({ preventScroll: true });
+    else if (root) focusFirst(root, { preventScroll: true });
+  }
+
+  // Vị trí cuộn của hộp thoại đang mở và các khung bên trong (vd #store-body): thay innerHTML làm khung
+  // ngắn lại trong chốc lát (ảnh chưa có kích thước) nên trình duyệt kéo về đầu — vẽ xong thì đặt lại.
+  function saveScroll() {
+    return [...document.querySelectorAll('dialog[open], dialog[open] [id], #seed-pick')]
+      .filter((el) => el.scrollTop > 0)
+      .map((el) => [el.id ? `#${CSS.escape(el.id)}` : null, el, el.scrollTop]);
+  }
+  function restoreScroll(saved) {
+    for (const [sel, el, top] of saved) {
+      const now = (sel && document.querySelector(sel)) || el;
+      if (now.scrollTop !== top) now.scrollTop = top;
+    }
   }
 
   // Shift + đi khi cầm công cụ: ô dưới chân (chưa làm trong lượt giữ Shift này) được gieo / thu hoạch liền.
@@ -2959,8 +2976,10 @@
     if (d.plant) return plant(d.plant);
     if (d.qty) {
       buyQty = +d.qty;
+      const scrolls = saveScroll();
       if ($('dlg-shop').open) renderShop();
       if ($('dlg-store').open) renderStore();
+      restoreScroll(scrolls);
       return;
     }
     if (d.buySeed) {
