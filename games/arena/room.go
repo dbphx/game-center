@@ -143,6 +143,9 @@ type Result struct {
 	Reason string           `json:"reason"` // last | rounds | draw | left
 	Money  map[string]int64 `json:"money"`
 	XP     map[string]int64 `json:"xp"`
+	// Chế độ boss: Victory = phe người chơi thắng; Loot = ngọc rơi theo id người chơi.
+	Victory bool                 `json:"victory,omitempty"`
+	Loot    map[string][]GemInfo `json:"loot,omitempty"`
 }
 
 type Room struct {
@@ -174,6 +177,9 @@ type Room struct {
 	closed     bool
 	rng        *mrand.Rand
 	chatLog    chat.Log // 20 tin chat gần nhất của bàn
+	mode       string   // ModeVersus | ModeBoss
+	bossDef    Boss
+	boss       *Fighter // boss trên sân (chế độ boss, trong trận)
 }
 
 func randomID() string {
@@ -219,6 +225,7 @@ func (r *Room) refreshGear(p *Player) error {
 	}
 	g, err := r.hub.gear.Gear(context.Background(), p.UserID)
 	if err == nil {
+		g.Arm = g.ArmID()
 		p.Gear = g
 	}
 	return err
@@ -314,6 +321,7 @@ func (r *Room) seatAdded() {
 
 func (r *Room) toLobby() {
 	r.phase, r.result, r.turn, r.round, r.wind = PhaseLobby, nil, "", 0, 0
+	r.boss = nil
 	for _, p := range r.players {
 		p.f = nil
 	}
@@ -398,6 +406,8 @@ type Message struct {
 	Angle  float64 `json:"angle"`
 	Power  float64 `json:"power"`
 	Weapon string  `json:"weapon,omitempty"`
+	Mode   string  `json:"mode,omitempty"` // create: "boss" mở bàn đánh boss
+	Boss   string  `json:"boss,omitempty"` // create / settings: id boss
 }
 
 // Handle xử lý một hành động của người đã ở trong bàn.
@@ -481,13 +491,25 @@ func (r *Room) Handle(p *Player, m Message) error {
 			return errors.New("trận đang đánh")
 		case m.Bet != nil && !slices.Contains(BetOptions, *m.Bet):
 			return errors.New("mức cược không hợp lệ")
+		case m.Boss != "" && r.mode != ModeBoss:
+			return errors.New("bàn này không đánh boss")
+		case m.Boss != "":
+			if _, ok := findBoss(m.Boss); !ok {
+				return errors.New("boss không hợp lệ")
+			}
 		case m.Map != "" && m.Map != MapRandom:
 			if _, ok := findMap(m.Map); !ok {
 				return errors.New("map không hợp lệ")
 			}
 		}
-		if m.Bet != nil {
+		if m.Bet != nil && r.mode != ModeBoss {
 			r.bet = *m.Bet
+		}
+		if m.Boss != "" {
+			r.bossDef, _ = findBoss(m.Boss)
+			if r.phase == PhaseOver {
+				r.toLobby()
+			}
 		}
 		if m.Map != "" && m.Map != r.mapChoice {
 			r.mapChoice = m.Map
@@ -654,7 +676,7 @@ func (r *Room) Disconnect(p *Player, conn Conn) {
 }
 
 func (r *Room) startGame() error {
-	if len(r.players) < MinPlayers {
+	if r.mode != ModeBoss && len(r.players) < MinPlayers {
 		r.broadcast()
 		return errors.New("cần ít nhất 2 người, hãy mời bạn hoặc thêm máy")
 	}
@@ -674,6 +696,18 @@ func (r *Room) startGame() error {
 		}
 	}
 	r.pickField()
+	if r.mode == ModeBoss {
+		r.bet = 0
+		r.bossSpawn()
+		for _, p := range r.players {
+			p.items, p.ready = startItems(), false
+		}
+		r.result, r.leftPot, r.gameBet = nil, 0, 0
+		r.phase, r.round = PhasePlaying, 1
+		r.beginTurn(0)
+		return nil
+	}
+	r.boss = nil
 	xs := spawnXs(r.ground, len(r.players), r.rng)
 	for i, p := range r.players {
 		x := xs[i]
@@ -701,6 +735,9 @@ func (r *Room) fighters() []*Fighter {
 		if p.f != nil {
 			out = append(out, p.f)
 		}
+	}
+	if r.boss != nil {
+		out = append(out, r.boss)
 	}
 	return out
 }
@@ -738,6 +775,10 @@ func (r *Room) passTurn(from int) {
 		if p.f == nil || !p.f.Alive {
 			continue
 		}
+		if wrapped && r.boss != nil && r.boss.Alive {
+			r.bossTurn() // hết vòng: boss bắn, rồi sang vòng mới từ ghế đầu
+			return
+		}
 		if wrapped {
 			r.round++
 			if r.round > r.opts.maxRounds() {
@@ -747,6 +788,10 @@ func (r *Room) passTurn(from int) {
 			}
 		}
 		r.beginTurn(j)
+		return
+	}
+	if r.boss != nil {
+		r.finishBoss(false, "wiped")
 		return
 	}
 	r.finish(nil, "draw")
@@ -768,6 +813,17 @@ func (r *Room) afterLoss(wasTurn bool) {
 // checkEnd chốt trận khi còn ≤ 1 người sống.
 func (r *Room) checkEnd(reason string) bool {
 	alive := r.alive()
+	if r.boss != nil {
+		switch {
+		case !r.boss.Alive:
+			r.finishBoss(true, "boss")
+		case len(alive) == 0:
+			r.finishBoss(false, "wiped")
+		default:
+			return false
+		}
+		return true
+	}
 	switch len(alive) {
 	case 0:
 		r.finish(nil, "draw")
@@ -787,8 +843,8 @@ func (r *Room) fire(p *Player, w Weapon, angle, power float64) {
 	}
 	p.lastAngle, p.lastPower = angle, power
 	p.facing = facingOf(angle, p.facing)
-	res := Fire(r.ground, r.fighters(), p.f, w, angle, power, r.wind)
-	shot := map[string]any{"t": "shot", "by": p.ID, "weapon": w.ID, "angle": angle, "power": power, "wind": r.wind,
+	res := Fire(r.ground, r.fighters(), p.f, w, angle, power, r.wind, func() int { return r.rng.IntN(100) })
+	shot := map[string]any{"t": "shot", "by": p.ID, "weapon": w.ID, "arm": p.f.Gear.ArmID(), "angle": angle, "power": power, "wind": r.wind,
 		"paths": res.Paths, "blasts": orEmpty(res.Blasts), "hits": orEmpty(res.Hits), "deaths": orEmpty(res.Deaths), "tele": res.Tele}
 	r.sendAll(shot)
 	r.turn = ""
@@ -796,16 +852,8 @@ func (r *Room) fire(p *Player, w Weapon, angle, power float64) {
 		return
 	}
 	r.broadcast()
-	pause := time.Duration(res.Duration*r.opts.ReplayScale*float64(time.Second)) + r.opts.AfterShot
-	gen := r.timerGen
-	r.timer = time.AfterFunc(pause, func() {
-		r.mu.Lock()
-		defer r.mu.Unlock()
-		if gen != r.timerGen || r.phase != PhasePlaying {
-			return
-		}
-		r.passTurn(r.lastTurn) // lastTurn đã được chỉnh nếu có người rời bàn trong lúc đạn bay
-	})
+	// lastTurn đã được chỉnh nếu có người rời bàn trong lúc đạn bay
+	r.afterShot(res.Duration, func() { r.passTurn(r.lastTurn) })
 }
 
 func orEmpty[T any](s []T) []T {
@@ -817,6 +865,10 @@ func orEmpty[T any](s []T) []T {
 
 // finishByHP: hết số vòng — ai còn nhiều máu nhất (theo %) thắng; bằng nhau thì hoà.
 func (r *Room) finishByHP() {
+	if r.boss != nil {
+		r.finishBoss(false, "rounds")
+		return
+	}
 	var best *Player
 	bestPct, tie := -1.0, false
 	for _, p := range r.alive() {
@@ -926,7 +978,7 @@ func (r *Room) schedule() {
 			if gen != r.timerGen || r.phase != PhasePlaying || r.turn != cur.ID {
 				return
 			}
-			aim := BotAim(r.ground, r.fighters(), cur.f, cur.items, cur.BotLevel, r.wind, r.rng)
+			aim := BotAim(r.ground, r.fighters(), cur.f, cur.BotLevel, r.wind, r.rng)
 			w, _ := findWeapon(aim.Weapon)
 			r.fire(cur, w, aim.Angle, aim.Power)
 		})
@@ -1030,13 +1082,19 @@ type State struct {
 	BetOptions []int        `json:"betOptions"`
 	Spectators int          `json:"spectators"`
 	Chat       []chat.Line  `json:"chat"` // 20 tin chat gần nhất của bàn
+	Mode       string       `json:"mode"` // versus | boss
+	Boss       *BossView    `json:"boss"` // chế độ boss; null ở bàn thường
+	Bosses     []Boss       `json:"bosses,omitempty"`
 }
 
 func (r *Room) stateFor(viewer *Player) State {
 	s := State{T: "state", Code: r.Code, Phase: r.phase, Map: MapInfo{r.field.ID, r.field.Name}, MapChoice: r.mapChoice,
 		Maps: mapList(), Weapons: weaponList(), Ground: r.ground, Wind: r.wind, Turn: r.turn, Round: r.round,
 		MaxRounds: r.opts.maxRounds(), Players: []PlayerView{}, Result: r.result, Bet: r.bet, GameBet: r.gameBet,
-		BetOptions: BetOptions, Spectators: len(r.spectators), Chat: r.chatLog.List()}
+		BetOptions: BetOptions, Spectators: len(r.spectators), Chat: r.chatLog.List(), Mode: r.mode, Boss: r.bossView()}
+	if r.mode == ModeBoss {
+		s.Bosses = Bosses
+	}
 	if r.seatOf(viewer) >= 0 {
 		s.You = viewer.ID
 	}

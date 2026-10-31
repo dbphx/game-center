@@ -112,7 +112,7 @@ func table(t *testing.T, opts Options, bet int, gear GearSource, others ...User)
 	bank := newBank()
 	h := NewHub(bank, opts, gear)
 	ca := &fakeConn{}
-	sa, err := h.Create(an, ca, ptr(bet), "meadow")
+	sa, err := h.Create(an, ca, ptr(bet), "meadow", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -166,7 +166,7 @@ func TestLobbySettingsAndStart(t *testing.T) {
 	a, b := ss[0], ss[1]
 	st := cs[0].last()
 	if st.Phase != PhaseLobby || st.Map.ID != "meadow" || st.MapChoice != "meadow" || len(st.Ground) != Width || len(st.Maps) != 5 ||
-		len(st.Weapons) != 4 || st.Players[0].Power != 1000+240+320 || st.Players[0].MaxHP != 260 {
+		len(st.Weapons) != 4 || st.Players[0].Power != 1000+2*32+320 || st.Players[0].MaxHP != 272 || st.Players[0].Gear.Arm != ArmCannon {
 		t.Fatalf("phòng chờ: %+v", st.Players)
 	}
 	if err := b.Room.Handle(b.Player, Message{T: "settings", Map: "desert"}); err == nil {
@@ -195,7 +195,7 @@ func TestLobbySettingsAndStart(t *testing.T) {
 		t.Fatalf("trận mới: %+v", st)
 	}
 	for _, p := range st.Players {
-		if !p.Alive || p.HP != p.MaxHP || p.Items[WeaponTriple] != 2 || p.Items[WeaponHeavy] != 1 || p.Items[WeaponTele] != 1 ||
+		if !p.Alive || p.HP != p.MaxHP || len(p.Items) != 0 || // kỹ năng không giới hạn
 			p.Y != float64(st.Ground[int(p.X)]) {
 			t.Fatalf("người chơi đầu trận: %+v", p)
 		}
@@ -263,12 +263,18 @@ func TestFireMoveAimTurns(t *testing.T) {
 	}
 	do(t, cur, Message{T: "fire", Angle: angle, Power: power, Weapon: WeaponHeavy})
 	shot := oc.lastOf("shot")
-	if shot == nil || shot["by"] != cur.Player.ID || shot["weapon"] != WeaponHeavy || len(shot["paths"].([][][2]int)) != 1 {
+	if shot == nil || shot["by"] != cur.Player.ID || shot["weapon"] != WeaponHeavy || shot["arm"] != ArmCannon ||
+		len(shot["paths"].([][][2]int)) != 1 {
 		t.Fatalf("tin shot: %v", shot)
 	}
 	hits := shot["hits"].([]Hit)
-	if len(hits) == 0 || hits[0].ID != other.Player.ID || hits[0].Dmg != 55 {
-		t.Fatalf("trúng bom tạ 55: %+v", hits)
+	// Đại bác +0: tấn công 10 (×1.1), phòng thủ 5 (−5%); chí mạng ×1.5.
+	want := 57
+	if len(hits) > 0 && hits[0].Crit {
+		want = 86
+	}
+	if len(hits) == 0 || hits[0].ID != other.Player.ID || hits[0].Dmg != want {
+		t.Fatalf("trúng bom tạ %d: %+v", want, hits)
 	}
 	if err := cur.Room.Handle(cur.Player, Message{T: "fire", Weapon: WeaponHeavy}); err == nil {
 		t.Fatal("bắn khi đạn đang bay / hết bom tạ")
@@ -283,7 +289,7 @@ func TestFireMoveAimTurns(t *testing.T) {
 		if p.ID == cur.Player.ID && p.Items[WeaponHeavy] != 0 {
 			t.Fatal("bom tạ đã dùng")
 		}
-		if p.ID == other.Player.ID && p.HP != p.MaxHP-55 {
+		if p.ID == other.Player.ID && p.HP != p.MaxHP-want {
 			t.Fatalf("máu sau khi trúng: %d", p.HP)
 		}
 	}
@@ -299,7 +305,7 @@ func TestFireMoveAimTurns(t *testing.T) {
 			continue
 		}
 		r.mu.Lock()
-		aim := BotAim(r.ground, r.fighters(), s.Player.f, map[string]int{}, BotHard, r.wind, r.rng)
+		aim := BotAim(r.ground, r.fighters(), s.Player.f, BotHard, r.wind, r.rng)
 		r.mu.Unlock()
 		s.Room.Handle(s.Player, Message{T: "fire", Angle: aim.Angle, Power: aim.Power})
 		waitFor(t, "hết lượt", func() bool { st := cs[0].last(); return st.Turn != s.Player.ID || st.Phase == PhaseOver })
@@ -335,7 +341,7 @@ func TestPlayVsBots(t *testing.T) {
 	do(t, a, Message{T: "addBot", Level: BotHard})
 	do(t, a, Message{T: "add_bot", Level: BotEasy})
 	st := cs[0].last()
-	if len(st.Players) != 3 || st.Players[1].Power != 1000+6*300 || st.Players[1].MaxHP != 290 || st.Players[2].Name != "Máy dễ 2" {
+	if len(st.Players) != 3 || st.Players[1].Power != 1000+2*43+6*180 || st.Players[1].MaxHP != 306 || st.Players[2].Name != "Máy dễ 2" {
 		t.Fatalf("máy: %+v", st.Players)
 	}
 	do(t, a, Message{T: "start"})
@@ -420,11 +426,11 @@ func TestSpectatorHPGateAndGrace(t *testing.T) {
 	opts.Grace = 20 * time.Millisecond
 	bank := newBank()
 	h := NewHub(bank, opts, nil)
-	if _, err := h.Create(User{ID: 1, Name: "Yếu", HP: 10}, &fakeConn{}, nil, ""); err == nil {
+	if _, err := h.Create(User{ID: 1, Name: "Yếu", HP: 10}, &fakeConn{}, nil, "", "", ""); err == nil {
 		t.Fatal("thiếu máu không mở được bàn")
 	}
 	ca, cb := &fakeConn{}, &fakeConn{}
-	sa, err := h.Create(an, ca, nil, "")
+	sa, err := h.Create(an, ca, nil, "", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}

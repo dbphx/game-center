@@ -165,7 +165,7 @@ func games(w *wallet.Wallet) []server.Game {
 		{
 			ID:          arena.GameID,
 			Name:        "Đấu trường",
-			Description: "Bắn pháo theo lượt: canh góc, lực và hướng gió; cường hoá súng, nón, áo giáp bằng đá; 5 sân đấu.",
+			Description: "Bắn theo lượt: canh góc, lực và hướng gió; 6 vũ khí (dép lào, chổi chà, cây lau nhà, TV, tủ lạnh…), cường hoá, chuyển cấp, khảm ngọc; đấu boss rơi ngọc; 5 sân đấu.",
 			Players:     "2–4 người",
 			Path:        "/arena/",
 			Stats:       func() any { return arenaHub.Stats() },

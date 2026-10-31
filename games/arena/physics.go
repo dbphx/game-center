@@ -46,12 +46,20 @@ func (g Ground) At(x float64) int {
 
 // Body là thân một người chơi trên sân (để đạn va vào).
 type Body struct {
-	ID string
-	X  float64
-	Y  float64 // mặt đất dưới chân
+	ID   string
+	X    float64
+	Y    float64 // mặt đất dưới chân
+	Size float64 // hệ số thân (0 = 1; boss thân to hơn)
 }
 
-func (b Body) center() (float64, float64) { return b.X, b.Y - BodyLift }
+func (b Body) size() float64 {
+	if b.Size > 0 {
+		return b.Size
+	}
+	return 1
+}
+
+func (b Body) center() (float64, float64) { return b.X, b.Y - BodyLift*b.size() }
 
 // Flight là kết quả bay của một viên đạn.
 type Flight struct {
@@ -94,7 +102,7 @@ func Simulate(g Ground, x, y, angle, power float64, wind int, shooter string, bo
 				continue
 			}
 			cx, cy := b.center()
-			if math.Hypot(px-cx, py-cy) < BodyRadius {
+			if math.Hypot(px-cx, py-cy) < BodyRadius*b.size() {
 				hit, body = true, b.ID
 				break
 			}

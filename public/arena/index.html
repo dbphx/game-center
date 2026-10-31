@@ -47,8 +47,18 @@
   <dialog class="modal" id="dlg-create">
     <form method="dialog">
       <h2><i data-icon="plus"></i>Mở bàn đấu</h2>
-      <div class="field-label">Mức cược mỗi trận</div>
-      <div class="bet-grid" id="bet-grid"></div>
+      <div class="mode-pick">
+        <label><input type="radio" name="mode" value="pvp" checked><span><i data-icon="users"></i>Đấu người</span></label>
+        <label><input type="radio" name="mode" value="boss"><span><i data-icon="flame"></i>Đấu boss</span></label>
+      </div>
+      <div class="pvp-only">
+        <div class="field-label">Mức cược mỗi trận</div>
+        <div class="bet-grid" id="bet-grid"></div>
+      </div>
+      <div class="boss-only">
+        <div class="field-label">Chọn boss <small class="muted">· không cược, thắng nhận ngọc</small></div>
+        <div class="boss-grid" id="boss-grid"></div>
+      </div>
       <div class="field-label">Bản đồ</div>
       <div class="map-grid" id="map-grid"></div>
       <div class="actions"><button value="cancel" formnovalidate>Huỷ</button><button class="primary" value="ok"><i data-icon="plus"></i>Mở bàn</button></div>
@@ -66,16 +76,26 @@
       </div>
       <div class="gear-tabs" role="tablist">
         <button type="button" role="tab" data-tab="forge" class="on"><i data-icon="sparkles"></i>Cường hoá</button>
+        <button type="button" role="tab" data-tab="arms"><i data-icon="flame"></i>Vũ khí</button>
+        <button type="button" role="tab" data-tab="gems"><i data-icon="sparkles"></i>Kho ngọc</button>
         <button type="button" role="tab" data-tab="stones"><i data-icon="coins"></i>Cửa hàng</button>
       </div>
       <div class="gear-pane" id="pane-forge">
         <div class="gear-list" id="gear-list"><p class="muted">Đang tải…</p></div>
         <div class="forge" id="forge"></div>
       </div>
+      <div class="gear-pane hidden" id="pane-arms">
+        <div class="arms-grid" id="arms-grid"><p class="muted">Đang tải…</p></div>
+        <div class="gem-pick hidden" id="gem-pick"></div>
+        <div class="arm-xfer" id="arm-xfer"></div>
+      </div>
+      <div class="gear-pane hidden" id="pane-gems">
+        <div class="stone-shop" id="gem-bag"></div>
+      </div>
       <div class="gear-pane hidden" id="pane-stones">
         <div class="stone-shop" id="stone-shop"></div>
       </div>
-      <p class="hint">Mỗi lần cường hoá tốn 1 viên đá + phí xu; thất bại mất đá, phí và tụt 1 cấp (trừ khi dùng Bùa giữ cấp). Trang bị biến đổi ở +7 và +10. Đá càng quý tỉ lệ càng cao. Trận đang đánh giữ chỉ số lúc bắt đầu.</p>
+      <p class="hint">Mỗi lần cường hoá tốn 1 viên đá + phí xu; thất bại mất đá, phí và tụt 1 cấp (trừ khi dùng Bùa giữ cấp). Trang bị biến đổi ở +7 và +10. Mỗi vũ khí giữ cấp riêng; có thể chuyển cấp sang vũ khí khác (tốn phí, vũ khí cũ về +0). Đá càng quý tỉ lệ càng cao. Trận đang đánh giữ chỉ số lúc bắt đầu.</p>
       <div class="actions"><button class="primary" value="ok">Xong</button></div>
     </form>
   </dialog>
@@ -104,6 +124,7 @@
       <div class="room-controls" id="lobby-controls">
         <label class="ctl host-only"><span>Cược</span><select id="sel-bet"></select></label>
         <label class="ctl host-only"><span>Bản đồ</span><select id="sel-map"></select></label>
+        <label class="ctl host-only boss-ctl"><span>Boss</span><select id="sel-boss"></select></label>
         <label class="ctl host-only"><span>Máy</span><select id="sel-bot">
           <option value="easy">Dễ</option>
           <option value="normal" selected>Vừa</option>
@@ -124,6 +145,7 @@
           <div class="units" id="units"></div>
           <div class="floaters" id="floaters"></div>
         </div>
+        <div class="boss-bar hidden" id="boss-bar"></div>
         <div class="hud-top">
           <div class="turn-pill" id="turn-pill"></div>
           <div class="wind" id="wind" title="Gió: âm thổi sang trái, dương thổi sang phải">
@@ -161,6 +183,19 @@
       </div>
     </div>
   </section>
+
+  <!-- Rương ngọc sau trận boss -->
+  <dialog class="modal loot-modal" id="dlg-loot">
+    <form method="dialog">
+      <h2 id="loot-title">Rương boss</h2>
+      <div class="loot-box" id="loot-box">
+        <img class="loot-chest" src="/img/toon/arena/loot_chest.png" alt="" draggable="false">
+        <img class="loot-shine" src="/img/toon/arena/fx_upgrade_ok.png" alt="" draggable="false">
+      </div>
+      <div class="loot-items" id="loot-items"></div>
+      <div class="actions"><button class="primary" value="ok">Nhận</button></div>
+    </form>
+  </dialog>
 
   <!-- Kết quả trận -->
   <div class="result hidden" id="result">

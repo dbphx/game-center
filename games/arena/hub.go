@@ -38,10 +38,21 @@ type Session struct {
 }
 
 // Create mở bàn mới. bet không hợp lệ (hoặc thiếu) thì dùng DefaultBet; map lạ (hoặc thiếu) thì chọn ngẫu nhiên.
-func (h *Hub) Create(u User, conn Conn, bet *int, mapID string) (*Session, error) {
+// mode "boss" mở bàn đánh boss bossID (lạ / thiếu thì boss dễ nhất), không cược.
+func (h *Hub) Create(u User, conn Conn, bet *int, mapID, mode, bossID string) (*Session, error) {
 	b := DefaultBet
 	if bet != nil && slices.Contains(BetOptions, *bet) {
 		b = *bet
+	}
+	var bd Boss
+	if mode == ModeBoss {
+		var ok bool
+		if bd, ok = findBoss(bossID); !ok {
+			bd = Bosses[0]
+		}
+		b = 0
+	} else {
+		mode = ModeVersus
 	}
 	if _, ok := findMap(mapID); !ok {
 		mapID = MapRandom
@@ -49,7 +60,7 @@ func (h *Hub) Create(u User, conn Conn, bet *int, mapID string) (*Session, error
 	if err := h.opts.gate(u); err != nil {
 		return nil, err
 	}
-	r := &Room{hub: h, opts: h.opts, phase: PhaseLobby, bet: b, mapChoice: mapID,
+	r := &Room{hub: h, opts: h.opts, phase: PhaseLobby, bet: b, mapChoice: mapID, mode: mode, bossDef: bd,
 		rng: mrand.New(mrand.NewPCG(mrand.Uint64(), mrand.Uint64()))}
 	r.pickField()
 	h.mu.Lock()
@@ -155,6 +166,9 @@ type RoomSummary struct {
 	Players    []SeatSummary `json:"players"`
 	Spectators int           `json:"spectators"`
 	Max        int           `json:"max"`
+	Mode       string        `json:"mode"`               // versus | boss
+	Boss       string        `json:"boss,omitempty"`     // id boss (chế độ boss)
+	BossName   string        `json:"bossName,omitempty"` // tên boss
 }
 
 // Rooms chụp lại các bàn: bàn còn ghế trống trước, đang chơi sau, cùng nhóm theo mã.
@@ -163,7 +177,10 @@ func (h *Hub) Rooms() []RoomSummary {
 	for _, r := range h.snapshot() {
 		r.mu.Lock()
 		s := RoomSummary{Code: r.Code, Phase: r.phase, Bet: r.bet, Map: r.field.ID, MapName: r.field.Name, Players: []SeatSummary{},
-			Spectators: len(r.spectators), Max: MaxPlayers}
+			Spectators: len(r.spectators), Max: MaxPlayers, Mode: r.mode}
+		if r.mode == ModeBoss {
+			s.Boss, s.BossName = r.bossDef.ID, r.bossDef.Name
+		}
 		for _, p := range r.players {
 			s.Players = append(s.Players, SeatSummary{Name: p.Name, Gender: p.Gender, Outfit: p.Outfit, Hair: p.Hair,
 				Wings: p.Wings, Face: p.Face, Level: p.Level, Bot: p.Bot})

@@ -14,7 +14,8 @@ const (
 var BotLevels = []string{BotEasy, BotNormal, BotHard}
 
 // botGear là trang bị của máy theo mức.
-var botGear = map[string]Gear{BotEasy: {}, BotNormal: {Gun: 3, Hat: 3, Armor: 3}, BotHard: {Gun: 6, Hat: 6, Armor: 6}}
+var botGear = map[string]Gear{BotEasy: {Arm: ArmCannon}, BotNormal: {Arm: ArmCannon, Gun: 3, Hat: 3, Armor: 3},
+	BotHard: {Arm: ArmCannon, Gun: 6, Hat: 6, Armor: 6}}
 
 // botNoise là sai số (lực, góc) của máy theo mức.
 var botNoise = map[string][2]float64{BotEasy: {12, 8}, BotNormal: {6, 4}, BotHard: {2, 1}}
@@ -28,10 +29,10 @@ type Aim struct {
 
 // BotAim chọn mục tiêu (đối thủ gần nhất; máy khó chọn người ít máu nhất), thử mọi góc / lực bằng chính hàm mô phỏng
 // của server để tìm phát rơi gần mục tiêu nhất, rồi cộng sai số theo mức.
-func BotAim(g Ground, fs []*Fighter, me *Fighter, items map[string]int, level string, wind int, rng *mrand.Rand) Aim {
+func BotAim(g Ground, fs []*Fighter, me *Fighter, level string, wind int, rng *mrand.Rand) Aim {
 	var target *Fighter
 	for _, f := range fs {
-		if f == me || !f.Alive {
+		if f == me || !f.Alive || ally(f, me) {
 			continue
 		}
 		switch {
@@ -46,13 +47,13 @@ func BotAim(g Ground, fs []*Fighter, me *Fighter, items map[string]int, level st
 	if target == nil {
 		return Aim{Angle: 60, Power: 50, Weapon: WeaponShell}
 	}
-	bodies := bodiesOf(fs)
+	bodies := targetsOf(fs, me)
 	lo, hi := 15.0, 85.0
 	if target.X < me.X {
 		lo, hi = 95, 165
 	}
 	best, bestD := Aim{Angle: (lo + hi) / 2, Power: 60}, math.Inf(1)
-	tx, ty := target.X, target.Y-BodyLift
+	tx, ty := Body{X: target.X, Y: target.Y, Size: target.Size}.center()
 	for a := lo; a <= hi; a += 2 {
 		for p := 20.0; p <= 100; p += 2 {
 			f := Simulate(g, me.X, me.Y, a, p, wind, me.ID, bodies)
@@ -76,9 +77,9 @@ func BotAim(g Ground, fs []*Fighter, me *Fighter, items map[string]int, level st
 	best.Angle = math.Max(0, math.Min(180, best.Angle+(rng.Float64()*2-1)*n[1]))
 	best.Weapon = WeaponShell
 	switch {
-	case items[WeaponHeavy] > 0 && target.HP > 40 && level != BotEasy && rng.IntN(3) == 0:
+	case target.HP > 40 && level != BotEasy && rng.IntN(3) == 0:
 		best.Weapon = WeaponHeavy
-	case items[WeaponTriple] > 0 && rng.IntN(4) == 0:
+	case rng.IntN(4) == 0:
 		best.Weapon = WeaponTriple
 	}
 	return best

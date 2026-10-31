@@ -106,16 +106,21 @@ func TestSplashFalloffGearArmor(t *testing.T) {
 		}
 		prev = n
 	}
-	gun := Gear{Gun: 5}
-	armor := Gear{Armor: 10}
-	if n := Splash(30, 40, 0, gun.DmgMul(), 0); n != 42 {
-		t.Fatalf("súng +5 = ×1.4: %d", n)
+	gun := Gear{Gun: 10} // đại bác +10: tấn công 20
+	armor := Gear{Armor: 5}
+	if n := Splash(30, 40, 0, gun.DmgMul(), 0); n != 36 {
+		t.Fatalf("đại bác +10 = ×1.2: %d", n)
 	}
-	if n := Splash(30, 40, 0, 1, armor.ArmorPct()); n != 21 {
-		t.Fatalf("giáp +10 giảm 30%%: %d", n)
+	if n := Splash(30, 40, 0, 1, armor.ArmorPct()); n != 24 {
+		t.Fatalf("giáp +5 (15%%) + phòng thủ 5: %d", n)
 	}
-	if (Gear{Gun: 1, Hat: 2, Armor: 3}).Power() != 1000+120+160+300 || (Gear{Hat: 4}).MaxHP() != 260 {
+	// Đại bác +1: 11/6/2/11 → 2·30.
+	if (Gear{Gun: 1, Hat: 2, Armor: 3}).Power() != 1000+60+160+300 || (Gear{Hat: 4}).MaxHP() != 270 {
 		t.Fatal("lực chiến / máu tối đa")
+	}
+	// Phòng thủ tối đa 60%.
+	if p := (Gear{Arm: "tulanh", Gun: 10, Armor: 10}).ArmorPct(); p != MaxArmorPct {
+		t.Fatalf("giảm sát thương tối đa: %v", p)
 	}
 }
 
@@ -125,16 +130,16 @@ func TestFireDamageDeathTele(t *testing.T) {
 	l := Simulate(g, 200, 700, 45, 50, 0, "a", nil)
 	b := &Fighter{ID: "b", X: math.Round(l.X), Y: 700, HP: 200, MaxHP: 200, Alive: true}
 	shell, _ := findWeapon(WeaponShell)
-	res := Fire(g, []*Fighter{a, b}, a, shell, 45, 50, 0)
-	if len(res.Hits) != 1 || res.Hits[0].ID != "b" || res.Hits[0].Dmg != 30 || b.HP != 170 || len(res.Blasts) != 1 {
-		t.Fatalf("trúng trực tiếp 30: %+v", res.Hits)
+	res := Fire(g, []*Fighter{a, b}, a, shell, 45, 50, 0, nil)
+	if len(res.Hits) != 1 || res.Hits[0].ID != "b" || res.Hits[0].Dmg != 31 || b.HP != 169 || len(res.Blasts) != 1 {
+		t.Fatalf("trúng trực tiếp 30×1.1×0.95: %+v", res.Hits)
 	}
 	if b.Y <= 700 {
 		t.Fatalf("hố dưới chân thì rơi xuống: %v", b.Y)
 	}
 	// Đạn chùm: 3 quỹ đạo.
 	triple, _ := findWeapon(WeaponTriple)
-	if res := Fire(g, []*Fighter{a, b}, a, triple, 45, 50, 0); len(res.Paths) != 3 {
+	if res := Fire(g, []*Fighter{a, b}, a, triple, 45, 50, 0, nil); len(res.Paths) != 3 {
 		t.Fatalf("đạn chùm 3 viên: %d", len(res.Paths))
 	}
 	// Đứng sát vực: bom tạ khoét xuống vực thì rơi chết.
@@ -143,7 +148,7 @@ func TestFireDamageDeathTele(t *testing.T) {
 	lc := Simulate(edge, 200, 860, 45, 50, 0, "c", nil)
 	d := &Fighter{ID: "d", X: math.Round(lc.X), Y: 860, HP: 999, MaxHP: 999, Alive: true, Gear: Gear{Armor: 10}}
 	heavy, _ := findWeapon(WeaponHeavy)
-	res = Fire(edge, []*Fighter{c, d}, c, heavy, 45, 50, 0)
+	res = Fire(edge, []*Fighter{c, d}, c, heavy, 45, 50, 0, nil)
 	if d.Alive || len(res.Deaths) != 1 || res.Deaths[0] != "d" {
 		t.Fatalf("rơi vực phải chết: %+v %+v", d, res.Deaths)
 	}
@@ -151,7 +156,7 @@ func TestFireDamageDeathTele(t *testing.T) {
 	g2 := flat(700)
 	e := &Fighter{ID: "e", X: 200, Y: 700, HP: 200, MaxHP: 200, Alive: true}
 	tele, _ := findWeapon(WeaponTele)
-	res = Fire(g2, []*Fighter{e}, e, tele, 45, 50, 0)
+	res = Fire(g2, []*Fighter{e}, e, tele, 45, 50, 0, nil)
 	if res.Tele == nil || math.Abs(e.X-l.X) > 1 || len(res.Blasts) != 0 || g2[int(e.X)] != 700 || e.HP != 200 {
 		t.Fatalf("dịch chuyển: %+v %+v", res.Tele, e)
 	}
@@ -213,7 +218,7 @@ func TestBotAimsClose(t *testing.T) {
 	foe := &Fighter{ID: "f", X: 1100, Y: 700, HP: 200, Alive: true}
 	rng := mrand.New(mrand.NewPCG(3, 4))
 	for _, wind := range []int{0, 7, -7} {
-		aim := BotAim(g, []*Fighter{me, foe}, me, map[string]int{}, BotHard, wind, rng)
+		aim := BotAim(g, []*Fighter{me, foe}, me, BotHard, wind, rng)
 		f := Simulate(g, me.X, me.Y, aim.Angle, aim.Power, wind, me.ID, bodiesOf([]*Fighter{me, foe}))
 		if !f.Hit || math.Abs(f.X-foe.X) > 60 {
 			t.Fatalf("máy khó gió %d bắn lệch: rơi ở %.0f, mục tiêu %.0f", wind, f.X, foe.X)

@@ -73,6 +73,14 @@ func (e *armoryEnv) balance() int64 {
 func (e *armoryEnv) setLevel(slot string, lv int) {
 	tx, _ := e.w.Begin(ctx)
 	defer tx.Rollback()
+	if slot == SlotGun { // cấp vũ khí đang trang bị
+		inv, _ := loadInventory(ctx, tx, e.uid)
+		if err := setArm(ctx, tx, e.uid, inv.Gear.ArmID(), lv, true); err != nil {
+			e.t.Fatal(err)
+		}
+		tx.Commit()
+		return
+	}
 	if _, err := tx.ExecContext(ctx, `INSERT INTO arena_gear (user_id, slot, level) VALUES (?, ?, ?)
 		ON CONFLICT (user_id, slot) DO UPDATE SET level = excluded.level`, e.uid, slot, lv); err != nil {
 		e.t.Fatal(err)
@@ -243,7 +251,7 @@ func TestGearAPI(t *testing.T) {
 		t.Fatalf("chưa đăng nhập: %d", code)
 	}
 	var g GearReply
-	if code := call("GET", "/api/arena/gear", e.token, nil, &g); code != 200 || g.Power != 1000 || g.Stats.MaxHP != 200 ||
+	if code := call("GET", "/api/arena/gear", e.token, nil, &g); code != 200 || g.Power != 1000+2*27 || g.Stats.MaxHP != 210 || len(g.Arms) != len(Arms) || !g.Arms[0].Equipped ||
 		g.Balance != 5000 || len(g.StoneShop) != 5 || len(g.CharmShop) != 2 || g.LuckBonus != 15 || g.Stones["1"] != 0 ||
 		g.Rates[SlotGun][0] != 95 || g.Fee[SlotHat] != 50 {
 		t.Fatalf("GET gear: %d %+v", code, g)
@@ -265,10 +273,43 @@ func TestGearAPI(t *testing.T) {
 	}
 	e.next = 0
 	if code := call("POST", "/api/arena/gear/upgrade", e.token, map[string]any{"slot": "gun", "stone": 1, "luck": true}, &g); code != 200 ||
-		g.Result == nil || !g.Result.OK || g.Result.Rate != 100 || g.Gear.Gun != 1 || g.Power != 1120 || g.Charms["luck"] != 0 {
+		g.Result == nil || !g.Result.OK || g.Result.Rate != 100 || g.Gear.Gun != 1 || g.Power != 1060 || g.Charms["luck"] != 0 {
 		t.Fatalf("cường hoá: %d %+v %+v", code, g.Result, g.Gear)
 	}
 	if code := call("POST", "/api/arena/gear/upgrade", e.token, map[string]any{"slot": "x", "stone": 1}, nil); code != 400 {
 		t.Fatalf("ô sai: %d", code)
+	}
+	// Vũ khí, chuyển cấp, ngọc, boss.
+	var bosses []Boss
+	if code := call("GET", "/api/arena/bosses", "", nil, &bosses); code != 200 || len(bosses) != 3 || bosses[2].Name != "Rồng Lửa" {
+		t.Fatalf("bosses: %d %+v", code, bosses)
+	}
+	for _, c := range []struct {
+		path string
+		body map[string]any
+		code int
+	}{
+		{"/api/arena/arms/buy", map[string]any{"id": "x"}, 400},
+		{"/api/arena/arms/buy", map[string]any{"id": "cannon"}, 409},
+		{"/api/arena/arms/buy", map[string]any{"id": "tulanh"}, 402},
+		{"/api/arena/arms/equip", map[string]any{"id": "tv"}, 409},
+		{"/api/arena/arms/transfer", map[string]any{"from": "cannon", "to": "dep"}, 409},
+		{"/api/arena/gems/socket", map[string]any{"arm": "cannon", "idx": 0, "kind": "atk", "tier": 1}, 409},
+		{"/api/arena/gems/socket", map[string]any{"arm": "cannon", "idx": 5, "kind": "atk", "tier": 1}, 400},
+		{"/api/arena/gems/unsocket", map[string]any{"arm": "cannon", "idx": 0}, 409},
+	} {
+		if code := call("POST", c.path, e.token, c.body, nil); code != c.code {
+			t.Fatalf("%s %v: %d, phải %d", c.path, c.body, code, c.code)
+		}
+	}
+	if code := call("POST", "/api/arena/arms/buy", e.token, map[string]any{"id": "dep"}, &g); code != 200 || !g.Arms[1].Owned {
+		t.Fatalf("mua dép: %d %+v", code, g.Arms)
+	}
+	if code := call("POST", "/api/arena/arms/transfer", e.token, map[string]any{"from": "cannon", "to": "dep"}, &g); code != 200 ||
+		g.Transfer == nil || g.Transfer.Level != 1 || g.Arms[1].Level != 1 {
+		t.Fatalf("chuyển cấp: %d %+v", code, g.Transfer)
+	}
+	if code := call("POST", "/api/arena/arms/equip", e.token, map[string]any{"id": "dep"}, &g); code != 200 || g.Gear.Arm != "dep" || g.Gear.Gun != 1 {
+		t.Fatalf("trang bị dép: %d %+v", code, g.Gear)
 	}
 }

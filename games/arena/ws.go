@@ -108,7 +108,7 @@ func (c *client) handle(m Message) error {
 		}
 		var s *Session
 		if m.T == "create" {
-			s, err = c.hub.Create(u, c, m.Bet, m.Map)
+			s, err = c.hub.Create(u, c, m.Bet, m.Map, m.Mode, m.Boss)
 		} else {
 			s, err = c.hub.Join(m.Code, u, c)
 		}

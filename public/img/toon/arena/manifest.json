@@ -692,6 +692,503 @@
    "source": [
     "DCity (vẽ / ghép bằng PIL cho dự án)"
    ]
+  },
+  {
+   "file": "arm_dep.png",
+   "w": 72,
+   "h": 20,
+   "use": "Vũ khí Dép lào gắn thay nòng pháo (cùng khung cannon_barrel.png 72×20), hướng phải, xoay quanh mép trái giữa",
+   "anchor": "left-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "dep"
+  },
+  {
+   "file": "throw_dep.png",
+   "w": 48,
+   "h": 48,
+   "use": "Vật bay khi bắn bằng Dép lào (vẽ ×2: hiển thị 24×24 như shot_shell, có thể xoay tròn khi bay)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "dep",
+   "scale": 0.5
+  },
+  {
+   "file": "arm_choi.png",
+   "w": 72,
+   "h": 20,
+   "use": "Vũ khí Chổi chà gắn thay nòng pháo (cùng khung cannon_barrel.png 72×20), hướng phải, xoay quanh mép trái giữa",
+   "anchor": "left-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "choi"
+  },
+  {
+   "file": "throw_choi.png",
+   "w": 48,
+   "h": 48,
+   "use": "Vật bay khi bắn bằng Chổi chà (vẽ ×2: hiển thị 24×24 như shot_shell, có thể xoay tròn khi bay)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "choi",
+   "scale": 0.5
+  },
+  {
+   "file": "arm_launha.png",
+   "w": 72,
+   "h": 20,
+   "use": "Vũ khí Cây lau nhà gắn thay nòng pháo (cùng khung cannon_barrel.png 72×20), hướng phải, xoay quanh mép trái giữa",
+   "anchor": "left-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "launha"
+  },
+  {
+   "file": "throw_launha.png",
+   "w": 48,
+   "h": 48,
+   "use": "Vật bay khi bắn bằng Cây lau nhà (vẽ ×2: hiển thị 24×24 như shot_shell, có thể xoay tròn khi bay)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "launha",
+   "scale": 0.5
+  },
+  {
+   "file": "arm_tv.png",
+   "w": 72,
+   "h": 20,
+   "use": "Vũ khí TV gắn thay nòng pháo (cùng khung cannon_barrel.png 72×20), hướng phải, xoay quanh mép trái giữa",
+   "anchor": "left-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "tv"
+  },
+  {
+   "file": "throw_tv.png",
+   "w": 48,
+   "h": 48,
+   "use": "Vật bay khi bắn bằng TV (vẽ ×2: hiển thị 24×24 như shot_shell, có thể xoay tròn khi bay)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "tv",
+   "scale": 0.5
+  },
+  {
+   "file": "arm_tulanh.png",
+   "w": 72,
+   "h": 20,
+   "use": "Vũ khí Tủ lạnh gắn thay nòng pháo (cùng khung cannon_barrel.png 72×20), hướng phải, xoay quanh mép trái giữa",
+   "anchor": "left-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "tulanh"
+  },
+  {
+   "file": "throw_tulanh.png",
+   "w": 48,
+   "h": 48,
+   "use": "Vật bay khi bắn bằng Tủ lạnh (vẽ ×2: hiển thị 24×24 như shot_shell, có thể xoay tròn khi bay)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "tulanh",
+   "scale": 0.5
+  },
+  {
+   "file": "icon_arm_cannon.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng vũ khí: Đại bác",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "cannon"
+  },
+  {
+   "file": "icon_arm_dep.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng vũ khí: Dép lào",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "dep"
+  },
+  {
+   "file": "icon_arm_choi.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng vũ khí: Chổi chà",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "choi"
+  },
+  {
+   "file": "icon_arm_launha.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng vũ khí: Cây lau nhà",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "launha"
+  },
+  {
+   "file": "icon_arm_tv.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng vũ khí: TV",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "tv"
+  },
+  {
+   "file": "icon_arm_tulanh.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng vũ khí: Tủ lạnh",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "tulanh"
+  },
+  {
+   "file": "gem_atk_1.png",
+   "w": 96,
+   "h": 96,
+   "use": "Ngọc Công (đỏ, +sát thương) cấp 1 — cấp cao mài giác nhiều, viền bạc (2) / vàng + lấp lánh (3); chấm dưới = cấp",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "gem": "atk",
+   "tier": 1
+  },
+  {
+   "file": "gem_atk_2.png",
+   "w": 96,
+   "h": 96,
+   "use": "Ngọc Công (đỏ, +sát thương) cấp 2 — cấp cao mài giác nhiều, viền bạc (2) / vàng + lấp lánh (3); chấm dưới = cấp",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "gem": "atk",
+   "tier": 2
+  },
+  {
+   "file": "gem_atk_3.png",
+   "w": 96,
+   "h": 96,
+   "use": "Ngọc Công (đỏ, +sát thương) cấp 3 — cấp cao mài giác nhiều, viền bạc (2) / vàng + lấp lánh (3); chấm dưới = cấp",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "gem": "atk",
+   "tier": 3
+  },
+  {
+   "file": "gem_def_1.png",
+   "w": 96,
+   "h": 96,
+   "use": "Ngọc Thủ (lam, +giáp) cấp 1 — cấp cao mài giác nhiều, viền bạc (2) / vàng + lấp lánh (3); chấm dưới = cấp",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "gem": "def",
+   "tier": 1
+  },
+  {
+   "file": "gem_def_2.png",
+   "w": 96,
+   "h": 96,
+   "use": "Ngọc Thủ (lam, +giáp) cấp 2 — cấp cao mài giác nhiều, viền bạc (2) / vàng + lấp lánh (3); chấm dưới = cấp",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "gem": "def",
+   "tier": 2
+  },
+  {
+   "file": "gem_def_3.png",
+   "w": 96,
+   "h": 96,
+   "use": "Ngọc Thủ (lam, +giáp) cấp 3 — cấp cao mài giác nhiều, viền bạc (2) / vàng + lấp lánh (3); chấm dưới = cấp",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "gem": "def",
+   "tier": 3
+  },
+  {
+   "file": "gem_luck_1.png",
+   "w": 96,
+   "h": 96,
+   "use": "Ngọc May (cỏ bốn lá) cấp 1 — cấp cao mài giác nhiều, viền bạc (2) / vàng + lấp lánh (3); chấm dưới = cấp",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "gem": "luck",
+   "tier": 1
+  },
+  {
+   "file": "gem_luck_2.png",
+   "w": 96,
+   "h": 96,
+   "use": "Ngọc May (cỏ bốn lá) cấp 2 — cấp cao mài giác nhiều, viền bạc (2) / vàng + lấp lánh (3); chấm dưới = cấp",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "gem": "luck",
+   "tier": 2
+  },
+  {
+   "file": "gem_luck_3.png",
+   "w": 96,
+   "h": 96,
+   "use": "Ngọc May (cỏ bốn lá) cấp 3 — cấp cao mài giác nhiều, viền bạc (2) / vàng + lấp lánh (3); chấm dưới = cấp",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "gem": "luck",
+   "tier": 3
+  },
+  {
+   "file": "gem_sta_1.png",
+   "w": 96,
+   "h": 96,
+   "use": "Ngọc Sinh lực (tim hồng, +máu) cấp 1 — cấp cao mài giác nhiều, viền bạc (2) / vàng + lấp lánh (3); chấm dưới = cấp",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "gem": "sta",
+   "tier": 1
+  },
+  {
+   "file": "gem_sta_2.png",
+   "w": 96,
+   "h": 96,
+   "use": "Ngọc Sinh lực (tim hồng, +máu) cấp 2 — cấp cao mài giác nhiều, viền bạc (2) / vàng + lấp lánh (3); chấm dưới = cấp",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "gem": "sta",
+   "tier": 2
+  },
+  {
+   "file": "gem_sta_3.png",
+   "w": 96,
+   "h": 96,
+   "use": "Ngọc Sinh lực (tim hồng, +máu) cấp 3 — cấp cao mài giác nhiều, viền bạc (2) / vàng + lấp lánh (3); chấm dưới = cấp",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "gem": "sta",
+   "tier": 3
+  },
+  {
+   "file": "socket_empty.png",
+   "w": 96,
+   "h": 96,
+   "use": "Ô khảm ngọc trống (vòng kim loại tròn)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "socket_locked.png",
+   "w": 96,
+   "h": 96,
+   "use": "Ô khảm ngọc đang khoá (có ổ khoá)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "boss_chuot.png",
+   "w": 360,
+   "h": 360,
+   "use": "Boss Vua Chuột (vương miện, cầm dĩa) — đứng quay mặt sang TRÁI, nền trong suốt; lật ngang (scaleX(-1)) nếu cần quay phải",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "boss": "chuot"
+  },
+  {
+   "file": "boss_chuot_hurt.png",
+   "w": 360,
+   "h": 360,
+   "use": "Boss Vua Chuột (vương miện, cầm dĩa) khi trúng đòn: nháy đỏ, nhắm mắt (cùng khung với boss_chuot.png)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "boss": "chuot"
+  },
+  {
+   "file": "throw_boss_chuot.png",
+   "w": 48,
+   "h": 48,
+   "use": "Vật bay của boss Vua Chuột (vương miện, cầm dĩa): miếng phô mai (vẽ ×2: hiển thị 24×24 như shot_shell)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "boss": "chuot",
+   "scale": 0.5
+  },
+  {
+   "file": "boss_robot.png",
+   "w": 360,
+   "h": 360,
+   "use": "Boss Robot Rác (thùng rác + lon) — đứng quay mặt sang TRÁI, nền trong suốt; lật ngang (scaleX(-1)) nếu cần quay phải",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "boss": "robot"
+  },
+  {
+   "file": "boss_robot_hurt.png",
+   "w": 360,
+   "h": 360,
+   "use": "Boss Robot Rác (thùng rác + lon) khi trúng đòn: nháy đỏ, nhắm mắt (cùng khung với boss_robot.png)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "boss": "robot"
+  },
+  {
+   "file": "throw_boss_robot.png",
+   "w": 48,
+   "h": 48,
+   "use": "Vật bay của boss Robot Rác (thùng rác + lon): ốc vít (vẽ ×2: hiển thị 24×24 như shot_shell)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "boss": "robot",
+   "scale": 0.5
+  },
+  {
+   "file": "boss_rong.png",
+   "w": 360,
+   "h": 360,
+   "use": "Boss Rồng Lửa — đứng quay mặt sang TRÁI, nền trong suốt; lật ngang (scaleX(-1)) nếu cần quay phải",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "boss": "rong"
+  },
+  {
+   "file": "boss_rong_hurt.png",
+   "w": 360,
+   "h": 360,
+   "use": "Boss Rồng Lửa khi trúng đòn: nháy đỏ, nhắm mắt (cùng khung với boss_rong.png)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "boss": "rong"
+  },
+  {
+   "file": "throw_boss_rong.png",
+   "w": 48,
+   "h": 48,
+   "use": "Vật bay của boss Rồng Lửa: cầu lửa (vẽ ×2: hiển thị 24×24 như shot_shell)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "boss": "rong",
+   "scale": 0.5
+  },
+  {
+   "file": "loot_chest.png",
+   "w": 128,
+   "h": 128,
+   "use": "Rương rơi đồ (sau khi hạ boss)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
   }
  ]
 }

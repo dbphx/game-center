@@ -94,10 +94,13 @@ func (m Map) Generate(rng *mrand.Rand) Ground {
 }
 
 // spawnXs chia chỗ đứng đầu trận cho n người: rải đều, lệch ngẫu nhiên, tránh vực.
-func spawnXs(g Ground, n int, rng *mrand.Rand) []float64 {
+func spawnXs(g Ground, n int, rng *mrand.Rand) []float64 { return spawnIn(g, n, 0, Width, rng) }
+
+// spawnIn chia n chỗ đứng đều trong khoảng [lo, hi] của sân.
+func spawnIn(g Ground, n int, lo, hi float64, rng *mrand.Rand) []float64 {
 	xs := make([]float64, n)
 	for i := range n {
-		x := Width*(float64(i)+0.5)/float64(n) + float64(rng.IntN(121)-60)
+		x := lo + (hi-lo)*(float64(i)+0.5)/float64(n) + float64(rng.IntN(121)-60)
 		x = math.Max(80, math.Min(Width-80, x))
 		// Tránh vực: dịch ra xa giữa sân cho tới chỗ có đất.
 		dir := 1.0

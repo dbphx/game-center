@@ -292,16 +292,31 @@ bet, gameBet, betOptions, turnMs, spectators, chat}`. `pos`: `-1` trong chuồng
 Khu riêng, trang `/arena/`. Bắn pháo theo lượt trên địa hình phá huỷ được: canh **góc**, **lực** và **gió**.
 
 - **2–4 ghế** (người hoặc máy `easy` / `normal` / `hard`), người vào sau khi đủ ghế / đang đánh thì xem. Cần 30 HP.
+- **Chế độ boss** (đánh chung, 1–4 người + máy đồng đội, không cược): Vua Chuột `chuot` (dễ, 350 máu/người), Robot Rác `robot`
+  (vừa, 600), Rồng Lửa `rong` (khó, 950). Boss đứng yên mép phải, thân to, bắn một phát mạnh (35 / 50 / 70) sau mỗi vòng vào
+  người gần nhất hoặc ngẫu nhiên; người chơi đứng ở 60% sân bên trái, không bắn trúng đồng đội. Hạ boss → mỗi người chơi thật
+  nhận ngọc rơi (dễ 1–2 viên bậc I; vừa 2–3 viên bậc I–II; khó 3–4 viên bậc II–III) + 50 / 100 / 200 xu; mọi người chết hoặc
+  hết 40 vòng là thua.
 - **Sân** 1600×900, 5 map: Đồng cỏ, Sa mạc (gió mạnh), Núi tuyết, Núi lửa (núi giữa, gồ ghề), Bãi biển (vũng nước giữa = vực).
   Địa hình sinh ngẫu nhiên mỗi trận; chủ bàn chọn map hoặc `random`.
 - **Vật lý** (server tính, giao diện chỉ diễn): trọng lực 400, vận tốc = lực × 9, gió −10..10 (gia tốc ngang × 12) đổi mỗi lượt.
   Nổ khoét hố tròn, sát thương giảm dần tới r + 20; tự trúng mình vẫn mất máu; đất dưới chân sập xuống vực là chết.
 - **Lượt** 25 giây (hết giờ mất lượt), mỗi lượt đi được 120 đơn vị (không leo dốc quá 6/1). Tối đa 40 vòng, hết vòng ai nhiều
   % máu nhất thắng. Rời bàn / mất kết nối quá 30 giây giữa trận là thua (mất cược ngay).
-- **Vũ khí mỗi trận**: Đạn thường (30, r 40, vô hạn), Đạn chùm (3 × 14, r 28, 2 lần), Bom tạ (55, r 65, 1 lần),
-  Đạn dịch chuyển (bay tới đâu người bắn tới đó, 1 lần).
-- **Trang bị vĩnh viễn** Súng / Nón / Áo giáp, cấp 0..10: sát thương +8%/cấp, máu tối đa 200 + 15/cấp nón, giảm 3% sát thương
-  nhận mỗi cấp giáp. **Lực chiến** = 1000 + 120·súng + 80·nón + 100·giáp. Máy: dễ +0, thường +3, khó +6.
+- **Kỹ năng mỗi trận** (dùng không giới hạn): Đạn thường (30, r 40), Đạn chùm (3 × 14, r 28), Bom tạ (55, r 65),
+  Đạn dịch chuyển (bay tới đâu người bắn tới đó).
+- **Vũ khí** (mua bằng xu, mỗi cái có cấp 0..10 riêng, trang bị một cái; chỉ số gốc Tấn công / Phòng thủ / May mắn / Thể lực):
+  Đại bác (miễn phí, 10/5/2/10), Dép lào (1500, 15/8/4/15), Chổi chà (3000, 22/12/6/22), Cây lau nhà (6000, 30/16/8/30),
+  TV (12000, 40/24/10/40), Tủ lạnh (25000, 55/32/12/60). Chỉ số ở cấp L = `round(gốc × (1 + 0.1·L))` + ngọc khảm.
+  Trong trận: sát thương × (1 + Tấn công/100); giảm sát thương nhận = 3%/cấp giáp + Phòng thủ/100 (tối đa 60%);
+  May mắn = % chí mạng (× 1.5); máu tối đa = 200 + 15/cấp nón + Thể lực.
+  **Chuyển cấp**: đưa cấp của vũ khí A sang vũ khí B (A phải cao hơn B), A về +0; phí 300 xu × cấp.
+- **Ngọc khảm** Tấn công (+3/6/10), Phòng thủ (+2/4/7), May mắn (+1/2/4), Thể lực (+5/10/18) bậc I–III, rơi từ boss.
+  Mỗi vũ khí 3 ô, mở ở +3, +7, +10; khảm đè thì ngọc cũ về kho, tháo miễn phí; cấp giảm (cường hoá hỏng, chuyển cấp đi)
+  thì ngọc ở ô bị khoá tự về kho.
+- **Trang bị** Vũ khí (ô `gun` = vũ khí đang trang bị) / Nón / Áo giáp, cấp 0..10.
+  **Lực chiến** = 1000 + 2·(Tấn công + Phòng thủ + May mắn + Thể lực, gồm ngọc) + 80·nón + 100·giáp.
+  Máy dùng Đại bác: dễ +0, thường +3, khó +6.
 - **Cường hoá**: mua đá 5 cấp (Lục 100, Lam 300, Tím 800, Vàng 2000, Đỏ 5000 xu); mỗi lần tốn 1 đá + phí 50·(L+1) xu,
   tỉ lệ `95 − 10·L + 12·(tier−1)` (5..100%). Thất bại mất đá + phí và **tụt 1 cấp** (cấp 0 giữ 0), trừ khi dùng
   **Bùa giữ cấp** (2000 xu). **Bùa may mắn** (1500 xu) +15% tỉ lệ. Bùa đã chọn bị tiêu dù thành hay bại. Lên +7 / +10 thì
@@ -310,22 +325,30 @@ Khu riêng, trang `/arena/`. Bắn pháo theo lượt trên địa hình phá hu
   hoà không đổi. Ghi sổ cái game `arena`. **XP**: thắng 30, hoà 15, thua 10.
 
 REST: `GET /api/arena/maps`; cần đăng nhập: `GET /api/arena/gear`, `POST /api/arena/stones/buy {tier, qty}`,
-`POST /api/arena/charms/buy {id, qty}`, `POST /api/arena/gear/upgrade {slot, stone, luck, protect}` → `{gear, power, stats,
-stones, stoneShop, charms, charmShop, fee, rates, luckBonus, balance, result?}` (400 sai tham số, 402 thiếu xu, 409 max / hết đá / hết bùa).
+`POST /api/arena/charms/buy {id, qty}`, `POST /api/arena/gear/upgrade {slot, stone, luck, protect}`,
+`POST /api/arena/arms/buy {id}`, `POST /api/arena/arms/equip {id}`, `POST /api/arena/arms/transfer {from, to}`,
+`POST /api/arena/gems/socket {arm, idx, kind, tier}`, `POST /api/arena/gems/unsocket {arm, idx}` → `{gear{arm, gun, hat, armor,
+bonus}, power, stats{dmgPct, maxHp, armorPct, atk, def, luck, sta}, arms[{id, name, price, desc, atk, def, luck, sta, eff{…},
+owned, level, equipped, sockets[{idx, unlockAt, open, gem}]}], gems[{kind, tier, name, value, qty}], transferFeePerLevel,
+stones, stoneShop, charms, charmShop, fee, rates, luckBonus, balance, result?{…, arm}, transfer?{from, to, level}}`
+(400 sai tham số, 402 thiếu xu, 409 max / hết đá / hết bùa / đã có / chưa có vũ khí / không chuyển được / ô khoá / hết ngọc).
+`GET /api/arena/bosses` → `[{id, name, level, hpPer, dmg, r, size, coins}]`.
 
 WebSocket `/ws/arena`, danh sách bàn `GET /api/arena/rooms`
-→ `[{code, phase, bet, map, mapName, players:[...], spectators, max}]`.
+→ `[{code, phase, bet, map, mapName, players:[...], spectators, max, mode, boss?, bossName?}]`.
 
 | Client → server | |
 |---|---|
-| `{t:"create", token, bet, map}` / `{t:"join", token, code}` | mở / vào bàn |
-| `{t:"addBot", level}`, `{t:"kick", id}`, `{t:"settings", bet?, map?}` (`setBet` / `setMap`), `{t:"start"}` | chủ bàn, ngoài trận |
+| `{t:"create", token, bet, map, mode?:"boss", boss?}` / `{t:"join", token, code}` | mở / vào bàn |
+| `{t:"addBot", level}`, `{t:"kick", id}`, `{t:"settings", bet?, map?, boss?}` (`setBet` / `setMap`), `{t:"start"}` | chủ bàn, ngoài trận |
 | `{t:"move", x}`, `{t:"aim", angle, power}`, `{t:"fire", angle, power, weapon}` | trong lượt mình |
 | `{t:"rematch"}` / `{t:"ready"}`, `{t:"leave"}`, `{t:"chat", text}` | |
 
 Server gửi `state` (phase, map, maps, weapons, ground[1600], wind, turn, turnMs, round, maxRounds, moveLeft, players
-[x, y, hp, maxHp, alive, facing, gear, power, items, lastAngle, lastPower…], result, bet, chat), `shot` (by, weapon, paths,
-blasts, hits, deaths, tele — gửi trước state, `turn` = "" trong lúc đạn bay), `aim`, `chat`, `error`.
+[x, y, hp, maxHp, alive, facing, gear, power, items, lastAngle, lastPower…], result{…, victory?, loot?}, bet, chat,
+mode, boss{id, name, level, hp, maxHp, x, y, size, alive} | null, bosses?), `shot` (by, weapon, arm, paths, blasts,
+hits[{id, dmg, hp, crit?}], deaths, tele — gửi trước state, `turn` = "" trong lúc đạn bay; boss bắn có `by` = `turn` = "boss"),
+`loot` (`{drops: {<id người chơi>: [{kind, tier, name, value}]}}`, khi hạ boss), `aim`, `chat`, `error`.
 
 ## Công trường (ngoại ô)
 
