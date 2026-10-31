@@ -2324,15 +2324,26 @@
 
   // Vị trí cuộn của hộp thoại đang mở và các khung bên trong (vd #store-body): thay innerHTML làm khung
   // ngắn lại trong chốc lát (ảnh chưa có kích thước) nên trình duyệt kéo về đầu — vẽ xong thì đặt lại.
+  // Cả cuộn ngang (vd hàng hạt giống .chips trong #seed-pick). Khung không có id thì nhận theo khung cha có id
+  // + class + thứ tự, vì innerHTML thay bằng phần tử mới.
+  function scrollKey(el) {
+    if (el.id) return [`#${CSS.escape(el.id)}`, 0];
+    const host = el.parentElement && el.parentElement.closest('[id]');
+    const cls = [...el.classList].map((c) => `.${CSS.escape(c)}`).join('');
+    if (!host || !cls) return [null, 0];
+    const sel = `#${CSS.escape(host.id)} ${cls}`;
+    return [sel, [...document.querySelectorAll(sel)].indexOf(el)];
+  }
   function saveScroll() {
-    return [...document.querySelectorAll('dialog[open], dialog[open] [id], #seed-pick')]
-      .filter((el) => el.scrollTop > 0)
-      .map((el) => [el.id ? `#${CSS.escape(el.id)}` : null, el, el.scrollTop]);
+    return [...document.querySelectorAll('dialog[open], dialog[open] *, #seed-pick, #seed-pick *')]
+      .filter((el) => el.scrollTop > 0 || el.scrollLeft > 0)
+      .map((el) => [...scrollKey(el), el, el.scrollTop, el.scrollLeft]);
   }
   function restoreScroll(saved) {
-    for (const [sel, el, top] of saved) {
-      const now = (sel && document.querySelector(sel)) || el;
+    for (const [sel, i, el, top, left] of saved) {
+      const now = (sel && document.querySelectorAll(sel)[i]) || el;
       if (now.scrollTop !== top) now.scrollTop = top;
+      if (now.scrollLeft !== left) now.scrollLeft = left;
     }
   }
 
