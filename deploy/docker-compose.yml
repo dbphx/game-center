@@ -5,6 +5,9 @@ services:
     image: dcity-app
     container_name: dcity-app
     restart: unless-stopped
+    environment:
+      # Đăng nhập bằng Google (Client ID là thông tin công khai, nằm sẵn trong trang web).
+      GOOGLE_CLIENT_ID: 470545887694-ljl9jj1ng8hqgukgrov5ou4k8rmmfhis.apps.googleusercontent.com
     volumes:
       - ./data:/data
 

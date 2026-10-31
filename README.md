@@ -41,6 +41,7 @@ Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè c
 |---|---|---|
 | `-addr` / `PORT` | `:8080` | địa chỉ lắng nghe |
 | `-db` / `DB_PATH` | `data/gamehub.db` | file SQLite lưu tài khoản và ví |
+| `-google-client-id` / `GOOGLE_CLIENT_ID` | rỗng (tắt) | OAuth Client ID (loại Web) để bật "Đăng nhập với Google" |
 
 Đưa lên mạng để bạn ở xa chơi: `docker build -t gamehub . && docker run -p 8080:8080 -v gamehub-data:/data gamehub`
 (nhớ gắn volume `/data` để không mất ví), hoặc deploy Dockerfile lên Fly.io / Render / Railway, hoặc mở tạm bằng tunnel
@@ -51,6 +52,13 @@ Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè c
 - Đăng ký bằng **tên đăng nhập + mật khẩu** (tên đăng nhập 3–20 ký tự: chữ không dấu, số, `_`, `.`; không phân biệt hoa thường; mật khẩu ≥ 6 ký tự, băm bcrypt).
   Mỗi lần đăng nhập là một phiên riêng, đăng nhập được trên nhiều máy; sai mật khẩu 5 lần trong 15 phút thì tạm khoá tên đăng nhập đó.
 - Tài khoản khách từ bản cũ vẫn chơi tiếp được và có nút đặt tên đăng nhập + mật khẩu, giữ nguyên xu. Database cũ được nâng cấp tự động khi khởi động.
+- **Đăng nhập với Google** (bật khi có `GOOGLE_CLIENT_ID`): server xác minh ID token của Google (chữ ký RS256 theo khoá
+  công khai của Google, `aud` = Client ID, còn hạn, email đã xác minh). Google chưa liên kết thì được mời tạo nhân vật
+  (vé đăng ký sống 10 phút) — tài khoản mới không có tên đăng nhập / mật khẩu, thêm sau được bằng nút đặt tên đăng nhập.
+  Tài khoản cũ liên kết Google ở mục tài khoản để giữ nguyên xu, nông trại, đồ; mỗi tài khoản một Google và ngược lại.
+  Bỏ liên kết chỉ được khi tài khoản đã có tên đăng nhập + mật khẩu. Tạo Client ID: Google Cloud Console → APIs &
+  Services → Credentials → OAuth client ID (Web application), Authorized JavaScript origins thêm `https://<tên miền>`
+  (và `http://localhost:8080` khi thử).
 - Tài khoản mới được **1.000 xu**, mỗi ngày nhận thêm **500 xu** (reset 0h giờ Việt Nam).
 - Số dư không bao giờ âm: thua quá số đang có thì chỉ mất hết số đang có.
 - Chơi với máy thì máy đóng vai nhà cái: thắng máy được xu thật vào ví, thua thì mất.
@@ -407,6 +415,7 @@ Mọi khoản tính bằng *mức*, nhân với mức cược (10–500 xu/mức
 main.go                  khởi động server, đăng ký danh sách game
 internal/wallet/         tài khoản khách, ví xu, sổ cái (SQLite)
 internal/server/         API hub (/api/...), WebSocket từng game (/ws/<game>), file tĩnh
+internal/googleauth/     xác minh ID token "Đăng nhập với Google" (JWKS, RS256, chỉ thư viện chuẩn)
 games/tienlen/           luật, luồng ván, tiền cược, bot
 games/tienlen/online/    phòng chơi online: người vào/ra, máy, hẹn giờ, trả thưởng vào ví
 games/farm/              nông trại: ô đất, chuồng, ao, kho
@@ -443,13 +452,16 @@ Token sai trả 401 `{"error", "code"}`: `code` là `"elsewhere"` khi tài kho�
 | `POST /api/login {username, password}` | đăng nhập → `{token, user}`; **mỗi tài khoản một phiên**: phiên cũ bị đá ra |
 | `POST /api/logout` | đăng xuất phiên hiện tại |
 | `POST /api/password {old, new}` | đổi mật khẩu |
-| `POST /api/credentials {username, password}` | tài khoản khách cũ đặt tên đăng nhập |
+| `POST /api/credentials {username, password}` | tài khoản khách cũ / tạo bằng Google đặt tên đăng nhập + mật khẩu |
+| `POST /api/login/google {credential}` | ID token từ nút Google → đã liên kết: `{token, user}`; chưa: `{needSignup, email, name, signup}` (401 token sai, 503 chưa bật) |
+| `POST /api/register/google {signup, name, gender, outfit}` | tạo tài khoản từ vé đăng ký → `{token, user}` (401 vé sai / hết hạn, 409 Google đã liên kết) |
+| `POST /api/me/google {credential}` / `DELETE /api/me/google` | liên kết / bỏ liên kết Google → `{user}` (409 đã gắn tài khoản khác, đã có Google khác, chưa có mật khẩu) |
 | `POST /api/character {outfit}` | mặc trang phục đã có |
 | `POST /api/outfits/buy {outfit}` | mua trang phục (403 thiếu level, 402 thiếu xu, 409 đã có) |
 | `POST /api/me/items/buy {kind, id}` | mua quần áo / tóc / cánh / gương mặt (`kind`: `outfit`, `hair`, `wings`, `face`) và mặc luôn; lỗi như trên, 400 món lạ |
 | `POST /api/me/items/wear {kind, id}` | mặc / đeo món đã có (403 chưa có); tóc / mặt `default` luôn được, cánh `""` là tháo cánh |
 | `POST /api/me/sit {sit}` | ngồi ghế (`true`, giữ 60 giây — gửi lại ~30 giây một lần khi còn ngồi) / đứng dậy (`false`); user có `sitting`, `regenSeconds` (60 đứng, 30 ngồi); 423 khi nằm viện |
-| `GET /api/me` | thông tin + số dư, nhân vật (`outfit`, `owned`, `hair`, `ownedHair`, `wings`, `ownedWings`, `face`, `ownedFace`) (header `Authorization: Bearer <token>`) |
+| `GET /api/me` | thông tin + số dư, nhân vật (`outfit`, `owned`, `hair`, `ownedHair`, `wings`, `ownedWings`, `face`, `ownedFace`), `google` (`{email}` hoặc `null`) (header `Authorization: Bearer <token>`) |
 | `POST /api/me {name}` | đổi tên |
 | `POST /api/daily` | nhận thưởng ngày (409 nếu đã nhận) |
 | `GET /api/history` | 30 giao dịch gần nhất |

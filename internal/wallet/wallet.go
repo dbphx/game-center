@@ -56,6 +56,7 @@ type User struct {
 	Sitting       bool     `json:"sitting"`       // đang ngồi ghế (hồi máu nhanh gấp đôi)
 	RegenSeconds  int      `json:"regenSeconds"`  // số giây hồi 1 HP lúc này: 60 đứng, 30 ngồi
 	Now           int64    `json:"now"`           // giờ server (unix), để giao diện đếm ngược
+	Google        *Google  `json:"google"`        // tài khoản Google đã liên kết, nil nếu chưa
 	lastDaily     string
 }
 
@@ -113,14 +114,20 @@ func addEntry(ctx context.Context, tx *sql.Tx, userID, delta, after int64, game,
 	return err
 }
 
-const userColumns = `id, coalesce(username, ''), name, balance, last_daily, gender, outfit, xp, hp, coalesce(hp_at, 0), hospital_until, hair, wings, face, sit_until`
+const userColumns = `id, coalesce(username, ''), name, balance, last_daily, gender, outfit, xp, hp, coalesce(hp_at, 0), hospital_until, hair, wings, face, sit_until,
+	(SELECT email FROM user_google WHERE user_google.user_id = users.id)`
 
 func (w *Wallet) scanUser(row *sql.Row) (User, error) {
 	var u User
 	var s hpState
-	err := row.Scan(&u.ID, &u.Username, &u.Name, &u.Balance, &u.lastDaily, &u.Gender, &u.Outfit, &u.XP, &s.hp, &s.hpAt, &s.hospitalUntil, &u.Hair, &u.Wings, &u.Face, &s.sitUntil)
+	var google sql.NullString
+	err := row.Scan(&u.ID, &u.Username, &u.Name, &u.Balance, &u.lastDaily, &u.Gender, &u.Outfit, &u.XP, &s.hp, &s.hpAt, &s.hospitalUntil, &u.Hair, &u.Wings, &u.Face, &s.sitUntil,
+		&google)
 	if errors.Is(err, sql.ErrNoRows) {
 		return User{}, ErrNotFound
+	}
+	if google.Valid {
+		u.Google = &Google{Email: google.String}
 	}
 	u.CanDaily = u.lastDaily != w.today()
 	u.Level = LevelFor(u.XP)

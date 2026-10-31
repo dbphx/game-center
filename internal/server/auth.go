@@ -28,7 +28,8 @@ func (s *Server) authError(w http.ResponseWriter, err error) {
 	case errors.Is(err, wallet.ErrNotEnoughCoins):
 		writeError(w, http.StatusPaymentRequired, err.Error())
 	case errors.Is(err, wallet.ErrUsernameTaken), errors.Is(err, wallet.ErrHasCredentials), errors.Is(err, wallet.ErrAlreadyOwned),
-		errors.Is(err, wallet.ErrFullHP):
+		errors.Is(err, wallet.ErrFullHP), errors.Is(err, wallet.ErrGoogleTaken), errors.Is(err, wallet.ErrHasGoogle),
+		errors.Is(err, wallet.ErrNoGoogle), errors.Is(err, wallet.ErrNeedCredentials), errors.Is(err, wallet.ErrNoPassword):
 		writeError(w, http.StatusConflict, err.Error())
 	case errors.Is(err, wallet.ErrInvalidUsername), errors.Is(err, wallet.ErrWeakPassword), errors.Is(err, wallet.ErrLongPassword),
 		errors.Is(err, wallet.ErrInvalidCharacter), errors.Is(err, wallet.ErrInvalidItem), errors.Is(err, wallet.ErrBadSource):

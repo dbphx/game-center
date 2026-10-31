@@ -17,7 +17,8 @@ import (
 //	7: gương mặt mua ở shop thời trang (lưu chung bảng user_items, kind 'face').
 //	8: ngồi ghế (sit_until) để hồi máu nhanh gấp đôi.
 //	9: mỗi tài khoản một phiên; revoked_sessions nhớ token bị đăng nhập nơi khác đá ra.
-const schemaVersion = 9
+//	10: đăng nhập bằng Google; user_google liên kết tài khoản Google (sub) với tài khoản DCity.
+const schemaVersion = 10
 
 const schemaV2 = `
 CREATE TABLE users (
@@ -128,6 +129,16 @@ CREATE TABLE revoked_sessions (
 CREATE INDEX revoked_sessions_at ON revoked_sessions(revoked_at);
 `
 
+// Tài khoản cũ chưa liên kết Google; mỗi tài khoản tối đa một tài khoản Google và ngược lại.
+const migrateV9toV10 = `
+CREATE TABLE user_google (
+	sub        TEXT PRIMARY KEY,
+	user_id    INTEGER NOT NULL UNIQUE REFERENCES users(id),
+	email      TEXT NOT NULL,
+	created_at INTEGER NOT NULL
+);
+`
+
 func migrate(db *sql.DB) error {
 	ctx := context.Background()
 	var version int
@@ -173,6 +184,9 @@ func migrate(db *sql.DB) error {
 	}
 	if version <= 8 {
 		steps = append(steps, migrateV8toV9)
+	}
+	if version <= 9 {
+		steps = append(steps, migrateV9toV10)
 	}
 
 	// Dựng lại bảng có khoá ngoại trỏ tới cần tắt kiểm tra khoá ngoại (không đổi được trong transaction).

@@ -36,15 +36,20 @@ type Server struct {
 	games  []Game
 	mux    *http.ServeMux
 
-	loginFails *limiter // đăng nhập sai theo tên đăng nhập
-	registers  *limiter // số tài khoản tạo theo IP
+	loginFails  *limiter // đăng nhập sai theo tên đăng nhập
+	registers   *limiter // số tài khoản tạo theo IP
+	googleTries *limiter // số lần gửi token Google theo IP
+
+	google    GoogleVerifier // nil: tắt đăng nhập Google (xem google.go)
+	signupKey []byte         // khoá ký vé đăng ký bằng Google
 }
 
 func New(w *wallet.Wallet, static fs.FS, games []Game) *Server {
 	s := &Server{
 		wallet: w, games: games, mux: http.NewServeMux(),
-		loginFails: newLimiter(5, 15*time.Minute),
-		registers:  newLimiter(10, time.Hour),
+		loginFails:  newLimiter(5, 15*time.Minute),
+		registers:   newLimiter(10, time.Hour),
+		googleTries: newLimiter(30, 15*time.Minute),
 	}
 	// File tĩnh: ETag + gzip + service worker giữ bộ đệm theo phiên bản (xem static.go).
 	s.mux.Handle("/", newStaticFiles(static))
@@ -61,10 +66,15 @@ func New(w *wallet.Wallet, static fs.FS, games []Game) *Server {
 				"regenPerMinute": 60 / wallet.RegenSeconds, "carDamage": wallet.CarDamage,
 			},
 			"sitRegenMultiplier": wallet.SitRegenMultiplier,
+			"googleClientId":     s.googleClientID(), // rỗng: không hiện nút đăng nhập Google
 		})
 	})
 	s.mux.HandleFunc("POST /api/register", s.register)
 	s.mux.HandleFunc("POST /api/login", s.login)
+	s.mux.HandleFunc("POST /api/login/google", s.loginGoogle)
+	s.mux.HandleFunc("POST /api/register/google", s.registerGoogle)
+	s.mux.HandleFunc("POST /api/me/google", s.authed(s.linkGoogle))
+	s.mux.HandleFunc("DELETE /api/me/google", s.authed(s.unlinkGoogle))
 	s.mux.HandleFunc("POST /api/logout", s.authed(s.logout))
 	s.mux.HandleFunc("POST /api/credentials", s.authed(s.setCredentials))
 	s.mux.HandleFunc("POST /api/password", s.authed(s.changePassword))

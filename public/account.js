@@ -79,7 +79,77 @@
     return data.user;
   }
 
+  // ---------- Đăng nhập bằng Google (Google Identity Services) ----------
+  // Script của Google chỉ nạp khi cần hiện nút; bị chặn / lỗi mạng thì nút ẩn đi, form tên đăng nhập + mật khẩu vẫn dùng được.
+  // GIS chỉ có một callback chung: nút nào đang hiện thì gán gHandler của nút đó.
+  const GSI = 'https://accounts.google.com/gsi/client';
+  let gsiLoad = null;
+  let gsiClient = '';
+  let gHandler = null;
+  function loadGoogle() {
+    if (gsiLoad) return gsiLoad;
+    gsiLoad = new Promise((resolve, reject) => {
+      if (window.google && window.google.accounts && window.google.accounts.id) return resolve(window.google);
+      const s = document.createElement('script');
+      s.src = GSI;
+      s.async = true;
+      const timer = setTimeout(() => reject(new Error('Không tải được Google')), 10000);
+      s.onload = () => {
+        clearTimeout(timer);
+        if (window.google && window.google.accounts && window.google.accounts.id) resolve(window.google);
+        else reject(new Error('Không tải được Google'));
+      };
+      s.onerror = () => { clearTimeout(timer); reject(new Error('Không tải được Google')); };
+      document.head.appendChild(s);
+    });
+    gsiLoad.catch(() => { gsiLoad = null; }); // lần sau thử lại
+    return gsiLoad;
+  }
+
+  // googleButton vẽ nút Google vào el (nút do Google vẽ); bấm xong gọi onCredential(credential).
+  // Trả về true nếu hiện được nút; clientId rỗng hoặc script lỗi thì false (người gọi ẩn khung chứa nút).
+  async function googleButton(el, clientId, onCredential, { text = 'signin_with' } = {}) {
+    if (!el || !clientId) return false;
+    try {
+      const g = await loadGoogle();
+      if (gsiClient !== clientId) {
+        g.accounts.id.initialize({
+          client_id: clientId,
+          callback: (r) => gHandler && r && r.credential && gHandler(r.credential),
+          ux_mode: 'popup',
+          auto_select: false,
+          cancel_on_tap_outside: true,
+        });
+        gsiClient = clientId;
+      }
+      gHandler = onCredential;
+      el.innerHTML = '';
+      // Nút Google rộng tối đa 400px, vừa với khung chứa (điện thoại 390px không tràn ngang).
+      const width = Math.max(200, Math.min(400, Math.floor(el.clientWidth || (el.parentElement && el.parentElement.clientWidth) || 300)));
+      g.accounts.id.renderButton(el, { type: 'standard', theme: 'outline', size: 'large', shape: 'pill', text, width, locale: 'vi' });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Google đã liên kết → đăng nhập luôn ({token, user}); chưa có tài khoản → {needSignup, email, name, signup}.
+  async function googleLogin(credential) {
+    const data = await api('/api/login/google', { method: 'POST', body: { credential } });
+    if (data.token) save(data.token);
+    return data;
+  }
+
+  async function googleRegister(signup, name, look = {}) {
+    const data = await api('/api/register/google', { method: 'POST', body: { signup, name, ...look } });
+    save(data.token);
+    return data.user;
+  }
+
   async function logout() {
+    try {
+      if (window.google && window.google.accounts && window.google.accounts.id) window.google.accounts.id.disableAutoSelect();
+    } catch (e) { /* bỏ qua */ }
     try {
       await api('/api/logout', { method: 'POST' });
     } finally {
@@ -198,5 +268,5 @@
   } catch (e) { /* bỏ qua */ }
 
   window.Account = { token: load, api, me, register, login, logout, requireLogin, xu, escapeHtml, toast,
-    ask, confirm: confirmBox, alert: alertBox, relogin };
+    ask, confirm: confirmBox, alert: alertBox, relogin, googleButton, googleLogin, googleRegister };
 })();

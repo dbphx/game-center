@@ -25,6 +25,7 @@
           <div class="menu-head"><b id="menu-display"></b><span class="muted" id="menu-username"></span></div>
           <button id="btn-rename"><i data-icon="pencil"></i>Đổi tên hiển thị</button>
           <button id="btn-password"><i data-icon="key"></i>Đổi mật khẩu</button>
+          <button id="btn-google" class="hidden"><i data-icon="link"></i>Tài khoản Google</button>
           <a class="menu-link" href="/credits.html"><i data-icon="scroll"></i>Ghi công hình ảnh</a>
           <button id="btn-logout" class="danger"><i data-icon="logOut"></i>Đăng xuất</button>
         </div>
@@ -48,6 +49,11 @@
       </div>
 
       <div class="auth-form">
+        <!-- Đăng nhập với Google: chỉ hiện khi server có googleClientId và script Google tải được -->
+        <div class="google-auth hidden" id="google-auth">
+          <div class="google-btn" id="google-btn"></div>
+          <div class="or-line"><span>hoặc</span></div>
+        </div>
         <div class="tabs" role="tablist">
           <button class="tab active" data-tab="login" role="tab"><i data-icon="logIn"></i>Đăng nhập</button>
           <button class="tab" data-tab="register" role="tab"><i data-icon="userPlus"></i>Đăng ký</button>
@@ -64,15 +70,19 @@
         </form>
 
         <form id="form-register" class="stack hidden" autocomplete="on">
+          <div class="google-signup hidden" id="google-signup">
+            <span>Đăng ký bằng Google <b id="google-email"></b></span>
+            <button type="button" class="link" id="btn-google-cancel">Dùng tên đăng nhập</button>
+          </div>
           <div class="creator" id="register-creator"></div>
           <label class="field">Tên nhân vật
             <span class="input-icon"><i data-icon="sparkles"></i><input name="name" maxlength="16" placeholder="Bạn bè sẽ thấy tên này" required></span>
           </label>
-          <label class="field">Tên đăng nhập
+          <label class="field pw-only">Tên đăng nhập
             <span class="input-icon"><i data-icon="user"></i><input name="username" autocomplete="username" required autocapitalize="none" pattern="[A-Za-z0-9_.]{3,20}"></span>
             <span class="hint">3–20 ký tự: chữ không dấu, số, dấu _ hoặc .</span>
           </label>
-          <div class="row2">
+          <div class="row2 pw-only">
             <label class="field">Mật khẩu
               <span class="input-icon"><i data-icon="lock"></i><input name="password" type="password" autocomplete="new-password" minlength="6" required></span>
             </label>
@@ -125,6 +135,15 @@
         <span class="input-icon"><i data-icon="lock"></i><input name="new" type="password" autocomplete="new-password" minlength="6" required></span>
       </label>
       <div class="actions"><button value="cancel" formnovalidate>Huỷ</button><button class="primary" value="ok">Đổi mật khẩu</button></div>
+    </form>
+  </dialog>
+
+  <dialog class="modal" id="dlg-google">
+    <form method="dialog">
+      <h2><i data-icon="link"></i>Tài khoản Google</h2>
+      <p class="muted">Liên kết Google để đăng nhập bằng một chạm. Xu, level, nông trại vẫn là của tài khoản này.</p>
+      <div class="google-link" id="google-link"></div>
+      <div class="actions"><button value="cancel" formnovalidate>Đóng</button></div>
     </form>
   </dialog>
 

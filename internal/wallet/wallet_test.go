@@ -326,7 +326,7 @@ func TestMigrateFromV3KeepsWornOutfit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = db.Exec(`DROP TABLE user_outfits; UPDATE users SET outfit = 'aodai';` + dropV9 + dropV8 + dropV7 + dropV6 + dropV5 + `PRAGMA user_version = 3;`)
+	_, err = db.Exec(`DROP TABLE user_outfits; UPDATE users SET outfit = 'aodai';` + dropV10 + dropV9 + dropV8 + dropV7 + dropV6 + dropV5 + `PRAGMA user_version = 3;`)
 	db.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -364,7 +364,7 @@ func TestMigrateFromV4FullHP(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = db.Exec(dropV9 + dropV8 + dropV7 + dropV6 + dropV5 + `PRAGMA user_version = 4;`)
+	_, err = db.Exec(dropV10 + dropV9 + dropV8 + dropV7 + dropV6 + dropV5 + `PRAGMA user_version = 4;`)
 	db.Close()
 	if err != nil {
 		t.Fatal(err)

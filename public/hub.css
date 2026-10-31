@@ -51,6 +51,23 @@
 .hero-art .character { height: 200px; width: auto; filter: drop-shadow(0 8px 0 rgba(40, 100, 30, .3)); }
 
 .auth-form { display: flex; flex-direction: column; gap: 18px; padding: 30px; background: linear-gradient(180deg, #fffdf7, var(--surface)); }
+/* Đăng nhập với Google: nút do Google vẽ, đường kẻ "hoặc" ngăn với form tên đăng nhập */
+.google-auth { display: flex; flex-direction: column; gap: 14px; }
+.google-btn { display: flex; justify-content: center; min-height: 44px; max-width: 100%; overflow: hidden; }
+.or-line { display: flex; align-items: center; gap: 10px; color: var(--muted); font-weight: 700; font-size: 13px; }
+.or-line::before, .or-line::after { content: ''; flex: 1; border-top: 2px dashed var(--border); }
+.google-signup {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px;
+  padding: 10px 14px; border-radius: 14px; background: #eaf4ff; border: 2px solid #b7d6f5; font-weight: 700; font-size: 14px;
+}
+.google-signup b { color: var(--blue, #2a6fb3); word-break: break-all; }
+.google-signup .link { padding: 0; font-size: 13px; }
+.google-mode .pw-only { display: none; }
+.google-link { display: flex; flex-direction: column; gap: 12px; }
+.google-link .linked { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 10px 14px; border-radius: 14px; background: #eaf4ff; border: 2px solid #b7d6f5; font-weight: 700; }
+.google-link .linked b { word-break: break-all; }
+.google-link .note { margin: 0; font-size: 13px; }
 .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 5px; border-radius: 18px; background: #f6e3bd; border: 2px solid var(--border); }
 .tab { background: none; border: none; color: var(--muted); padding: 10px; box-shadow: none; border-radius: 14px; }
 .tab:hover:not(:disabled) { color: var(--text); filter: none; }

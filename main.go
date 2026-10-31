@@ -21,6 +21,7 @@ import (
 	"github.com/dbphx/game-center/games/plaza"
 	"github.com/dbphx/game-center/games/site"
 	"github.com/dbphx/game-center/games/tienlen/online"
+	"github.com/dbphx/game-center/internal/googleauth"
 	"github.com/dbphx/game-center/internal/server"
 	"github.com/dbphx/game-center/internal/wallet"
 )
@@ -31,6 +32,7 @@ var publicFiles embed.FS
 func main() {
 	addr := flag.String("addr", ":"+envOr("PORT", "8080"), "địa chỉ lắng nghe")
 	dbPath := flag.String("db", envOr("DB_PATH", "data/gamehub.db"), "file SQLite lưu tài khoản và ví")
+	googleID := flag.String("google-client-id", os.Getenv("GOOGLE_CLIENT_ID"), "OAuth Client ID cho đăng nhập Google (rỗng: tắt)")
 	flag.Parse()
 
 	w, err := wallet.Open(*dbPath)
@@ -41,6 +43,10 @@ func main() {
 
 	static, _ := fs.Sub(publicFiles, "public")
 	srv := server.New(w, static, games(w))
+	if *googleID != "" {
+		srv.EnableGoogle(googleauth.New(*googleID))
+		log.Printf("đăng nhập Google: bật (client %s)", *googleID)
+	}
 
 	printAddresses(*addr)
 	log.Fatal(http.ListenAndServe(*addr, srv))

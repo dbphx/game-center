@@ -95,6 +95,104 @@
     first && first.focus();
   }
 
+  // ---------- Đăng nhập với Google ----------
+  // googleSignup: vừa đăng nhập Google mà chưa có tài khoản → {signup (vé ngắn hạn từ server), email, name};
+  // form Đăng ký chuyển sang chế độ Google (ẩn tên đăng nhập / mật khẩu, chỉ chọn nhân vật + tên).
+  let googleSignup = null;
+
+  function setGoogleMode(g) {
+    googleSignup = g;
+    const form = $('form-register');
+    form.classList.toggle('google-mode', !!g);
+    // Ô bị ẩn phải tắt luôn, không thì trình duyệt vẫn bắt nhập (required) và gửi kèm.
+    form.querySelectorAll('.pw-only input').forEach((i) => (i.disabled = !!g));
+    $('google-signup').classList.toggle('hidden', !g);
+    $('google-email').textContent = g ? g.email || '' : '';
+    if (g && g.name && !form.elements.name.value) form.elements.name.value = shortName(g.name);
+  }
+
+  // Tên Google dài quá 16 ký tự (giới hạn tên nhân vật): cắt ở ranh giới từ, không cắt giữa chữ.
+  function shortName(name) {
+    const s = String(name).trim().replace(/\s+/g, ' ');
+    if (s.length <= 16) return s;
+    const cut = s.slice(0, 17).lastIndexOf(' ');
+    return (cut >= 3 ? s.slice(0, cut) : s.slice(0, 16)).trim();
+  }
+
+  async function onGoogleCredential(credential) {
+    try {
+      const data = await A.googleLogin(credential);
+      if (data.token && data.user) {
+        setUser(data.user);
+        setGoogleMode(null);
+        await enterCity();
+        return;
+      }
+      if (data.needSignup) {
+        switchTab('register');
+        setGoogleMode({ signup: data.signup, email: data.email, name: data.name });
+        A.toast('Chọn nhân vật và đặt tên để tạo tài khoản');
+      }
+    } catch (e) {
+      A.toast(e.message);
+    }
+  }
+
+  // Hiện nút Google ở màn đăng nhập (chỉ khi server bật và script Google tải được).
+  let googleShown = false;
+  async function showGoogleAuth() {
+    if (googleShown || !config.googleClientId || $('auth').classList.contains('hidden')) return;
+    googleShown = true;
+    const box = $('google-auth');
+    box.classList.remove('hidden');
+    const ok = await A.googleButton($('google-btn'), config.googleClientId, onGoogleCredential, { text: 'continue_with' });
+    if (!ok) {
+      box.classList.add('hidden');
+      googleShown = false;
+    }
+  }
+
+  // Hộp "Tài khoản Google" trong menu: liên kết / bỏ liên kết Google với tài khoản đang đăng nhập.
+  async function renderGoogleLink() {
+    const box = $('google-link');
+    const g = user && user.google;
+    if (g) {
+      box.innerHTML = `<div class="linked"><span>${I.svg('check')} Đã liên kết <b>${A.escapeHtml(g.email || '')}</b></span>
+        <button type="button" class="danger" id="btn-google-unlink">Bỏ liên kết</button></div>
+        ${user.username ? '' : '<p class="muted note">Tài khoản chưa có tên đăng nhập + mật khẩu nên chưa bỏ liên kết được.</p>'}`;
+      $('btn-google-unlink').onclick = async () => {
+        if (!(await A.confirm(`Bỏ liên kết Google ${g.email || ''}? Sau đó chỉ đăng nhập được bằng tên đăng nhập và mật khẩu.`, { title: 'Bỏ liên kết Google', ok: 'Bỏ liên kết', danger: true }))) {
+          $('dlg-google').open || $('dlg-google').showModal();
+          return;
+        }
+        try {
+          const res = await A.api('/api/me/google', { method: 'DELETE' });
+          setUser(res.user || res);
+          renderHUD();
+          A.toast('Đã bỏ liên kết Google');
+        } catch (e) {
+          A.toast(e.message);
+        }
+        if (!$('dlg-google').open) $('dlg-google').showModal();
+        renderGoogleLink();
+      };
+      return;
+    }
+    box.innerHTML = '<p class="muted note">Chưa liên kết Google.</p><div class="google-btn" id="google-link-btn"></div>';
+    const ok = await A.googleButton($('google-link-btn'), config.googleClientId, async (credential) => {
+      try {
+        const res = await A.api('/api/me/google', { method: 'POST', body: { credential } });
+        setUser(res.user || res);
+        renderHUD();
+        A.toast('Đã liên kết Google ' + ((user.google && user.google.email) || ''));
+      } catch (e) {
+        A.toast(e.message);
+      }
+      renderGoogleLink();
+    }, { text: 'signin_with' });
+    if (!ok) box.innerHTML = '<p class="muted note">Không tải được Google, thử lại sau.</p>';
+  }
+
   async function submit(form, action) {
     const btn = form.querySelector('button[type=submit]');
     btn.disabled = true;
@@ -287,6 +385,7 @@
     $('menu-display').textContent = user.name;
     $('menu-username').textContent = user.username ? '@' + user.username : 'Tài khoản khách';
     $('btn-password').classList.toggle('hidden', !user.username);
+    $('btn-google').classList.toggle('hidden', !config.googleClientId);
     $('legacy').classList.toggle('hidden', !!user.username);
     if (cityMounted) City.setTag(user.name, user.level);
   }
@@ -840,8 +939,33 @@
   $('form-register').addEventListener('submit', (e) => {
     e.preventDefault();
     const f = Object.fromEntries(new FormData(e.target));
+    if (googleSignup) {
+      const g = googleSignup;
+      return submit(e.target, async () => {
+        try {
+          const u = await A.googleRegister(g.signup, f.name, registerLook);
+          setGoogleMode(null);
+          return u;
+        } catch (err) {
+          // Vé đăng ký hết hạn: quay lại bước bấm nút Google.
+          if (err.status === 401) {
+            setGoogleMode(null);
+            switchTab('login');
+            throw new Error('Phiên Google đã hết hạn, bấm nút Google để đăng nhập lại');
+          }
+          throw err;
+        }
+      });
+    }
     if (f.password !== f.confirm) return A.toast('Mật khẩu nhập lại không khớp');
     submit(e.target, () => A.register(f.username, f.password, f.name, registerLook));
+  });
+
+  $('btn-google-cancel').addEventListener('click', () => setGoogleMode(null));
+
+  $('btn-google').addEventListener('click', () => {
+    $('dlg-google').showModal();
+    renderGoogleLink();
   });
 
   $('panel-close').addEventListener('click', closePanel);
@@ -913,6 +1037,8 @@
       showConfig();
       registerCreator.redraw();
       refreshPanel();
+      if (user) renderHUD();
+      showGoogleAuth();
     })
     .catch(() => {});
 
@@ -942,6 +1068,7 @@
     else {
       show('auth');
       switchTab(nextPage() && !A.relogin ? 'register' : 'login');
+      showGoogleAuth();
     }
   })();
 })();

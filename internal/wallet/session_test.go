@@ -100,7 +100,7 @@ func TestMigrateFromV8KeepsSessions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = db.Exec(dropV9 + `PRAGMA user_version = 8;`)
+	_, err = db.Exec(dropV10 + dropV9 + `PRAGMA user_version = 8;`)
 	db.Close()
 	if err != nil {
 		t.Fatal(err)

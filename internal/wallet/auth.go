@@ -199,6 +199,9 @@ func (w *Wallet) ChangePassword(ctx context.Context, id int64, oldPassword, newP
 	if err := w.db.QueryRowContext(ctx, `SELECT password_hash FROM users WHERE id = ?`, id).Scan(&hash); err != nil {
 		return err
 	}
+	if hash == "" {
+		return ErrNoPassword // tài khoản tạo bằng Google / khách cũ: đặt mật khẩu qua SetCredentials
+	}
 	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(oldPassword)) != nil {
 		return ErrWrongPassword
 	}
