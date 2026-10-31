@@ -27,7 +27,7 @@
   const SKY = 96; // dải trời + đồi xa phía trên bản đồ (toạ độ y âm), biển tên các toà bờ Bắc nằm ở đây
   const HORIZON = 150; // đường chân đồi: trên đó là trời / đồi, dưới là cỏ
   const MB = 900; // độ sâu dải đồng cỏ phía dưới thành phố (camera không xuống quá)
-  const EXT = 50; // nhân vật đi tiếp ra ngoại ô tối đa EXT ô mỗi bên (trên đường / vỉa hè ngang)
+  const EXT = 56; // nhân vật đi tiếp ra ngoại ô tối đa EXT ô mỗi bên (trên đường / vỉa hè ngang)
   // Lưới đi được: cột GC0 … GC1 − 1, hàng 0 … GR1 − 1 (dưới thành phố theo hai trục dọc xuống đường đất ở đồng cỏ).
   const GC0 = -EXT;
   const GC1 = COLS + EXT;
@@ -55,16 +55,16 @@
     casino: [0, 0, 14, 8], bank: [19, 0, 13, 8], shop: [37, 0, 13, 8],
     hospital: [0, 22, 14, 10], plaza: [19, 22, 13, 10], farm: [37, 22, 13, 10],
     // Các khu ở ngoại ô, bờ Nam: Công trường bên trái, Hồ câu cá bên phải, Khu danh vọng giữa Công trường và thành phố,
-    // Đấu trường giữa thành phố và Hồ câu cá; cửa vào trên vỉa hè hàng 21 trước cổng.
-    site: [-42, 22, 16, 10], fishing: [68, 22, 18, 10], fame: [-20, 22, 14, 10], arena: [52, 22, 14, 10],
+    // Đấu trường sau Hồ câu cá (xa nhất bên phải); cửa vào trên vỉa hè hàng 21 trước cổng.
+    site: [-42, 22, 16, 10], fishing: [68, 22, 18, 10], fame: [-20, 22, 14, 10], arena: [90, 22, 14, 10],
   };
   const SITE_X = -1088; // tâm cổng Công trường
   const FISH_X = 2464; // tâm cổng Hồ câu cá
   const FAME_X = -416; // tâm cổng Khu danh vọng
-  const ARENA_X = 1888; // tâm cổng Đấu trường
+  const ARENA_X = 3104; // tâm cổng Đấu trường
   const ZONE_FENCE_Y = 772; // hàng rào / cổng của các khu ngoại ô
   // Khoảng x dành riêng cho các khu ngoại ô (không rải lô nhà / ruộng vào đây).
-  const RESERVED = [[-42 * T - 16, -26 * T + 16], [68 * T - 16, 86 * T + 16], [-20 * T - 16, -6 * T + 16], [52 * T - 16, 66 * T + 16]];
+  const RESERVED = [[-42 * T - 16, -26 * T + 16], [68 * T - 16, 86 * T + 16], [-20 * T - 16, -6 * T + 16], [90 * T - 16, 104 * T + 16]];
   // Vật cản trong các khu bờ Nam (cột, hàng, rộng, cao): đài phun nước, toà bệnh viện, bên trong hàng rào nông trại.
   const FOUNTAIN = [23, 27, 6, 3];
   const HOSPITAL = [4, 24, 6, 6]; // toà thu 0.8 (194×192), cửa giữa đáy (x 224, y 966); sân trước hàng 30–31
