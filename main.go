@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/dbphx/game-center/games/arena"
 	"github.com/dbphx/game-center/games/baucua"
 	"github.com/dbphx/game-center/games/cangua"
 	"github.com/dbphx/game-center/games/caro"
@@ -86,6 +87,18 @@ func games(w *wallet.Wallet) []server.Game {
 	canguaOpts := cangua.DefaultOptions
 	canguaOpts.MinHP = wallet.ZoneMinHP["casino"]
 	canguaHub := cangua.NewHub(w, canguaOpts)
+	armory, err := arena.New(context.Background(), w)
+	if err != nil {
+		log.Fatalf("đấu trường: %v", err)
+	}
+	arenaAuth := func(ctx context.Context, token string) (arena.User, error) {
+		u, err := w.UserByToken(ctx, token)
+		return arena.User{ID: u.ID, Name: u.Name, Gender: u.Gender, Outfit: u.Outfit, Hair: u.Hair, Wings: u.Wings, Face: u.Face,
+			Level: u.Level, HP: u.HP, HospitalUntil: u.HospitalUntil}, err
+	}
+	arenaOpts := arena.DefaultOptions
+	arenaOpts.MinHP = wallet.ZoneMinHP[arena.GameID]
+	arenaHub := arena.NewHub(w, arenaOpts, armory)
 	bauCua, err := baucua.New(context.Background(), w)
 	if err != nil {
 		log.Fatalf("bầu cua: %v", err)
@@ -148,6 +161,17 @@ func games(w *wallet.Wallet) []server.Game {
 			Stats:       func() any { return canguaHub.Stats() },
 			WS:          canguaHub.Handler(canguaAuth),
 			Rooms:       canguaHub.RoomsHandler(),
+		},
+		{
+			ID:          arena.GameID,
+			Name:        "Đấu trường",
+			Description: "Bắn pháo theo lượt: canh góc, lực và hướng gió; cường hoá súng, nón, áo giáp bằng đá; 5 sân đấu.",
+			Players:     "2–4 người",
+			Path:        "/arena/",
+			Stats:       func() any { return arenaHub.Stats() },
+			WS:          arenaHub.Handler(arenaAuth),
+			Rooms:       arenaHub.RoomsHandler(),
+			API:         armory.Handler(),
 		},
 		{
 			ID:          site.GameID,

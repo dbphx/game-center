@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Đấu trường · DCity</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/common.css">
+  <link rel="stylesheet" href="/tablechat.css">
+  <link rel="stylesheet" href="/arena/arena.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"><i data-icon="arrowLeft"></i><span id="logo"></span><span class="brand-text">DCity</span></a>
+    <span class="spacer"></span>
+    <div class="user">
+      <span class="level-badge hidden" id="level-badge" title="Kinh nghiệm"></span>
+      <span class="wallet-pill"><i data-icon="coins"></i><span id="balance"></span></span>
+      <span class="user-chip"><span id="user-avatar"></span><span class="user-chip-name" id="user-name"></span></span>
+    </div>
+  </header>
+
+  <!-- Sảnh: các bàn đấu đang mở, trang bị, mở bàn mới -->
+  <section class="screen hall hidden" id="home">
+    <div class="hall-bar">
+      <div class="hall-title">
+        <img class="hall-icon" src="/img/toon/arena/cannon_base.png" alt="" draggable="false">
+        <div>
+          <h1>Đấu trường</h1>
+          <p class="muted">Canh góc, canh lực, tính cả gió — bắn trúng đối thủ trên địa hình phá huỷ được. 2–4 người.</p>
+        </div>
+      </div>
+      <div class="hall-actions">
+        <button id="btn-gear" class="gear-btn"><i data-icon="shield"></i>Trang bị<span class="power-chip" id="hall-power"></span></button>
+        <div class="row code-row">
+          <span class="input-icon grow"><i data-icon="hash"></i><input id="code" maxlength="8" placeholder="Mã bàn" autocomplete="off"></span>
+          <button id="btn-join"><i data-icon="logIn"></i>Vào</button>
+        </div>
+        <button id="btn-create" class="primary"><i data-icon="plus"></i>Tạo bàn</button>
+      </div>
+    </div>
+    <div class="hall-floor">
+      <div class="tables" id="tables"></div>
+    </div>
+  </section>
+
+  <dialog class="modal" id="dlg-create">
+    <form method="dialog">
+      <h2><i data-icon="plus"></i>Mở bàn đấu</h2>
+      <div class="field-label">Mức cược mỗi trận</div>
+      <div class="bet-grid" id="bet-grid"></div>
+      <div class="field-label">Bản đồ</div>
+      <div class="map-grid" id="map-grid"></div>
+      <div class="actions"><button value="cancel" formnovalidate>Huỷ</button><button class="primary" value="ok"><i data-icon="plus"></i>Mở bàn</button></div>
+    </form>
+  </dialog>
+
+  <!-- Trang bị vĩnh viễn: súng, nón, áo giáp -->
+  <dialog class="modal gear-modal" id="dlg-gear">
+    <form method="dialog">
+      <h2><i data-icon="shield"></i>Trang bị</h2>
+      <div class="gear-power">
+        <span class="gp-label">Lực chiến</span>
+        <b class="gp-num" id="gear-power">—</b>
+        <span class="gp-bal"><i data-icon="coins"></i><span id="gear-balance"></span></span>
+      </div>
+      <div class="gear-tabs" role="tablist">
+        <button type="button" role="tab" data-tab="forge" class="on"><i data-icon="sparkles"></i>Cường hoá</button>
+        <button type="button" role="tab" data-tab="stones"><i data-icon="coins"></i>Cửa hàng</button>
+      </div>
+      <div class="gear-pane" id="pane-forge">
+        <div class="gear-list" id="gear-list"><p class="muted">Đang tải…</p></div>
+        <div class="forge" id="forge"></div>
+      </div>
+      <div class="gear-pane hidden" id="pane-stones">
+        <div class="stone-shop" id="stone-shop"></div>
+      </div>
+      <p class="hint">Mỗi lần cường hoá tốn 1 viên đá + phí xu; thất bại mất đá, phí và tụt 1 cấp (trừ khi dùng Bùa giữ cấp). Trang bị biến đổi ở +7 và +10. Đá càng quý tỉ lệ càng cao. Trận đang đánh giữ chỉ số lúc bắt đầu.</p>
+      <div class="actions"><button class="primary" value="ok">Xong</button></div>
+    </form>
+  </dialog>
+
+  <!-- Bàn đấu: chờ người, đang đấu và kết quả trên cùng một màn -->
+  <section class="screen room hidden" id="room">
+    <div class="room-bar">
+      <div class="room-title">
+        <h1>Bàn <span class="code" id="room-code"></span></h1>
+        <span class="chip" id="room-bet"></span>
+        <span class="chip" id="room-map"></span>
+        <span class="chip" id="room-round"></span>
+        <span class="chip" id="room-watch"></span>
+      </div>
+      <div class="room-actions">
+        <button id="btn-gear-room"><i data-icon="shield"></i><span class="lbl">Trang bị</span></button>
+        <button id="btn-invite"><i data-icon="link"></i><span class="lbl">Mời bạn</span></button>
+        <button id="btn-leave" class="link"><i data-icon="door"></i><span class="lbl">Rời bàn</span></button>
+      </div>
+    </div>
+
+    <!-- Phòng chờ: thẻ người chơi + cài đặt -->
+    <div class="lobby" id="lobby">
+      <div class="lobby-map" id="lobby-map"></div>
+      <div class="lobby-seats" id="lobby-seats"></div>
+      <div class="room-controls" id="lobby-controls">
+        <label class="ctl host-only"><span>Cược</span><select id="sel-bet"></select></label>
+        <label class="ctl host-only"><span>Bản đồ</span><select id="sel-map"></select></label>
+        <label class="ctl host-only"><span>Máy</span><select id="sel-bot">
+          <option value="easy">Dễ</option>
+          <option value="normal" selected>Vừa</option>
+          <option value="hard">Khó</option>
+        </select></label>
+        <button class="host-only" id="btn-add-bot"><i data-icon="bot"></i>Thêm máy</button>
+        <button class="guest-only" id="btn-ready"><i data-icon="check"></i>Sẵn sàng</button>
+        <button class="primary host-only" id="btn-start"><i data-icon="play"></i>Bắt đầu</button>
+        <p class="muted" id="lobby-note"></p>
+      </div>
+    </div>
+
+    <!-- Trận đấu -->
+    <div class="battle hidden" id="battle">
+      <div class="viewport" id="viewport">
+        <div class="stage" id="stage">
+          <canvas id="cv" width="1600" height="900"></canvas>
+          <div class="units" id="units"></div>
+          <div class="floaters" id="floaters"></div>
+        </div>
+        <div class="hud-top">
+          <div class="turn-pill" id="turn-pill"></div>
+          <div class="wind" id="wind" title="Gió: âm thổi sang trái, dương thổi sang phải">
+            <span class="wind-label">Gió</span>
+            <img class="wind-arrow" id="wind-arrow" src="/img/toon/arena/wind_arrow.png" alt="" draggable="false">
+            <b id="wind-num">0</b>
+          </div>
+        </div>
+        <div class="banner hidden" id="banner"></div>
+      </div>
+
+      <div class="hud" id="hud">
+        <div class="hud-group weapons" id="weapons"></div>
+        <div class="hud-group aimbox">
+          <button class="pad" id="btn-left" title="Đi sang trái (←)">◀</button>
+          <div class="move-meter" title="Quỹ di chuyển lượt này"><span id="move-fill"></span></div>
+          <button class="pad" id="btn-right" title="Đi sang phải (→)">▶</button>
+          <button class="pad" id="btn-down" title="Hạ nòng (↓)">▼</button>
+          <div class="angle-box" title="Góc nòng"><b id="angle-num">45</b>°<small id="angle-last"></small></div>
+          <button class="pad" id="btn-up" title="Nâng nòng (↑)">▲</button>
+        </div>
+        <div class="hud-group powerbox">
+          <div class="power-bar" id="power-bar" title="Kéo để đặt lực">
+            <span class="pb-fill" id="power-fill"></span>
+            <span class="pb-last" id="power-last" title="Lực phát trước"></span>
+            <b class="pb-num" id="power-num">0</b>
+          </div>
+          <button class="primary fire" id="btn-fire" title="Giữ để tích lực, thả để bắn (Space)"><i data-icon="flame"></i>Bắn</button>
+        </div>
+        <p class="hud-note" id="hud-note"></p>
+      </div>
+      <div class="room-controls hidden" id="over-controls">
+        <button id="btn-show-result"><i data-icon="eye"></i>Xem kết quả</button>
+        <button class="primary" id="btn-rematch-bar"><i data-icon="play"></i>Trận mới</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Kết quả trận -->
+  <div class="result hidden" id="result">
+    <div class="result-card">
+      <div class="result-title" id="result-title"></div>
+      <div class="result-sub" id="result-sub"></div>
+      <div class="result-gain" id="result-gain"></div>
+      <div class="result-actions">
+        <button class="primary" id="btn-rematch"><i data-icon="play"></i>Trận mới <kbd>N</kbd></button>
+        <button id="btn-board"><i data-icon="eye"></i>Xem chiến trường</button>
+        <button class="link" id="btn-hall"><i data-icon="door"></i>Về sảnh</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/icons.js"></script>
+  <script src="/character.js"></script>
+  <script src="/account.js"></script>
+  <script src="/tablechat.js"></script>
+  <script src="/arena/arena.js"></script>
+</body>
+</html>

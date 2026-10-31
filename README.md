@@ -287,6 +287,46 @@ horses:{color:[pos×4]}, last:{color, horse, from, to, kicked:{color, horse}}, w
 bet, gameBet, betOptions, turnMs, spectators, chat}`. `pos`: `-1` trong chuồng, `0..55` ô đường chung, `100+b` bậc đích b.
 `auto` = máy đang đánh thay. Cùng `{t:"chat", …}`, `{t:"session", code}`, `{t:"error", msg}`, `{t:"left"}`, `{t:"replaced"}`, `{t:"auth"}`.
 
+## Đấu trường
+
+Khu riêng, trang `/arena/`. Bắn pháo theo lượt trên địa hình phá huỷ được: canh **góc**, **lực** và **gió**.
+
+- **2–4 ghế** (người hoặc máy `easy` / `normal` / `hard`), người vào sau khi đủ ghế / đang đánh thì xem. Cần 30 HP.
+- **Sân** 1600×900, 5 map: Đồng cỏ, Sa mạc (gió mạnh), Núi tuyết, Núi lửa (núi giữa, gồ ghề), Bãi biển (vũng nước giữa = vực).
+  Địa hình sinh ngẫu nhiên mỗi trận; chủ bàn chọn map hoặc `random`.
+- **Vật lý** (server tính, giao diện chỉ diễn): trọng lực 400, vận tốc = lực × 9, gió −10..10 (gia tốc ngang × 12) đổi mỗi lượt.
+  Nổ khoét hố tròn, sát thương giảm dần tới r + 20; tự trúng mình vẫn mất máu; đất dưới chân sập xuống vực là chết.
+- **Lượt** 25 giây (hết giờ mất lượt), mỗi lượt đi được 120 đơn vị (không leo dốc quá 6/1). Tối đa 40 vòng, hết vòng ai nhiều
+  % máu nhất thắng. Rời bàn / mất kết nối quá 30 giây giữa trận là thua (mất cược ngay).
+- **Vũ khí mỗi trận**: Đạn thường (30, r 40, vô hạn), Đạn chùm (3 × 14, r 28, 2 lần), Bom tạ (55, r 65, 1 lần),
+  Đạn dịch chuyển (bay tới đâu người bắn tới đó, 1 lần).
+- **Trang bị vĩnh viễn** Súng / Nón / Áo giáp, cấp 0..10: sát thương +8%/cấp, máu tối đa 200 + 15/cấp nón, giảm 3% sát thương
+  nhận mỗi cấp giáp. **Lực chiến** = 1000 + 120·súng + 80·nón + 100·giáp. Máy: dễ +0, thường +3, khó +6.
+- **Cường hoá**: mua đá 5 cấp (Lục 100, Lam 300, Tím 800, Vàng 2000, Đỏ 5000 xu); mỗi lần tốn 1 đá + phí 50·(L+1) xu,
+  tỉ lệ `95 − 10·L + 12·(tier−1)` (5..100%). Thất bại mất đá + phí và **tụt 1 cấp** (cấp 0 giữ 0), trừ khi dùng
+  **Bùa giữ cấp** (2000 xu). **Bùa may mắn** (1500 xu) +15% tỉ lệ. Bùa đã chọn bị tiêu dù thành hay bại. Lên +7 / +10 thì
+  trang bị biến đổi hình (`evolved`).
+- **Cược** 0, 10, 20, 50, 100, 200, 500, 1000 xu: người thắng ăn cược của mọi người thua (máy là nhà cái) + tiền người bỏ trận;
+  hoà không đổi. Ghi sổ cái game `arena`. **XP**: thắng 30, hoà 15, thua 10.
+
+REST: `GET /api/arena/maps`; cần đăng nhập: `GET /api/arena/gear`, `POST /api/arena/stones/buy {tier, qty}`,
+`POST /api/arena/charms/buy {id, qty}`, `POST /api/arena/gear/upgrade {slot, stone, luck, protect}` → `{gear, power, stats,
+stones, stoneShop, charms, charmShop, fee, rates, luckBonus, balance, result?}` (400 sai tham số, 402 thiếu xu, 409 max / hết đá / hết bùa).
+
+WebSocket `/ws/arena`, danh sách bàn `GET /api/arena/rooms`
+→ `[{code, phase, bet, map, mapName, players:[...], spectators, max}]`.
+
+| Client → server | |
+|---|---|
+| `{t:"create", token, bet, map}` / `{t:"join", token, code}` | mở / vào bàn |
+| `{t:"addBot", level}`, `{t:"kick", id}`, `{t:"settings", bet?, map?}` (`setBet` / `setMap`), `{t:"start"}` | chủ bàn, ngoài trận |
+| `{t:"move", x}`, `{t:"aim", angle, power}`, `{t:"fire", angle, power, weapon}` | trong lượt mình |
+| `{t:"rematch"}` / `{t:"ready"}`, `{t:"leave"}`, `{t:"chat", text}` | |
+
+Server gửi `state` (phase, map, maps, weapons, ground[1600], wind, turn, turnMs, round, maxRounds, moveLeft, players
+[x, y, hp, maxHp, alive, facing, gear, power, items, lastAngle, lastPower…], result, bet, chat), `shot` (by, weapon, paths,
+blasts, hits, deaths, tele — gửi trước state, `turn` = "" trong lúc đạn bay), `aim`, `chat`, `error`.
+
 ## Công trường (ngoại ô)
 
 Làm thuê theo ca để kiếm xu. Nhận ca cần ≥ 30 HP; mỗi ca trừ máu ngay, giao diện chơi mini-game trong thời gian ca
@@ -421,6 +461,7 @@ games/tienlen/online/    phòng chơi online: người vào/ra, máy, hẹn gi�
 games/farm/              nông trại: ô đất, chuồng, ao, kho
 games/baucua/            bầu cua: sòng chung, vòng theo đồng hồ, trả thưởng vào ví
 games/caro/              cờ caro 15×15: luật thắng, máy chơi, bàn online qua WebSocket
+games/arena/             đấu trường: vật lý bắn pháo, map, máy ngắm, bàn online, trang bị + cường hoá (đá, bùa)
 games/cangua/            cờ cá ngựa 2–4 người: luật đi / đá / lên đích, máy chơi, bàn online qua WebSocket
 games/site/              công trường: ca làm thuê, tiền công theo điểm, giới hạn ngày
 games/fishing/           hồ câu cá: mồi, thả câu (kết quả quay ở server), giỏ cá, kỷ lục

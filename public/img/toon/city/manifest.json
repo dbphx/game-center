@@ -1027,6 +1027,65 @@
    "source": [
     "DCity (vẽ / ghép bằng PIL cho dự án)"
    ]
+  },
+  {
+   "file": "arena_building.png",
+   "w": 380,
+   "h": 300,
+   "use": "Khu Đấu trường: toà đấu trường tròn 2 tầng vòm, cờ trên mái, biển ĐẤU TRƯỜNG, cổng song sắt",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "arena_gate.png",
+   "w": 240,
+   "h": 130,
+   "use": "Cổng đá biển ĐẤU TRƯỜNG, đuốc trên hai cột (chân cột thò xuống dưới hàng rào như cổng 3D)",
+   "anchor": "bottom-center",
+   "foot": [
+    120,
+    100
+   ],
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "arena_cannon.png",
+   "w": 150,
+   "h": 100,
+   "use": "Khu Đấu trường: khẩu pháo trang trí nòng ngóc lên",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "arena_target.png",
+   "w": 80,
+   "h": 110,
+   "use": "Khu Đấu trường: bia tập bắn trên giá gỗ",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "arena_sand.png",
+   "w": 64,
+   "h": 64,
+   "use": "Khu Đấu trường: sân cát (lát nền)",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
   }
  ]
 }

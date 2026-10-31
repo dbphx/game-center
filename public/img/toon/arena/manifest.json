@@ -1,0 +1,697 @@
+{
+ "style": "Hoạt hình 2D tươi sáng, viền đậm (định hướng giống game Avatar), không pixel",
+ "title": "Đấu trường",
+ "maps": [
+  {
+   "id": "meadow",
+   "name": "Đồng cỏ"
+  },
+  {
+   "id": "desert",
+   "name": "Sa mạc"
+  },
+  {
+   "id": "snow",
+   "name": "Núi tuyết"
+  },
+  {
+   "id": "volcano",
+   "name": "Núi lửa"
+  },
+  {
+   "id": "beach",
+   "name": "Bãi biển"
+  }
+ ],
+ "images": [
+  {
+   "file": "armor_1.png",
+   "w": 96,
+   "h": 96,
+   "use": "Áo giáp — dạng thường (+0..+6). form(level) = level >= 10 ? 3 : level >= 7 ? 2 : 1",
+   "anchor": "bottom-center",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "armor_2.png",
+   "w": 96,
+   "h": 96,
+   "use": "Áo giáp — biến đổi lần 1 (+7..+9): to hơn, kim loại quý, viền sáng lam. form(level) = level >= 10 ? 3 : level >= 7 ? 2 : 1",
+   "anchor": "bottom-center",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "armor_3.png",
+   "w": 96,
+   "h": 96,
+   "use": "Áo giáp — biến đổi huyền thoại (+10): vàng, hào quang tia sáng. form(level) = level >= 10 ? 3 : level >= 7 ? 2 : 1",
+   "anchor": "bottom-center",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "aura_10.png",
+   "w": 200,
+   "h": 200,
+   "use": "Hào quang vàng có tia quanh nhân vật / pháo khi trang bị dạng 3 (+10)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "aura_7.png",
+   "w": 200,
+   "h": 200,
+   "use": "Vòng sáng lam quanh nhân vật / pháo khi trang bị dạng 2 (+7..+9), bán trong suốt",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "bg_beach.png",
+   "w": 1600,
+   "h": 900,
+   "use": "Map Bãi biển: nền trời + phông xa 1600×900 (vẽ trước mặt đất)",
+   "anchor": "top-left",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "bg_desert.png",
+   "w": 1600,
+   "h": 900,
+   "use": "Map Sa mạc: nền trời + phông xa 1600×900 (vẽ trước mặt đất)",
+   "anchor": "top-left",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "bg_meadow.png",
+   "w": 1600,
+   "h": 900,
+   "use": "Map Đồng cỏ: nền trời + phông xa 1600×900 (vẽ trước mặt đất)",
+   "anchor": "top-left",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "bg_snow.png",
+   "w": 1600,
+   "h": 900,
+   "use": "Map Núi tuyết: nền trời + phông xa 1600×900 (vẽ trước mặt đất)",
+   "anchor": "top-left",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "bg_volcano.png",
+   "w": 1600,
+   "h": 900,
+   "use": "Map Núi lửa: nền trời + phông xa 1600×900 (vẽ trước mặt đất)",
+   "anchor": "top-left",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "boom_1.png",
+   "w": 160,
+   "h": 160,
+   "use": "Nổ khung 1/6 (~60 ms/khung; phóng theo bán kính nổ r: rộng ≈ 2.4·r)",
+   "anchor": "center",
+   "frames": 6,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "boom_2.png",
+   "w": 160,
+   "h": 160,
+   "use": "Nổ khung 2/6 (~60 ms/khung; phóng theo bán kính nổ r: rộng ≈ 2.4·r)",
+   "anchor": "center",
+   "frames": 6,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "boom_3.png",
+   "w": 160,
+   "h": 160,
+   "use": "Nổ khung 3/6 (~60 ms/khung; phóng theo bán kính nổ r: rộng ≈ 2.4·r)",
+   "anchor": "center",
+   "frames": 6,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "boom_4.png",
+   "w": 160,
+   "h": 160,
+   "use": "Nổ khung 4/6 (~60 ms/khung; phóng theo bán kính nổ r: rộng ≈ 2.4·r)",
+   "anchor": "center",
+   "frames": 6,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "boom_5.png",
+   "w": 160,
+   "h": 160,
+   "use": "Nổ khung 5/6 (~60 ms/khung; phóng theo bán kính nổ r: rộng ≈ 2.4·r)",
+   "anchor": "center",
+   "frames": 6,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "boom_6.png",
+   "w": 160,
+   "h": 160,
+   "use": "Nổ khung 6/6 (~60 ms/khung; phóng theo bán kính nổ r: rộng ≈ 2.4·r)",
+   "anchor": "center",
+   "frames": 6,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "cannon_barrel.png",
+   "w": 72,
+   "h": 20,
+   "use": "Nòng pháo dạng 1 (súng +0..+6) hướng sang phải; xoay quanh pivot (mép trái giữa), đặt pivot trùng pivot của cannon_base",
+   "anchor": "pivot",
+   "pivot": [
+    6,
+    10
+   ],
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "cannon_barrel_2.png",
+   "w": 72,
+   "h": 20,
+   "use": "Nòng pháo dạng 2 (súng +7..+9): thép, đai lam sáng, viền sáng lam; cùng cỡ và pivot với cannon_barrel",
+   "anchor": "pivot",
+   "pivot": [
+    6,
+    10
+   ],
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "cannon_barrel_3.png",
+   "w": 72,
+   "h": 20,
+   "use": "Nòng pháo dạng 3 (súng +10): vàng, đai trắng, đá quý, viền sáng vàng; cùng cỡ và pivot với cannon_barrel",
+   "anchor": "pivot",
+   "pivot": [
+    6,
+    10
+   ],
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "cannon_base.png",
+   "w": 96,
+   "h": 56,
+   "use": "Xe pháo nhìn ngang (quay sang phải; quay trái thì lật ngang). Chân giữa đáy; nhân vật đứng sau thân xe",
+   "anchor": "bottom-center",
+   "foot": [
+    48,
+    56
+   ],
+   "pivot": [
+    58,
+    22
+   ],
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "charm_luck.png",
+   "w": 64,
+   "h": 64,
+   "use": "Bùa may mắn (+15% tỉ lệ cường hoá)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "charm_protect.png",
+   "w": 64,
+   "h": 64,
+   "use": "Bùa giữ cấp (thất bại không tụt cấp)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "crater_spark.png",
+   "w": 48,
+   "h": 48,
+   "use": "Tia lửa nhỏ (đạn chạm đất, chạm người)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fx_evolve.png",
+   "w": 240,
+   "h": 240,
+   "use": "Hiệu ứng \"Biến đổi!\" khi lên +7 / +10 (xoay chậm + phóng to)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fx_upgrade_fail.png",
+   "w": 160,
+   "h": 160,
+   "use": "Hiệu ứng cường hoá thất bại (đá vỡ)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "fx_upgrade_ok.png",
+   "w": 160,
+   "h": 160,
+   "use": "Hiệu ứng cường hoá thành công",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "grass_beach.png",
+   "w": 256,
+   "h": 24,
+   "use": "Map Bãi biển: dải viền mặt đất 256×24 lặp ngang, đặt mép trên trùng mặt đất (y = ground[x] − 4)",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "grass_desert.png",
+   "w": 256,
+   "h": 24,
+   "use": "Map Sa mạc: dải viền mặt đất 256×24 lặp ngang, đặt mép trên trùng mặt đất (y = ground[x] − 4)",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "grass_meadow.png",
+   "w": 256,
+   "h": 24,
+   "use": "Map Đồng cỏ: dải viền mặt đất 256×24 lặp ngang, đặt mép trên trùng mặt đất (y = ground[x] − 4)",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "grass_snow.png",
+   "w": 256,
+   "h": 24,
+   "use": "Map Núi tuyết: dải viền mặt đất 256×24 lặp ngang, đặt mép trên trùng mặt đất (y = ground[x] − 4)",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "grass_volcano.png",
+   "w": 256,
+   "h": 24,
+   "use": "Map Núi lửa: dải viền mặt đất 256×24 lặp ngang, đặt mép trên trùng mặt đất (y = ground[x] − 4)",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "ground_beach.png",
+   "w": 256,
+   "h": 256,
+   "use": "Map Bãi biển: đất lặp liền mạch 256×256 (canvas pattern, cắt theo đường ground)",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "ground_desert.png",
+   "w": 256,
+   "h": 256,
+   "use": "Map Sa mạc: đất lặp liền mạch 256×256 (canvas pattern, cắt theo đường ground)",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "ground_meadow.png",
+   "w": 256,
+   "h": 256,
+   "use": "Map Đồng cỏ: đất lặp liền mạch 256×256 (canvas pattern, cắt theo đường ground)",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "ground_snow.png",
+   "w": 256,
+   "h": 256,
+   "use": "Map Núi tuyết: đất lặp liền mạch 256×256 (canvas pattern, cắt theo đường ground)",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "ground_volcano.png",
+   "w": 256,
+   "h": 256,
+   "use": "Map Núi lửa: đất lặp liền mạch 256×256 (canvas pattern, cắt theo đường ground)",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "gun_1.png",
+   "w": 96,
+   "h": 96,
+   "use": "Súng — dạng thường (+0..+6). form(level) = level >= 10 ? 3 : level >= 7 ? 2 : 1",
+   "anchor": "bottom-center",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "gun_2.png",
+   "w": 96,
+   "h": 96,
+   "use": "Súng — biến đổi lần 1 (+7..+9): to hơn, kim loại quý, viền sáng lam. form(level) = level >= 10 ? 3 : level >= 7 ? 2 : 1",
+   "anchor": "bottom-center",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "gun_3.png",
+   "w": 96,
+   "h": 96,
+   "use": "Súng — biến đổi huyền thoại (+10): vàng, hào quang tia sáng. form(level) = level >= 10 ? 3 : level >= 7 ? 2 : 1",
+   "anchor": "bottom-center",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "hat_1.png",
+   "w": 96,
+   "h": 96,
+   "use": "Nón — dạng thường (+0..+6). form(level) = level >= 10 ? 3 : level >= 7 ? 2 : 1",
+   "anchor": "bottom-center",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "hat_2.png",
+   "w": 96,
+   "h": 96,
+   "use": "Nón — biến đổi lần 1 (+7..+9): to hơn, kim loại quý, viền sáng lam. form(level) = level >= 10 ? 3 : level >= 7 ? 2 : 1",
+   "anchor": "bottom-center",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "hat_3.png",
+   "w": 96,
+   "h": 96,
+   "use": "Nón — biến đổi huyền thoại (+10): vàng, hào quang tia sáng. form(level) = level >= 10 ? 3 : level >= 7 ? 2 : 1",
+   "anchor": "bottom-center",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_heavy.png",
+   "w": 64,
+   "h": 64,
+   "use": "Biểu tượng nút vũ khí: Bom tạ",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_shell.png",
+   "w": 64,
+   "h": 64,
+   "use": "Biểu tượng nút vũ khí: Đạn thường",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_tele.png",
+   "w": 64,
+   "h": 64,
+   "use": "Biểu tượng nút vũ khí: Đạn dịch chuyển",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_triple.png",
+   "w": 64,
+   "h": 64,
+   "use": "Biểu tượng nút vũ khí: Đạn chùm",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "shot_heavy.png",
+   "w": 40,
+   "h": 40,
+   "use": "Viên đạn bay: Bom tạ",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "shot_shell.png",
+   "w": 24,
+   "h": 24,
+   "use": "Viên đạn bay: Đạn thường",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "shot_tele.png",
+   "w": 32,
+   "h": 32,
+   "use": "Viên đạn bay: Đạn dịch chuyển",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "shot_triple.png",
+   "w": 24,
+   "h": 24,
+   "use": "Viên đạn bay: Đạn chùm",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "smoke.png",
+   "w": 64,
+   "h": 64,
+   "use": "Cụm khói (đuôi đạn, sau nổ)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "stone_1.png",
+   "w": 64,
+   "h": 64,
+   "use": "Đá cường hoá cấp 1: Đá Lục (cấp càng cao càng lấp lánh)",
+   "anchor": "center",
+   "tier": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "stone_2.png",
+   "w": 64,
+   "h": 64,
+   "use": "Đá cường hoá cấp 2: Đá Lam (cấp càng cao càng lấp lánh)",
+   "anchor": "center",
+   "tier": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "stone_3.png",
+   "w": 64,
+   "h": 64,
+   "use": "Đá cường hoá cấp 3: Đá Tím (cấp càng cao càng lấp lánh)",
+   "anchor": "center",
+   "tier": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "stone_4.png",
+   "w": 64,
+   "h": 64,
+   "use": "Đá cường hoá cấp 4: Đá Vàng (cấp càng cao càng lấp lánh)",
+   "anchor": "center",
+   "tier": 4,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "stone_5.png",
+   "w": 64,
+   "h": 64,
+   "use": "Đá cường hoá cấp 5: Đá Đỏ (cấp càng cao càng lấp lánh)",
+   "anchor": "center",
+   "tier": 5,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "wind_arrow.png",
+   "w": 96,
+   "h": 40,
+   "use": "Mũi tên gió (hướng sang phải; gió âm thì lật ngang, độ dài / độ mờ theo |wind|)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  }
+ ]
+}

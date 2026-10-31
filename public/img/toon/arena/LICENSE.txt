@@ -1,0 +1,5 @@
+Hình trong thư mục này đều dùng giấy phép CC0 1.0 (public domain):
+
+- DCity (vẽ / ghép bằng PIL cho dự án) — DCity — CC0
+
+Chi tiết từng file: CREDITS.csv.

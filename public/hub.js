@@ -7,7 +7,7 @@
   const City = window.City;
   const $ = (id) => document.getElementById(id);
 
-  const ZONE_ICON = { plaza: 'mapPin', casino: 'layers', shop: 'shirt', bank: 'landmark', farm: 'sprout', hospital: 'hospital', site: 'hammer', fishing: 'fish', fame: 'trophy', friends: 'users' };
+  const ZONE_ICON = { plaza: 'mapPin', casino: 'layers', shop: 'shirt', bank: 'landmark', farm: 'sprout', hospital: 'hospital', site: 'hammer', fishing: 'fish', fame: 'trophy', arena: 'flame', friends: 'users' };
   const GAME_PATH = { tienlen: '/tienlen/' };
 
   let user = null;
@@ -20,7 +20,7 @@
       { id: 'sport', name: 'Thể thao', level: 1, price: 0, starter: true },
     ],
     // HP tối thiểu để vào từng khu, và quy tắc bệnh viện.
-    zoneMinHP: { plaza: 0, bank: 0, hospital: 0, shop: 10, casino: 30, farm: 40, site: 30, fishing: 10, fame: 0 },
+    zoneMinHP: { plaza: 0, bank: 0, hospital: 0, shop: 10, casino: 30, farm: 40, site: 30, fishing: 10, fame: 0, arena: 30 },
     hospital: { dischargePrice: 200, healPerHP: 2, stayMinutes: 5, regenPerMinute: 1, carDamage: 20 },
   };
   const outfitName = (id) => (config.catalog.find((o) => o.id === id) || C.OUTFITS[id] || { name: id }).name;
@@ -533,6 +533,20 @@
             <div class="stat"><div class="muted">Thư giãn</div><b>${I.svg('fish')}Câu cá</b></div>
           </div>
           ${enterButton('fishing', '/fishing/', 'Đi câu cá')}
+        </div>`;
+    },
+    arena() {
+      const g = games.find((x) => x.id === 'arena');
+      const online = g && g.online ? `${g.online.players} người đang chơi · ${g.online.rooms} phòng` : '';
+      return `${panelHead('arena', 'Đấu trường', online || 'Khu ngoại ô · bắn pháo theo gió')}
+        <div class="panel-section">
+          <div class="panel-art">${['shell', 'triple', 'heavy', 'tele'].map((w) => `<img src="/img/toon/arena/icon_${w}.png" alt="" width="40" height="40" draggable="false">`).join('')}</div>
+          <p class="muted" style="margin:0">Đấu pháo theo lượt 2–4 người trên 5 map: đồng cỏ, sa mạc, núi tuyết, núi lửa, bãi biển. Canh góc, lực bắn và hướng gió để hạ đối thủ; cường hoá súng, nón, áo giáp bằng đá để tăng lực chiến.</p>
+          <div class="stats">
+            <div class="stat"><div class="muted">Cần máu</div><b>${I.svg('heart')}≥ ${minHP('arena')} HP</b></div>
+            <div class="stat"><div class="muted">Số người</div><b>${I.svg('users')}2–4 người</b></div>
+          </div>
+          ${enterButton('arena', '/arena/', 'Vào đấu trường')}
         </div>`;
     },
     hospital() {
