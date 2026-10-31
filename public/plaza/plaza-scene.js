@@ -685,6 +685,7 @@
   let ws = null;
   let you = null;
   let retry = 0;
+  let replaced = false; // phiên bị thay bởi tab khác của chính mình
   let lastSent = '';
   let unread = 0;
 
@@ -710,6 +711,7 @@
       lastSent = '';
       clearPlayers();
       updateOnline();
+      if (replaced) return; // tab khác của mình đã vào công viên: không tự nối lại để khỏi đá qua đá lại
       retry = Math.min(retry + 1, 6);
       setTimeout(connect, 1000 * Math.min(15, 2 ** retry));
     };
@@ -717,6 +719,10 @@
 
   function onMessage(m) {
     switch (m.t) {
+      case 'replaced':
+        replaced = true;
+        A.toast('Bạn đã mở Quảng trường ở nơi khác — tải lại trang để vào lại đây');
+        break;
       case 'welcome':
         you = m.you;
         retry = 0;

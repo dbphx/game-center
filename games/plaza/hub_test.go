@@ -205,9 +205,13 @@ func TestGift(t *testing.T) {
 	e := newEnv(t)
 	a, ca, tokA := e.join("an")
 	b, cb, _ := e.join("binh")
-	a2, ca2, _ := e.session(tokA) // an mở thêm một tab
-	if err := e.h.Handle(ctx, a, Message{T: "gift", To: a2.ID, Amount: 50}); err == nil {
-		t.Fatal("không tặng cho tab khác của chính mình")
+	a2, ca2, _ := e.session(tokA) // an mở thêm một tab: tab cũ bị thay
+	if ca.last("replaced") == nil {
+		t.Fatal("tab cũ phải nhận replaced")
+	}
+	a, ca = a2, ca2
+	if err := e.h.Handle(ctx, a, Message{T: "gift", To: a.ID, Amount: 50}); err == nil {
+		t.Fatal("không tặng cho chính mình")
 	}
 	if err := e.h.Handle(ctx, a, Message{T: "gift", To: b.ID, Amount: 5}); err == nil {
 		t.Fatal("dưới mức tối thiểu phải lỗi")
@@ -366,5 +370,30 @@ func TestConcurrent(t *testing.T) {
 	}
 	if total != 4*wallet.StartBalance {
 		t.Fatalf("tổng xu phải giữ nguyên, được %d", total)
+	}
+}
+
+// Thoát ra vào lại khi kết nối cũ chưa bị ngắt (vd điện thoại treo tab, tunnel chưa báo đóng):
+// người khác chỉ thấy một nhân vật, phiên cũ nhận "replaced".
+func TestRejoinReplacesOldSession(t *testing.T) {
+	e := newEnv(t)
+	_, cb, _ := e.join("binh")
+	a, ca, tokA := e.join("an")
+	a2, _, _ := e.session(tokA)
+	if ca.last("replaced") == nil {
+		t.Fatal("phiên cũ phải nhận replaced")
+	}
+	if l := cb.last("leave"); l == nil || l["id"] != a.ID {
+		t.Fatalf("binh phải nhận tin phiên cũ của an rời đi: %v", cb.of("leave"))
+	}
+	if j := cb.last("join"); j == nil || j["player"].(map[string]any)["id"] != a2.ID {
+		t.Fatalf("binh phải thấy phiên mới của an: %v", cb.of("join"))
+	}
+	if e.h.Online() != 2 {
+		t.Fatalf("công viên chỉ có 2 người, được %d", e.h.Online())
+	}
+	e.h.Leave(a) // kết nối cũ đóng muộn: không được xoá phiên mới
+	if e.h.Online() != 2 || e.h.players[a2.ID] == nil {
+		t.Fatal("đóng kết nối cũ không ảnh hưởng phiên mới")
 	}
 }

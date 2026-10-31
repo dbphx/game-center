@@ -60,6 +60,14 @@ func (c *client) Send(msg any) {
 	}
 }
 
+// Close đóng kết nối sau khi các tin đã xếp hàng được gửi (phiên bị thay bởi tab khác).
+func (c *client) Close() {
+	go func() {
+		time.Sleep(200 * time.Millisecond)
+		c.shutdown()
+	}()
+}
+
 func (c *client) shutdown() {
 	c.once.Do(func() {
 		close(c.done)

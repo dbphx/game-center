@@ -176,6 +176,13 @@ func (h *Hub) Hello(ctx context.Context, token string, c Conn) (*Player, error) 
 	p.setUser(u)
 	h.mu.Lock()
 	defer h.mu.Unlock()
+	// Mỗi tài khoản một phiên ở công viên: phiên cũ (tab khác, hoặc kết nối chết chưa hết readTimeout khi vừa
+	// thoát ra vào lại) bị bỏ ngay — không thì người khác thấy hai nhân vật giống nhau.
+	for _, o := range h.players {
+		if o.uid == p.uid {
+			h.drop(o)
+		}
+	}
 	others := []Player{}
 	for _, o := range h.players {
 		if o.visible {
@@ -196,9 +203,24 @@ func (h *Hub) Leave(p *Player) {
 	if h.players[p.ID] != p {
 		return
 	}
+	h.remove(p)
+}
+
+// remove bỏ p khỏi công viên và báo người khác. Gọi khi đang giữ h.mu.
+func (h *Hub) remove(p *Player) {
 	delete(h.players, p.ID)
 	if p.visible {
 		h.broadcast(p, map[string]any{"t": "leave", "id": p.ID})
+	}
+}
+
+// drop bỏ phiên cũ khi cùng tài khoản vừa vào lại: báo "replaced" (tab cũ thôi tự nối lại) rồi đóng kết nối.
+// Gọi khi đang giữ h.mu.
+func (h *Hub) drop(p *Player) {
+	h.remove(p)
+	p.conn.Send(map[string]any{"t": "replaced"})
+	if c, ok := p.conn.(interface{ Close() }); ok {
+		c.Close()
 	}
 }
 
