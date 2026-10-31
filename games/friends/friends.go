@@ -75,7 +75,8 @@ type List struct {
 
 // FarmView là nông trại của một người bạn (chỉ xem).
 type FarmView struct {
-	Owner Person `json:"owner"`
+	Owner  Person `json:"owner"`
+	Friend bool   `json:"friend"` // người xem là bạn của chủ nhà: chỉ khi đó mới trộm được
 	farm.Visit
 }
 
@@ -352,6 +353,7 @@ func (f *Friends) Remove(ctx context.Context, uid, other int64) (List, error) {
 	})
 }
 
+// FinishSteal / Steal vẫn chỉ cho bạn bè.
 func (f *Friends) requireFriend(ctx context.Context, uid, other int64) (Person, error) {
 	ok, err := f.AreFriends(ctx, uid, other)
 	if err != nil {
@@ -368,9 +370,21 @@ func (f *Friends) requireFriend(ctx context.Context, uid, other int64) (Person, 
 	return person(ctx, tx, other)
 }
 
-// Farm trả nông trại của bạn other cho uid xem.
+// Farm trả nông trại của other cho uid xem. Ai cũng xem được (vd từ Khu danh vọng); chỉ bạn bè mới có lượt trộm.
 func (f *Friends) Farm(ctx context.Context, uid, other int64) (FarmView, error) {
-	owner, err := f.requireFriend(ctx, uid, other)
+	if uid == other {
+		return FarmView{}, bad("đây là nông trại của bạn")
+	}
+	friend, err := f.AreFriends(ctx, uid, other)
+	if err != nil {
+		return FarmView{}, err
+	}
+	tx, err := f.w.Begin(ctx)
+	if err != nil {
+		return FarmView{}, err
+	}
+	owner, err := person(ctx, tx, other)
+	tx.Rollback()
 	if err != nil {
 		return FarmView{}, err
 	}
@@ -378,7 +392,10 @@ func (f *Friends) Farm(ctx context.Context, uid, other int64) (FarmView, error) 
 	if err != nil {
 		return FarmView{}, err
 	}
-	return FarmView{Owner: owner, Visit: v}, nil
+	if !friend {
+		v.StealsLeft = 0
+	}
+	return FarmView{Owner: owner, Friend: friend, Visit: v}, nil
 }
 
 // FinishSteal chốt cuộc chó đuổi chase khi uid trộm ở nhà bạn other: escaped = đã chạy ra tới cổng.

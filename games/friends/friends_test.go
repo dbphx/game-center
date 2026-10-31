@@ -177,20 +177,25 @@ func TestMaxFriends(t *testing.T) {
 func TestFarmAndStealOnlyFriends(t *testing.T) {
 	e := newEnv(t)
 	an, binh := e.user("an01", "An"), e.user("binh", "Bình")
-	_, err := e.f.Farm(ctx, an, binh)
-	wantStatus(t, err, http.StatusForbidden)
+	// Ai cũng xem được nông trại (vd từ Khu danh vọng), nhưng không phải bạn thì không có lượt trộm.
+	if v, err := e.f.Farm(ctx, an, binh); err != nil || v.Friend || v.StealsLeft != 0 || v.Owner.Name != "Bình" {
+		t.Fatalf("xem nhà người lạ: %+v %v", v, err)
+	}
+	_, err := e.f.Farm(ctx, an, an)
+	wantStatus(t, err, http.StatusBadRequest)
 	_, err = e.f.Steal(ctx, an, binh, 0)
 	wantStatus(t, err, http.StatusForbidden)
 
 	e.ok(e.f.Request(ctx, an, "binh", 0))
-	_, err = e.f.Farm(ctx, an, binh) // mới mời, chưa là bạn
-	wantStatus(t, err, http.StatusForbidden)
+	if v, err := e.f.Farm(ctx, an, binh); err != nil || v.Friend || v.StealsLeft != 0 { // mới mời, chưa là bạn
+		t.Fatalf("mới mời: %+v %v", v, err)
+	}
 	e.ok(e.f.Accept(ctx, binh, an))
 	v, err := e.f.Farm(ctx, an, binh)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if v.Owner.ID != binh || v.Owner.Name != "Bình" || len(v.Plots) != farm.FreePlots || v.StealsLeft != farm.StealsPerDay || v.Dog.Guarding {
+	if !v.Friend || v.Owner.ID != binh || v.Owner.Name != "Bình" || len(v.Plots) != farm.FreePlots || v.StealsLeft != farm.StealsPerDay || v.Dog.Guarding {
 		t.Fatalf("nông trại bạn: %+v", v)
 	}
 	_, err = e.f.Steal(ctx, an, binh, 0) // ô trống
@@ -266,7 +271,10 @@ func TestHandler(t *testing.T) {
 	if code, _ := call(an, "POST", "/api/friends/remove", map[string]any{"id": binh}); code != 200 {
 		t.Fatalf("huỷ kết bạn: %d", code)
 	}
-	if code, _ := call(an, "GET", "/api/friends/"+strconv.FormatInt(binh, 10)+"/farm", nil); code != http.StatusForbidden {
-		t.Fatalf("không phải bạn mà xem được: %d", code)
+	if code, out := call(an, "GET", "/api/friends/"+strconv.FormatInt(binh, 10)+"/farm", nil); code != 200 || out["friend"] != false || out["stealsLeft"] != 0.0 {
+		t.Fatalf("hết là bạn: vẫn xem được nhưng không trộm được: %d %v", code, out)
+	}
+	if code, _ := call(an, "POST", "/api/friends/"+strconv.FormatInt(binh, 10)+"/steal", map[string]any{"plot": 0}); code != http.StatusForbidden {
+		t.Fatalf("không phải bạn mà trộm được: %d", code)
 	}
 }

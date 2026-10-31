@@ -559,7 +559,7 @@
 .fame-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .fame-row {
   display: grid;
-  grid-template-columns: 34px 38px minmax(0, 1fr) auto;
+  grid-template-columns: 34px 38px minmax(0, 1fr) auto 34px;
   align-items: center;
   gap: 8px;
   padding: 6px 10px 6px 6px;
@@ -580,6 +580,13 @@
 .fame-parts > span { display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
 .fame-parts .icon { width: 11px; height: 11px; }
 .fame-total { font-family: var(--font-title); font-size: 16px; white-space: nowrap; }
+/* Thăm nông trại người trên bảng (chỉ xem; bạn bè thì trộm được). */
+.fame-visit {
+  flex-shrink: 0; display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 50%;
+  background: #e9f8d8; border: 2px solid #a8d784; color: #3f8a2a;
+}
+.fame-visit:hover { background: #d6f2bb; }
+.fame-visit .icon { width: 18px; height: 18px; }
 .fame-row.gold { background: linear-gradient(180deg, #fff6c8, #ffe27a); border-color: #f0b429; }
 .fame-row.gold .fame-rank { color: #b7791f; }
 .fame-row.silver { background: linear-gradient(180deg, #fbfcff, #e3e8f0); border-color: #b8c2d0; }

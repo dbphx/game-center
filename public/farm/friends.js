@@ -41,6 +41,8 @@
       owner: r.owner || { id, name: 'bạn', level: 1 },
       dog: r.dog || f.dog || null,
       stealsLeft: r.stealsLeft != null ? r.stealsLeft : f.stealsLeft != null ? f.stealsLeft : 0,
+      friend: r.friend !== false, // ai cũng xem được nhà (vd từ Khu danh vọng); chỉ bạn bè mới trộm
+      pending: !!(last && last.pending), // đã gửi lời mời kết bạn từ băng này
       farm: {
         now,
         plots,
@@ -56,6 +58,14 @@
   }
 
   async function load() {
+    if (id) {
+      // Bấm vào chính mình ở Khu danh vọng: về nhà mình.
+      const u = await A.me().catch(() => null);
+      if (u && u.id === id) {
+        location.replace('/farm/');
+        return null;
+      }
+    }
     try {
       last = normalize(await A.api(`/api/friends/${id}/farm`));
       return last;
@@ -83,11 +93,29 @@
     const ripe = v.farm.plots.filter((p) => p.crop && now >= p.readyAt && !p.stolen && !p.tried).length;
     el.innerHTML = `${C.head(look(v.owner), { cls: 'vb-avatar' })}
       <span class="vb-text"><span>Đang ở nhà <b>${esc(v.owner.name)}</b></span>
-        <span class="vb-meta"><span class="vb-steal${v.stealsLeft ? '' : ' none'}" id="visit-bag">${I.svg('hand')}còn ${v.stealsLeft} lượt trộm<span class="vb-long"> hôm nay</span></span>
+        <span class="vb-meta">${v.friend
+          ? `<span class="vb-steal${v.stealsLeft ? '' : ' none'}" id="visit-bag">${I.svg('hand')}còn ${v.stealsLeft} lượt trộm<span class="vb-long"> hôm nay</span></span>`
+          : `<span class="vb-steal none">${I.svg('eye')}Chỉ xem<span class="vb-long"> — kết bạn để trộm</span></span>`}
           <span class="vb-ripe">${I.svg('sprout')}${ripe} ô chín</span>
           <span class="vb-dog ${guard ? 'on' : 'off'}">${I.svg('shield')}Chó: ${guard ? 'đang canh' : 'đang đói'}</span></span></span>
+      ${v.friend ? '' : `<button class="vb-friend" id="vb-friend" ${v.pending ? 'disabled' : ''}>${I.svg('userPlus')}${v.pending ? 'Đã mời' : 'Kết bạn'}</button>`}
       <a class="btn primary vb-home" href="/farm/">${I.svg('door')}Về nhà</a>`;
     el.classList.remove('hidden');
+    const fb = $('vb-friend');
+    if (fb) {
+      fb.onclick = async () => {
+        fb.disabled = true;
+        try {
+          await A.api('/api/friends/request', { method: 'POST', body: { id } });
+          v.pending = true;
+          A.toast(`Đã gửi lời mời kết bạn tới ${v.owner.name}`);
+          banner(v);
+        } catch (e) {
+          fb.disabled = false;
+          A.toast(e.message);
+        }
+      };
+    }
   }
 
   async function steal(plot) {

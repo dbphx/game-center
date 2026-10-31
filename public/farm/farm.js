@@ -330,6 +330,12 @@
           <span class="soil"></span><span class="tag-pill stolen">${why}</span></div>
           ${top('ripe stolen', `<span class="crop">${art.crop(p.crop, 'ripe')}</span>`)}`;
       }
+      // Nhà người chưa là bạn (vd vào từ Khu danh vọng): chỉ xem cây chín, không có dấu trộm.
+      if (!visit || !visit.friend) {
+        return `<div class="plot ripe stolen" ${ground} title="${esc(c.name)} đã chín">
+          <span class="soil"></span></div>
+          ${top('ripe', `<span class="crop">${art.crop(p.crop, 'ripe')}</span>`)}`;
+      }
       return `<div class="plot ripe steal" ${ground} title="Trộm ${esc(c.name)}">
         <span class="soil"></span><span class="tag-pill go steal">${I.svg('hand')}Trộm</span></div>
         ${top('ripe', `<span class="crop">${art.crop(p.crop, 'ripe')}</span>
@@ -406,7 +412,7 @@
   }
 
   function plotVerb(p) {
-    if (VISIT) return !p.crop ? 'Ô trống' : nowS() < p.readyAt ? 'Xem cây' : p.stolen ? 'Đã bị trộm' : p.tried ? 'Đã thử trộm' : `Trộm ${find('crops', p.crop).name}`;
+    if (VISIT) return !p.crop ? 'Ô trống' : nowS() < p.readyAt ? 'Xem cây' : p.stolen ? 'Đã bị trộm' : p.tried ? 'Đã thử trộm' : !(visit && visit.friend) ? `${find('crops', p.crop).name} đã chín` : `Trộm ${find('crops', p.crop).name}`;
     if (!p.crop) return tool === 'plant' && seedSel ? `Gieo ${find('crops', seedSel).name}` : 'Gieo hạt';
     return nowS() >= p.readyAt ? 'Thu hoạch' : 'Xem cây';
   }
@@ -1681,6 +1687,7 @@
     if (nowS() < p.readyAt) return A.toast(`${c.name} còn ${fmtDur(p.readyAt - nowS())} nữa mới chín`);
     if (p.stolen) return A.toast(`Ô ${c.name} này đã bị trộm rồi`);
     if (p.tried) return A.toast(`Bạn đã thử trộm ô ${c.name} này rồi — mỗi ô chỉ thử được một lần`);
+    if (!visit.friend) return A.toast(`Kết bạn với ${visit.owner.name} để được trộm`);
     if (!visit.stealsLeft) return A.toast(`Hôm nay đã hết lượt trộm nhà ${visit.owner.name}`);
     const el = document.querySelector(`.plot-top[data-obj="plot${index}"] img`) || document.querySelector(`[data-obj="plot${index}"]`);
     const r = await VISIT.steal(index);

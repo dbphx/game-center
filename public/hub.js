@@ -440,6 +440,7 @@
           <span class="fame-parts muted" title="Xu · Đồ shop · Nông trại"><span>${I.svg('coins')}${A.xu(p.coins || 0)}</span><span>${I.svg('shirt')}${A.xu(p.items || 0)}</span><span>${I.svg('sprout')}${A.xu(p.farm || 0)}</span></span>
         </span>
         <b class="fame-total gold">${A.xu(p.total || 0)}</b>
+        ${mine ? '' : `<a class="fame-visit" href="/farm/?visit=${p.id}" title="Thăm nông trại của ${A.escapeHtml(p.name)}" aria-label="Thăm nông trại">${I.svg('sprout')}</a>`}
       </li>`;
   }
   function fameAgo() {
