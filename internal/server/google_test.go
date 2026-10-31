@@ -115,7 +115,7 @@ func TestGoogleSignupLoginLink(t *testing.T) {
 	}
 	var me wallet.User
 	call(t, srv, "GET", "/api/me", in.Token, nil, &me)
-	if me.Google == nil || me.Google.Email != "an@gmail.com" || me.Username != "" {
+	if me.Google == nil || me.Google.Email != "an@gmail.com" || me.Username != "dcityan" || me.HasPassword {
 		t.Fatalf("/api/me: %+v", me)
 	}
 	// Tài khoản Google chưa có mật khẩu: đổi mật khẩu / bỏ liên kết báo 409.

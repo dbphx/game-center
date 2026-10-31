@@ -57,6 +57,7 @@ type User struct {
 	RegenSeconds  int      `json:"regenSeconds"`  // số giây hồi 1 HP lúc này: 60 đứng, 30 ngồi
 	Now           int64    `json:"now"`           // giờ server (unix), để giao diện đếm ngược
 	Google        *Google  `json:"google"`        // tài khoản Google đã liên kết, nil nếu chưa
+	HasPassword   bool     `json:"hasPassword"`   // đã có mật khẩu (tài khoản tạo bằng Google thì chưa, đặt qua SetCredentials)
 	lastDaily     string
 }
 
@@ -89,6 +90,10 @@ func Open(path string) (*Wallet, error) {
 		db.Close()
 		return nil, fmt.Errorf("nâng cấp database: %w", err)
 	}
+	if err := backfillGoogleUsernames(context.Background(), db); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("tên đăng nhập cho tài khoản Google: %w", err)
+	}
 	return &Wallet{db: db, now: time.Now}, nil
 }
 
@@ -115,14 +120,14 @@ func addEntry(ctx context.Context, tx *sql.Tx, userID, delta, after int64, game,
 }
 
 const userColumns = `id, coalesce(username, ''), name, balance, last_daily, gender, outfit, xp, hp, coalesce(hp_at, 0), hospital_until, hair, wings, face, sit_until,
-	(SELECT email FROM user_google WHERE user_google.user_id = users.id)`
+	(SELECT email FROM user_google WHERE user_google.user_id = users.id), password_hash != ''`
 
 func (w *Wallet) scanUser(row *sql.Row) (User, error) {
 	var u User
 	var s hpState
 	var google sql.NullString
 	err := row.Scan(&u.ID, &u.Username, &u.Name, &u.Balance, &u.lastDaily, &u.Gender, &u.Outfit, &u.XP, &s.hp, &s.hpAt, &s.hospitalUntil, &u.Hair, &u.Wings, &u.Face, &s.sitUntil,
-		&google)
+		&google, &u.HasPassword)
 	if errors.Is(err, sql.ErrNoRows) {
 		return User{}, ErrNotFound
 	}

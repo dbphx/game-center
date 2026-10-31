@@ -4,12 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"strings"
 )
 
 // Đăng nhập bằng Google: tài khoản Google (sub — mã không đổi của Google) liên kết với đúng một tài khoản DCity.
-// Tài khoản tạo bằng Google không có tên đăng nhập / mật khẩu (username NULL, password_hash rỗng); muốn thêm thì
-// dùng SetCredentials như tài khoản khách cũ. Việc xác minh ID token của Google làm ở internal/googleauth.
+// Tài khoản tạo bằng Google là tài khoản thường: có tên đăng nhập tự đặt theo email (để kết bạn, tìm người chơi),
+// chưa có mật khẩu (password_hash rỗng) — đặt sau qua SetCredentials (được đổi luôn tên đăng nhập).
+// Việc xác minh ID token của Google làm ở internal/googleauth.
 
 // Google là tài khoản Google đã liên kết (chỉ trả email, không lộ sub).
 type Google struct {
@@ -88,8 +90,12 @@ func (w *Wallet) RegisterGoogle(ctx context.Context, sub, email string, p Profil
 		return User{}, "", ErrGoogleTaken
 	}
 	now := w.now().Unix()
+	username, err := freeUsername(ctx, tx, email)
+	if err != nil {
+		return User{}, "", err
+	}
 	res, err := tx.ExecContext(ctx, `INSERT INTO users (username, password_hash, name, balance, gender, outfit, created_at)
-		VALUES (NULL, '', ?, ?, ?, ?, ?)`, CleanName(name), StartBalance, p.Gender, p.Outfit, now)
+		VALUES (?, '', ?, ?, ?, ?, ?)`, username, CleanName(name), StartBalance, p.Gender, p.Outfit, now)
 	if err != nil {
 		return User{}, "", err
 	}
@@ -174,4 +180,76 @@ func (w *Wallet) UnlinkGoogle(ctx context.Context, id int64) (User, error) {
 		return User{}, ErrNoGoogle
 	}
 	return w.User(ctx, id)
+}
+
+type queryRower interface {
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}
+
+// freeUsername chọn tên đăng nhập chưa ai dùng từ phần trước @ của email (chỉ giữ a-z 0-9 _ .),
+// trùng thì thêm số: an.nguyen, an.nguyen2, an.nguyen3...
+func freeUsername(ctx context.Context, q queryRower, email string) (string, error) {
+	local, _, _ := strings.Cut(NormalizeUsername(email), "@")
+	base := strings.Trim(strings.Map(func(r rune) rune {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '_' || r == '.' {
+			return r
+		}
+		return -1
+	}, local), ".")
+	if len(base) > 16 {
+		base = base[:16]
+	}
+	if len(base) < 3 {
+		base = "dcity" + base
+	}
+	for n := 1; n < 10000; n++ {
+		name := base
+		if n > 1 {
+			name = fmt.Sprintf("%s%d", base, n)
+		}
+		var one int
+		err := q.QueryRowContext(ctx, `SELECT 1 FROM users WHERE username = ?`, name).Scan(&one)
+		if errors.Is(err, sql.ErrNoRows) {
+			return name, nil
+		}
+		if err != nil {
+			return "", err
+		}
+	}
+	return "", errors.New("không tìm được tên đăng nhập trống")
+}
+
+// backfillGoogleUsernames đặt tên đăng nhập cho tài khoản Google tạo trước khi có tên tự đặt (username NULL).
+func backfillGoogleUsernames(ctx context.Context, db *sql.DB) error {
+	rows, err := db.QueryContext(ctx, `SELECT u.id, g.email FROM users u JOIN user_google g ON g.user_id = u.id WHERE u.username IS NULL`)
+	if err != nil {
+		return err
+	}
+	type acc struct {
+		id    int64
+		email string
+	}
+	var list []acc
+	for rows.Next() {
+		var a acc
+		if err := rows.Scan(&a.id, &a.email); err != nil {
+			rows.Close()
+			return err
+		}
+		list = append(list, a)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for _, a := range list {
+		name, err := freeUsername(ctx, db, a.email)
+		if err != nil {
+			return err
+		}
+		if _, err := db.ExecContext(ctx, `UPDATE users SET username = ? WHERE id = ? AND username IS NULL`, name, a.id); err != nil {
+			return err
+		}
+	}
+	return nil
 }

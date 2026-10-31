@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"path/filepath"
+	"slices"
 	"testing"
 )
 
@@ -16,7 +17,8 @@ func TestGoogleAccount(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if u.Username != "" || u.Name != "An" || u.Balance != StartBalance || u.Google == nil || u.Google.Email != "an@gmail.com" {
+	// Tài khoản thường: tên đăng nhập tự đặt theo email (quá ngắn thì thêm "dcity"), chưa có mật khẩu.
+	if u.Username != "dcityan" || u.HasPassword || u.Name != "An" || u.Balance != StartBalance || u.Google == nil || u.Google.Email != "an@gmail.com" {
 		t.Fatalf("tài khoản Google: %+v", u)
 	}
 	if _, _, err := w.RegisterGoogle(ctx, "sub-1", "an@gmail.com", Profile{}); !errors.Is(err, ErrGoogleTaken) {
@@ -24,7 +26,7 @@ func TestGoogleAccount(t *testing.T) {
 	}
 	// Không tên hiển thị → lấy phần trước @ của email.
 	b, _, err := w.RegisterGoogle(ctx, "sub-2", "binh.tran@gmail.com", Profile{})
-	if err != nil || b.Name != "binh.tran" {
+	if err != nil || b.Name != "binh.tran" || b.Username != "binh.tran" {
 		t.Fatalf("tên mặc định: %+v %v", b, err)
 	}
 
@@ -47,8 +49,11 @@ func TestGoogleAccount(t *testing.T) {
 	if _, err := w.UnlinkGoogle(ctx, u.ID); !errors.Is(err, ErrNeedCredentials) {
 		t.Fatalf("bỏ liên kết khi chưa có mật khẩu: %v", err)
 	}
-	if _, err := w.SetCredentials(ctx, u.ID, "an_google", "matkhau123"); err != nil {
-		t.Fatal(err)
+	if u, err = w.SetCredentials(ctx, u.ID, "an_google", "matkhau123"); err != nil || u.Username != "an_google" || !u.HasPassword {
+		t.Fatalf("đặt mật khẩu (đổi luôn tên đăng nhập tự đặt): %+v %v", u, err)
+	}
+	if _, err := w.SetCredentials(ctx, u.ID, "an_khac", "matkhau123"); !errors.Is(err, ErrHasCredentials) {
+		t.Fatalf("đã có mật khẩu thì không đặt lại được: %v", err)
 	}
 	if u, err = w.UnlinkGoogle(ctx, u.ID); err != nil || u.Google != nil {
 		t.Fatalf("bỏ liên kết: %+v %v", u, err)
@@ -125,3 +130,49 @@ func TestMigrateFromV9AddsGoogle(t *testing.T) {
 
 // dropV10 bỏ bảng user_google để đưa database về dạng v9.
 const dropV10 = `DROP TABLE user_google;`
+
+// Tài khoản Google là tài khoản thường: đăng nhập lại bằng Google giữ nguyên xu, đồ đã mua, XP;
+// tên đăng nhập tự đặt không trùng; tài khoản Google tạo trước khi có tên tự đặt được bổ sung khi mở database.
+func TestGoogleAccountKeepsState(t *testing.T) {
+	w := open(t)
+	u, _, err := w.RegisterGoogle(ctx, "sub-x", "an@gmail.com", Profile{Name: "An"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, _ := w.Begin(ctx)
+	if err := tx.Credit(u.ID, 5000, "test", "thưởng"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.AddXP(u.ID, 1234); err != nil {
+		t.Fatal(err)
+	}
+	tx.Commit()
+	if u, err = w.BuyItem(ctx, u.ID, KindHair, "short_spiky"); err != nil {
+		t.Fatal(err)
+	}
+	for range 3 {
+		again, _, err := w.LoginGoogle(ctx, "sub-x", "an@gmail.com")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if again.ID != u.ID || again.Balance != u.Balance || again.XP != u.XP || !slices.Contains(again.OwnedHair, "short_spiky") ||
+			again.Username != u.Username || again.Name != "An" {
+			t.Fatalf("đăng nhập lại phải giữ nguyên: trước %+v, sau %+v", u, again)
+		}
+	}
+	// Email trùng phần trước @ → tên đăng nhập thêm số.
+	b, _, err := w.RegisterGoogle(ctx, "sub-y", "an@yahoo.com", Profile{})
+	if err != nil || b.Username != "dcityan2" {
+		t.Fatalf("tên đăng nhập trùng phải thêm số: %+v %v", b, err)
+	}
+	// Tài khoản Google cũ (username NULL) → mở lại database thì có tên đăng nhập.
+	if _, err := w.db.ExecContext(ctx, `UPDATE users SET username = NULL WHERE id = ?`, b.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := backfillGoogleUsernames(ctx, w.db); err != nil {
+		t.Fatal(err)
+	}
+	if b, _ = w.User(ctx, b.ID); b.Username != "dcityan2" {
+		t.Fatalf("bổ sung tên đăng nhập: %q", b.Username)
+	}
+}

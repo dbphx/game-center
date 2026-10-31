@@ -25,6 +25,7 @@
           <div class="menu-head"><b id="menu-display"></b><span class="muted" id="menu-username"></span></div>
           <button id="btn-rename"><i data-icon="pencil"></i>Đổi tên hiển thị</button>
           <button id="btn-password"><i data-icon="key"></i>Đổi mật khẩu</button>
+          <button id="btn-set-password" class="hidden"><i data-icon="key"></i>Đặt mật khẩu</button>
           <button id="btn-google" class="hidden"><i data-icon="link"></i>Tài khoản Google</button>
           <a class="menu-link" href="/credits.html"><i data-icon="scroll"></i>Ghi công hình ảnh</a>
           <button id="btn-logout" class="danger"><i data-icon="logOut"></i>Đăng xuất</button>
@@ -149,8 +150,8 @@
 
   <dialog class="modal" id="dlg-legacy">
     <form method="dialog">
-      <h2><i data-icon="shield"></i>Đặt tên đăng nhập</h2>
-      <p class="muted">Số xu, level và lịch sử của bạn được giữ nguyên.</p>
+      <h2><i data-icon="shield"></i><span id="legacy-title">Đặt tên đăng nhập</span></h2>
+      <p class="muted" id="legacy-note">Số xu, level và lịch sử của bạn được giữ nguyên.</p>
       <label class="field">Tên đăng nhập
         <span class="input-icon"><i data-icon="user"></i><input name="username" autocomplete="username" required autocapitalize="none" pattern="[A-Za-z0-9_.]{3,20}"></span>
       </label>

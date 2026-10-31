@@ -179,7 +179,8 @@ func (w *Wallet) SetCredentials(ctx context.Context, id int64, username, passwor
 	if err != nil {
 		return User{}, err
 	}
-	res, err := w.db.ExecContext(ctx, `UPDATE users SET username = ?, password_hash = ? WHERE id = ? AND username IS NULL`,
+	// Tài khoản khách cũ (chưa có tên) hoặc tài khoản Google (tên tự đặt, chưa có mật khẩu — được chọn tên khác).
+	res, err := w.db.ExecContext(ctx, `UPDATE users SET username = ?, password_hash = ? WHERE id = ? AND (username IS NULL OR password_hash = '')`,
 		username, string(hash), id)
 	if isUniqueViolation(err) {
 		return User{}, ErrUsernameTaken

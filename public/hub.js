@@ -159,7 +159,7 @@
     if (g) {
       box.innerHTML = `<div class="linked"><span>${I.svg('check')} Đã liên kết <b>${A.escapeHtml(g.email || '')}</b></span>
         <button type="button" class="danger" id="btn-google-unlink">Bỏ liên kết</button></div>
-        ${user.username ? '' : '<p class="muted note">Tài khoản chưa có tên đăng nhập + mật khẩu nên chưa bỏ liên kết được.</p>'}`;
+        ${user.hasPassword ? '' : '<p class="muted note">Tài khoản chưa có mật khẩu nên chưa bỏ liên kết được — đặt mật khẩu ở menu trước.</p>'}`;
       $('btn-google-unlink').onclick = async () => {
         if (!(await A.confirm(`Bỏ liên kết Google ${g.email || ''}? Sau đó chỉ đăng nhập được bằng tên đăng nhập và mật khẩu.`, { title: 'Bỏ liên kết Google', ok: 'Bỏ liên kết', danger: true }))) {
           $('dlg-google').open || $('dlg-google').showModal();
@@ -384,9 +384,12 @@
     $('menu-name').textContent = user.name;
     $('menu-display').textContent = user.name;
     $('menu-username').textContent = user.username ? '@' + user.username : 'Tài khoản khách';
-    $('btn-password').classList.toggle('hidden', !user.username);
+    $('btn-password').classList.toggle('hidden', !user.hasPassword);
+    // Tài khoản tạo bằng Google: đã có tên đăng nhập tự đặt, chưa có mật khẩu — đặt thêm nếu muốn (không bắt buộc).
+    $('btn-set-password').classList.toggle('hidden', !!user.hasPassword || !user.google);
     $('btn-google').classList.toggle('hidden', !config.googleClientId);
-    $('legacy').classList.toggle('hidden', !!user.username);
+    // Cảnh báo "tài khoản khách" chỉ cho khách cũ thật sự; tài khoản Google là tài khoản thường, xu luôn được giữ.
+    $('legacy').classList.toggle('hidden', !!user.username || !!user.google);
     if (cityMounted) City.setTag(user.name, user.level);
   }
 
@@ -1000,13 +1003,20 @@
     }),
   );
 
-  $('btn-legacy').addEventListener('click', () =>
+  // Khách cũ: đặt tên đăng nhập + mật khẩu. Tài khoản Google: đặt mật khẩu (tên đăng nhập tự đặt điền sẵn, đổi được).
+  function openCredentials(google) {
+    $('legacy-title').textContent = google ? 'Đặt mật khẩu' : 'Đặt tên đăng nhập';
+    $('legacy-note').textContent = google
+      ? 'Không bắt buộc — vẫn đăng nhập bằng Google được. Có mật khẩu thì đăng nhập thêm bằng tên đăng nhập.'
+      : 'Số xu, level và lịch sử của bạn được giữ nguyên.';
     openDialog('dlg-legacy', async (f) => {
       user = await A.api('/api/credentials', { method: 'POST', body: f });
       renderHUD();
-      A.toast('Đã đặt tên đăng nhập, từ giờ đăng nhập bằng @' + user.username);
-    }),
-  );
+      A.toast(google ? `Đã đặt mật khẩu — đăng nhập bằng Google hoặc @${user.username}` : 'Đã đặt tên đăng nhập, từ giờ đăng nhập bằng @' + user.username);
+    }, (form) => google && (form.elements.username.value = user.username || ''));
+  }
+  $('btn-legacy').addEventListener('click', () => openCredentials(false));
+  $('btn-set-password').addEventListener('click', () => openCredentials(true));
 
   $('btn-logout').addEventListener('click', async () => {
     await A.logout().catch(() => {});
