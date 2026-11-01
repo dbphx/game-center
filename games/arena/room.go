@@ -46,6 +46,7 @@ var BetOptions = []int{0, 10, 20, 50, 100, 200, 500, 1000}
 // User là tài khoản hub, kèm nhân vật để vẽ avatar.
 type User struct {
 	ID            int64
+	Username      string // tên đăng nhập (mở hồ sơ Đấu trường); rỗng với tài khoản khách cũ
 	Name          string
 	Gender        string
 	Outfit        string
@@ -111,6 +112,7 @@ func (o Options) maxRounds() int {
 type Player struct {
 	ID       string
 	UserID   int64 // 0 với máy
+	Username string
 	Name     string
 	Gender   string
 	Outfit   string
@@ -181,6 +183,7 @@ type Room struct {
 	mode       string   // ModeVersus | ModeBoss
 	bossDef    Boss
 	boss       *Fighter // boss trên sân (chế độ boss, trong trận)
+	bossTurns  int      // số lượt boss đã ra đòn trong trận (Mưa lửa mỗi RainEvery lượt)
 }
 
 func randomID() string {
@@ -243,12 +246,12 @@ func (r *Room) pickField() {
 }
 
 func newPlayer(u User, conn Conn) *Player {
-	return &Player{ID: randomID(), UserID: u.ID, Name: u.Name, Gender: u.Gender, Outfit: u.Outfit, Hair: u.Hair,
+	return &Player{ID: randomID(), UserID: u.ID, Username: u.Username, Name: u.Name, Gender: u.Gender, Outfit: u.Outfit, Hair: u.Hair,
 		Wings: u.Wings, Face: u.Face, Level: u.Level, Online: true, conn: conn, facing: 1}
 }
 
 func (p *Player) update(u User) {
-	p.Name, p.Gender, p.Outfit, p.Hair, p.Wings, p.Face, p.Level = u.Name, u.Gender, u.Outfit, u.Hair, u.Wings, u.Face, u.Level
+	p.Username, p.Name, p.Gender, p.Outfit, p.Hair, p.Wings, p.Face, p.Level = u.Username, u.Name, u.Gender, u.Outfit, u.Hair, u.Wings, u.Face, u.Level
 }
 
 // join cho người vào bàn: trả lại ghế / chỗ xem cũ; còn ghế trống (không đang chơi) thì ngồi, không thì xem.
@@ -1025,6 +1028,7 @@ func (r *Room) broadcast() {
 
 type PlayerView struct {
 	ID        string         `json:"id"`
+	Username  string         `json:"username"` // tên đăng nhập để mở hồ sơ; rỗng với máy
 	Name      string         `json:"name"`
 	Gender    string         `json:"gender,omitempty"`
 	Outfit    string         `json:"outfit,omitempty"`
@@ -1118,7 +1122,7 @@ func (r *Room) stateFor(viewer *Player) State {
 		s.TurnMs = max(0, int(time.Until(r.deadline).Milliseconds()))
 	}
 	for _, p := range r.players {
-		v := PlayerView{ID: p.ID, Name: p.Name, Gender: p.Gender, Outfit: p.Outfit, Hair: p.Hair, Wings: p.Wings, Face: p.Face,
+		v := PlayerView{ID: p.ID, Username: p.Username, Name: p.Name, Gender: p.Gender, Outfit: p.Outfit, Hair: p.Hair, Wings: p.Wings, Face: p.Face,
 			Level: p.Level, Bot: p.Bot, BotLevel: p.BotLevel, Host: p.ID == r.hostID, Online: p.Online, Ready: p.ready,
 			Coins: p.Coins, Facing: p.facing, Gear: p.Gear.Norm(), Power: p.Gear.Power(), Items: map[string]int{},
 			LastAngle: p.lastAngle, LastPower: p.lastPower, HP: p.Gear.MaxHP(), MaxHP: p.Gear.MaxHP(), Alive: true, Rage: p.rage}

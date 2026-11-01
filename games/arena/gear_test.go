@@ -278,7 +278,7 @@ func TestGearAPI(t *testing.T) {
 	}
 	// Vũ khí, chuyển cấp, ngọc, boss.
 	var bosses []Boss
-	if code := call("GET", "/api/arena/bosses", "", nil, &bosses); code != 200 || len(bosses) != 3 || bosses[2].Name != "Rồng Lửa" {
+	if code := call("GET", "/api/arena/bosses", "", nil, &bosses); code != 200 || len(bosses) != 5 || bosses[2].Name != "Rồng Lửa" || bosses[4].Skill != SkillRain || bosses[3].Shots != 2 {
 		t.Fatalf("bosses: %d %+v", code, bosses)
 	}
 	for _, c := range []struct {

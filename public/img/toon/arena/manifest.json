@@ -3311,6 +3311,92 @@
    "source": [
     "DCity (vẽ / ghép bằng PIL cho dự án)"
    ]
+  },
+  {
+   "file": "boss_thuyquai.png",
+   "w": 360,
+   "h": 360,
+   "use": "Boss Thuỷ Quái (bạch tuộc biển khổng lồ xanh ngọc, nhiều xúc tu, vây gai) — đứng quay mặt sang TRÁI, nền trong suốt; lật ngang (scaleX(-1)) nếu cần quay phải",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "boss": "thuyquai"
+  },
+  {
+   "file": "boss_thuyquai_hurt.png",
+   "w": 360,
+   "h": 360,
+   "use": "Boss Thuỷ Quái (bạch tuộc biển khổng lồ xanh ngọc, nhiều xúc tu, vây gai) khi trúng đòn: nháy đỏ, nhắm mắt (cùng khung với boss_thuyquai.png)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "boss": "thuyquai"
+  },
+  {
+   "file": "throw_boss_thuyquai.png",
+   "w": 48,
+   "h": 48,
+   "use": "Vật bay của boss Thuỷ Quái: quả cầu nước xoáy (vẽ ×2: hiển thị 24×24 như shot_shell)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "boss": "thuyquai",
+   "scale": 0.5
+  },
+  {
+   "file": "boss_mavuong.png",
+   "w": 360,
+   "h": 360,
+   "use": "Boss Ma Vương (quỷ vương sừng to, áo choàng đen-đỏ, đinh ba lửa, hào quang tím) — đứng quay mặt sang TRÁI, nền trong suốt; lật ngang (scaleX(-1)) nếu cần quay phải",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "boss": "mavuong"
+  },
+  {
+   "file": "boss_mavuong_hurt.png",
+   "w": 360,
+   "h": 360,
+   "use": "Boss Ma Vương (quỷ vương sừng to, áo choàng đen-đỏ, đinh ba lửa, hào quang tím) khi trúng đòn: nháy đỏ, nhắm mắt (cùng khung với boss_mavuong.png)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "boss": "mavuong"
+  },
+  {
+   "file": "throw_boss_mavuong.png",
+   "w": 48,
+   "h": 48,
+   "use": "Vật bay của boss Ma Vương: cầu lửa tím (vẽ ×2: hiển thị 24×24 như shot_shell)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "boss": "mavuong",
+   "scale": 0.5
+  },
+  {
+   "file": "fx_boss_rain.png",
+   "w": 256,
+   "h": 256,
+   "use": "Hiệu ứng chiêu Mưa lửa của Ma Vương: nhiều hòn lửa rơi chéo (từ trên phải xuống dưới trái), nền trong suốt",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "boss": "mavuong"
   }
  ]
 }

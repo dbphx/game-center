@@ -23,27 +23,44 @@ const (
 
 // Boss là một boss chọn được.
 type Boss struct {
-	ID      string  `json:"id"`
-	Name    string  `json:"name"`
-	Level   string  `json:"level"` // easy | normal | hard
-	HPPer   int     `json:"hpPer"` // máu mỗi người ngồi ghế
-	Dmg     float64 `json:"dmg"`   // sát thương phát bắn ở tâm nổ
-	R       float64 `json:"r"`     // bán kính nổ
-	Size    float64 `json:"size"`  // hệ số thân
-	Noise   float64 `json:"-"`     // sai số lực
-	Coins   int64   `json:"coins"` // xu thưởng mỗi người khi thắng
-	Drops   [2]int  `json:"-"`     // số viên ngọc rơi (min, max)
-	Tiers   [2]int  `json:"-"`     // bậc ngọc (thấp, cao)
-	HighPct int     `json:"-"`     // % ra bậc cao
+	ID       string  `json:"id"`
+	Name     string  `json:"name"`
+	Level    string  `json:"level"` // easy | normal | hard | veryhard | hell
+	HPPer    int     `json:"hpPer"` // máu mỗi người ngồi ghế
+	Dmg      float64 `json:"dmg"`   // sát thương phát bắn ở tâm nổ
+	R        float64 `json:"r"`     // bán kính nổ
+	Size     float64 `json:"size"`  // hệ số thân
+	Noise    float64 `json:"-"`     // sai số lực
+	Coins    int64   `json:"coins"` // xu thưởng mỗi người khi thắng
+	Shots    int     `json:"shots"` // số phát mỗi lượt boss (nhắm các mục tiêu khác nhau nếu có)
+	Skill    string  `json:"skill,omitempty"`
+	LootText string  `json:"lootText"` // mô tả ngọc rơi
+	Drops    [2]int  `json:"-"`        // số viên ngọc rơi (min, max)
+	Tiers    [2]int  `json:"-"`        // bậc ngọc (thấp, cao)
+	HighPct  int     `json:"-"`        // % ra bậc cao
 }
 
+const (
+	BossVeryHard = "veryhard"
+	BossHell     = "hell"
+	// SkillRain: cứ RainEvery lượt boss thì "Mưa lửa" rơi trúng mọi người chơi còn sống.
+	SkillRain = "rain"
+	RainEvery = 3
+	RainDmg   = 500
+	RainR     = 40
+)
+
 var Bosses = []Boss{
-	{ID: "chuot", Name: "Vua Chuột", Level: BotEasy, HPPer: 3500, Dmg: 350, R: 45, Size: 1.6, Noise: 10, Coins: 50,
-		Drops: [2]int{1, 2}, Tiers: [2]int{1, 1}},
-	{ID: "robot", Name: "Robot Rác", Level: BotNormal, HPPer: 6000, Dmg: 500, R: 55, Size: 1.9, Noise: 6, Coins: 100,
-		Drops: [2]int{2, 3}, Tiers: [2]int{1, 2}, HighPct: 40},
-	{ID: "rong", Name: "Rồng Lửa", Level: BotHard, HPPer: 9500, Dmg: 700, R: 65, Size: 2.3, Noise: 3, Coins: 200,
-		Drops: [2]int{3, 4}, Tiers: [2]int{2, 3}, HighPct: 25},
+	{ID: "chuot", Name: "Vua Chuột", Level: BotEasy, HPPer: 3500, Dmg: 350, R: 45, Size: 1.6, Noise: 10, Coins: 50, Shots: 1,
+		LootText: "1–2 ngọc bậc I", Drops: [2]int{1, 2}, Tiers: [2]int{1, 1}},
+	{ID: "robot", Name: "Robot Rác", Level: BotNormal, HPPer: 5000, Dmg: 500, R: 55, Size: 1.9, Noise: 6, Coins: 100, Shots: 1,
+		LootText: "2–3 ngọc bậc I–II", Drops: [2]int{2, 3}, Tiers: [2]int{1, 2}, HighPct: 40},
+	{ID: "rong", Name: "Rồng Lửa", Level: BotHard, HPPer: 6500, Dmg: 700, R: 65, Size: 2.3, Noise: 3, Coins: 200, Shots: 1,
+		LootText: "3–4 ngọc bậc II–III", Drops: [2]int{3, 4}, Tiers: [2]int{2, 3}, HighPct: 25},
+	{ID: "thuyquai", Name: "Thuỷ Quái", Level: BossVeryHard, HPPer: 8000, Dmg: 800, R: 75, Size: 2.5, Noise: 2.5, Coins: 400,
+		Shots: 2, LootText: "3–5 ngọc bậc II–III (một nửa bậc III)", Drops: [2]int{3, 5}, Tiers: [2]int{2, 3}, HighPct: 50},
+	{ID: "mavuong", Name: "Ma Vương", Level: BossHell, HPPer: 10000, Dmg: 1000, R: 85, Size: 2.8, Noise: 2, Coins: 800,
+		Shots: 2, Skill: SkillRain, LootText: "4–6 ngọc, gần hết bậc III", Drops: [2]int{4, 6}, Tiers: [2]int{2, 3}, HighPct: 90},
 }
 
 func findBoss(id string) (Boss, bool) {
@@ -105,13 +122,17 @@ func (r *Room) bossSpawn() {
 	hp := r.bossDef.HPPer * n
 	r.boss = &Fighter{ID: BossID, X: bx, Y: float64(r.ground.At(bx)), HP: hp, MaxHP: hp, Alive: true,
 		Size: r.bossDef.Size, Gear: Gear{Arm: ArmCannon}, Fixed: true}
+	r.bossTurns = 0
 }
 
-// bossTurn: hết một vòng người chơi thì boss bắn một phát vào người gần nhất hoặc ngẫu nhiên.
+// bossTurn: hết một vòng người chơi thì boss ra đòn: Shots phát (mỗi phát một mục tiêu khác nhau nếu có),
+// lượt thứ RainEvery của boss có Skill "rain" thì thêm Mưa lửa. Các phát gửi lần lượt từng tin shot (by:"boss"),
+// phát sau chờ phát trước bay xong như giữa hai lượt.
 func (r *Room) bossTurn() {
 	r.turn = BossID
 	r.moveLeft = 0
 	r.wind = r.field.Wind(r.rng)
+	r.bossTurns++
 	r.stopTimer()
 	gen := r.timerGen
 	r.timer = time.AfterFunc(r.opts.BotDelay, func() {
@@ -120,28 +141,71 @@ func (r *Room) bossTurn() {
 		if gen != r.timerGen || r.phase != PhasePlaying || r.turn != BossID {
 			return
 		}
-		r.bossFire()
+		r.bossVolley(0, map[string]bool{})
 	})
 	r.broadcast()
 }
 
-func (r *Room) bossFire() {
-	b := r.boss
-	var target *Fighter
-	alive := r.alive()
-	if len(alive) == 0 {
-		r.checkEnd("last")
+// bossVolley bắn phát thứ i của lượt boss; aimed là những người đã bị nhắm trong lượt này.
+func (r *Room) bossVolley(i int, aimed map[string]bool) {
+	shots := max(1, r.bossDef.Shots)
+	rain := r.bossDef.Skill == SkillRain && r.bossTurns%RainEvery == 0
+	var dur float64
+	if i < shots {
+		dur = r.bossFire(aimed)
+	} else {
+		dur = r.bossRain()
+	}
+	r.turn = ""
+	if r.checkEnd("last") {
 		return
 	}
+	r.broadcast()
+	more := i+1 < shots || (i+1 == shots && rain)
+	r.afterShot(dur, func() {
+		if more {
+			r.turn = BossID
+			r.bossVolley(i+1, aimed)
+			return
+		}
+		r.round++
+		if r.round > r.opts.maxRounds() {
+			r.round = r.opts.maxRounds()
+			r.finishBoss(false, "rounds")
+			return
+		}
+		r.passTurn(-1)
+	})
+}
+
+// bossFire bắn một phát vào người gần nhất hoặc ngẫu nhiên (ưu tiên người chưa bị nhắm trong lượt); trả thời gian bay.
+func (r *Room) bossFire(aimed map[string]bool) float64 {
+	b := r.boss
+	var pool []*Player
+	for _, p := range r.alive() {
+		if !aimed[p.ID] {
+			pool = append(pool, p)
+		}
+	}
+	if len(pool) == 0 {
+		pool = r.alive()
+	}
+	if len(pool) == 0 {
+		return 0
+	}
+	var target *Fighter
+	var tp *Player
 	if r.rng.IntN(2) == 0 {
-		target = alive[r.rng.IntN(len(alive))].f
+		tp = pool[r.rng.IntN(len(pool))]
 	} else {
-		for _, p := range alive {
-			if target == nil || math.Abs(p.f.X-b.X) < math.Abs(target.X-b.X) {
-				target = p.f
+		for _, p := range pool {
+			if tp == nil || math.Abs(p.f.X-b.X) < math.Abs(tp.f.X-b.X) {
+				tp = p
 			}
 		}
 	}
+	target = tp.f
+	aimed[tp.ID] = true
 	fs := r.fighters()
 	bodies := targetsOf(fs, b)
 	tx, ty := Body{X: target.X, Y: target.Y}.center()
@@ -165,26 +229,67 @@ func (r *Room) bossFire() {
 		}
 	}
 	bestP = math.Max(5, math.Min(100, bestP+(r.rng.Float64()*2-1)*r.bossDef.Noise))
-	w := Weapon{ID: "boss_" + r.bossDef.ID, Name: r.bossDef.Name, Dmg: r.bossDef.Dmg, R: r.bossDef.R, Spread: []float64{0}, Uses: -1}
+	w := r.bossWeapon()
 	res := Fire(r.ground, fs, b, w, bestA, bestP, r.wind, nil)
 	rage := r.applyRage(nil, w, res) // người trúng đòn boss được cộng nộ
 	r.sendAll(map[string]any{"t": "shot", "by": BossID, "weapon": w.ID, "arm": "", "angle": bestA, "power": bestP,
 		"wind": r.wind, "paths": res.Paths, "blasts": orEmpty(res.Blasts), "hits": orEmpty(res.Hits),
 		"deaths": orEmpty(res.Deaths), "tele": res.Tele, "pushes": orEmpty(res.Pushes), "rage": rage})
-	r.turn = ""
-	if r.checkEnd("last") {
-		return
-	}
-	r.broadcast()
-	r.afterShot(res.Duration, func() {
-		r.round++
-		if r.round > r.opts.maxRounds() {
-			r.round = r.opts.maxRounds()
-			r.finishBoss(false, "rounds")
-			return
+	return res.Duration
+}
+
+func (r *Room) bossWeapon() Weapon {
+	return Weapon{ID: "boss_" + r.bossDef.ID, Name: r.bossDef.Name, Dmg: r.bossDef.Dmg, R: r.bossDef.R, Spread: []float64{0}, Uses: -1}
+}
+
+// bossRain: Mưa lửa — mỗi người chơi còn sống bị một quả cầu lửa rơi thẳng từ trời xuống, RainDmg (qua giáp / Def).
+// Tin shot có "skill":"rain", mỗi người một đường bay thẳng đứng; trả thời gian rơi.
+func (r *Room) bossRain() float64 {
+	alive := r.alive()
+	fs := r.fighters()
+	w := r.bossWeapon()
+	res := RainFire(r.ground, fs, r.boss, alive)
+	rage := r.applyRage(nil, w, res)
+	r.sendAll(map[string]any{"t": "shot", "by": BossID, "weapon": w.ID, "arm": "", "skill": SkillRain,
+		"skillName": "Mưa lửa", "angle": 270, "power": 0, "wind": r.wind, "paths": res.Paths, "blasts": orEmpty(res.Blasts),
+		"hits": orEmpty(res.Hits), "deaths": orEmpty(res.Deaths), "tele": nil, "pushes": []Push{}, "rage": rage})
+	return res.Duration
+}
+
+// RainFire thả cầu lửa thẳng xuống từng người trong targets; sửa địa hình và máu ngay tại chỗ.
+func RainFire(g Ground, fs []*Fighter, boss *Fighter, targets []*Player) ShotResult {
+	res := ShotResult{}
+	const top, frames = -120.0, 30 // rơi trong 1 giây (30 điểm cách nhau 1/30 s)
+	dmg := map[string]int{}
+	for i, p := range targets {
+		t := p.f
+		cx, cy := Body{X: t.X, Y: t.Y, Size: t.Size}.center()
+		path := make([][2]int, 0, frames+1)
+		for k := 0; k <= frames; k++ {
+			y := top + (cy-top)*float64(k)/frames
+			path = append(path, [2]int{int(math.Round(cx)), int(math.Round(y))})
 		}
-		r.passTurn(-1)
-	})
+		res.Paths = append(res.Paths, path)
+		res.Blasts = append(res.Blasts, Blast{X: int(math.Round(cx)), Y: int(math.Round(cy)), R: RainR, At: frames, Path: i})
+		Crater(g, cx, cy, RainR)
+		dmg[t.ID] += Splash(RainDmg, RainR, 0, 1, t.Gear.ArmorPct())
+	}
+	res.Duration = 1
+	for _, t := range fs {
+		if !t.Alive || t == boss {
+			continue
+		}
+		if n := dmg[t.ID]; n > 0 {
+			t.HP = max(0, t.HP-n)
+			res.Hits = append(res.Hits, Hit{ID: t.ID, Dmg: n, HP: t.HP})
+		}
+		t.Y = float64(g.At(t.X))
+		if t.HP <= 0 || t.Y >= AbyssY {
+			t.Alive, t.HP = false, 0
+			res.Deaths = append(res.Deaths, t.ID)
+		}
+	}
+	return res
 }
 
 // afterShot chờ đạn bay xong (+AfterShot) rồi chạy next dưới khoá bàn.

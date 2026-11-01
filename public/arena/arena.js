@@ -48,6 +48,11 @@
     armor: { name: 'Áo giáp', stat: (l) => `−${l * 3}% sát thương nhận` },
   };
   const BOT_NAMES = { easy: 'Dễ', normal: 'Vừa', hard: 'Khó' };
+  // Độ khó boss (màu tăng dần theo rank).
+  const BOSS_LEVELS = {
+    easy: { name: 'Dễ', rank: 1 }, normal: { name: 'Vừa', rank: 2 }, hard: { name: 'Khó', rank: 3 },
+    veryhard: { name: 'Rất khó', rank: 4 }, hell: { name: 'Địa ngục', rank: 5 },
+  };
   const REASONS = { last: 'trụ lại cuối cùng', rounds: 'hết lượt, còn nhiều máu nhất', draw: 'ngang máu', left: 'đối thủ rời bàn' };
   const BOSS_REASONS = { boss: 'đã hạ boss', wiped: 'cả đội bị hạ', rounds: 'hết lượt mà boss vẫn còn' };
   const BOT_LOOK = { gender: 'male', outfit: 'suit' };
@@ -140,6 +145,8 @@
     artIdx = {};
     for (const it of (d && d.images) || []) if (it && it.file) artIdx[it.file] = it;
     if (state && state.phase !== 'lobby') { $('units').dataset.sig = ''; renderUnits(); }
+    renderHero();
+    if (profile && $('dlg-profile').open) renderProfile();
   }).catch(() => { artIdx = {}; });
   const HELD_W = 66; // chiều dài hiển thị tối đa của vũ khí cầm tay khi manifest không ghi scale
   const HELD_H = 28; // chiều cao tối đa: ti vi, tủ lạnh (nhất là dạng 2 / 3) không che mặt nhân vật
@@ -299,7 +306,9 @@
         tchat.sync(m.chat);
         break;
       case 'shot':
-        startShot(m);
+        // Boss bắn nhiều phát một lượt: phát sau đến khi phát trước còn bay thì xếp hàng, diễn lần lượt.
+        if (shot) queued.push(m);
+        else startShot(m);
         break;
       case 'aim':
         if (m.id && (!state || m.id !== state.you)) peers[m.id] = { angle: m.angle, power: m.power, at: Date.now() };
@@ -464,7 +473,7 @@
     const order = (r) => (r.phase === 'playing' ? 2 : (r.players || []).length >= (r.max || MAX_SEATS) ? 1 : 0);
     const list = rooms.slice().sort((a, b) => order(a) - order(b));
     const invite = `<div class="atable invite">
-        <div class="ascene" style="background-image:url('${IMG}bg_meadow.png')"><img class="invite-cannon" src="${IMG}cannon_base.png" alt="" draggable="false"></div>
+        <div class="ascene" style="background-image:url('${IMG}bg_meadow.png')">${(() => { const g = (gear && gear.gear) || {}; const arm = armOf(g); return `<img class="invite-cannon" src="${formSrc('icon_arm_' + arm, g.gun)}" data-fb="${fbChain('icon_arm_' + arm, g.gun, `${IMG}cannon_base.png`)}" alt="" draggable="false">`; })()}</div>
         <div class="hinfo"><button class="primary" data-create>${I.svg('plus')}${list.length ? 'Mở thêm bàn' : 'Tạo bàn đầu tiên'}</button>
           <span class="tnote">${list.length ? 'Mời bạn hoặc đấu với máy' : 'Chưa có bàn nào, mở bàn và mời bạn bè'}</span></div>
       </div>`;
@@ -510,9 +519,17 @@
   function renderBossGrid() {
     const el = $('boss-grid');
     if (!bosses.length) { el.innerHTML = '<p class="muted">Đang tải danh sách boss…</p>'; return; }
-    el.innerHTML = bosses.map((b, i) => `<label class="boss-opt"><input type="radio" name="boss" value="${escapeHtml(b.id)}" ${i === 0 ? 'checked' : ''}>
-        <span class="bo-card"><img src="${IMG}boss_${escapeHtml(b.id)}.png" alt="" draggable="false">
-          <b>${escapeHtml(b.name)}</b><small>${escapeHtml([BOT_NAMES[b.level] ? `Độ khó ${BOT_NAMES[b.level]}` : '', b.coins ? `thưởng ${xu(b.coins)} xu + ngọc` : ''].filter(Boolean).join(' · '))}</small></span></label>`).join('');
+    el.innerHTML = bosses.map((b, i) => {
+      const lv = BOSS_LEVELS[b.level] || { name: b.level || '', rank: 0 };
+      const extra = [b.shots > 1 ? `${b.shots} phát/lượt` : '', b.skill === 'rain' ? 'mưa diện rộng' : ''].filter(Boolean).join(' · ');
+      const reward = b.lootText || (b.coins ? `${xu(b.coins)} xu + ngọc` : '');
+      return `<label class="boss-opt"><input type="radio" name="boss" value="${escapeHtml(b.id)}" ${i === 0 ? 'checked' : ''}>
+        <span class="bo-card rank-${lv.rank}"><img src="${IMG}boss_${escapeHtml(b.id)}.png" data-fb="${IMG}boss_rong.png" alt="" draggable="false">
+          <b>${escapeHtml(b.name)}</b>
+          <span class="bo-level">${escapeHtml(lv.name)}</span>
+          ${extra ? `<small class="bo-extra">${escapeHtml(extra)}</small>` : ''}
+          ${reward ? `<small class="bo-reward">${I.svg('gift')}${escapeHtml(reward)}</small>` : ''}</span></label>`;
+    }).join('');
   }
   $('dlg-create').addEventListener('change', (e) => {
     if (e.target.name === 'mode') setCreateMode(e.target.value);
@@ -653,7 +670,15 @@
   // hào quang khi trang bị đã biến đổi (+7 / +10), tên + thanh máu.
   function unitHtml(p) {
     const i = seatIndex(p);
-    const gr = p.gear || {};
+    return `<div class="unit" data-pid="${escapeHtml(p.id)}" style="--seat:${SEAT_TINT[i]}">
+        <div class="u-scale">${figBody(lookOf(p), p.gear || {})}</div>
+        <div class="u-tag"><span class="u-name">${escapeHtml(p.name)}</span><span class="u-hp"><i></i></span><span class="u-rage hidden"><i></i></span></div>
+        <span class="u-arrow"></span>
+      </div>`;
+  }
+
+  // Thân nhân vật + đồ (hào quang, áo, nón, vũ khí cầm tay) — dùng chung cho chiến trường, sảnh và hồ sơ.
+  function figBody(look, gr) {
     // Nón / áo: món đang mặc (hatId / armorId) vẽ theo ảnh riêng; bản cũ chỉ có cấp thì vẽ hình theo dạng khi đã cường hoá.
     const worn = (slot) => {
       const id = slot === 'hat' ? gr.hatId : gr.armorId;
@@ -672,16 +697,17 @@
     const h = heldArt(arm, gr.gun);
     const held = `<span class="u-hand"><img class="u-held arm-${arm}${gf > 1 ? ` f${gf}` : ''}" src="${h.src}" alt="" draggable="false"
         style="left:${-h.gx}px;top:${-h.gy}px;width:${h.w}px;height:${h.h}px;transform-origin:${h.gx}px ${h.gy}px"></span>`;
-    // u-scale phóng to cả nhân vật + đồ (gốc = chân) kiểu Gunny; tên / máu / mũi tên đặt theo chiều cao đã phóng.
-    return `<div class="unit" data-pid="${escapeHtml(p.id)}" style="--seat:${SEAT_TINT[i]}">
-        <div class="u-scale">${aura}
-        <div class="u-flip"><div class="u-body">
-          <span class="u-char">${C.sprite(lookOf(p), { dir: 'right', size: 74 })}${armor}${hat}</span>
+    // u-scale (bên ngoài) phóng to cả nhân vật + đồ (gốc = chân) kiểu Gunny.
+    return `${aura}<div class="u-flip"><div class="u-body">
+          <span class="u-char">${C.sprite(look, { dir: 'right', size: 74 })}${armor}${hat}</span>
           ${held}
-        </div></div></div>
-        <div class="u-tag"><span class="u-name">${escapeHtml(p.name)}</span><span class="u-hp"><i></i></span><span class="u-rage hidden"><i></i></span></div>
-        <span class="u-arrow"></span>
-      </div>`;
+        </div></div>`;
+  }
+
+  // Nhân vật đứng một mình (sảnh, hồ sơ): phóng us lần, quay mặt theo face (1 phải, −1 trái), tay giơ vũ khí chếch lên.
+  function figureHtml(look, gr, us, face = 1) {
+    return `<div class="fig-stage" style="--us:${us}"><div class="unit fig${face < 0 ? ' left' : ''}" style="--us:${us}">
+        <div class="u-scale">${figBody(look, gr || {})}</div></div></div>`;
   }
 
   function bossHtml(b) {
@@ -917,6 +943,20 @@
     vp.classList.remove('ult'); void vp.offsetWidth; vp.classList.add('ult');
     setTimeout(() => vp.classList.remove('ult'), 900);
   }
+  // Boss tung chiêu "mưa" (Thuỷ Quái, Ma Vương): ảnh fx_boss_rain phủ cả màn hình, màn rung, mọi người trúng cùng lúc.
+  function bossRain(m) {
+    const vp = $('viewport');
+    const el = document.createElement('div');
+    el.className = 'boss-rain';
+    const k = bossKind(bossOf(state));
+    // Ảnh mưa lửa lặp thành nhiều hòn nhỏ rơi chéo (không phóng một ảnh lên cả màn hình cho khỏi vỡ hình).
+    el.innerHTML = `<div class="br-fall" style="background-image:url('${IMG}fx_boss_rain.png')"></div>
+      <span class="br-name">${escapeHtml((m.skillName || '') || (bossOf(state) || {}).name || 'Boss')}${m.skillName ? '' : ' tung đòn diện rộng!'}</span>`;
+    el.dataset.boss = k;
+    vp.appendChild(el);
+    shakes.until = performance.now() + 1200;
+    setTimeout(() => el.remove(), 2200);
+  }
   // Ảnh hiệu ứng chiêu cuối tại điểm nổ (toạ độ thế giới).
   function ultBurst(arm, x, y, r) {
     const el = document.createElement('img');
@@ -1074,6 +1114,7 @@
     if (m.by) peers[m.by] = { angle: m.angle, power: m.power, at: Date.now() };
     if (m.by && !isBossId(m.by)) unitAnim(m.by, 'throw', 650);
     setCharging(false);
+    if (m.skill === 'rain') bossRain(m);
     if (m.weapon === 'ult') {
       ultBanner(m);
       if (state && m.by === state.you) aim.weapon = 'shell';
@@ -1091,9 +1132,17 @@
     const s = shot;
     shot = null;
     if (s && !s.hitsShown) { showHits(s.msg); applyPushes(s.msg); applyRage(s.msg); }
+    // Áp lần lượt các tin đã giữ lại; gặp phát bắn kế tiếp thì diễn nó, phần còn lại chờ phát đó xong.
     const list = queued;
     queued = [];
-    for (const m of list) onState(m);
+    for (let i = 0; i < list.length; i++) {
+      if (list[i].t === 'shot') {
+        queued = list.slice(i + 1);
+        startShot(list[i]);
+        return;
+      }
+      onState(list[i]);
+    }
     if (!list.length && state) render();
   }
 
@@ -1472,6 +1521,7 @@
   }
 
   function renderGear() {
+    renderHero();
     if (!gear) return;
     $('gear-power').textContent = xu(gear.power);
     $('gear-balance').textContent = xu(gear.balance);
@@ -2010,7 +2060,193 @@
   });
   async function loadPower() {
     try { gear = await A.api('/api/arena/gear'); $('hall-power').textContent = xu(gear.power); } catch (e) { /* bỏ qua */ }
+    renderHero();
+    if (!state) renderHall();
   }
+
+  // ---------- Nhân vật: khung ở sảnh + hồ sơ (mình / người khác / máy) ----------
+
+  // Bốn chỉ số tổng + chỉ số suy ra (máu, % sát thương, % giảm, % chí mạng) tính theo công thức server:
+  // máu = 2000 + Thể lực; sát thương +Tấn công/10 %; giảm Phòng thủ/10 % (tối đa 60); chí mạng May mắn/10 %.
+  function derive(st) {
+    const d = { atk: st.atk || 0, def: st.def || 0, luck: st.luck || 0, sta: st.sta || 0 };
+    d.maxHp = st.maxHp != null ? st.maxHp : 2000 + d.sta;
+    d.dmgPct = st.dmgPct != null ? st.dmgPct : Math.round(d.atk / 10);
+    d.armorPct = st.armorPct != null ? st.armorPct : Math.min(60, Math.round(d.def / 10));
+    d.critPct = st.critPct != null ? st.critPct : Math.round(d.luck / 10);
+    return d;
+  }
+  // Một món đang dùng theo dữ liệu danh mục của mình (gear.arms / hats / armors): { id, name, level, eff, sockets }.
+  function catalogItem(cat, id, lv) {
+    const a = itemData(cat, id);
+    const eff = a ? Object.fromEntries(ARM_STATS.map((st) => [st.k, statAt(a, st.k, lv || 0)])) : null;
+    return { id, name: a ? a.name : itemName(cat, id), level: lv || 0, eff, sockets: null };
+  }
+  // Hồ sơ của mình: lấy từ /api/arena/gear (đủ chỉ số đã cộng ngọc, ô khảm).
+  function selfProfile() {
+    const g = (gear && gear.gear) || {};
+    const pick = (cat, id, lv) => {
+      const a = itemData(cat, id);
+      return a ? { id, name: a.name, level: a.level != null ? a.level : lv || 0, eff: a.eff, sockets: a.sockets } : catalogItem(cat, id, lv);
+    };
+    return {
+      self: true, name: (user && user.name) || 'Bạn', level: user && user.level, look: user || BOT_LOOK, gear: g,
+      power: gear ? gear.power : null, stats: gear && gear.stats ? derive(gear.stats) : null,
+      items: { gun: pick('gun', armOf(g), g.gun), hat: pick('hat', g.hatId, g.hat), armor: pick('armor', g.armorId, g.armor) },
+    };
+  }
+  // Hồ sơ dựng từ state (máy, hoặc khi server chưa có API hồ sơ): chỉ số tính từ danh mục, chưa gồm ngọc.
+  function stateProfile(p) {
+    const g = p.gear || {};
+    const items = { gun: catalogItem('gun', armOf(g), g.gun), hat: catalogItem('hat', g.hatId, g.hat), armor: catalogItem('armor', g.armorId, g.armor) };
+    const have = Object.values(items).every((it) => it.eff);
+    const sum = have ? Object.fromEntries(ARM_STATS.map((st) => [st.k, Object.values(items).reduce((n, it) => n + (it.eff[st.k] || 0), 0)])) : null;
+    return {
+      bot: !!p.bot, name: p.name, level: p.level, botLevel: p.botLevel, look: lookOf(p), gear: g, power: p.power,
+      stats: sum ? derive({ ...sum, maxHp: p.maxHp || undefined }) : p.maxHp ? { maxHp: p.maxHp } : null, items, approx: true,
+    };
+  }
+  // Hồ sơ từ GET /api/arena/players/{username}.
+  function apiProfile(r) {
+    const it = (cat, x) => (x ? { id: x.id, name: x.name || itemName(cat, x.id), level: x.level || 0, eff: x.eff || null, sockets: x.sockets || null } : null);
+    const g = r.gear || {};
+    return {
+      name: r.name || r.username, username: r.username, level: r.level, look: r, gear: g, power: r.power,
+      stats: r.stats ? derive(r.stats) : null,
+      items: { gun: it('gun', r.weapon) || catalogItem('gun', armOf(g), g.gun), hat: it('hat', r.hat) || catalogItem('hat', g.hatId, g.hat), armor: it('armor', r.armor) || catalogItem('armor', g.armorId, g.armor) },
+    };
+  }
+
+  // Ô khảm chỉ để xem: ngọc đã khảm / ô trống / ô khoá (+3 / +7 / +10).
+  function socketsView(socks, lv) {
+    const list = socks && socks.length ? socks : [3, 7, 10].map((u, idx) => ({ idx, unlockAt: u, open: (lv || 0) >= u, gem: null }));
+    return `<div class="pf-socks">${list.map((k) => {
+      const g = k.gem;
+      if (g) return `<img src="${IMG}gem_${escapeHtml(g.kind)}_${g.tier}.png" title="${escapeHtml(g.name || '')}" alt="" draggable="false">`;
+      return `<span class="pf-sock${k.open ? '' : ' locked'}"><img src="${IMG}socket_${k.open ? 'empty' : 'locked'}.png" alt="" draggable="false">${k.open ? '' : `<b>+${k.unlockAt}</b>`}</span>`;
+    }).join('')}</div>`;
+  }
+  function itemCard(cat, it) {
+    if (!it) return '';
+    const eff = it.eff ? ARM_STATS.map((st) => `<span>${st.short} <b>${statVal(st, it.eff[st.k])}</b></span>`).join('') : '';
+    return `<div class="pf-item f${form(it.level)}">
+        <div class="pf-ico">${itemIcon(cat, it.id, it.level)}</div>
+        <div class="pf-main"><div class="pf-iname"><small>${KINDS[cat].name}</small>${escapeHtml(it.name || '')}<span class="lv-chip">+${it.level || 0}</span></div>
+          ${eff ? `<div class="pf-ieff">${eff}</div>` : ''}${socketsView(it.sockets, it.level)}</div>
+      </div>`;
+  }
+  const STAT_ROWS = [
+    { k: 'atk', name: 'Tấn công', cls: 'atk' }, { k: 'def', name: 'Phòng thủ', cls: 'def' },
+    { k: 'luck', name: 'May mắn', cls: 'luck' }, { k: 'sta', name: 'Thể lực', cls: 'sta' },
+    { k: 'maxHp', name: 'Máu', cls: 'hp' }, { k: 'dmgPct', name: 'Sát thương', cls: 'atk', fmt: (v) => `+${xu(v)}%` },
+    { k: 'armorPct', name: 'Giảm sát thương', cls: 'def', fmt: (v) => `${xu(v)}%` }, { k: 'critPct', name: 'Chí mạng', cls: 'luck', fmt: (v) => `${xu(v)}%` },
+  ];
+  function statsGrid(st) {
+    if (!st) return '<p class="muted">Chưa có chỉ số.</p>';
+    return `<div class="pf-stats">${STAT_ROWS.filter((r) => st[r.k] != null).map((r) => `<div class="pf-stat ${r.cls}"><span>${r.name}</span><b>${r.fmt ? r.fmt(st[r.k]) : xu(st[r.k])}</b></div>`).join('')}</div>`;
+  }
+
+  // Khung nhân vật ở sảnh: luôn hiện mình to, mặc đúng đồ đang dùng; đổi đồ trong hộp Trang bị thì cập nhật ngay.
+  let heroFace = 1;
+  function renderHero() {
+    const el = $('hero');
+    if (!el || !user) return;
+    const pf = selfProfile();
+    const small = window.matchMedia('(max-width: 640px)').matches;
+    const chips = ['gun', 'hat', 'armor'].map((cat) => {
+      const it = pf.items[cat];
+      return it && it.id ? `<span class="hero-chip f${form(it.level)}" title="${escapeHtml(KINDS[cat].name)}">${itemIcon(cat, it.id, it.level)}<span>${escapeHtml(it.name || '')}</span><b>+${it.level || 0}</b></span>` : '';
+    }).join('');
+    el.innerHTML = `<div class="hero-stage" style="background-image:url('${IMG}bg_meadow.png')">
+        <img class="hero-ground" src="${IMG}ground_meadow.png" alt="" draggable="false">
+        ${figureHtml(user, pf.gear, small ? 2.1 : 2.6, heroFace)}
+      </div>
+      <div class="hero-info">
+        <div class="hero-name">${escapeHtml(pf.name)}${pf.level ? `<span class="lv-chip">Lv ${pf.level}</span>` : ''}</div>
+        <div class="hero-power"><span>Lực chiến</span><b>${pf.power != null ? xu(pf.power) : '…'}</b></div>
+        <div class="hero-chips">${chips}</div>
+        <div class="hero-actions">
+          <button class="primary" data-hero="gear">${I.svg('shield')}Trang bị</button>
+          <button data-hero="profile">${I.svg('user')}Nhân vật</button>
+        </div>
+      </div>`;
+    // Tranh mời mở bàn / biểu tượng sảnh: vũ khí đang cầm thay cho xe pháo cũ.
+    const arm = armOf(pf.gear);
+    for (const im of document.querySelectorAll('.hall-icon, .invite-cannon')) {
+      const src = formSrc('icon_arm_' + arm, pf.gear.gun);
+      if (im.getAttribute('src') !== src) { im.dataset.fb = fbChain('icon_arm_' + arm, pf.gear.gun, `${IMG}cannon_base.png`); im.src = src; }
+    }
+  }
+
+  // Hộp hồ sơ: nhân vật to (xoay trái / phải), Lực chiến, chỉ số, 3 món đang dùng.
+  let profile = null;
+  function renderProfile() {
+    const pf = profile;
+    if (!pf) return;
+    const small = window.matchMedia('(max-width: 640px)').matches;
+    const lvl = pf.bot ? `<span class="lv-chip bot-chip">Máy ${BOT_NAMES[pf.botLevel] || ''}</span>` : pf.level ? `<span class="lv-chip">Lv ${pf.level}</span>` : '';
+    $('profile-body').innerHTML = `<div class="pf-left">
+        <div class="pf-stage" style="background-image:url('${IMG}bg_meadow.png')">
+          ${pf.loading ? '<p class="pf-loading">Đang tải…</p>' : ''}
+          ${figureHtml(pf.look, pf.gear, small ? 2.2 : 3, pf.face || 1)}
+          <button type="button" class="pf-turn l" data-turn="-1" aria-label="Quay trái">${I.svg('arrowLeft')}</button>
+          <button type="button" class="pf-turn r" data-turn="1" aria-label="Quay phải"><span class="flip-x">${I.svg('arrowLeft')}</span></button>
+        </div>
+      </div>
+      <div class="pf-right">
+        <div class="pf-name">${escapeHtml(pf.name || '')}${lvl}${pf.self ? '<span class="tag me">Bạn</span>' : ''}</div>
+        <div class="pf-power">${I.svg('flame')}<span>Lực chiến</span><b>${pf.power != null ? xu(pf.power) : '—'}</b></div>
+        ${statsGrid(pf.stats)}
+        ${pf.approx && pf.stats ? '<p class="muted pf-note">Chỉ số theo trang bị, chưa tính ngọc khảm.</p>' : ''}
+        <div class="pf-items">${['gun', 'hat', 'armor'].map((c) => itemCard(c, pf.items[c])).join('')}</div>
+        ${pf.self ? `<button type="button" class="primary pf-gear" data-hero="gear">${I.svg('shield')}Trang bị</button>` : ''}
+      </div>`;
+  }
+  async function openProfile(target) {
+    if (!gear) { try { gear = await A.api('/api/arena/gear'); } catch (e) { /* hồ sơ vẫn mở được, thiếu danh mục */ } }
+    const dlg = $('dlg-profile');
+    if (!target || target === 'me') profile = { ...selfProfile(), face: 1 };
+    else if (target.bot || !target.username) profile = { ...stateProfile(target), face: 1 };
+    else {
+      const name = target.username;
+      profile = { ...stateProfile(target), face: 1, loading: true, username: name };
+      A.api(`/api/arena/players/${encodeURIComponent(name)}`).then((r) => {
+        if (!profile || profile.username !== name || !r) return;
+        profile = { ...apiProfile(r), face: profile.face };
+        renderProfile();
+      }, () => {
+        if (!profile || profile.username !== name) return;
+        profile.loading = false;
+        renderProfile();
+      });
+    }
+    renderProfile();
+    if (!dlg.open) dlg.showModal();
+  }
+  $('dlg-profile').addEventListener('click', (e) => {
+    const t = e.target.closest('[data-turn]');
+    if (t && profile) { profile.face = Number(t.dataset.turn); renderProfile(); return; }
+    if (e.target.closest('[data-hero="gear"]')) { $('dlg-profile').close(); openGear(); return; }
+    if (e.target === $('dlg-profile')) $('dlg-profile').close();
+  });
+  $('hero').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-hero]');
+    if (b && b.dataset.hero === 'gear') return openGear();
+    if (b && b.dataset.hero === 'profile') return openProfile('me');
+    if (e.target.closest('.fig-stage')) { heroFace = -heroFace; renderHero(); }
+  });
+  // Bấm vào người chơi (thẻ phòng chờ, tên / nhân vật trong trận) → hồ sơ.
+  const playerById = (id) => (state ? state.players.find((p) => p.id === id) : null);
+  function openPlayer(id) {
+    const p = playerById(id);
+    if (!p) return;
+    openProfile(p.id === state.you ? 'me' : p);
+  }
+  $('units').addEventListener('click', (e) => {
+    const u = e.target.closest('.unit[data-pid]');
+    if (u) openPlayer(u.dataset.pid);
+  });
+  window.addEventListener('resize', () => { if (!state) renderHero(); });
 
   // ---------- Nút ----------
 
@@ -2064,7 +2300,11 @@
     const kick = e.target.closest('[data-kick]');
     if (kick) return send({ t: 'kick', id: kick.dataset.kick });
     const act = e.target.closest('[data-act]');
-    if (!act) return;
+    if (!act) {
+      const card = e.target.closest('.lcard[data-pid]');
+      if (card && !e.target.closest('button')) openPlayer(card.dataset.pid);
+      return;
+    }
     if (act.dataset.act === 'invite') copyInvite();
     if (act.dataset.act === 'bot') addBot();
   });

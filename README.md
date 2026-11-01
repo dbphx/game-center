@@ -293,10 +293,13 @@ Khu riêng, trang `/arena/`. Bắn pháo theo lượt trên địa hình phá hu
 
 - **2–4 ghế** (người hoặc máy `easy` / `normal` / `hard`), người vào sau khi đủ ghế / đang đánh thì xem. Cần 30 HP.
 - **Chế độ boss** (đánh chung, 1–4 người + máy đồng đội, không cược): Vua Chuột `chuot` (dễ, 3500 máu/người), Robot Rác `robot`
-  (vừa, 6000), Rồng Lửa `rong` (khó, 9500). Boss đứng yên mép phải, thân to, bắn một phát mạnh (350 / 500 / 700) sau mỗi vòng vào
+  (vừa, 5000), Rồng Lửa `rong` (khó, 6500). Boss đứng yên mép phải, thân to, bắn một phát mạnh (350 / 500 / 700) sau mỗi vòng vào
   người gần nhất hoặc ngẫu nhiên; người chơi đứng ở 60% sân bên trái, không bắn trúng đồng đội. Hạ boss → mỗi người chơi thật
   nhận ngọc rơi (dễ 1–2 viên bậc I; vừa 2–3 viên bậc I–II; khó 3–4 viên bậc II–III) + 50 / 100 / 200 xu; mọi người chết hoặc
-  hết 40 vòng là thua.
+  hết 40 vòng là thua. Boss khó hơn: Thuỷ Quái `thuyquai` (`veryhard`, 8000 máu/người, 800, r 75, **2 phát mỗi lượt** vào hai
+  người khác nhau nếu có; rơi 3–5 ngọc bậc II–III, ~50% bậc III; 400 xu) và Ma Vương `mavuong` (`hell`, 10000, 1000, r 85,
+  2 phát/lượt + cứ lượt boss thứ 3 tung **Mưa lửa**: cầu lửa rơi thẳng trúng mọi người còn sống, 500 sát thương, vẫn qua giáp;
+  rơi 4–6 ngọc, ~90% bậc III; 800 xu).
 - **Sân** 1600×900, 5 map: Đồng cỏ, Sa mạc (gió mạnh), Núi tuyết, Núi lửa (núi giữa, gồ ghề), Bãi biển (vũng nước giữa = vực).
   Địa hình sinh ngẫu nhiên mỗi trận; chủ bàn chọn map hoặc `random`.
 - **Vật lý** (server tính, giao diện chỉ diễn): trọng lực 400, vận tốc = lực × 9, gió −10..10 (gia tốc ngang × 12) đổi mỗi lượt.
@@ -356,7 +359,11 @@ gems[{kind, tier, name, value, qty}], transferFeePerLevel,
 stones, stoneShop, charms, charmShop, fee, rates, luckBonus, balance, result?{…, item, arm?}, transfer?{slot, from, to, level}}`
 (400 sai tham số / sai ô, 402 thiếu xu, 409 max / hết đá / hết bùa / đã có / chưa có / không chuyển được / ô khoá / hết ngọc).
 Trong trận `players[].gear` có `hatId`, `armorId` (luôn điền id, mặc định Nón lá / Áo thun).
-`GET /api/arena/bosses` → `[{id, name, level, hpPer, dmg, r, size, coins}]`.
+`GET /api/arena/bosses` → `[{id, name, level, hpPer, dmg, r, size, coins, shots, skill?, lootText}]`.
+`GET /api/arena/players/{username}` (cần đăng nhập) — hồ sơ Đấu trường: `{username, name, gender, outfit, hair, wings, face, level,
+gear, power, stats{atk, def, luck, sta, maxHp, dmgPct, armorPct, critPct}, weapon, hat, armor}`, mỗi món đang dùng
+`{id, name, level, form (1 / 2 ở +7 / 3 ở +10), atk, def, luck, sta, eff, sockets[3]}`; không có số dư / đá / bùa / kho ngọc
+(401 chưa đăng nhập, 404 không có người).
 
 WebSocket `/ws/arena`, danh sách bàn `GET /api/arena/rooms`
 → `[{code, phase, bet, map, mapName, players:[...], spectators, max, mode, boss?, bossName?}]`.
@@ -369,11 +376,12 @@ WebSocket `/ws/arena`, danh sách bàn `GET /api/arena/rooms`
 | `{t:"rematch"}` / `{t:"ready"}`, `{t:"leave"}`, `{t:"chat", text}` | |
 
 Server gửi `state` (phase, map, maps, weapons, ground[1600], wind, turn, turnMs, round, maxRounds, moveLeft, players
-[x, y, hp, maxHp, alive, facing, gear, power, items, rage, lastAngle, lastPower…], result{…, victory?, loot?}, bet, chat,
+[username (rỗng với máy), x, y, hp, maxHp, alive, facing, gear, power, items, rage, lastAngle, lastPower…], result{…, victory?, loot?}, bet, chat,
 mode, boss{id, name, level, hp, maxHp, x, y, size, alive} | null, bosses?, rageMax, ults[{arm, id:"ult", name, desc, dmg, r, n}]),
 `shot` (by, weapon, arm, paths, blasts, hits[{id, dmg, hp, crit?}], deaths, tele, pushes[{id, x, y}] (Lau sàn: vị trí sau khi
 bị đẩy), rage{<id>: nộ sau phát bắn}, chiêu cuối thêm `ult` (id vũ khí) + `ultName` — gửi trước state, `turn` = "" trong lúc
-đạn bay; boss bắn có `by` = `turn` = "boss"),
+đạn bay; boss bắn có `by` = `turn` = "boss"; boss nhiều phát gửi lần lượt từng tin `shot`, tin sau đến khi phát trước bay xong;
+Mưa lửa là một tin `shot` có `skill:"rain"`, `skillName:"Mưa lửa"`, mỗi người một đường rơi thẳng đứng trong `paths`),
 `loot` (`{drops: {<id người chơi>: [{kind, tier, name, value}]}}`, khi hạ boss), `aim`, `chat`, `error`.
 
 ## Công trường (ngoại ô)

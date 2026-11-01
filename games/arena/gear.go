@@ -924,6 +924,7 @@ func (a *Armory) Handler() http.Handler {
 		writeJSON(w, http.StatusOK, mapList())
 	})
 	mux.Handle("GET /api/arena/bosses", BossesHandler())
+	mux.HandleFunc("GET /api/arena/players/{username}", a.profileHandler)
 	type body struct {
 		Slot    string `json:"slot"`
 		Stone   int    `json:"stone"`

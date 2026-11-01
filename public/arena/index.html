@@ -40,9 +40,20 @@
       </div>
     </div>
     <div class="hall-floor">
+      <!-- Nhân vật của mình: mặc đúng đồ đang dùng, Lực chiến, nút Trang bị / Nhân vật -->
+      <div class="hero" id="hero"></div>
       <div class="tables" id="tables"></div>
     </div>
   </section>
+
+  <!-- Hồ sơ nhân vật: của mình hoặc người chơi khác / máy -->
+  <dialog class="modal profile-modal" id="dlg-profile">
+    <form method="dialog">
+      <h2><i data-icon="user"></i>Nhân vật</h2>
+      <div class="profile-body" id="profile-body"></div>
+      <div class="actions"><button value="close">Đóng</button></div>
+    </form>
+  </dialog>
 
   <dialog class="modal" id="dlg-create">
     <form method="dialog">

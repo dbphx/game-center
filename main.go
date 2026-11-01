@@ -93,7 +93,7 @@ func games(w *wallet.Wallet) []server.Game {
 	}
 	arenaAuth := func(ctx context.Context, token string) (arena.User, error) {
 		u, err := w.UserByToken(ctx, token)
-		return arena.User{ID: u.ID, Name: u.Name, Gender: u.Gender, Outfit: u.Outfit, Hair: u.Hair, Wings: u.Wings, Face: u.Face,
+		return arena.User{ID: u.ID, Username: u.Username, Name: u.Name, Gender: u.Gender, Outfit: u.Outfit, Hair: u.Hair, Wings: u.Wings, Face: u.Face,
 			Level: u.Level, HP: u.HP, HospitalUntil: u.HospitalUntil}, err
 	}
 	arenaOpts := arena.DefaultOptions
