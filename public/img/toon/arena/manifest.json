@@ -1189,6 +1189,832 @@
    "source": [
     "DCity (vẽ / ghép bằng PIL cho dự án)"
    ]
+  },
+  {
+   "file": "icon_arm_cannon_2.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon vũ khí Đại bác dạng 2 (+7..+9): bạc / lam, phát sáng lam",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "cannon",
+   "form": 2
+  },
+  {
+   "file": "arm_dep_2.png",
+   "w": 72,
+   "h": 20,
+   "use": "Vũ khí Dép lào gắn thay nòng, dạng 2 (+7..+9): bạc / lam, phát sáng lam; cùng khung 72×20 và pivot với arm_dep.png",
+   "anchor": "left-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "dep",
+   "form": 2
+  },
+  {
+   "file": "throw_dep_2.png",
+   "w": 48,
+   "h": 48,
+   "use": "Vật bay Dép lào dạng 2 (+7..+9): bạc / lam, phát sáng lam (vẽ ×2, hiển thị 24×24, xoay khi bay)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "dep",
+   "form": 2,
+   "scale": 0.5
+  },
+  {
+   "file": "icon_arm_dep_2.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon vũ khí Dép lào dạng 2 (+7..+9): bạc / lam, phát sáng lam",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "dep",
+   "form": 2
+  },
+  {
+   "file": "arm_choi_2.png",
+   "w": 72,
+   "h": 20,
+   "use": "Vũ khí Chổi chà gắn thay nòng, dạng 2 (+7..+9): bạc / lam, phát sáng lam; cùng khung 72×20 và pivot với arm_choi.png",
+   "anchor": "left-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "choi",
+   "form": 2
+  },
+  {
+   "file": "throw_choi_2.png",
+   "w": 48,
+   "h": 48,
+   "use": "Vật bay Chổi chà dạng 2 (+7..+9): bạc / lam, phát sáng lam (vẽ ×2, hiển thị 24×24, xoay khi bay)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "choi",
+   "form": 2,
+   "scale": 0.5
+  },
+  {
+   "file": "icon_arm_choi_2.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon vũ khí Chổi chà dạng 2 (+7..+9): bạc / lam, phát sáng lam",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "choi",
+   "form": 2
+  },
+  {
+   "file": "arm_launha_2.png",
+   "w": 72,
+   "h": 20,
+   "use": "Vũ khí Cây lau nhà gắn thay nòng, dạng 2 (+7..+9): bạc / lam, phát sáng lam; cùng khung 72×20 và pivot với arm_launha.png",
+   "anchor": "left-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "launha",
+   "form": 2
+  },
+  {
+   "file": "throw_launha_2.png",
+   "w": 48,
+   "h": 48,
+   "use": "Vật bay Cây lau nhà dạng 2 (+7..+9): bạc / lam, phát sáng lam (vẽ ×2, hiển thị 24×24, xoay khi bay)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "launha",
+   "form": 2,
+   "scale": 0.5
+  },
+  {
+   "file": "icon_arm_launha_2.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon vũ khí Cây lau nhà dạng 2 (+7..+9): bạc / lam, phát sáng lam",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "launha",
+   "form": 2
+  },
+  {
+   "file": "arm_tv_2.png",
+   "w": 72,
+   "h": 20,
+   "use": "Vũ khí TV gắn thay nòng, dạng 2 (+7..+9): bạc / lam, phát sáng lam; cùng khung 72×20 và pivot với arm_tv.png",
+   "anchor": "left-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "tv",
+   "form": 2
+  },
+  {
+   "file": "throw_tv_2.png",
+   "w": 48,
+   "h": 48,
+   "use": "Vật bay TV dạng 2 (+7..+9): bạc / lam, phát sáng lam (vẽ ×2, hiển thị 24×24, xoay khi bay)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "tv",
+   "form": 2,
+   "scale": 0.5
+  },
+  {
+   "file": "icon_arm_tv_2.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon vũ khí TV dạng 2 (+7..+9): bạc / lam, phát sáng lam",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "tv",
+   "form": 2
+  },
+  {
+   "file": "arm_tulanh_2.png",
+   "w": 72,
+   "h": 20,
+   "use": "Vũ khí Tủ lạnh gắn thay nòng, dạng 2 (+7..+9): bạc / lam, phát sáng lam; cùng khung 72×20 và pivot với arm_tulanh.png",
+   "anchor": "left-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "tulanh",
+   "form": 2
+  },
+  {
+   "file": "throw_tulanh_2.png",
+   "w": 48,
+   "h": 48,
+   "use": "Vật bay Tủ lạnh dạng 2 (+7..+9): bạc / lam, phát sáng lam (vẽ ×2, hiển thị 24×24, xoay khi bay)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "tulanh",
+   "form": 2,
+   "scale": 0.5
+  },
+  {
+   "file": "icon_arm_tulanh_2.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon vũ khí Tủ lạnh dạng 2 (+7..+9): bạc / lam, phát sáng lam",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "tulanh",
+   "form": 2
+  },
+  {
+   "file": "icon_arm_cannon_3.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon vũ khí Đại bác dạng 3 (+10): vàng / đỏ, ánh lửa, đá quý",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "cannon",
+   "form": 3
+  },
+  {
+   "file": "arm_dep_3.png",
+   "w": 72,
+   "h": 20,
+   "use": "Vũ khí Dép lào gắn thay nòng, dạng 3 (+10): vàng / đỏ, ánh lửa, đá quý; cùng khung 72×20 và pivot với arm_dep.png",
+   "anchor": "left-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "dep",
+   "form": 3
+  },
+  {
+   "file": "throw_dep_3.png",
+   "w": 48,
+   "h": 48,
+   "use": "Vật bay Dép lào dạng 3 (+10): vàng / đỏ, ánh lửa, đá quý (vẽ ×2, hiển thị 24×24, xoay khi bay)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "dep",
+   "form": 3,
+   "scale": 0.5
+  },
+  {
+   "file": "icon_arm_dep_3.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon vũ khí Dép lào dạng 3 (+10): vàng / đỏ, ánh lửa, đá quý",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "dep",
+   "form": 3
+  },
+  {
+   "file": "arm_choi_3.png",
+   "w": 72,
+   "h": 20,
+   "use": "Vũ khí Chổi chà gắn thay nòng, dạng 3 (+10): vàng / đỏ, ánh lửa, đá quý; cùng khung 72×20 và pivot với arm_choi.png",
+   "anchor": "left-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "choi",
+   "form": 3
+  },
+  {
+   "file": "throw_choi_3.png",
+   "w": 48,
+   "h": 48,
+   "use": "Vật bay Chổi chà dạng 3 (+10): vàng / đỏ, ánh lửa, đá quý (vẽ ×2, hiển thị 24×24, xoay khi bay)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "choi",
+   "form": 3,
+   "scale": 0.5
+  },
+  {
+   "file": "icon_arm_choi_3.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon vũ khí Chổi chà dạng 3 (+10): vàng / đỏ, ánh lửa, đá quý",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "choi",
+   "form": 3
+  },
+  {
+   "file": "arm_launha_3.png",
+   "w": 72,
+   "h": 20,
+   "use": "Vũ khí Cây lau nhà gắn thay nòng, dạng 3 (+10): vàng / đỏ, ánh lửa, đá quý; cùng khung 72×20 và pivot với arm_launha.png",
+   "anchor": "left-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "launha",
+   "form": 3
+  },
+  {
+   "file": "throw_launha_3.png",
+   "w": 48,
+   "h": 48,
+   "use": "Vật bay Cây lau nhà dạng 3 (+10): vàng / đỏ, ánh lửa, đá quý (vẽ ×2, hiển thị 24×24, xoay khi bay)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "launha",
+   "form": 3,
+   "scale": 0.5
+  },
+  {
+   "file": "icon_arm_launha_3.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon vũ khí Cây lau nhà dạng 3 (+10): vàng / đỏ, ánh lửa, đá quý",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "launha",
+   "form": 3
+  },
+  {
+   "file": "arm_tv_3.png",
+   "w": 72,
+   "h": 20,
+   "use": "Vũ khí TV gắn thay nòng, dạng 3 (+10): vàng / đỏ, ánh lửa, đá quý; cùng khung 72×20 và pivot với arm_tv.png",
+   "anchor": "left-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "tv",
+   "form": 3
+  },
+  {
+   "file": "throw_tv_3.png",
+   "w": 48,
+   "h": 48,
+   "use": "Vật bay TV dạng 3 (+10): vàng / đỏ, ánh lửa, đá quý (vẽ ×2, hiển thị 24×24, xoay khi bay)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "tv",
+   "form": 3,
+   "scale": 0.5
+  },
+  {
+   "file": "icon_arm_tv_3.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon vũ khí TV dạng 3 (+10): vàng / đỏ, ánh lửa, đá quý",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "tv",
+   "form": 3
+  },
+  {
+   "file": "arm_tulanh_3.png",
+   "w": 72,
+   "h": 20,
+   "use": "Vũ khí Tủ lạnh gắn thay nòng, dạng 3 (+10): vàng / đỏ, ánh lửa, đá quý; cùng khung 72×20 và pivot với arm_tulanh.png",
+   "anchor": "left-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "tulanh",
+   "form": 3
+  },
+  {
+   "file": "throw_tulanh_3.png",
+   "w": 48,
+   "h": 48,
+   "use": "Vật bay Tủ lạnh dạng 3 (+10): vàng / đỏ, ánh lửa, đá quý (vẽ ×2, hiển thị 24×24, xoay khi bay)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "tulanh",
+   "form": 3,
+   "scale": 0.5
+  },
+  {
+   "file": "icon_arm_tulanh_3.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon vũ khí Tủ lạnh dạng 3 (+10): vàng / đỏ, ánh lửa, đá quý",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "tulanh",
+   "form": 3
+  },
+  {
+   "file": "held_cannon.png",
+   "w": 96,
+   "h": 42,
+   "use": "Vũ khí cầm tay của nhân vật chibi (cao 96) kiểu Gunny: Súng thần công cầm tay (bazooka), dạng 1; hướng phải, xoay quanh điểm tay cầm grip",
+   "anchor": "grip",
+   "grip": [
+    41,
+    32
+   ],
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "cannon",
+   "form": 1
+  },
+  {
+   "file": "held_dep.png",
+   "w": 64,
+   "h": 30,
+   "use": "Vũ khí cầm tay của nhân vật chibi (cao 96) kiểu Gunny: Dép lào, dạng 1; hướng phải, xoay quanh điểm tay cầm grip",
+   "anchor": "grip",
+   "grip": [
+    11,
+    15
+   ],
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "dep",
+   "form": 1
+  },
+  {
+   "file": "held_choi.png",
+   "w": 101,
+   "h": 31,
+   "use": "Vũ khí cầm tay của nhân vật chibi (cao 96) kiểu Gunny: Chổi chà, dạng 1; hướng phải, xoay quanh điểm tay cầm grip",
+   "anchor": "grip",
+   "grip": [
+    24,
+    16
+   ],
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "choi",
+   "form": 1
+  },
+  {
+   "file": "held_launha.png",
+   "w": 102,
+   "h": 32,
+   "use": "Vũ khí cầm tay của nhân vật chibi (cao 96) kiểu Gunny: Cây lau nhà, dạng 1; hướng phải, xoay quanh điểm tay cầm grip",
+   "anchor": "grip",
+   "grip": [
+    24,
+    15
+   ],
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "launha",
+   "form": 1
+  },
+  {
+   "file": "held_tv.png",
+   "w": 60,
+   "h": 59,
+   "use": "Vũ khí cầm tay của nhân vật chibi (cao 96) kiểu Gunny: TV, dạng 1; hướng phải, xoay quanh điểm tay cầm grip",
+   "anchor": "grip",
+   "grip": [
+    12,
+    50
+   ],
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "tv",
+   "form": 1
+  },
+  {
+   "file": "held_tulanh.png",
+   "w": 93,
+   "h": 55,
+   "use": "Vũ khí cầm tay của nhân vật chibi (cao 96) kiểu Gunny: Tủ lạnh, dạng 1; hướng phải, xoay quanh điểm tay cầm grip",
+   "anchor": "grip",
+   "grip": [
+    13,
+    27
+   ],
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "tulanh",
+   "form": 1
+  },
+  {
+   "file": "held_cannon_2.png",
+   "w": 104,
+   "h": 50,
+   "use": "Vũ khí cầm tay của nhân vật chibi (cao 96) kiểu Gunny: Súng thần công cầm tay (bazooka), dạng 2 (+7..+9, bạc / lam phát sáng); hướng phải, xoay quanh điểm tay cầm grip",
+   "anchor": "grip",
+   "grip": [
+    45,
+    36
+   ],
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "cannon",
+   "form": 2
+  },
+  {
+   "file": "held_dep_2.png",
+   "w": 68,
+   "h": 37,
+   "use": "Vũ khí cầm tay của nhân vật chibi (cao 96) kiểu Gunny: Dép lào, dạng 2 (+7..+9, bạc / lam phát sáng); hướng phải, xoay quanh điểm tay cầm grip",
+   "anchor": "grip",
+   "grip": [
+    23,
+    18
+   ],
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "dep",
+   "form": 2
+  },
+  {
+   "file": "held_choi_2.png",
+   "w": 110,
+   "h": 39,
+   "use": "Vũ khí cầm tay của nhân vật chibi (cao 96) kiểu Gunny: Chổi chà, dạng 2 (+7..+9, bạc / lam phát sáng); hướng phải, xoay quanh điểm tay cầm grip",
+   "anchor": "grip",
+   "grip": [
+    29,
+    20
+   ],
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "choi",
+   "form": 2
+  },
+  {
+   "file": "held_launha_2.png",
+   "w": 110,
+   "h": 40,
+   "use": "Vũ khí cầm tay của nhân vật chibi (cao 96) kiểu Gunny: Cây lau nhà, dạng 2 (+7..+9, bạc / lam phát sáng); hướng phải, xoay quanh điểm tay cầm grip",
+   "anchor": "grip",
+   "grip": [
+    28,
+    19
+   ],
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "launha",
+   "form": 2
+  },
+  {
+   "file": "held_tv_2.png",
+   "w": 68,
+   "h": 67,
+   "use": "Vũ khí cầm tay của nhân vật chibi (cao 96) kiểu Gunny: TV, dạng 2 (+7..+9, bạc / lam phát sáng); hướng phải, xoay quanh điểm tay cầm grip",
+   "anchor": "grip",
+   "grip": [
+    16,
+    54
+   ],
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "tv",
+   "form": 2
+  },
+  {
+   "file": "held_tulanh_2.png",
+   "w": 101,
+   "h": 63,
+   "use": "Vũ khí cầm tay của nhân vật chibi (cao 96) kiểu Gunny: Tủ lạnh, dạng 2 (+7..+9, bạc / lam phát sáng); hướng phải, xoay quanh điểm tay cầm grip",
+   "anchor": "grip",
+   "grip": [
+    17,
+    31
+   ],
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "tulanh",
+   "form": 2
+  },
+  {
+   "file": "held_cannon_3.png",
+   "w": 104,
+   "h": 50,
+   "use": "Vũ khí cầm tay của nhân vật chibi (cao 96) kiểu Gunny: Súng thần công cầm tay (bazooka), dạng 3 (+10, vàng / đỏ, ánh lửa); hướng phải, xoay quanh điểm tay cầm grip",
+   "anchor": "grip",
+   "grip": [
+    45,
+    36
+   ],
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "cannon",
+   "form": 3
+  },
+  {
+   "file": "held_dep_3.png",
+   "w": 68,
+   "h": 37,
+   "use": "Vũ khí cầm tay của nhân vật chibi (cao 96) kiểu Gunny: Dép lào, dạng 3 (+10, vàng / đỏ, ánh lửa); hướng phải, xoay quanh điểm tay cầm grip",
+   "anchor": "grip",
+   "grip": [
+    23,
+    18
+   ],
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "dep",
+   "form": 3
+  },
+  {
+   "file": "held_choi_3.png",
+   "w": 110,
+   "h": 39,
+   "use": "Vũ khí cầm tay của nhân vật chibi (cao 96) kiểu Gunny: Chổi chà, dạng 3 (+10, vàng / đỏ, ánh lửa); hướng phải, xoay quanh điểm tay cầm grip",
+   "anchor": "grip",
+   "grip": [
+    29,
+    20
+   ],
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "choi",
+   "form": 3
+  },
+  {
+   "file": "held_launha_3.png",
+   "w": 110,
+   "h": 40,
+   "use": "Vũ khí cầm tay của nhân vật chibi (cao 96) kiểu Gunny: Cây lau nhà, dạng 3 (+10, vàng / đỏ, ánh lửa); hướng phải, xoay quanh điểm tay cầm grip",
+   "anchor": "grip",
+   "grip": [
+    28,
+    19
+   ],
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "launha",
+   "form": 3
+  },
+  {
+   "file": "held_tv_3.png",
+   "w": 68,
+   "h": 67,
+   "use": "Vũ khí cầm tay của nhân vật chibi (cao 96) kiểu Gunny: TV, dạng 3 (+10, vàng / đỏ, ánh lửa); hướng phải, xoay quanh điểm tay cầm grip",
+   "anchor": "grip",
+   "grip": [
+    16,
+    54
+   ],
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "tv",
+   "form": 3
+  },
+  {
+   "file": "held_tulanh_3.png",
+   "w": 101,
+   "h": 63,
+   "use": "Vũ khí cầm tay của nhân vật chibi (cao 96) kiểu Gunny: Tủ lạnh, dạng 3 (+10, vàng / đỏ, ánh lửa); hướng phải, xoay quanh điểm tay cầm grip",
+   "anchor": "grip",
+   "grip": [
+    17,
+    31
+   ],
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "tulanh",
+   "form": 3
+  },
+  {
+   "file": "fx_ult_cannon.png",
+   "w": 256,
+   "h": 256,
+   "use": "Hiệu ứng chiêu cuối của Súng thần công cầm tay (bazooka): pháo kích lửa",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "cannon"
+  },
+  {
+   "file": "fx_ult_dep.png",
+   "w": 256,
+   "h": 256,
+   "use": "Hiệu ứng chiêu cuối của Dép lào: mưa dép",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "dep"
+  },
+  {
+   "file": "fx_ult_choi.png",
+   "w": 256,
+   "h": 256,
+   "use": "Hiệu ứng chiêu cuối của Chổi chà: cơn lốc chổi",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "choi"
+  },
+  {
+   "file": "fx_ult_launha.png",
+   "w": 256,
+   "h": 256,
+   "use": "Hiệu ứng chiêu cuối của Cây lau nhà: vũng nước lau sàn bắn tung",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "launha"
+  },
+  {
+   "file": "fx_ult_tv.png",
+   "w": 256,
+   "h": 256,
+   "use": "Hiệu ứng chiêu cuối của TV: sóng nhiễu TV sọc màu",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "tv"
+  },
+  {
+   "file": "fx_ult_tulanh.png",
+   "w": 256,
+   "h": 256,
+   "use": "Hiệu ứng chiêu cuối của Tủ lạnh: tủ lạnh khổng lồ rơi kèm bụi",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "arm": "tulanh"
+  },
+  {
+   "file": "banner_ult.png",
+   "w": 512,
+   "h": 128,
+   "use": "Dải ruy băng đỏ viền vàng, giữa trống (khoảng x 66..446, y 34..92) để giao diện đè tên chiêu cuối",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "rage_flame.png",
+   "w": 64,
+   "h": 64,
+   "use": "Ngọn lửa nhỏ báo thanh nộ đầy",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
   }
  ]
 }

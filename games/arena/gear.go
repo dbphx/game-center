@@ -82,7 +82,7 @@ type Gear struct {
 	Gun   int      `json:"gun"` // cấp của vũ khí đang trang bị
 	Hat   int      `json:"hat"`
 	Armor int      `json:"armor"`
-	Bonus ArmStats `json:"bonus"` // chỉ số cộng từ ngọc khảm ở các ô đã mở của vũ khí đang trang bị
+	Bonus ArmStats `json:"bonus"` // chỉ số cộng từ ngọc khảm ở các ô đã mở của vũ khí đang trang bị, nón và áo giáp
 }
 
 // Weapon là vũ khí đang trang bị (mặc định đại bác).
@@ -268,6 +268,8 @@ type GearReply struct {
 	LuckBonus int              `json:"luckBonus"`
 	Arms      []ArmInfo        `json:"arms"`
 	Gems      []GemInfo        `json:"gems"` // ngọc trong kho (chỉ loại còn ≥ 1 viên)
+	// SlotSockets là 3 ô khảm của nón ("hat") và áo giáp ("armor"), cùng định dạng arms[].sockets.
+	SlotSockets map[string][]SocketInfo `json:"slotSockets"`
 	// TransferFeePerLevel: phí chuyển cấp = giá trị này × cấp của vũ khí nguồn.
 	TransferFeePerLevel int64     `json:"transferFeePerLevel"`
 	Result              *Outcome  `json:"result,omitempty"`
@@ -302,6 +304,10 @@ func reply(inv Inventory, balance int64) GearReply {
 		eff.Atk, eff.Def, eff.Luck, eff.Sta = eff.Atk+b.Atk, eff.Def+b.Def, eff.Luck+b.Luck, eff.Sta+b.Sta
 		r.Arms = append(r.Arms, ArmInfo{Arm: a, Eff: eff, Owned: owned, Level: lv, Equipped: a.ID == g.ArmID(),
 			Sockets: socketInfos(inv.Sockets[a.ID], lv)})
+	}
+	r.SlotSockets = map[string][]SocketInfo{
+		SlotHat:   socketInfos(inv.Sockets[SlotHat], g.Hat),
+		SlotArmor: socketInfos(inv.Sockets[SlotArmor], g.Armor),
 	}
 	r.Gems = []GemInfo{}
 	for _, kind := range GemKinds {
@@ -763,7 +769,14 @@ func (a *Armory) Upgrade(ctx context.Context, uid int64, slot string, tier int, 
 			ON CONFLICT (user_id, slot) DO UPDATE SET level = excluded.level`, uid, slot, out.Level); err != nil {
 			return Inventory{}, Outcome{}, err
 		}
+		// Nón / áo giáp tụt cấp: ngọc ở ô bị khoá về kho.
+		if err := lockSockets(ctx, tx, uid, inv, slot, out.Level); err != nil {
+			return Inventory{}, Outcome{}, err
+		}
 		inv.Gear.set(slot, out.Level)
+		if inv, err = loadInventory(ctx, tx, uid); err != nil {
+			return Inventory{}, Outcome{}, err
+		}
 	}
 	return inv, out, tx.Commit()
 }
@@ -863,11 +876,11 @@ func (a *Armory) Handler() http.Handler {
 		return inv, extra{out: &out}, err
 	}))
 	mux.HandleFunc("POST /api/arena/gems/socket", authed(func(r *http.Request, uid int64, b body) (Inventory, extra, error) {
-		inv, err := a.SocketGem(r.Context(), uid, b.Arm, b.Idx, GemKey{b.Kind, b.Tier})
+		inv, err := a.SocketSlotGem(r.Context(), uid, b.Slot, b.Arm, b.Idx, GemKey{b.Kind, b.Tier})
 		return inv, extra{}, err
 	}))
 	mux.HandleFunc("POST /api/arena/gems/unsocket", authed(func(r *http.Request, uid int64, b body) (Inventory, extra, error) {
-		inv, err := a.UnsocketGem(r.Context(), uid, b.Arm, b.Idx)
+		inv, err := a.UnsocketSlotGem(r.Context(), uid, b.Slot, b.Arm, b.Idx)
 		return inv, extra{}, err
 	}))
 	mux.HandleFunc("POST /api/arena/arms/buy", authed(func(r *http.Request, uid int64, b body) (Inventory, extra, error) {

@@ -11,6 +11,8 @@ type Weapon struct {
 	Spread []float64 // độ lệch góc từng viên (một viên: {0})
 	Uses   int       // số lần mỗi trận, −1 = vô hạn (hiện mọi loại đều vô hạn)
 	Tele   bool      // đạn dịch chuyển: người bắn tới chỗ đạn rơi, không nổ
+	Push   float64   // chiêu cuối: đẩy đối thủ trong bán kính nổ ra xa tâm nổ theo chiều ngang
+	Drain  bool      // chiêu cuối: đối thủ trúng đòn mất hết nộ
 }
 
 const (
@@ -57,6 +59,7 @@ type Fighter struct {
 	Gear  Gear
 	Size  float64 // hệ số thân (0 = 1)
 	Team  int     // cùng Team ≠ 0 thì không bắn trúng / gây sát thương cho nhau (chế độ boss)
+	Fixed bool    // không bị đẩy văng (boss)
 }
 
 type Blast struct {
@@ -86,7 +89,16 @@ type ShotResult struct {
 	Hits     []Hit
 	Deaths   []string
 	Tele     *Point
-	Duration float64 // giây bay của viên lâu nhất
+	Pushes   []Push   // người bị đẩy văng (vị trí sau khi rơi xuống mặt đất mới)
+	Drained  []string // người trúng Sóng nhiễu: mất hết nộ
+	Duration float64  // giây bay của viên lâu nhất
+}
+
+// Push là vị trí mới của người bị đẩy văng.
+type Push struct {
+	ID string `json:"id"`
+	X  int    `json:"x"`
+	Y  int    `json:"y"`
 }
 
 func bodiesOf(fs []*Fighter) []Body {
@@ -141,6 +153,7 @@ func Fire(g Ground, fs []*Fighter, shooter *Fighter, w Weapon, angle, power floa
 		return res
 	}
 	dmg := map[string]int{}
+	pushed := map[string]bool{}
 	for i, f := range flights {
 		if !f.Hit {
 			continue
@@ -161,6 +174,15 @@ func Fire(g Ground, fs []*Fighter, shooter *Fighter, w Weapon, angle, power floa
 			if n := Splash(w.Dmg, w.R, d, mul, t.Gear.ArmorPct()); n > 0 {
 				dmg[t.ID] += n
 			}
+			// Đẩy văng ra xa tâm nổ (đứng đúng tâm thì theo hướng từ người bắn ra).
+			if w.Push > 0 && d < w.R && t != shooter && !t.Fixed {
+				dir := math.Copysign(1, t.X-f.X)
+				if t.X == f.X {
+					dir = math.Copysign(1, t.X-shooter.X)
+				}
+				t.X = math.Round(t.X + dir*w.Push)
+				pushed[t.ID] = true
+			}
 		}
 	}
 	for _, t := range fs {
@@ -171,7 +193,13 @@ func Fire(g Ground, fs []*Fighter, shooter *Fighter, w Weapon, angle, power floa
 			t.HP = max(0, t.HP-n)
 			res.Hits = append(res.Hits, Hit{ID: t.ID, Dmg: n, HP: t.HP, Crit: crit})
 		}
-		t.Y = float64(g.At(t.X)) // rơi xuống mặt đất mới
+		t.Y = float64(g.At(t.X)) // rơi xuống mặt đất mới (bị đẩy ra ngoài sân thì rơi vực)
+		if pushed[t.ID] {
+			res.Pushes = append(res.Pushes, Push{ID: t.ID, X: int(t.X), Y: int(t.Y)})
+		}
+		if w.Drain && dmg[t.ID] > 0 && t != shooter {
+			res.Drained = append(res.Drained, t.ID)
+		}
 		if t.HP <= 0 || t.Y >= AbyssY {
 			t.Alive, t.HP = false, 0
 			res.Deaths = append(res.Deaths, t.ID)

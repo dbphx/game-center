@@ -1,7 +1,8 @@
 package arena
 
-// Ngọc khảm: 4 loại (tấn công, phòng thủ, may mắn, thể lực) × 3 bậc, cộng thẳng vào chỉ số vũ khí (sau khi nhân cấp).
-// Mỗi vũ khí có 3 ô khảm, mở ở +3, +7, +10; cấp giảm thì ngọc ở ô bị khoá tự về kho.
+// Ngọc khảm: 4 loại (tấn công, phòng thủ, may mắn, thể lực) × 3 bậc, cộng thẳng vào chỉ số chiến đấu.
+// Mỗi vũ khí, nón và áo giáp có 3 ô khảm, mở ở +3, +7, +10 theo cấp món đó; cấp giảm thì ngọc ở ô bị khoá tự về kho.
+// Ô khảm lưu trong arena_sockets theo cột arm: id vũ khí, hoặc "hat" / "armor" cho nón / áo giáp.
 
 import (
 	"context"
@@ -28,7 +29,7 @@ var gemNames = map[string]string{GemAtk: "Tấn công", GemDef: "Phòng thủ", 
 // gemValues là giá trị cộng theo loại và bậc 1..3.
 var gemValues = map[string][GemTiers]int{GemAtk: {3, 6, 10}, GemDef: {2, 4, 7}, GemLuck: {1, 2, 4}, GemSta: {5, 10, 18}}
 
-// SocketUnlock là cấp vũ khí mở từng ô khảm.
+// SocketUnlock là cấp trang bị mở từng ô khảm.
 var SocketUnlock = [SocketCount]int{3, 7, 10}
 
 // OpenSockets là số ô khảm đã mở ở cấp lv.
@@ -87,7 +88,7 @@ func gemInfo(k GemKey, qty int) GemInfo {
 	return GemInfo{Kind: k.Kind, Tier: k.Tier, Name: k.Name(), Value: k.Value(), Qty: qty}
 }
 
-// SocketInfo là một ô khảm của vũ khí.
+// SocketInfo là một ô khảm của vũ khí / nón / áo giáp.
 type SocketInfo struct {
 	Idx      int      `json:"idx"`
 	UnlockAt int      `json:"unlockAt"`
@@ -95,7 +96,7 @@ type SocketInfo struct {
 	Gem      *GemInfo `json:"gem"`
 }
 
-// gemBonus là tổng chỉ số ngọc ở các ô đã mở của vũ khí cấp lv.
+// gemBonus là tổng chỉ số ngọc ở các ô đã mở của một món trang bị cấp lv.
 func gemBonus(sockets [SocketCount]GemKey, lv int) ArmStats {
 	var s ArmStats
 	for i := 0; i < OpenSockets(lv); i++ {
@@ -122,7 +123,7 @@ var (
 	ErrBadGem     = errors.New("ngọc không hợp lệ")
 	ErrBadSocket  = errors.New("ô khảm không hợp lệ")
 	ErrNoGem      = errors.New("bạn không có ngọc này")
-	ErrLocked     = errors.New("ô khảm chưa mở — cường hoá vũ khí lên cấp cao hơn")
+	ErrLocked     = errors.New("ô khảm chưa mở — cường hoá trang bị lên cấp cao hơn")
 	ErrEmptySlot  = errors.New("ô khảm đang trống")
 	errBadGemRows = errors.New("dữ liệu ngọc hỏng")
 )
@@ -145,7 +146,8 @@ CREATE TABLE IF NOT EXISTS arena_sockets (
 );
 `
 
-// loadGems đọc kho ngọc và ô khảm vào inv, rồi tính chỉ số ngọc của vũ khí đang trang bị.
+// loadGems đọc kho ngọc và ô khảm vào inv, rồi tính chỉ số ngọc đang có hiệu lực:
+// vũ khí đang trang bị + nón + áo giáp (inv.Gear đã có cấp các ô).
 func loadGems(ctx context.Context, tx *wallet.Tx, uid int64, inv *Inventory) error {
 	inv.Gems, inv.Sockets = map[GemKey]int{}, map[string][SocketCount]GemKey{}
 	rows, err := tx.QueryContext(ctx, `SELECT kind, tier, qty FROM arena_gems WHERE user_id = ?`, uid)
@@ -185,8 +187,21 @@ func loadGems(ctx context.Context, tx *wallet.Tx, uid int64, inv *Inventory) err
 	if err := rows.Err(); err != nil {
 		return err
 	}
-	inv.Gear.Bonus = gemBonus(inv.Sockets[inv.Gear.ArmID()], inv.Gear.Gun)
+	inv.Gear.Bonus = activeBonus(inv)
 	return nil
+}
+
+// activeBonus là tổng ngọc của vũ khí đang trang bị, nón và áo giáp.
+func activeBonus(inv *Inventory) ArmStats {
+	var s ArmStats
+	for _, b := range []ArmStats{
+		gemBonus(inv.Sockets[inv.Gear.ArmID()], inv.Gear.Gun),
+		gemBonus(inv.Sockets[SlotHat], inv.Gear.Hat),
+		gemBonus(inv.Sockets[SlotArmor], inv.Gear.Armor),
+	} {
+		s.Atk, s.Def, s.Luck, s.Sta = s.Atk+b.Atk, s.Def+b.Def, s.Luck+b.Luck, s.Sta+b.Sta
+	}
+	return s
 }
 
 func addGems(ctx context.Context, tx *wallet.Tx, uid int64, k GemKey, n int) error {
@@ -195,7 +210,7 @@ func addGems(ctx context.Context, tx *wallet.Tx, uid int64, k GemKey, n int) err
 	return err
 }
 
-// unsocket trả ngọc ở ô idx của vũ khí arm về kho (ô trống thì thôi).
+// unsocket trả ngọc ở ô idx của món arm (id vũ khí / "hat" / "armor") về kho (ô trống thì thôi).
 func unsocket(ctx context.Context, tx *wallet.Tx, uid int64, arm string, idx int, k GemKey) error {
 	if !k.valid() {
 		return nil
@@ -207,7 +222,7 @@ func unsocket(ctx context.Context, tx *wallet.Tx, uid int64, arm string, idx int
 	return err
 }
 
-// lockSockets trả về kho ngọc ở các ô của vũ khí arm bị khoá khi vũ khí ở cấp lv.
+// lockSockets trả về kho ngọc ở các ô của món arm (id vũ khí / "hat" / "armor") bị khoá khi món đó ở cấp lv.
 func lockSockets(ctx context.Context, tx *wallet.Tx, uid int64, inv Inventory, arm string, lv int) error {
 	s := inv.Sockets[arm]
 	for i := OpenSockets(lv); i < SocketCount; i++ {
@@ -218,53 +233,93 @@ func lockSockets(ctx context.Context, tx *wallet.Tx, uid int64, inv Inventory, a
 	return nil
 }
 
-// SocketGem khảm 1 viên ngọc k từ kho vào ô idx (đã mở) của vũ khí arm; ngọc cũ trong ô về kho.
-func (a *Armory) SocketGem(ctx context.Context, uid int64, arm string, idx int, k GemKey) (Inventory, error) {
-	if _, ok := findArm(arm); !ok {
-		return Inventory{}, ErrBadArm
+// socketOwner trả khoá lưu ô khảm (cột arm) và cấp hiện tại của món được khảm: ô slot "gun" (hoặc rỗng) là vũ khí arm,
+// "hat" / "armor" là nón / áo giáp.
+func socketOwner(inv Inventory, slot, arm string) (string, int, error) {
+	switch slot {
+	case "", SlotGun:
+		lv, have := inv.Arms[arm]
+		if !have {
+			return "", 0, ErrNotOwned
+		}
+		return arm, lv, nil
+	case SlotHat, SlotArmor:
+		return slot, inv.Gear.level(slot), nil
+	}
+	return "", 0, ErrBadSlot
+}
+
+func checkSocketArgs(slot, arm string, idx int) error {
+	switch slot {
+	case "", SlotGun:
+		if _, ok := findArm(arm); !ok {
+			return ErrBadArm
+		}
+	case SlotHat, SlotArmor:
+	default:
+		return ErrBadSlot
 	}
 	if idx < 0 || idx >= SocketCount {
-		return Inventory{}, ErrBadSocket
+		return ErrBadSocket
+	}
+	return nil
+}
+
+// SocketGem khảm 1 viên ngọc k từ kho vào ô idx (đã mở) của vũ khí arm; ngọc cũ trong ô về kho.
+func (a *Armory) SocketGem(ctx context.Context, uid int64, arm string, idx int, k GemKey) (Inventory, error) {
+	return a.SocketSlotGem(ctx, uid, SlotGun, arm, idx, k)
+}
+
+// SocketSlotGem khảm ngọc vào ô idx của ô trang bị slot: "gun" (vũ khí arm), "hat" hoặc "armor" (arm bỏ qua).
+func (a *Armory) SocketSlotGem(ctx context.Context, uid int64, slot, arm string, idx int, k GemKey) (Inventory, error) {
+	if err := checkSocketArgs(slot, arm, idx); err != nil {
+		return Inventory{}, err
 	}
 	if !k.valid() {
 		return Inventory{}, ErrBadGem
 	}
 	return a.withInv(ctx, uid, func(tx *wallet.Tx, inv Inventory) error {
-		lv, have := inv.Arms[arm]
+		key, lv, err := socketOwner(inv, slot, arm)
 		switch {
-		case !have:
-			return ErrNotOwned
+		case err != nil:
+			return err
 		case idx >= OpenSockets(lv):
 			return ErrLocked
 		case inv.Gems[k] <= 0:
 			return ErrNoGem
 		}
-		if err := unsocket(ctx, tx, uid, arm, idx, inv.Sockets[arm][idx]); err != nil {
+		if err := unsocket(ctx, tx, uid, key, idx, inv.Sockets[key][idx]); err != nil {
 			return err
 		}
 		if err := addGems(ctx, tx, uid, k, -1); err != nil {
 			return err
 		}
-		_, err := tx.ExecContext(ctx, `INSERT INTO arena_sockets (user_id, arm, idx, kind, tier) VALUES (?, ?, ?, ?, ?)`,
-			uid, arm, idx, k.Kind, k.Tier)
+		_, err = tx.ExecContext(ctx, `INSERT INTO arena_sockets (user_id, arm, idx, kind, tier) VALUES (?, ?, ?, ?, ?)`,
+			uid, key, idx, k.Kind, k.Tier)
 		return err
 	})
 }
 
 // UnsocketGem tháo ngọc ở ô idx của vũ khí arm về kho (miễn phí).
 func (a *Armory) UnsocketGem(ctx context.Context, uid int64, arm string, idx int) (Inventory, error) {
-	if _, ok := findArm(arm); !ok {
-		return Inventory{}, ErrBadArm
-	}
-	if idx < 0 || idx >= SocketCount {
-		return Inventory{}, ErrBadSocket
+	return a.UnsocketSlotGem(ctx, uid, SlotGun, arm, idx)
+}
+
+// UnsocketSlotGem tháo ngọc ở ô idx của ô trang bị slot ("gun" + vũ khí arm, "hat", "armor") về kho.
+func (a *Armory) UnsocketSlotGem(ctx context.Context, uid int64, slot, arm string, idx int) (Inventory, error) {
+	if err := checkSocketArgs(slot, arm, idx); err != nil {
+		return Inventory{}, err
 	}
 	return a.withInv(ctx, uid, func(tx *wallet.Tx, inv Inventory) error {
-		k := inv.Sockets[arm][idx]
+		key := arm
+		if slot == SlotHat || slot == SlotArmor {
+			key = slot
+		}
+		k := inv.Sockets[key][idx]
 		if !k.valid() {
 			return ErrEmptySlot
 		}
-		return unsocket(ctx, tx, uid, arm, idx, k)
+		return unsocket(ctx, tx, uid, key, idx, k)
 	})
 }
 

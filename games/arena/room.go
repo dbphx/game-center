@@ -128,6 +128,7 @@ type Player struct {
 	f         *Fighter // trên sân (nil khi chưa vào trận)
 	facing    int
 	items     map[string]int
+	rage      int // nộ trong trận 0..RageMax
 	lastAngle float64
 	lastPower float64
 	aimAt     time.Time
@@ -583,12 +584,9 @@ func (r *Room) Handle(p *Player, m Message) error {
 		if err := r.myTurn(p); err != nil {
 			return err
 		}
-		w, ok := findWeapon(m.Weapon)
-		if m.Weapon == "" {
-			w, ok = findWeapon(WeaponShell)
-		}
-		if !ok {
-			return errors.New("vũ khí không hợp lệ")
+		w, err := weaponFor(p, m.Weapon)
+		if err != nil {
+			return err
 		}
 		if w.Uses > 0 && p.items[w.ID] <= 0 {
 			return fmt.Errorf("đã hết %s", w.Name)
@@ -700,7 +698,7 @@ func (r *Room) startGame() error {
 		r.bet = 0
 		r.bossSpawn()
 		for _, p := range r.players {
-			p.items, p.ready = startItems(), false
+			p.items, p.ready, p.rage = startItems(), false, 0
 		}
 		r.result, r.leftPot, r.gameBet = nil, 0, 0
 		r.phase, r.round = PhasePlaying, 1
@@ -713,7 +711,7 @@ func (r *Room) startGame() error {
 		x := xs[i]
 		p.f = &Fighter{ID: p.ID, X: x, Y: float64(r.ground.At(x)), HP: p.Gear.MaxHP(), MaxHP: p.Gear.MaxHP(), Alive: true, Gear: p.Gear}
 		p.items = startItems()
-		p.ready = false
+		p.ready, p.rage = false, 0
 		p.facing = 1
 		if x > Width/2 {
 			p.facing = -1
@@ -755,6 +753,7 @@ func (r *Room) alive() []*Player {
 // beginTurn trao lượt cho ghế i: gió mới, quỹ di chuyển mới.
 func (r *Room) beginTurn(i int) {
 	p := r.players[i]
+	p.rage = min(RageMax, p.rage+RagePerTurn)
 	r.lastTurn = i
 	r.turn = p.ID
 	r.moveLeft = MoveFund
@@ -844,8 +843,13 @@ func (r *Room) fire(p *Player, w Weapon, angle, power float64) {
 	p.lastAngle, p.lastPower = angle, power
 	p.facing = facingOf(angle, p.facing)
 	res := Fire(r.ground, r.fighters(), p.f, w, angle, power, r.wind, func() int { return r.rng.IntN(100) })
+	rage := r.applyRage(p, w, res)
 	shot := map[string]any{"t": "shot", "by": p.ID, "weapon": w.ID, "arm": p.f.Gear.ArmID(), "angle": angle, "power": power, "wind": r.wind,
-		"paths": res.Paths, "blasts": orEmpty(res.Blasts), "hits": orEmpty(res.Hits), "deaths": orEmpty(res.Deaths), "tele": res.Tele}
+		"paths": res.Paths, "blasts": orEmpty(res.Blasts), "hits": orEmpty(res.Hits), "deaths": orEmpty(res.Deaths), "tele": res.Tele,
+		"pushes": orEmpty(res.Pushes), "rage": rage}
+	if w.ID == WeaponUlt {
+		shot["ult"], shot["ultName"] = p.f.Gear.ArmID(), w.Name
+	}
 	r.sendAll(shot)
 	r.turn = ""
 	if r.checkEnd("last") {
@@ -979,7 +983,13 @@ func (r *Room) schedule() {
 				return
 			}
 			aim := BotAim(r.ground, r.fighters(), cur.f, cur.BotLevel, r.wind, r.rng)
-			w, _ := findWeapon(aim.Weapon)
+			if cur.rage >= RageMax {
+				aim.Weapon = WeaponUlt // đủ nộ thì tung chiêu cuối
+			}
+			w, err := weaponFor(cur, aim.Weapon)
+			if err != nil {
+				w, _ = findWeapon(WeaponShell)
+			}
 			r.fire(cur, w, aim.Angle, aim.Power)
 		})
 		return
@@ -1037,6 +1047,7 @@ type PlayerView struct {
 	Gear      Gear           `json:"gear"`
 	Power     int            `json:"power"`
 	Items     map[string]int `json:"items"`
+	Rage      int            `json:"rage"` // nộ 0..rageMax
 	LastAngle float64        `json:"lastAngle"`
 	LastPower float64        `json:"lastPower"`
 }
@@ -1068,6 +1079,8 @@ type State struct {
 	MapChoice  string       `json:"mapChoice"` // lựa chọn của chủ bàn: id map hoặc "random"
 	Maps       []MapInfo    `json:"maps"`
 	Weapons    []WeaponInfo `json:"weapons"`
+	RageMax    int          `json:"rageMax"`
+	Ults       []UltInfo    `json:"ults"` // chiêu cuối theo vũ khí
 	Ground     Ground       `json:"ground"`
 	Wind       int          `json:"wind"`
 	Turn       string       `json:"turn"`
@@ -1089,7 +1102,7 @@ type State struct {
 
 func (r *Room) stateFor(viewer *Player) State {
 	s := State{T: "state", Code: r.Code, Phase: r.phase, Map: MapInfo{r.field.ID, r.field.Name}, MapChoice: r.mapChoice,
-		Maps: mapList(), Weapons: weaponList(), Ground: r.ground, Wind: r.wind, Turn: r.turn, Round: r.round,
+		Maps: mapList(), Weapons: weaponList(), RageMax: RageMax, Ults: ultList(), Ground: r.ground, Wind: r.wind, Turn: r.turn, Round: r.round,
 		MaxRounds: r.opts.maxRounds(), Players: []PlayerView{}, Result: r.result, Bet: r.bet, GameBet: r.gameBet,
 		BetOptions: BetOptions, Spectators: len(r.spectators), Chat: r.chatLog.List(), Mode: r.mode, Boss: r.bossView()}
 	if r.mode == ModeBoss {
@@ -1108,7 +1121,7 @@ func (r *Room) stateFor(viewer *Player) State {
 		v := PlayerView{ID: p.ID, Name: p.Name, Gender: p.Gender, Outfit: p.Outfit, Hair: p.Hair, Wings: p.Wings, Face: p.Face,
 			Level: p.Level, Bot: p.Bot, BotLevel: p.BotLevel, Host: p.ID == r.hostID, Online: p.Online, Ready: p.ready,
 			Coins: p.Coins, Facing: p.facing, Gear: p.Gear, Power: p.Gear.Power(), Items: map[string]int{},
-			LastAngle: p.lastAngle, LastPower: p.lastPower, HP: p.Gear.MaxHP(), MaxHP: p.Gear.MaxHP(), Alive: true}
+			LastAngle: p.lastAngle, LastPower: p.lastPower, HP: p.Gear.MaxHP(), MaxHP: p.Gear.MaxHP(), Alive: true, Rage: p.rage}
 		if p.f != nil {
 			v.X, v.Y, v.HP, v.MaxHP, v.Alive = p.f.X, p.f.Y, p.f.HP, p.f.MaxHP, p.f.Alive
 			v.Gear, v.Power = p.f.Gear, p.f.Gear.Power()

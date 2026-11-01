@@ -92,8 +92,44 @@
     } catch (e) { bosses = []; }
     return bosses;
   }
-  // Icon vũ khí; chưa có ảnh riêng thì dùng hình súng theo dạng.
-  const armIcon = (id, lv, cls = '') => `<img class="${cls}" src="${IMG}icon_arm_${id}.png" onerror="this.onerror=null;this.src='${IMG}gun_${form(lv || 0)}.png'" alt="" draggable="false">`;
+  // Ảnh vũ khí theo dạng (+7 / +10 biến đổi): dạng 1 là file không hậu tố, dạng 2 / 3 thêm _<dạng>.
+  // data-fb là chuỗi ảnh dự phòng "a|b": ảnh lỗi thì thử lần lượt (bắt ở listener error toàn trang bên dưới).
+  const formSrc = (base, lv) => (form(lv || 0) > 1 ? `${IMG}${base}_${form(lv || 0)}.png` : `${IMG}${base}.png`);
+  const fbChain = (base, lv, last) => [form(lv || 0) > 1 ? `${IMG}${base}.png` : '', last || ''].filter(Boolean).join('|');
+  // Icon vũ khí theo dạng; thiếu ảnh dạng 2 / 3 thì dùng dạng 1, thiếu nữa thì hình súng theo dạng.
+  const armIcon = (id, lv, cls = '') => `<img class="${cls}" src="${formSrc('icon_arm_' + id, lv)}" data-fb="${fbChain('icon_arm_' + id, lv, `${IMG}gun_${form(lv || 0)}.png`)}" alt="" draggable="false">`;
+  document.addEventListener('error', (e) => {
+    const im = e.target;
+    if (!(im instanceof HTMLImageElement) || !im.dataset.fb) return;
+    const [next, ...rest] = im.dataset.fb.split('|');
+    if (rest.length) im.dataset.fb = rest.join('|');
+    else delete im.dataset.fb;
+    im.src = next;
+  }, true);
+  // Manifest ảnh Đấu trường: lấy điểm cầm ("grip") và kích thước ảnh vũ khí cầm tay held_<id>[_<dạng>].png.
+  let artIdx = null;
+  fetch(IMG + 'manifest.json').then((r) => r.json()).then((d) => {
+    artIdx = {};
+    for (const it of (d && d.images) || []) if (it && it.file) artIdx[it.file] = it;
+    if (state && state.phase !== 'lobby') { $('units').dataset.sig = ''; renderUnits(); }
+  }).catch(() => { artIdx = {}; });
+  const HELD_W = 72; // chiều dài hiển thị tối đa của vũ khí cầm tay khi manifest không ghi scale
+  // Ảnh vũ khí nhân vật cầm: held_<id>_<dạng> → held_<id> → (chưa vẽ) nòng arm_<id> / cannon_barrel theo dạng.
+  // Trả { src, w, h, gx, gy } (px hiển thị, điểm cầm tính từ góc trái trên ảnh).
+  function heldArt(arm, lv) {
+    const f = form(lv || 0);
+    const idx = artIdx || {};
+    for (const file of [f > 1 ? `held_${arm}_${f}.png` : '', `held_${arm}.png`]) {
+      const it = file && idx[file];
+      if (!it || !it.w) continue;
+      const k = it.scale || Math.min(1, HELD_W / it.w); // món to (tủ lạnh, ti vi) thu lại để không che người
+      const grip = Array.isArray(it.grip) ? it.grip : Array.isArray(it.anchor) ? it.anchor : [it.w * 0.25, it.h * 0.5];
+      return { src: IMG + file, w: it.w * k, h: it.h * k, gx: grip[0] * k, gy: grip[1] * k };
+    }
+    const base = arm === 'cannon' ? 'cannon_barrel' : 'arm_' + arm;
+    const file = f > 1 && idx[`${base}_${f}.png`] ? `${base}_${f}.png` : `${base}.png`;
+    return { src: IMG + file, w: 72, h: 20, gx: 6, gy: 10 };
+  }
   const betText = (b) => (b ? `${xu(b)} xu` : 'Chơi vui');
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
@@ -133,11 +169,21 @@
     const im = new Image();
     im.decoding = 'async';
     im.onload = () => { if (/^(ground|grass)_/.test(name)) terrainDirty = true; };
+    im.onerror = () => { im.failed = true; };
     im.src = IMG + name + '.png';
     imgs[name] = im;
     return im;
   }
   const ready = (im) => im && im.complete && im.naturalWidth > 0;
+  // Vật bay của vũ khí theo dạng của người bắn (cấp vũ khí trong state): throw_<id>_<dạng>; thiếu ảnh thì dạng 1.
+  function throwImg(arm, by) {
+    const p = state && (state.players || []).find((x) => x.id === by);
+    const f = form((p && p.gear && p.gear.gun) || 0);
+    const base = img('throw_' + arm);
+    if (f < 2) return base;
+    const im = img(`throw_${arm}_${f}`);
+    return im.failed || !ready(im) ? base : im;
+  }
   ['shot_shell', 'shot_triple', 'shot_heavy', 'shot_tele', 'smoke', 'boom_1', 'boom_2', 'boom_3', 'boom_4', 'boom_5', 'boom_6'].forEach(img);
 
   // ---------- Kết nối ----------
@@ -495,7 +541,7 @@
   function gearBadges(p) {
     const g = p.gear || {};
     return ['gun', 'hat', 'armor'].map((k) => {
-      const arm = k === 'gun' && armOf(g) !== 'cannon' ? armOf(g) : '';
+      const arm = k === 'gun' && (armOf(g) !== 'cannon' || g[k]) ? armOf(g) : '';
       const pic = arm ? armIcon(arm, g[k]) : g[k] ? `<img src="${IMG}${k}_${form(g[k])}.png" alt="" draggable="false">` : '';
       const title = arm ? `${ARM_NAMES[arm] || arm} cấp ${g[k] || 0}` : `${GEAR[k].name} cấp ${g[k] || 0}`;
       return `<span class="gb" title="${escapeHtml(title)}">${pic}<b>${g[k] || 0}</b></span>`;
@@ -559,25 +605,17 @@
     const aura = top >= 2 ? `<img class="u-aura f${top}" src="${IMG}aura_${top === 3 ? 10 : 7}.png" alt="" draggable="false">` : '';
     const gf = form(gr.gun || 0);
     const arm = armOf(gr);
-    // Vũ khí khác Đại bác: nòng là chính món đồ (arm_<id>.png). Đại bác dạng 2 / 3 dùng cannon_barrel_<dạng>.png
-    // nếu có, không thì nòng thường (ánh sáng theo class).
-    const barrel = arm !== 'cannon'
-      ? `<img class="u-barrel arm arm-${arm}${gf > 1 ? ` f${gf}` : ''}" src="${IMG}arm_${arm}.png" onerror="this.onerror=null;this.src='${IMG}cannon_barrel.png'" alt="" draggable="false">`
-      : gf > 1
-        ? `<img class="u-barrel f${gf}" src="${IMG}cannon_barrel_${gf}.png" onerror="this.onerror=null;this.src='${IMG}cannon_barrel.png'" alt="" draggable="false">`
-        : `<img class="u-barrel" src="${IMG}cannon_barrel.png" alt="" draggable="false">`;
-    const gunIcon = !gr.gun ? '' : arm !== 'cannon'
-      ? armIcon(arm, gr.gun, `u-gun f${gf}`)
-      : `<img class="u-gun f${gf}" src="${IMG}gun_${gf}.png" alt="" draggable="false">`;
+    // Không còn xe pháo: nhân vật chibi đứng trên đất, tay cầm vũ khí (xoay quanh điểm cầm theo góc ngắm).
+    const h = heldArt(arm, gr.gun);
+    const held = `<span class="u-hand"><img class="u-held arm-${arm}${gf > 1 ? ` f${gf}` : ''}" src="${h.src}" alt="" draggable="false"
+        style="left:${-h.gx}px;top:${-h.gy}px;width:${h.w}px;height:${h.h}px;transform-origin:${h.gx}px ${h.gy}px"></span>`;
     return `<div class="unit" data-pid="${escapeHtml(p.id)}" style="--seat:${SEAT_TINT[i]}">
         ${aura}
-        <div class="u-flip">
+        <div class="u-flip"><div class="u-body">
           <span class="u-char">${C.sprite(lookOf(p), { dir: 'right', size: 74 })}${armor}${hat}</span>
-          ${barrel}
-          <img class="u-base" src="${IMG}cannon_base.png" alt="" draggable="false">
-          ${gunIcon}
-        </div>
-        <div class="u-tag"><span class="u-name">${escapeHtml(p.name)}</span><span class="u-hp"><i></i></span></div>
+          ${held}
+        </div></div>
+        <div class="u-tag"><span class="u-name">${escapeHtml(p.name)}</span><span class="u-hp"><i></i></span><span class="u-rage hidden"><i></i></span></div>
         <span class="u-arrow"></span>
       </div>`;
   }
@@ -648,6 +686,16 @@
     if (!el) return;
     const x = p.x;
     const y = p.y != null ? p.y : ground ? ground[clamp(Math.round(x), 0, W - 1)] : 700;
+    // Đổi chỗ (đi / bị đẩy) thì bước chân một lúc.
+    const px = Number(el.dataset.x);
+    if (Number.isFinite(px) && Math.abs(px - x) > 0.5 && p.alive !== false) {
+      el.classList.add('walking');
+      const sp = el.querySelector('.char-sprite');
+      if (sp) sp.classList.add('walking');
+      clearTimeout(el._walk);
+      el._walk = setTimeout(() => { el.classList.remove('walking'); if (sp) sp.classList.remove('walking'); }, 420);
+    }
+    el.dataset.x = x;
     el.style.transform = `translate(${x}px, ${y}px)`;
     const a = angleOf(p);
     const face = a > 90 ? -1 : 1;
@@ -655,9 +703,23 @@
     el.classList.toggle('dead', p.alive === false);
     el.classList.toggle('turn', state.phase === 'playing' && state.turn === p.id);
     el.classList.toggle('mine', p.id === state.you);
+    // Hết trận: người thắng (hoặc cả đội còn sống khi hạ boss) nhảy mừng.
+    const r = state.phase === 'over' && !shot ? state.result || {} : null;
+    el.classList.toggle('win', !!r && p.alive !== false && (isBoss(state) ? !!r.victory : r.winner === p.id));
     // Nòng: xoay theo độ nâng (trong khung đã lật theo hướng mặt).
     const elev = face > 0 ? a : 180 - a;
-    el.querySelector('.u-barrel').style.transform = `rotate(${-elev}deg)`;
+    el.querySelector('.u-hand').style.transform = `rotate(${-elev}deg)`;
+    el.classList.toggle('charging', p.id === state.you && !!charge && charge.moved);
+    // Thanh nộ dưới thanh máu (server gửi rage 0..rageMax).
+    const rb = el.querySelector('.u-rage');
+    const rmax = rageMaxOf(p);
+    rb.classList.toggle('hidden', p.rage == null);
+    if (p.rage != null) {
+      const rp = clamp(p.rage / rmax, 0, 1);
+      rb.firstElementChild.style.width = `${rp * 100}%`;
+      rb.classList.toggle('full', rp >= 1);
+      rb.title = `Nộ ${Math.round(p.rage)}/${rmax}`;
+    }
     const pct = p.maxHp ? clamp(p.hp / p.maxHp, 0, 1) : 0;
     const bar = el.querySelector('.u-hp i');
     bar.style.width = `${pct * 100}%`;
@@ -685,7 +747,8 @@
       if (isBossId(shot.msg.by)) { el.innerHTML = `<span>${escapeHtml((bossOf(s) || {}).name || 'Boss')} ra đòn!</span>`; return; }
       // Ném bằng đồ (dép, ti vi…) với đạn thường thì gọi tên món đồ.
       const arm = shot.msg.arm && shot.msg.arm !== 'cannon' && shot.msg.weapon !== 'tele' ? shot.msg.arm : '';
-      const what = arm && (!w || w.id === 'shell') ? `ném ${(ARM_NAMES[arm] || arm).toLowerCase()}` : `bắn ${w ? w.name.toLowerCase() : ''}`;
+      const what = shot.msg.weapon === 'ult' ? `tung chiêu ${shot.msg.ultName || ultOf(shot.msg.ult || arm).name}`
+        : arm && (!w || w.id === 'shell') ? `ném ${(ARM_NAMES[arm] || arm).toLowerCase()}` : `bắn ${w ? w.name.toLowerCase() : ''}`;
       el.innerHTML = by ? `${C.head(lookOf(by), { size: 26 })}<span>${by.id === s.you ? 'Bạn' : escapeHtml(by.name)} ${escapeHtml(what)}!</span>` : '';
       return;
     }
@@ -715,7 +778,9 @@
     $('hud').classList.toggle('waiting', !can);
     // Đạn đặc biệt không giới hạn số lần mỗi trận.
     $('weapons').innerHTML = WEAPONS.map((w) => `<button class="weapon${aim.weapon === w.id ? ' on' : ''}" data-weapon="${w.id}" ${!can ? 'disabled' : ''} title="${w.name} — ${w.note}">
-          <img src="${IMG}icon_${w.id}.png" alt="" draggable="false"><span class="wn">${w.name}</span></button>`).join('');
+          <img src="${IMG}icon_${w.id}.png" alt="" draggable="false"><span class="wn">${w.name}</span></button>`).join('') + ultButton(mine, can);
+    if (aim.weapon === 'ult' && !rageFull(mine)) { aim.weapon = 'shell'; $('weapons').querySelector('[data-weapon="shell"]')?.classList.add('on'); }
+    renderRage(mine);
     ['btn-left', 'btn-right', 'btn-up', 'btn-down', 'btn-fire'].forEach((id) => { $(id).disabled = !can; });
     const left = s.moveLeft != null ? s.moveLeft : MOVE_BUDGET;
     $('move-fill').style.width = `${clamp(left / MOVE_BUDGET, 0, 1) * 100}%`;
@@ -731,6 +796,93 @@
     }
   }
   const elevText = (a) => (a > 90 ? 180 - a : a);
+
+  // ---------- Nộ + chiêu cuối ----------
+  // state.players[].rage (0..rageMax), state.rageMax (hoặc players[].rageMax), state.ults [{arm, id, name, desc}].
+  const rageMaxOf = (p) => (p && p.rageMax) || (state && state.rageMax) || 100;
+  const rageFull = (p) => !!p && p.rage != null && p.rage >= rageMaxOf(p);
+  function ultOf(arm) {
+    const u = ((state && state.ults) || []).find((x) => x.arm === arm);
+    return u || { arm, name: 'Chiêu cuối', desc: '' };
+  }
+  function ultButton(mine, can) {
+    if (!mine || mine.rage == null) return '';
+    const u = ultOf(armOf(mine.gear));
+    const full = rageFull(mine);
+    const pct = clamp(mine.rage / rageMaxOf(mine), 0, 1) * 100;
+    return `<button class="weapon ult${aim.weapon === 'ult' ? ' on' : ''}${full ? ' ready' : ''}" data-weapon="ult" ${!can || !full ? 'disabled' : ''}
+        title="Chiêu cuối: ${escapeHtml(u.name)}${u.desc ? ' — ' + escapeHtml(u.desc) : ''}${full ? '' : ' (cần đầy nộ)'}">
+        <span class="ult-fill" style="height:${pct}%"></span>
+        <img src="${IMG}rage_flame.png" data-fb="${IMG}icon_heavy.png" alt="" draggable="false"><span class="wn">${escapeHtml(u.name)}</span></button>`;
+  }
+  function renderRage(mine) {
+    const el = $('rage-meter');
+    if (!el) return;
+    el.classList.toggle('hidden', !mine || mine.rage == null);
+    if (!mine || mine.rage == null) return;
+    const pct = clamp(mine.rage / rageMaxOf(mine), 0, 1);
+    $('rage-fill').style.height = `${pct * 100}%`;
+    el.classList.toggle('full', pct >= 1);
+    el.title = `Nộ ${Math.round(mine.rage)}/${rageMaxOf(mine)}${pct >= 1 ? ' — đầy, dùng được Chiêu cuối' : ''}`;
+  }
+
+  // Nhân vật của mình ngả người khi tụ lực.
+  function setCharging(on) {
+    const el = state && document.querySelector(`#units .unit[data-pid="${CSS.escape(state.you || '')}"]`);
+    if (el) el.classList.toggle('charging', on);
+  }
+  function unitAnim(id, cls, ms) {
+    const el = document.querySelector(`#units .unit[data-pid="${CSS.escape(id || '')}"]`);
+    if (!el) return;
+    el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+    clearTimeout(el['_' + cls]);
+    el['_' + cls] = setTimeout(() => el.classList.remove(cls), ms);
+  }
+
+  // Chiêu cuối: băng-rôn tên chiêu bay ngang, rung + zoom nhẹ màn hình.
+  function ultBanner(m) {
+    const p = state && state.players.find((q) => q.id === m.by);
+    const name = m.ultName || ultOf(m.ult || m.arm).name;
+    const el = document.createElement('div');
+    el.className = 'ult-banner';
+    el.innerHTML = `<img src="${IMG}banner_ult.png" onerror="this.remove()" alt="" draggable="false">
+      <span class="ub-text">${p ? `${C.head(lookOf(p), { size: 34 })}<small>${escapeHtml(p.name)}</small>` : ''}<b>${escapeHtml(name)}</b></span>`;
+    $('viewport').appendChild(el);
+    setTimeout(() => el.remove(), 1900);
+    const vp = $('viewport');
+    vp.classList.remove('ult'); void vp.offsetWidth; vp.classList.add('ult');
+    setTimeout(() => vp.classList.remove('ult'), 900);
+  }
+  // Ảnh hiệu ứng chiêu cuối tại điểm nổ (toạ độ thế giới).
+  function ultBurst(arm, x, y, r) {
+    const el = document.createElement('img');
+    el.className = 'ult-burst';
+    el.src = `${IMG}fx_ult_${arm}.png`;
+    el.onerror = () => { el.src = `${IMG}fx_upgrade_ok.png`; el.onerror = () => el.remove(); };
+    const sz = Math.max(160, (r || 60) * 3.4);
+    el.style.cssText = `left:${x - sz / 2}px;top:${y - sz / 2}px;width:${sz}px;height:${sz}px`;
+    $('floaters').appendChild(el);
+    setTimeout(() => el.remove(), 1300);
+  }
+  // Nộ sau phát bắn (shot.rage {playerId: nộ}): cập nhật thanh nộ ngay lúc nổ, không chờ state.
+  function applyRage(m) {
+    if (!state || !m.rage) return;
+    for (const p of state.players) if (m.rage[p.id] != null) { p.rage = m.rage[p.id]; placeUnit(p); }
+    const mine = me();
+    if (mine) renderRage(mine);
+  }
+  // Lau sàn đẩy văng: nhân vật trượt mượt tới vị trí mới.
+  function applyPushes(m) {
+    for (const ps of m.pushes || []) {
+      const p = state && state.players.find((q) => q.id === ps.id);
+      if (!p) continue;
+      const el = document.querySelector(`#units .unit[data-pid="${CSS.escape(p.id)}"]`);
+      if (el) { el.classList.add('pushed'); setTimeout(() => el.classList.remove('pushed'), 900); }
+      p.x = ps.x;
+      if (ps.y != null) p.y = ps.y;
+      placeUnit(p);
+    }
+  }
 
   function updateAimHud() {
     $('angle-num').textContent = Math.round(aim.elev);
@@ -777,6 +929,7 @@
     send({ t: 'fire', angle: Math.round(aimOf()), power: Math.round(aim.power), weapon: aim.weapon });
     charge = null;
     $('btn-fire').classList.remove('charging');
+    setCharging(false);
   }
 
   // Giữ nút bắn / Space: lực chạy 0 → 100 (chạm 100 thì lùi lại), thả là bắn. Nhấn nhanh = bắn theo lực đang đặt.
@@ -785,6 +938,7 @@
     if (!myTurn() || charge) return;
     charge = { t0: performance.now(), from: aim.power, moved: false };
     $('btn-fire').classList.add('charging');
+    setCharging(true);
   }
   function chargeTick(now) {
     if (!charge) return;
@@ -833,7 +987,7 @@
   const fb = $('btn-fire');
   fb.addEventListener('pointerdown', (e) => { e.preventDefault(); chargeStart(); });
   fb.addEventListener('pointerup', chargeEnd);
-  fb.addEventListener('pointercancel', () => { charge = null; fb.classList.remove('charging'); });
+  fb.addEventListener('pointercancel', () => { charge = null; fb.classList.remove('charging'); setCharging(false); });
   fb.addEventListener('contextmenu', (e) => e.preventDefault());
   $('weapons').addEventListener('click', (e) => {
     const b = e.target.closest('[data-weapon]');
@@ -854,6 +1008,12 @@
     shot = { msg: m, paths, blasts, t0: performance.now(), dur: end * STEP_MS + 900, fired: new Set(), hitsShown: false };
     // Người bắn: xoay nòng theo phát bắn.
     if (m.by) peers[m.by] = { angle: m.angle, power: m.power, at: Date.now() };
+    if (m.by && !isBossId(m.by)) unitAnim(m.by, 'throw', 650);
+    setCharging(false);
+    if (m.weapon === 'ult') {
+      ultBanner(m);
+      if (state && m.by === state.you) aim.weapon = 'shell';
+    }
     cam.follow = true;
     panned = false;
     charge = null;
@@ -866,7 +1026,7 @@
   function finishShot() {
     const s = shot;
     shot = null;
-    if (s && !s.hitsShown) showHits(s.msg);
+    if (s && !s.hitsShown) { showHits(s.msg); applyPushes(s.msg); applyRage(s.msg); }
     const list = queued;
     queued = [];
     for (const m of list) onState(m);
@@ -1035,17 +1195,21 @@
         s.fired.add(b.i);
         carve(b.x, b.y, b.r);
         booms.push({ x: b.x, y: b.y, r: Math.max(26, b.r || 0), t0: now });
-        shakes.until = now + (b.r >= 60 ? 380 : 220);
-        if (!s.hitsShown) { s.hitsShown = true; showHits(s.msg); }
+        shakes.until = now + (s.msg.weapon === 'ult' ? 700 : b.r >= 60 ? 380 : 220);
+        if (s.msg.weapon === 'ult') ultBurst(s.msg.ult || s.msg.arm || 'cannon', b.x, b.y, b.r);
+        if (!s.hitsShown) { s.hitsShown = true; showHits(s.msg); applyPushes(s.msg); applyRage(s.msg); }
       }
     }
     const kind = s.msg.weapon || 'shell';
     // Bắn bằng dép / chổi / ti vi… thì vật bay là món đồ đó, xoay tròn; ảnh chưa tải thì dùng đạn thường.
-    const arm = s.msg.arm && s.msg.arm !== 'cannon' && kind !== 'tele' ? s.msg.arm : '';
+    const ult = kind === 'ult';
+    // Chiêu cuối: vật bay là món vũ khí (kể cả Đại bác: dùng đạn bom tạ), to hơn.
+    const arm = ult ? ((s.msg.ult || s.msg.arm) !== 'cannon' ? s.msg.ult || s.msg.arm : '')
+      : s.msg.arm && s.msg.arm !== 'cannon' && kind !== 'tele' ? s.msg.arm : '';
     const byBoss = state && isBossId(s.msg.by);
-    const thrown = byBoss ? img('throw_boss_' + bossKind(bossOf(state))) : arm ? img('throw_' + arm) : null;
+    const thrown = byBoss ? img('throw_boss_' + bossKind(bossOf(state))) : arm ? throwImg(arm, s.msg.by) : null;
     // Đạn boss (weapon "boss_*") chưa tải ảnh thì tạm dùng đạn thường, không gọi ảnh shot_ không tồn tại.
-    const sprite = thrown && ready(thrown) ? thrown : img('shot_' + (['shell', 'triple', 'heavy', 'tele'].includes(kind) ? kind : 'shell'));
+    const sprite = thrown && ready(thrown) ? thrown : img('shot_' + (ult ? 'heavy' : ['shell', 'triple', 'heavy', 'tele'].includes(kind) ? kind : 'shell'));
     const spin = thrown && ready(thrown) ? ((now - s.t0) / 1000) * 11 * (s.msg.angle > 90 ? -1 : 1) : null;
     const smoke = img('smoke');
     s.paths.forEach((path, pi) => {
@@ -1069,7 +1233,7 @@
         g.globalAlpha = 1;
       }
       const ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
-      const size = spin != null ? (kind === 'heavy' ? 48 : kind === 'triple' ? 28 : 36) : kind === 'heavy' ? 40 : kind === 'triple' ? 24 : 30;
+      const size = ult ? 64 : spin != null ? (kind === 'heavy' ? 48 : kind === 'triple' ? 28 : 36) : kind === 'heavy' ? 40 : kind === 'triple' ? 24 : 30;
       g.save();
       g.translate(x, y);
       g.rotate(spin != null ? spin + pi : ang);
@@ -1252,7 +1416,7 @@
       const pips = Array.from({ length: max }, (_, i) => `<i class="${i < lv ? 'on' : ''}"></i>`).join('');
       const pic = k === 'gun' ? armIcon(armOf(gear.gear), lv, 'gc-img') : `<img class="gc-img" src="${IMG}${k}_${form(lv)}.png" alt="" draggable="false">`;
       const name = k === 'gun' ? armName(armOf(gear.gear)) : GEAR[k].name;
-      return `<button type="button" class="gear-card${forge.slot === k ? ' on' : ''}" data-slot="${k}">
+      return `<div class="gear-cell"><button type="button" class="gear-card${forge.slot === k ? ' on' : ''}" data-slot="${k}">
           ${pic}
           <span class="gc-info">
             <span class="gc-name">${escapeHtml(name)} <span class="lv-chip">+${lv}</span></span>
@@ -1260,7 +1424,7 @@
             <span class="gc-stat">${k === 'gun' ? armStatLine(armOf(gear.gear), lv) || GEAR[k].stat(lv) : GEAR[k].stat(lv)}</span>
             <span class="gc-form">${lv >= 10 ? 'Dạng huyền thoại' : lv >= 7 ? 'Đã biến đổi · lần nữa ở +10' : 'Biến đổi ở +7 / +10'}</span>
           </span>
-        </button>`;
+        </button>${k === 'gun' ? socketsHtml(armData(armOf(gear.gear)) || {}, 'forge') : slotSocketsHtml(k)}</div>`;
     }).join('');
     renderForge();
     renderStoneShop();
@@ -1391,41 +1555,66 @@
 
   // ---------- Ngọc khảm: 3 ô trên mỗi vũ khí, mở ở +3 / +7 / +10 ----------
 
-  const gemSel = { arm: '', idx: -1 }; // ô đang chọn để khảm / gỡ
+  // Ô đang chọn để khảm / gỡ: của vũ khí (arm) hoặc của Nón / Áo giáp (slot); where = khung chọn ngọc ở tab nào.
+  const gemSel = { arm: '', slot: '', idx: -1, where: 'arms' };
+  const clearGemSel = () => { gemSel.arm = ''; gemSel.slot = ''; gemSel.idx = -1; };
+  const sockBtn = (sk, on, attr, key) => {
+    if (!sk.open) {
+      return `<span class="socket locked" title="Mở khi cường hoá lên +${sk.unlockAt}"><img src="${IMG}socket_locked.png" onerror="this.style.visibility='hidden'" alt="" draggable="false"><b>+${sk.unlockAt}</b></span>`;
+    }
+    const tip = sk.gem ? `${sk.gem.name || 'Ngọc'} ${gemText(sk.gem)} — bấm để gỡ` : 'Ô trống — bấm để khảm ngọc';
+    return `<button type="button" class="socket${sk.gem ? ' full' : ''}${on ? ' on' : ''}" ${attr}="${escapeHtml(key)}:${sk.idx}" title="${escapeHtml(tip)}">
+        <img src="${IMG}socket_empty.png" onerror="this.style.visibility='hidden'" alt="" draggable="false">${sk.gem ? gemImg(sk.gem, 'sk-gem') : ''}</button>`;
+  };
+  // Ô khảm của Nón / Áo giáp (luôn đang mặc nên ngọc luôn tính vào lực chiến).
+  function slotSocketsHtml(slot) {
+    const list = ((gear && gear.slotSockets) || {})[slot];
+    if (!Array.isArray(list)) return '';
+    return `<div class="sockets">${list.map((sk) => sockBtn(sk, gemSel.slot === slot && gemSel.idx === sk.idx, 'data-ssocket', slot)).join('')}</div>`;
+  }
   const statOf = (kind) => ARM_STATS.find((st) => st.k === kind) || { k: kind, name: kind, short: kind };
   const gemImg = (g, cls = '') => `<img class="gem ${cls}" src="${IMG}gem_${g.kind}_${g.tier}.png" alt="" draggable="false">`;
   const gemText = (g) => `+${statVal(statOf(g.kind), g.value)} ${statOf(g.kind).name}`;
   // Lực chiến một viên ngọc góp vào (lực chiến = 1000 + 2 × tổng 4 chỉ số + …); server có thể gửi sẵn `power`.
   const gemPower = (g) => (g ? (g.power != null ? g.power : 2 * (g.value || 0)) : 0);
 
-  function socketsHtml(a) {
+  function socketsHtml(a, where = 'arms') {
     if (!a.owned || !Array.isArray(a.sockets)) return '';
-    return `<div class="sockets">${a.sockets.map((sk) => {
-      const on = gemSel.arm === a.id && gemSel.idx === sk.idx ? ' on' : '';
-      if (!sk.open) {
-        return `<span class="socket locked" title="Mở khi cường hoá lên +${sk.unlockAt}"><img src="${IMG}socket_locked.png" onerror="this.style.visibility='hidden'" alt="" draggable="false"><b>+${sk.unlockAt}</b></span>`;
-      }
-      const tip = sk.gem ? `${sk.gem.name || 'Ngọc'} ${gemText(sk.gem)} — bấm để gỡ` : 'Ô trống — bấm để khảm ngọc';
-      return `<button type="button" class="socket${sk.gem ? ' full' : ''}${on}" data-socket="${escapeHtml(a.id)}:${sk.idx}" title="${escapeHtml(tip)}">
-          <img src="${IMG}socket_empty.png" onerror="this.style.visibility='hidden'" alt="" draggable="false">${sk.gem ? gemImg(sk.gem, 'sk-gem') : ''}</button>`;
-    }).join('')}</div>`;
+    return `<div class="sockets">${a.sockets.map((sk) => sockBtn(sk, !gemSel.slot && gemSel.where === where && gemSel.arm === a.id && gemSel.idx === sk.idx, 'data-socket', a.id)).join('')}</div>`;
   }
+
+  // Chủ của ô đang chọn: vũ khí hoặc Nón / Áo giáp.
+  function gemOwner() {
+    if (gemSel.slot) {
+      const list = ((gear && gear.slotSockets) || {})[gemSel.slot];
+      if (!Array.isArray(list)) return null;
+      const lv = (gear.gear || {})[gemSel.slot] || 0;
+      return { sockets: list, name: GEAR[gemSel.slot].name, level: lv, live: true,
+        icon: `<img class="gp-arm" src="${IMG}${gemSel.slot}_${form(lv)}.png" alt="" draggable="false">` };
+    }
+    const a = armData(gemSel.arm);
+    return a ? { sockets: a.sockets || [], name: a.name, level: a.level, live: !!a.equipped, icon: armIcon(a.id, a.level, 'gp-arm') } : null;
+  }
+  const gemBody = (extra) => ({ ...(gemSel.slot ? { slot: gemSel.slot } : { arm: gemSel.arm }), idx: gemSel.idx, ...extra });
 
   // Khung chọn ngọc cho ô đang chọn: khảm (xem trước lực chiến tăng) hoặc gỡ.
   function renderGemPick() {
-    const el = $('gem-pick');
+    // Khung chọn ngọc nằm ở tab đang mở ô (Cường hoá hoặc Vũ khí); khung còn lại ẩn.
+    const boxes = { forge: $('gem-pick-forge'), arms: $('gem-pick') };
+    for (const b of Object.values(boxes)) if (b) { b.innerHTML = ''; b.classList.add('hidden'); }
+    const el = boxes[gemSel.where] || boxes.arms;
     if (!el) return;
-    const a = armData(gemSel.arm);
-    const sk = a && (a.sockets || []).find((x) => x.idx === gemSel.idx && x.open);
-    if (!sk) { gemSel.arm = ''; gemSel.idx = -1; el.innerHTML = ''; el.classList.add('hidden'); return; }
+    const a = gemOwner();
+    const sk = a && a.sockets.find((x) => x.idx === gemSel.idx && x.open);
+    if (!sk) { clearGemSel(); return; }
     el.classList.remove('hidden');
-    const live = !!a.equipped; // ngọc chỉ tính vào lực chiến khi vũ khí đang dùng
+    const live = a.live; // ngọc trên vũ khí chỉ tính vào lực chiến khi vũ khí đang dùng
     const old = sk.gem;
     const delta = (g) => gemPower(g) - gemPower(old);
     const deltaTag = (d) => !live ? '<span class="gp-delta muted">khi trang bị</span>'
       : `<span class="gp-delta ${d > 0 ? 'plus' : d < 0 ? 'minus' : ''}">${I.svg('flame')}${d > 0 ? '+' : ''}${xu(d)}</span>`;
     const gems = (gear.gems || []).filter((g) => g.qty > 0);
-    const head = `<div class="gp-head">${armIcon(a.id, a.level, 'gp-arm')}<span><b>${escapeHtml(a.name)}</b> · ô ${sk.idx + 1}${old ? ` · đang khảm ${escapeHtml(old.name || 'ngọc')} (${escapeHtml(gemText(old))})` : ' · trống'}</span>
+    const head = `<div class="gp-head">${a.icon}<span><b>${escapeHtml(a.name)}</b> · ô ${sk.idx + 1}${old ? ` · đang khảm ${escapeHtml(old.name || 'ngọc')} (${escapeHtml(gemText(old))})` : ' · trống'}</span>
         <button type="button" class="link gp-close" data-gem-close>${I.svg('x')}</button></div>`;
     const unsock = old ? `<button type="button" class="gp-unsock" data-unsocket>${gemImg(old)}<span>Gỡ ngọc · về kho</span>${deltaTag(-gemPower(old))}</button>` : '';
     const list = gems.length ? gems.map((g) => `<button type="button" class="gp-gem" data-gem="${escapeHtml(g.kind)}:${g.tier}">
@@ -1442,7 +1631,7 @@
         ${gemImg(g, 'sc-img')}
         <div class="sc-info"><b>${escapeHtml(g.name || 'Ngọc')}</b><span class="muted">${escapeHtml(gemText(g))} · cấp ${g.tier}</span></div>
         <b class="gem-qty">×${g.qty}</b>
-      </div>`).join('') + '<p class="hint">Khảm ngọc vào ô trên vũ khí ở tab Vũ khí (ô mở ở +3, +7, +10).</p>'
+      </div>`).join('') + '<p class="hint">Khảm ngọc vào ô dưới Vũ khí, Nón, Áo giáp (tab Cường hoá) hoặc trên từng vũ khí (tab Vũ khí); ô mở ở +3, +7, +10.</p>'
       : '<p class="muted">Chưa có ngọc nào. Thắng chế độ Đấu boss để nhận ngọc từ rương.</p>';
   }
 
@@ -1660,25 +1849,27 @@
       return;
     }
     if (e.target.closest('#btn-xfer')) { doTransfer(); return; }
-    const sk = e.target.closest('[data-socket]');
+    const sk = e.target.closest('[data-socket], [data-ssocket]');
     if (sk) {
-      const [arm, idx] = sk.dataset.socket.split(':');
-      const same = gemSel.arm === arm && gemSel.idx === Number(idx);
-      gemSel.arm = same ? '' : arm;
-      gemSel.idx = same ? -1 : Number(idx);
-      renderArms();
-      if (!same) $('gem-pick').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      const isSlot = !!sk.dataset.ssocket;
+      const [key, idx] = (isSlot ? sk.dataset.ssocket : sk.dataset.socket).split(':');
+      const where = sk.closest('#pane-forge') ? 'forge' : 'arms';
+      const same = gemSel.where === where && gemSel.idx === Number(idx) && (isSlot ? gemSel.slot === key : !gemSel.slot && gemSel.arm === key);
+      clearGemSel();
+      if (!same) Object.assign(gemSel, { arm: isSlot ? '' : key, slot: isSlot ? key : '', idx: Number(idx), where });
+      renderGear();
+      if (!same) $(where === 'forge' ? 'gem-pick-forge' : 'gem-pick').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       return;
     }
-    if (e.target.closest('[data-gem-close]')) { gemSel.arm = ''; gemSel.idx = -1; renderArms(); return; }
+    if (e.target.closest('[data-gem-close]')) { clearGemSel(); renderGear(); return; }
     const gm = e.target.closest('[data-gem]');
     if (gm) {
       const [kind, tier] = gm.dataset.gem.split(':');
-      gemAction('/api/arena/gems/socket', { arm: gemSel.arm, idx: gemSel.idx, kind, tier: Number(tier) }, 'Đã khảm ngọc');
+      gemAction('/api/arena/gems/socket', gemBody({ kind, tier: Number(tier) }), 'Đã khảm ngọc');
       return;
     }
     if (e.target.closest('[data-unsocket]')) {
-      gemAction('/api/arena/gems/unsocket', { arm: gemSel.arm, idx: gemSel.idx }, 'Đã gỡ ngọc về kho');
+      gemAction('/api/arena/gems/unsocket', gemBody({}), 'Đã gỡ ngọc về kho');
       return;
     }
     const slot = e.target.closest('[data-slot]');
@@ -1793,6 +1984,7 @@
       if (e.key === 'ArrowDown') { e.preventDefault(); nudgeAngle(-1); return; }
       if (e.key === ' ') { e.preventDefault(); if (!e.repeat) chargeStart(); return; }
       const n = Number(e.key);
+      if (n === WEAPONS.length + 1 && myTurn() && rageFull(me())) { aim.weapon = 'ult'; renderHud(); return; }
       if (n >= 1 && n <= WEAPONS.length && myTurn()) {
         const w = WEAPONS[n - 1].id;
         aim.weapon = w; renderHud();

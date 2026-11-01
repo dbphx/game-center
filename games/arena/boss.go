@@ -104,7 +104,7 @@ func (r *Room) bossSpawn() {
 	}
 	hp := r.bossDef.HPPer * n
 	r.boss = &Fighter{ID: BossID, X: bx, Y: float64(r.ground.At(bx)), HP: hp, MaxHP: hp, Alive: true,
-		Size: r.bossDef.Size, Gear: Gear{Arm: ArmCannon}}
+		Size: r.bossDef.Size, Gear: Gear{Arm: ArmCannon}, Fixed: true}
 }
 
 // bossTurn: hết một vòng người chơi thì boss bắn một phát vào người gần nhất hoặc ngẫu nhiên.
@@ -167,9 +167,10 @@ func (r *Room) bossFire() {
 	bestP = math.Max(5, math.Min(100, bestP+(r.rng.Float64()*2-1)*r.bossDef.Noise))
 	w := Weapon{ID: "boss_" + r.bossDef.ID, Name: r.bossDef.Name, Dmg: r.bossDef.Dmg, R: r.bossDef.R, Spread: []float64{0}, Uses: -1}
 	res := Fire(r.ground, fs, b, w, bestA, bestP, r.wind, nil)
+	rage := r.applyRage(nil, w, res) // người trúng đòn boss được cộng nộ
 	r.sendAll(map[string]any{"t": "shot", "by": BossID, "weapon": w.ID, "arm": "", "angle": bestA, "power": bestP,
 		"wind": r.wind, "paths": res.Paths, "blasts": orEmpty(res.Blasts), "hits": orEmpty(res.Hits),
-		"deaths": orEmpty(res.Deaths), "tele": res.Tele})
+		"deaths": orEmpty(res.Deaths), "tele": res.Tele, "pushes": orEmpty(res.Pushes), "rage": rage})
 	r.turn = ""
 	if r.checkEnd("last") {
 		return
