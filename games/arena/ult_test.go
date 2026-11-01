@@ -26,12 +26,12 @@ func aimAt(t *testing.T, g Ground, fs []*Fighter, me, target *Fighter) (float64,
 }
 
 func fighter(id string, x float64) *Fighter {
-	return &Fighter{ID: id, X: x, Y: 700, HP: 1000, MaxHP: 1000, Alive: true, Gear: Gear{Arm: ArmCannon}}
+	return &Fighter{ID: id, X: x, Y: 700, HP: 10000, MaxHP: 10000, Alive: true, Gear: Gear{Arm: ArmCannon}}
 }
 
 func TestUltTable(t *testing.T) {
-	want := map[string][3]float64{ArmCannon: {45, 60, 3}, "dep": {22, 30, 5}, "choi": {60, 110, 1}, "launha": {50, 70, 1},
-		"tv": {80, 60, 1}, "tulanh": {110, 90, 1}}
+	want := map[string][3]float64{ArmCannon: {450, 60, 3}, "dep": {220, 30, 5}, "choi": {600, 110, 1}, "launha": {500, 70, 1},
+		"tv": {800, 60, 1}, "tulanh": {1100, 90, 1}}
 	for _, a := range Arms {
 		u := UltOf(a.ID)
 		w, ok := want[a.ID]
@@ -93,7 +93,7 @@ func TestUltDrainMarksHits(t *testing.T) {
 	}
 }
 
-// Nộ trong trận: +10 đầu lượt, + sát thương gây ra / 2, + sát thương nhận; chưa đủ thì không dùng chiêu cuối; bắn xong về 0.
+// Nộ trong trận: +10 đầu lượt, + sát thương gây ra / 20, + sát thương nhận / 10; chưa đủ thì không dùng chiêu cuối; bắn xong về 0.
 func TestRageFlow(t *testing.T) {
 	_, ss, cs := table(t, fast, 0, nil, binh)
 	do(t, ss[0], Message{T: "start"})
@@ -130,7 +130,7 @@ func TestRageFlow(t *testing.T) {
 		}
 	}
 	rage := shot["rage"].(map[string]int)
-	if rage[cur.Player.ID] != RagePerTurn+dealt/2 || rage[other.Player.ID] != dealt {
+	if rage[cur.Player.ID] != RagePerTurn+dealt/RageDealtDiv || rage[other.Player.ID] != dealt/RageTakenDiv {
 		t.Fatalf("nộ sau phát bắn (gây %d): %+v", dealt, rage)
 	}
 	for _, p := range cs[0].last().Players {

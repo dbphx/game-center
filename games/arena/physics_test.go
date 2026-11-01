@@ -106,16 +106,17 @@ func TestSplashFalloffGearArmor(t *testing.T) {
 		}
 		prev = n
 	}
-	gun := Gear{Gun: 10} // đại bác +10: tấn công 20
+	gun := Gear{Gun: 10} // đại bác +10: tấn công 200
 	armor := Gear{Armor: 5}
 	if n := Splash(30, 40, 0, gun.DmgMul(), 0); n != 36 {
 		t.Fatalf("đại bác +10 = ×1.2: %d", n)
 	}
-	if n := Splash(30, 40, 0, 1, armor.ArmorPct()); n != 24 {
-		t.Fatalf("giáp +5 (15%%) + phòng thủ 5: %d", n)
+	if n := Splash(30, 40, 0, 1, armor.ArmorPct()); n != 26 {
+		t.Fatalf("áo thun +5 (phòng thủ 60) + nón lá 20 + đại bác 50 = 13%%: %d", n)
 	}
-	// Đại bác +1: 11/6/2/11 → 2·30.
-	if (Gear{Gun: 1, Hat: 2, Armor: 3}).Power() != 1000+60+160+300 || (Gear{Hat: 4}).MaxHP() != 270 {
+	// Đại bác +1: 110/55/22/110 (297); nón lá +2: 0/24/24/120 (168); áo thun +3: 0/52/0/195 (247) → 2·712.
+	// Máu: 2000 + thể lực đại bác 100 + nón lá +4 140 + áo thun 150.
+	if (Gear{Gun: 1, Hat: 2, Armor: 3}).Power() != 10000+2*712 || (Gear{Hat: 4}).MaxHP() != 2390 {
 		t.Fatal("lực chiến / máu tối đa")
 	}
 	// Phòng thủ tối đa 60%.
@@ -126,13 +127,13 @@ func TestSplashFalloffGearArmor(t *testing.T) {
 
 func TestFireDamageDeathTele(t *testing.T) {
 	g := flat(700)
-	a := &Fighter{ID: "a", X: 200, Y: 700, HP: 200, MaxHP: 200, Alive: true}
+	a := &Fighter{ID: "a", X: 200, Y: 700, HP: 2000, MaxHP: 2000, Alive: true}
 	l := Simulate(g, 200, 700, 45, 50, 0, "a", nil)
-	b := &Fighter{ID: "b", X: math.Round(l.X), Y: 700, HP: 200, MaxHP: 200, Alive: true}
+	b := &Fighter{ID: "b", X: math.Round(l.X), Y: 700, HP: 2000, MaxHP: 2000, Alive: true}
 	shell, _ := findWeapon(WeaponShell)
 	res := Fire(g, []*Fighter{a, b}, a, shell, 45, 50, 0, nil)
-	if len(res.Hits) != 1 || res.Hits[0].ID != "b" || res.Hits[0].Dmg != 31 || b.HP != 169 || len(res.Blasts) != 1 {
-		t.Fatalf("trúng trực tiếp 30×1.1×0.95: %+v", res.Hits)
+	if len(res.Hits) != 1 || res.Hits[0].ID != "b" || res.Hits[0].Dmg != 294 || b.HP != 1706 || len(res.Blasts) != 1 {
+		t.Fatalf("trúng trực tiếp 300×1.1×0.89 (phòng thủ 50+20+40): %+v", res.Hits)
 	}
 	if b.Y <= 700 {
 		t.Fatalf("hố dưới chân thì rơi xuống: %v", b.Y)

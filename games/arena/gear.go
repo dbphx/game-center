@@ -4,6 +4,7 @@ package arena
 // Áo giáp (cấp 0..10), cường hoá bằng đá (5 cấp, mua bằng xu) có tỉ lệ thành công; chuyển cấp giữa hai vũ khí; lưu trong database.
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -45,22 +46,84 @@ type Arm struct {
 const ArmCannon = "cannon"
 
 var Arms = []Arm{
-	{ArmCannon, "Đại bác", 0, "Mặc định, ai cũng có", 10, 5, 2, 10},
-	{"dep", "Dép lào", 1500, "Nhẹ, ném đâu trúng đó", 15, 8, 4, 15},
-	{"choi", "Chổi chà", 3000, "Quét sạch đối thủ", 22, 12, 6, 22},
-	{"launha", "Cây lau nhà", 6000, "Lau sân, lau luôn đối thủ", 30, 16, 8, 30},
-	{"tv", "TV", 12000, "Nặng, nổ to như phim hành động", 40, 24, 10, 40},
-	{"tulanh", "Tủ lạnh", 25000, "Vũ khí tối thượng của mọi nhà", 55, 32, 12, 60},
+	{ArmCannon, "Đại bác", 0, "Mặc định, ai cũng có", 100, 50, 20, 100},
+	{"dep", "Dép lào", 15000, "Nhẹ, ném đâu trúng đó", 150, 80, 40, 150},
+	{"choi", "Chổi chà", 30000, "Quét sạch đối thủ", 220, 120, 60, 220},
+	{"launha", "Cây lau nhà", 60000, "Lau sân, lau luôn đối thủ", 300, 160, 80, 300},
+	{"tv", "TV", 120000, "Nặng, nổ to như phim hành động", 400, 240, 100, 400},
+	{"tulanh", "Tủ lạnh", 250000, "Vũ khí tối thượng của mọi nhà", 550, 320, 120, 600},
 }
 
-func findArm(id string) (Arm, bool) {
-	for _, a := range Arms {
+const (
+	HatDefault   = "nonla"  // nón mặc định, ai cũng có
+	ArmorDefault = "aothun" // áo mặc định, ai cũng có
+)
+
+// Hats là danh mục nón: thiên may mắn + thể lực. Cùng kiểu Arm (4 chỉ số gốc ở +0).
+var Hats = []Arm{
+	{HatDefault, "Nón lá", 0, "Mặc định, che nắng che mưa", 0, 20, 20, 100},
+	{"mubh", "Mũ bảo hiểm", 20000, "An toàn là trên hết", 20, 60, 30, 150},
+	{"mulen", "Mũ len", 40000, "Ấm đầu, tỉnh táo", 40, 80, 50, 220},
+	{"caoboi", "Nón cao bồi", 80000, "Bắn nhanh như cao bồi miền Tây", 70, 100, 80, 320},
+	{"phuthuy", "Mũ phù thuỷ", 150000, "Phép màu gọi may mắn", 120, 120, 100, 500},
+	{"vuongmien", "Vương miện", 300000, "Đội lên là thành vua đấu trường", 160, 180, 130, 800},
+}
+
+// Armors là danh mục áo giáp: thiên phòng thủ + thể lực.
+var Armors = []Arm{
+	{ArmorDefault, "Áo thun", 0, "Mặc định, thoáng mát", 0, 40, 0, 150},
+	{"aomua", "Áo mưa", 20000, "Đạn trượt như nước", 0, 80, 10, 200},
+	{"bongda", "Áo bóng đá", 40000, "Chạy cả trận không mệt", 30, 110, 20, 260},
+	{"aophao", "Áo phao", 80000, "Rơi xuống nước vẫn nổi", 40, 160, 20, 380},
+	{"giapsat", "Giáp sắt", 150000, "Cứng như tường thành", 60, 240, 30, 550},
+	{"giaprong", "Giáp rồng", 300000, "Vảy rồng, đạn bật ra", 100, 320, 50, 800},
+}
+
+// catalog là danh mục món của một ô trang bị.
+func catalog(slot string) []Arm {
+	switch slot {
+	case SlotGun:
+		return Arms
+	case SlotHat:
+		return Hats
+	case SlotArmor:
+		return Armors
+	}
+	return nil
+}
+
+// defaultItem là món mặc định (miễn phí) của một ô.
+func defaultItem(slot string) string {
+	switch slot {
+	case SlotHat:
+		return HatDefault
+	case SlotArmor:
+		return ArmorDefault
+	}
+	return ArmCannon
+}
+
+// findItem tìm món id trong danh mục của ô slot.
+func findItem(slot, id string) (Arm, bool) {
+	for _, a := range catalog(slot) {
 		if a.ID == id {
 			return a, true
 		}
 	}
 	return Arm{}, false
 }
+
+// slotOfItem trả ô trang bị của món id (id các món không trùng nhau giữa các ô).
+func slotOfItem(id string) (string, bool) {
+	for _, s := range Slots {
+		if _, ok := findItem(s, id); ok {
+			return s, true
+		}
+	}
+	return "", false
+}
+
+func findArm(id string) (Arm, bool) { return findItem(SlotGun, id) }
 
 // ArmStats là 4 chỉ số của vũ khí (đã nhân cấp cường hoá).
 type ArmStats struct {
@@ -76,31 +139,49 @@ func (a Arm) Eff(lv int) ArmStats {
 	return ArmStats{f(a.Atk), f(a.Def), f(a.Luck), f(a.Sta)}
 }
 
-// Gear là trang bị đang dùng: vũ khí Arm ở cấp Gun, nón, áo giáp.
+// Gear là trang bị đang dùng: vũ khí Arm ở cấp Gun, nón HatID ở cấp Hat, áo ArmorID ở cấp Armor.
 type Gear struct {
-	Arm   string   `json:"arm"` // id vũ khí đang trang bị ("" = đại bác)
-	Gun   int      `json:"gun"` // cấp của vũ khí đang trang bị
-	Hat   int      `json:"hat"`
-	Armor int      `json:"armor"`
-	Bonus ArmStats `json:"bonus"` // chỉ số cộng từ ngọc khảm ở các ô đã mở của vũ khí đang trang bị, nón và áo giáp
+	Arm     string   `json:"arm"`     // id vũ khí đang trang bị ("" = đại bác)
+	Gun     int      `json:"gun"`     // cấp của vũ khí đang trang bị
+	HatID   string   `json:"hatId"`   // id nón đang đội ("" = nón lá)
+	Hat     int      `json:"hat"`     // cấp của nón đang đội
+	ArmorID string   `json:"armorId"` // id áo đang mặc ("" = áo thun)
+	Armor   int      `json:"armor"`   // cấp của áo đang mặc
+	Bonus   ArmStats `json:"bonus"`   // chỉ số cộng từ ngọc khảm ở các ô đã mở của vũ khí, nón và áo đang dùng
 }
 
-// Weapon là vũ khí đang trang bị (mặc định đại bác).
-func (g Gear) Weapon() Arm {
-	if a, ok := findArm(g.Arm); ok {
+// item là món đang dùng ở ô slot (rỗng / lạ thì món mặc định).
+func (g Gear) item(slot string) Arm {
+	id := map[string]string{SlotGun: g.Arm, SlotHat: g.HatID, SlotArmor: g.ArmorID}[slot]
+	if a, ok := findItem(slot, id); ok {
 		return a
 	}
-	return Arms[0]
+	a, _ := findItem(slot, defaultItem(slot))
+	return a
 }
+
+// itemID là id món đang dùng ở ô slot.
+func (g Gear) itemID(slot string) string { return g.item(slot).ID }
+
+// Weapon là vũ khí đang trang bị (mặc định đại bác).
+func (g Gear) Weapon() Arm { return g.item(SlotGun) }
 
 // ArmID là id vũ khí đang trang bị.
 func (g Gear) ArmID() string { return g.Weapon().ID }
 
-// Stats là chỉ số vũ khí đang trang bị ở cấp hiện tại, cộng ngọc khảm.
+// Norm điền id mặc định cho các ô còn trống (gửi cho giao diện).
+func (g Gear) Norm() Gear {
+	g.Arm, g.HatID, g.ArmorID = g.itemID(SlotGun), g.itemID(SlotHat), g.itemID(SlotArmor)
+	return g
+}
+
+func (s ArmStats) plus(o ArmStats) ArmStats {
+	return ArmStats{s.Atk + o.Atk, s.Def + o.Def, s.Luck + o.Luck, s.Sta + o.Sta}
+}
+
+// Stats là tổng chỉ số vũ khí + nón + áo đang dùng ở cấp hiện tại, cộng ngọc khảm.
 func (g Gear) Stats() ArmStats {
-	s := g.Weapon().Eff(g.Gun)
-	s.Atk, s.Def, s.Luck, s.Sta = s.Atk+g.Bonus.Atk, s.Def+g.Bonus.Def, s.Luck+g.Bonus.Luck, s.Sta+g.Bonus.Sta
-	return s
+	return g.Weapon().Eff(g.Gun).plus(g.item(SlotHat).Eff(g.Hat)).plus(g.item(SlotArmor).Eff(g.Armor)).plus(g.Bonus)
 }
 
 func (g Gear) level(slot string) int {
@@ -126,33 +207,36 @@ func (g *Gear) set(slot string, lv int) {
 	}
 }
 
-// Power là lực chiến.
+// Power là lực chiến: 10000 + 2 × tổng 4 chỉ số.
 func (g Gear) Power() int {
 	s := g.Stats()
-	return 1000 + 2*(s.Atk+s.Def+s.Luck+s.Sta) + 80*g.Hat + 100*g.Armor
+	return 10000 + 2*(s.Atk+s.Def+s.Luck+s.Sta)
 }
 
-// MaxHP là máu tối đa trong trận: nón + thể lực vũ khí.
-func (g Gear) MaxHP() int { return 200 + 15*g.Hat + g.Stats().Sta }
+// MaxHP là máu tối đa trong trận: 2000 + thể lực tổng.
+func (g Gear) MaxHP() int { return 2000 + g.Stats().Sta }
 
-// DmgMul là hệ số sát thương: 1 + tấn công / 100.
-func (g Gear) DmgMul() float64 { return 1 + float64(g.Stats().Atk)/100 }
+// DmgMul là hệ số sát thương: 1 + tấn công / 1000.
+func (g Gear) DmgMul() float64 { return 1 + float64(g.Stats().Atk)/1000 }
 
 // MaxArmorPct là tỉ lệ giảm sát thương tối đa.
 const MaxArmorPct = 0.6
 
-// ArmorPct là tỉ lệ giảm sát thương nhận: áo giáp 3%/cấp + phòng thủ vũ khí / 100, tối đa 0.6.
+// ArmorPct là tỉ lệ giảm sát thương nhận: phòng thủ tổng / 1000, tối đa 0.6.
 func (g Gear) ArmorPct() float64 {
-	return math.Min(MaxArmorPct, 0.03*float64(g.Armor)+float64(g.Stats().Def)/100)
+	return math.Min(MaxArmorPct, float64(g.Stats().Def)/1000)
 }
 
-// CritPct là % chí mạng (×CritMul sát thương) = may mắn vũ khí.
-func (g Gear) CritPct() int { return g.Stats().Luck }
+// CritPermille là tỉ lệ chí mạng tính theo phần nghìn (×CritMul sát thương) = may mắn tổng (may mắn 40 = 4%).
+func (g Gear) CritPermille() int { return g.Stats().Luck }
+
+// CritPct là % chí mạng làm tròn (hiển thị) = may mắn / 10.
+func (g Gear) CritPct() int { return int(math.Round(float64(g.Stats().Luck) / 10)) }
 
 const CritMul = 1.5
 
 // TransferFeePerLevel là phí xu chuyển cấp, nhân số cấp chuyển.
-const TransferFeePerLevel = 300
+const TransferFeePerLevel = 3000
 
 // TransferFee là phí chuyển cấp lv từ vũ khí này sang vũ khí khác.
 func TransferFee(lv int) int64 { return TransferFeePerLevel * int64(lv) }
@@ -165,7 +249,7 @@ type Stone struct {
 }
 
 var Stones = []Stone{
-	{1, "Đá Lục", 100}, {2, "Đá Lam", 300}, {3, "Đá Tím", 800}, {4, "Đá Vàng", 2000}, {5, "Đá Đỏ", 5000},
+	{1, "Đá Lục", 500}, {2, "Đá Lam", 1500}, {3, "Đá Tím", 4000}, {4, "Đá Vàng", 10000}, {5, "Đá Đỏ", 25000},
 }
 
 const MaxBuy = 99
@@ -205,11 +289,19 @@ func findStone(tier int) (Stone, bool) {
 	return Stones[tier-1], true
 }
 
-// Rate là tỉ lệ (%) cường hoá từ cấp lv lên lv+1 bằng đá tier.
-func Rate(lv, tier int) int { return min(100, max(5, 95-10*lv+12*(tier-1))) }
+// Rate là tỉ lệ (%) cường hoá từ cấp lv lên lv+1 bằng đá tier: càng lên cao càng khó, tối thiểu 1%, không quá RateCap.
+func Rate(lv, tier int) int { return min(RateCap(lv), max(1, 80-10*lv+6*(tier-1))) }
+
+// RateCap là tỉ lệ tối đa từ cấp lv, kể cả khi cộng bùa may mắn: lên +10 không quá 5%.
+func RateCap(lv int) int {
+	if lv >= MaxLevel-1 {
+		return 5
+	}
+	return 95
+}
 
 // Fee là phí xu mỗi lần cường hoá từ cấp lv (trừ cả khi thất bại).
-func Fee(lv int) int64 { return 50 * int64(lv+1) }
+func Fee(lv int) int64 { return 100 * int64(lv+1) }
 
 // GearStats là chỉ số hiện cho người chơi.
 type GearStats struct {
@@ -234,6 +326,7 @@ type ArmInfo struct {
 
 // Transfer là kết quả một lần chuyển cấp.
 type Transfer struct {
+	Slot  string `json:"slot"`
 	From  string `json:"from"`
 	To    string `json:"to"`
 	Level int    `json:"level"`
@@ -244,6 +337,7 @@ type Outcome struct {
 	OK        bool   `json:"ok"`
 	Slot      string `json:"slot"`
 	Arm       string `json:"arm,omitempty"` // vũ khí được cường hoá (ô gun)
+	Item      string `json:"item"`          // id món được cường hoá (vũ khí / nón / áo đang dùng)
 	Level     int    `json:"level"`         // cấp sau lần cường hoá
 	From      int    `json:"from"`          // cấp trước lần cường hoá
 	Rate      int    `json:"rate"`          // tỉ lệ đã cộng bùa may mắn
@@ -267,8 +361,10 @@ type GearReply struct {
 	CharmShop []Charm          `json:"charmShop"`
 	LuckBonus int              `json:"luckBonus"`
 	Arms      []ArmInfo        `json:"arms"`
+	Hats      []ArmInfo        `json:"hats"`
+	Armors    []ArmInfo        `json:"armors"`
 	Gems      []GemInfo        `json:"gems"` // ngọc trong kho (chỉ loại còn ≥ 1 viên)
-	// SlotSockets là 3 ô khảm của nón ("hat") và áo giáp ("armor"), cùng định dạng arms[].sockets.
+	// SlotSockets là 3 ô khảm của nón ("hat") và áo ("armor") đang dùng, cùng định dạng arms[].sockets (giữ để tương thích).
 	SlotSockets map[string][]SocketInfo `json:"slotSockets"`
 	// TransferFeePerLevel: phí chuyển cấp = giá trị này × cấp của vũ khí nguồn.
 	TransferFeePerLevel int64     `json:"transferFeePerLevel"`
@@ -279,7 +375,7 @@ type GearReply struct {
 // Inventory là trang bị + đá của một người.
 type Inventory struct {
 	Gear    Gear
-	Arms    map[string]int // vũ khí đã sở hữu → cấp (luôn có đại bác)
+	Arms    map[string]int // mọi món đã sở hữu (vũ khí, nón, áo) → cấp; luôn có đại bác, nón lá, áo thun
 	Gems    map[GemKey]int
 	Sockets map[string][SocketCount]GemKey
 	Stones  [6]int // chỉ số 1..5
@@ -288,26 +384,16 @@ type Inventory struct {
 
 func reply(inv Inventory, balance int64) GearReply {
 	g := inv.Gear
-	r := GearReply{Gear: g, Power: g.Power(), MaxLevel: MaxLevel, Balance: balance, Stones: map[string]int{},
+	r := GearReply{Gear: g.Norm(), Power: g.Power(), MaxLevel: MaxLevel, Balance: balance, Stones: map[string]int{},
 		StoneShop: Stones, Fee: map[string]int64{}, Rates: map[string][]int{}, Charms: map[string]int{},
 		CharmShop: Charms, LuckBonus: LuckBonus, TransferFeePerLevel: TransferFeePerLevel}
 	st := g.Stats()
-	r.Stats = GearStats{DmgPct: st.Atk, MaxHP: g.MaxHP(), ArmorPct: int(math.Round(100 * g.ArmorPct())),
+	r.Stats = GearStats{DmgPct: int(math.Round(float64(st.Atk) / 10)), MaxHP: g.MaxHP(), ArmorPct: int(math.Round(100 * g.ArmorPct())),
 		Atk: st.Atk, Def: st.Def, Luck: st.Luck, Sta: st.Sta}
-	for _, a := range Arms {
-		lv, owned := inv.Arms[a.ID]
-		if a.ID == ArmCannon {
-			owned = true
-		}
-		eff := a.Eff(lv)
-		b := gemBonus(inv.Sockets[a.ID], lv)
-		eff.Atk, eff.Def, eff.Luck, eff.Sta = eff.Atk+b.Atk, eff.Def+b.Def, eff.Luck+b.Luck, eff.Sta+b.Sta
-		r.Arms = append(r.Arms, ArmInfo{Arm: a, Eff: eff, Owned: owned, Level: lv, Equipped: a.ID == g.ArmID(),
-			Sockets: socketInfos(inv.Sockets[a.ID], lv)})
-	}
+	r.Arms, r.Hats, r.Armors = itemInfos(inv, SlotGun), itemInfos(inv, SlotHat), itemInfos(inv, SlotArmor)
 	r.SlotSockets = map[string][]SocketInfo{
-		SlotHat:   socketInfos(inv.Sockets[SlotHat], g.Hat),
-		SlotArmor: socketInfos(inv.Sockets[SlotArmor], g.Armor),
+		SlotHat:   socketInfos(inv.Sockets[g.itemID(SlotHat)], g.Hat),
+		SlotArmor: socketInfos(inv.Sockets[g.itemID(SlotArmor)], g.Armor),
 	}
 	r.Gems = []GemInfo{}
 	for _, kind := range GemKinds {
@@ -338,6 +424,20 @@ func reply(inv Inventory, balance int64) GearReply {
 		r.Rates[s] = rates
 	}
 	return r
+}
+
+// itemInfos là danh mục món của ô slot kèm cấp, chỉ số đã nhân cấp + ngọc, sở hữu, đang dùng, ô khảm.
+func itemInfos(inv Inventory, slot string) []ArmInfo {
+	out := []ArmInfo{}
+	using := inv.Gear.itemID(slot)
+	for _, a := range catalog(slot) {
+		lv, owned := inv.Arms[a.ID]
+		owned = owned || a.ID == defaultItem(slot)
+		eff := a.Eff(lv).plus(gemBonus(inv.Sockets[a.ID], lv))
+		out = append(out, ArmInfo{Arm: a, Eff: eff, Owned: owned, Level: lv, Equipped: a.ID == using,
+			Sockets: socketInfos(inv.Sockets[a.ID], lv)})
+	}
+	return out
 }
 
 const schema = `
@@ -376,12 +476,12 @@ var (
 	ErrNoStone  = errors.New("bạn hết loại đá này, hãy mua thêm")
 	ErrBadCharm = errors.New("loại bùa không hợp lệ")
 	ErrNoCharm  = errors.New("bạn hết bùa đã chọn, hãy mua thêm")
-	ErrBadArm   = errors.New("vũ khí không hợp lệ")
-	ErrOwned    = errors.New("bạn đã có vũ khí này")
-	ErrNotOwned = errors.New("bạn chưa có vũ khí này, hãy mua trước")
-	ErrSameArm  = errors.New("hãy chọn hai vũ khí khác nhau")
-	ErrNoLevel  = errors.New("vũ khí nguồn chưa cường hoá, không có cấp để chuyển")
-	ErrLowLevel = errors.New("vũ khí nguồn phải có cấp cao hơn vũ khí nhận")
+	ErrBadArm   = errors.New("trang bị không hợp lệ")
+	ErrOwned    = errors.New("bạn đã có món này")
+	ErrNotOwned = errors.New("bạn chưa có món này, hãy mua trước")
+	ErrSameArm  = errors.New("hãy chọn hai món khác nhau")
+	ErrNoLevel  = errors.New("món nguồn chưa cường hoá, không có cấp để chuyển")
+	ErrLowLevel = errors.New("món nguồn phải có cấp cao hơn món nhận")
 )
 
 // Armory là kho trang bị và đá cường hoá của mọi người chơi.
@@ -402,9 +502,18 @@ func New(ctx context.Context, w *wallet.Wallet) (*Armory, error) {
 		return nil, err
 	}
 	defer tx.Rollback()
-	if _, err := tx.ExecContext(ctx, `INSERT INTO arena_arms (user_id, arm, level, equipped)
-		SELECT user_id, ?, level, 1 FROM arena_gear WHERE slot = ? ON CONFLICT (user_id, arm) DO NOTHING`, ArmCannon, SlotGun); err != nil {
-		return nil, fmt.Errorf("chuyển cấp súng cũ: %w", err)
+	// Tương tự cấp nón / áo giáp cũ → nón lá / áo thun đang dùng; ngọc ô khảm "hat" / "armor" cũ → ô của món đó.
+	for _, s := range Slots {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO arena_arms (user_id, arm, level, equipped)
+			SELECT user_id, ?, level, 1 FROM arena_gear WHERE slot = ? ON CONFLICT (user_id, arm) DO NOTHING`, defaultItem(s), s); err != nil {
+			return nil, fmt.Errorf("chuyển cấp %s cũ: %w", slotNames[s], err)
+		}
+		if s == SlotGun {
+			continue
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE OR IGNORE arena_sockets SET arm = ? WHERE arm = ?`, defaultItem(s), s); err != nil {
+			return nil, fmt.Errorf("chuyển ngọc %s cũ: %w", slotNames[s], err)
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
@@ -433,28 +542,17 @@ func (a *Armory) Inventory(ctx context.Context, uid int64) (Inventory, error) {
 }
 
 func loadInventory(ctx context.Context, tx *wallet.Tx, uid int64) (Inventory, error) {
-	inv := Inventory{Charms: map[string]int{}, Arms: map[string]int{ArmCannon: 0}}
-	rows, err := tx.QueryContext(ctx, `SELECT slot, level FROM arena_gear WHERE user_id = ?`, uid)
+	inv := Inventory{Charms: map[string]int{}, Arms: map[string]int{}}
+	equipped := map[string]string{}
+	for _, s := range Slots {
+		inv.Arms[defaultItem(s)] = 0
+		equipped[s] = defaultItem(s)
+	}
+	// Cấp mọi món (vũ khí, nón, áo) nằm ở arena_arms; arena_gear chỉ còn dữ liệu cũ đã chuyển lúc khởi động.
+	rows, err := tx.QueryContext(ctx, `SELECT arm, level, equipped FROM arena_arms WHERE user_id = ?`, uid)
 	if err != nil {
 		return inv, err
 	}
-	for rows.Next() {
-		var s string
-		var lv int
-		if err := rows.Scan(&s, &lv); err != nil {
-			rows.Close()
-			return inv, err
-		}
-		if s != SlotGun { // cấp vũ khí nằm ở arena_arms
-			inv.Gear.set(s, min(max(lv, 0), MaxLevel))
-		}
-	}
-	rows.Close()
-	rows, err = tx.QueryContext(ctx, `SELECT arm, level, equipped FROM arena_arms WHERE user_id = ?`, uid)
-	if err != nil {
-		return inv, err
-	}
-	equipped := ArmCannon
 	for rows.Next() {
 		var id string
 		var lv, eq int
@@ -462,15 +560,17 @@ func loadInventory(ctx context.Context, tx *wallet.Tx, uid int64) (Inventory, er
 			rows.Close()
 			return inv, err
 		}
-		if _, ok := findArm(id); ok {
+		if s, ok := slotOfItem(id); ok {
 			inv.Arms[id] = min(max(lv, 0), MaxLevel)
 			if eq != 0 {
-				equipped = id
+				equipped[s] = id
 			}
 		}
 	}
 	rows.Close()
-	inv.Gear.Arm, inv.Gear.Gun = equipped, inv.Arms[equipped]
+	inv.Gear.Arm, inv.Gear.Gun = equipped[SlotGun], inv.Arms[equipped[SlotGun]]
+	inv.Gear.HatID, inv.Gear.Hat = equipped[SlotHat], inv.Arms[equipped[SlotHat]]
+	inv.Gear.ArmorID, inv.Gear.Armor = equipped[SlotArmor], inv.Arms[equipped[SlotArmor]]
 	if err := loadGems(ctx, tx, uid, &inv); err != nil {
 		return inv, err
 	}
@@ -546,7 +646,22 @@ func (a *Armory) withInv(ctx context.Context, uid int64, op func(tx *wallet.Tx, 
 
 // BuyArm mua vũ khí id bằng xu (cấp 0, chưa trang bị).
 func (a *Armory) BuyArm(ctx context.Context, uid int64, id string) (Inventory, error) {
-	arm, ok := findArm(id)
+	return a.BuyItem(ctx, uid, SlotGun, id)
+}
+
+// EquipArm trang bị vũ khí id đã sở hữu.
+func (a *Armory) EquipArm(ctx context.Context, uid int64, id string) (Inventory, error) {
+	return a.EquipItem(ctx, uid, SlotGun, id)
+}
+
+// TransferArm chuyển cấp cường hoá từ vũ khí from sang vũ khí to.
+func (a *Armory) TransferArm(ctx context.Context, uid int64, from, to string) (Inventory, Transfer, error) {
+	return a.TransferItem(ctx, uid, SlotGun, from, to)
+}
+
+// BuyItem mua món id của ô slot (gun / hat / armor) bằng xu (cấp 0, chưa dùng).
+func (a *Armory) BuyItem(ctx context.Context, uid int64, slot, id string) (Inventory, error) {
+	it, ok := findItem(slot, id)
 	if !ok {
 		return Inventory{}, ErrBadArm
 	}
@@ -554,16 +669,16 @@ func (a *Armory) BuyArm(ctx context.Context, uid int64, id string) (Inventory, e
 		if _, have := inv.Arms[id]; have {
 			return ErrOwned
 		}
-		if err := tx.Charge(uid, arm.Price, GameID, "Đấu trường: mua "+arm.Name); err != nil {
+		if err := tx.Charge(uid, it.Price, GameID, "Đấu trường: mua "+it.Name); err != nil {
 			return err
 		}
 		return setArm(ctx, tx, uid, id, 0, false)
 	})
 }
 
-// EquipArm trang bị vũ khí id đã sở hữu.
-func (a *Armory) EquipArm(ctx context.Context, uid int64, id string) (Inventory, error) {
-	if _, ok := findArm(id); !ok {
+// EquipItem dùng món id đã sở hữu ở ô slot (bỏ món đang dùng của ô đó).
+func (a *Armory) EquipItem(ctx context.Context, uid int64, slot, id string) (Inventory, error) {
+	if _, ok := findItem(slot, id); !ok {
 		return Inventory{}, ErrBadArm
 	}
 	return a.withInv(ctx, uid, func(tx *wallet.Tx, inv Inventory) error {
@@ -571,7 +686,13 @@ func (a *Armory) EquipArm(ctx context.Context, uid int64, id string) (Inventory,
 		if !have {
 			return ErrNotOwned
 		}
-		if _, err := tx.ExecContext(ctx, `UPDATE arena_arms SET equipped = 0 WHERE user_id = ?`, uid); err != nil {
+		ids := []any{uid}
+		marks := make([]string, 0, len(catalog(slot)))
+		for _, it := range catalog(slot) {
+			ids, marks = append(ids, it.ID), append(marks, "?")
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE arena_arms SET equipped = 0 WHERE user_id = ? AND arm IN (`+
+			strings.Join(marks, ",")+`)`, ids...); err != nil {
 			return err
 		}
 		if err := setArm(ctx, tx, uid, id, lv, true); err != nil {
@@ -582,10 +703,11 @@ func (a *Armory) EquipArm(ctx context.Context, uid int64, id string) (Inventory,
 	})
 }
 
-// TransferArm chuyển cấp cường hoá từ vũ khí from sang vũ khí to: to nhận cấp của from, from về +0; phí TransferFee.
-func (a *Armory) TransferArm(ctx context.Context, uid int64, from, to string) (Inventory, Transfer, error) {
-	fa, ok1 := findArm(from)
-	ta, ok2 := findArm(to)
+// TransferItem chuyển cấp cường hoá trong cùng ô slot: to nhận cấp của from, from về +0 (ngọc ở ô bị khoá về kho);
+// phí TransferFee.
+func (a *Armory) TransferItem(ctx context.Context, uid int64, slot, from, to string) (Inventory, Transfer, error) {
+	fa, ok1 := findItem(slot, from)
+	ta, ok2 := findItem(slot, to)
 	if !ok1 || !ok2 {
 		return Inventory{}, Transfer{}, ErrBadArm
 	}
@@ -603,20 +725,21 @@ func (a *Armory) TransferArm(ctx context.Context, uid int64, from, to string) (I
 		case lf <= lt:
 			return ErrLowLevel
 		}
+		using := inv.Gear.itemID(slot)
 		note := fmt.Sprintf("Đấu trường: chuyển cấp +%d từ %s sang %s", lf, fa.Name, ta.Name)
 		if err := tx.Charge(uid, TransferFee(lf), GameID, note); err != nil {
 			return err
 		}
-		if err := setArm(ctx, tx, uid, to, lf, to == inv.Gear.Arm); err != nil {
+		if err := setArm(ctx, tx, uid, to, lf, to == using); err != nil {
 			return err
 		}
-		if err := setArm(ctx, tx, uid, from, 0, from == inv.Gear.Arm); err != nil {
+		if err := setArm(ctx, tx, uid, from, 0, from == using); err != nil {
 			return err
 		}
 		if err := lockSockets(ctx, tx, uid, inv, from, 0); err != nil {
 			return err
 		}
-		t = Transfer{From: from, To: to, Level: lf}
+		t = Transfer{Slot: slot, From: from, To: to, Level: lf}
 		return nil
 	})
 	return inv, t, err
@@ -701,11 +824,11 @@ func (a *Armory) Upgrade(ctx context.Context, uid int64, slot string, tier int, 
 		return Inventory{}, Outcome{}, err
 	}
 	lv := inv.Gear.level(slot)
-	out := Outcome{Slot: slot, Level: lv, From: lv}
-	name := slotNames[slot]
+	it := inv.Gear.item(slot)
+	out := Outcome{Slot: slot, Item: it.ID, Level: lv, From: lv}
+	name := it.Name
 	if slot == SlotGun {
-		out.Arm = inv.Gear.ArmID()
-		name = inv.Gear.Weapon().Name
+		out.Arm = it.ID
 	}
 	switch {
 	case lv >= MaxLevel:
@@ -717,7 +840,7 @@ func (a *Armory) Upgrade(ctx context.Context, uid int64, slot string, tier int, 
 	}
 	rate := Rate(lv, tier)
 	if luck {
-		rate = min(100, rate+LuckBonus)
+		rate = min(RateCap(lv), rate+LuckBonus)
 	}
 	out.OK, out.Rate = a.roll() < rate, rate
 	var verdict string
@@ -752,28 +875,14 @@ func (a *Armory) Upgrade(ctx context.Context, uid int64, slot string, tier int, 
 		}
 		inv.Charms[kind]--
 	}
-	if out.Level != lv && slot == SlotGun {
-		if err := setArm(ctx, tx, uid, out.Arm, out.Level, true); err != nil {
+	if out.Level != lv {
+		if err := setArm(ctx, tx, uid, it.ID, out.Level, true); err != nil {
 			return Inventory{}, Outcome{}, err
 		}
-		if err := lockSockets(ctx, tx, uid, inv, out.Arm, out.Level); err != nil {
+		// Tụt cấp: ngọc ở ô bị khoá về kho.
+		if err := lockSockets(ctx, tx, uid, inv, it.ID, out.Level); err != nil {
 			return Inventory{}, Outcome{}, err
 		}
-		inv.Gear.set(slot, out.Level)
-		inv.Arms[out.Arm] = out.Level
-		if inv, err = loadInventory(ctx, tx, uid); err != nil {
-			return Inventory{}, Outcome{}, err
-		}
-	} else if out.Level != lv {
-		if _, err := tx.ExecContext(ctx, `INSERT INTO arena_gear (user_id, slot, level) VALUES (?, ?, ?)
-			ON CONFLICT (user_id, slot) DO UPDATE SET level = excluded.level`, uid, slot, out.Level); err != nil {
-			return Inventory{}, Outcome{}, err
-		}
-		// Nón / áo giáp tụt cấp: ngọc ở ô bị khoá về kho.
-		if err := lockSockets(ctx, tx, uid, inv, slot, out.Level); err != nil {
-			return Inventory{}, Outcome{}, err
-		}
-		inv.Gear.set(slot, out.Level)
 		if inv, err = loadInventory(ctx, tx, uid); err != nil {
 			return Inventory{}, Outcome{}, err
 		}
@@ -824,6 +933,7 @@ func (a *Armory) Handler() http.Handler {
 		From    string `json:"from"`
 		To      string `json:"to"`
 		Arm     string `json:"arm"`
+		Item    string `json:"item"`
 		Idx     int    `json:"idx"`
 		Kind    string `json:"kind"`
 		Luck    bool   `json:"luck"`
@@ -876,11 +986,11 @@ func (a *Armory) Handler() http.Handler {
 		return inv, extra{out: &out}, err
 	}))
 	mux.HandleFunc("POST /api/arena/gems/socket", authed(func(r *http.Request, uid int64, b body) (Inventory, extra, error) {
-		inv, err := a.SocketSlotGem(r.Context(), uid, b.Slot, b.Arm, b.Idx, GemKey{b.Kind, b.Tier})
+		inv, err := a.SocketSlotGem(r.Context(), uid, b.Slot, cmp.Or(b.Item, b.Arm), b.Idx, GemKey{b.Kind, b.Tier})
 		return inv, extra{}, err
 	}))
 	mux.HandleFunc("POST /api/arena/gems/unsocket", authed(func(r *http.Request, uid int64, b body) (Inventory, extra, error) {
-		inv, err := a.UnsocketSlotGem(r.Context(), uid, b.Slot, b.Arm, b.Idx)
+		inv, err := a.UnsocketSlotGem(r.Context(), uid, b.Slot, cmp.Or(b.Item, b.Arm), b.Idx)
 		return inv, extra{}, err
 	}))
 	mux.HandleFunc("POST /api/arena/arms/buy", authed(func(r *http.Request, uid int64, b body) (Inventory, extra, error) {
@@ -893,6 +1003,18 @@ func (a *Armory) Handler() http.Handler {
 	}))
 	mux.HandleFunc("POST /api/arena/arms/transfer", authed(func(r *http.Request, uid int64, b body) (Inventory, extra, error) {
 		inv, t, err := a.TransferArm(r.Context(), uid, b.From, b.To)
+		return inv, extra{tr: &t}, err
+	}))
+	mux.HandleFunc("POST /api/arena/items/buy", authed(func(r *http.Request, uid int64, b body) (Inventory, extra, error) {
+		inv, err := a.BuyItem(r.Context(), uid, cmp.Or(b.Slot, SlotGun), b.ID)
+		return inv, extra{}, err
+	}))
+	mux.HandleFunc("POST /api/arena/items/equip", authed(func(r *http.Request, uid int64, b body) (Inventory, extra, error) {
+		inv, err := a.EquipItem(r.Context(), uid, cmp.Or(b.Slot, SlotGun), b.ID)
+		return inv, extra{}, err
+	}))
+	mux.HandleFunc("POST /api/arena/items/transfer", authed(func(r *http.Request, uid int64, b body) (Inventory, extra, error) {
+		inv, t, err := a.TransferItem(r.Context(), uid, cmp.Or(b.Slot, SlotGun), b.From, b.To)
 		return inv, extra{tr: &t}, err
 	}))
 	return mux

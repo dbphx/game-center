@@ -2015,6 +2015,1302 @@
    "source": [
     "DCity (vẽ / ghép bằng PIL cho dự án)"
    ]
+  },
+  {
+   "file": "worn_hat_nonla.png",
+   "w": 240,
+   "h": 248,
+   "use": "Nón lá — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng đỉnh đầu (48, 44) của khung nhân vật",
+   "anchor": [
+    120,
+    176
+   ],
+   "frameScale": 2,
+   "headTop": [
+    48,
+    44
+   ],
+   "slot": "hat",
+   "item": "nonla",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_hat_nonla.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: nón Nón lá",
+   "anchor": "center",
+   "slot": "hat",
+   "item": "nonla",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_hat_nonla_2.png",
+   "w": 240,
+   "h": 248,
+   "use": "Nón lá — dạng +7 (viền lam sáng, lấp lánh) — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng đỉnh đầu (48, 44) của khung nhân vật",
+   "anchor": [
+    120,
+    176
+   ],
+   "frameScale": 2,
+   "headTop": [
+    48,
+    44
+   ],
+   "slot": "hat",
+   "item": "nonla",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_hat_nonla_2.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: nón Nón lá — dạng +7 (viền lam sáng, lấp lánh)",
+   "anchor": "center",
+   "slot": "hat",
+   "item": "nonla",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_hat_nonla_3.png",
+   "w": 240,
+   "h": 248,
+   "use": "Nón lá — dạng +10 (vàng lửa, lấp lánh) — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng đỉnh đầu (48, 44) của khung nhân vật",
+   "anchor": [
+    120,
+    176
+   ],
+   "frameScale": 2,
+   "headTop": [
+    48,
+    44
+   ],
+   "slot": "hat",
+   "item": "nonla",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_hat_nonla_3.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: nón Nón lá — dạng +10 (vàng lửa, lấp lánh)",
+   "anchor": "center",
+   "slot": "hat",
+   "item": "nonla",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_hat_mubh.png",
+   "w": 240,
+   "h": 248,
+   "use": "Mũ bảo hiểm — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng đỉnh đầu (48, 44) của khung nhân vật",
+   "anchor": [
+    120,
+    176
+   ],
+   "frameScale": 2,
+   "headTop": [
+    48,
+    44
+   ],
+   "slot": "hat",
+   "item": "mubh",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_hat_mubh.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: nón Mũ bảo hiểm",
+   "anchor": "center",
+   "slot": "hat",
+   "item": "mubh",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_hat_mubh_2.png",
+   "w": 240,
+   "h": 248,
+   "use": "Mũ bảo hiểm — dạng +7 (viền lam sáng, lấp lánh) — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng đỉnh đầu (48, 44) của khung nhân vật",
+   "anchor": [
+    120,
+    176
+   ],
+   "frameScale": 2,
+   "headTop": [
+    48,
+    44
+   ],
+   "slot": "hat",
+   "item": "mubh",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_hat_mubh_2.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: nón Mũ bảo hiểm — dạng +7 (viền lam sáng, lấp lánh)",
+   "anchor": "center",
+   "slot": "hat",
+   "item": "mubh",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_hat_mubh_3.png",
+   "w": 240,
+   "h": 248,
+   "use": "Mũ bảo hiểm — dạng +10 (vàng lửa, lấp lánh) — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng đỉnh đầu (48, 44) của khung nhân vật",
+   "anchor": [
+    120,
+    176
+   ],
+   "frameScale": 2,
+   "headTop": [
+    48,
+    44
+   ],
+   "slot": "hat",
+   "item": "mubh",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_hat_mubh_3.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: nón Mũ bảo hiểm — dạng +10 (vàng lửa, lấp lánh)",
+   "anchor": "center",
+   "slot": "hat",
+   "item": "mubh",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_hat_mulen.png",
+   "w": 240,
+   "h": 248,
+   "use": "Mũ len — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng đỉnh đầu (48, 44) của khung nhân vật",
+   "anchor": [
+    120,
+    176
+   ],
+   "frameScale": 2,
+   "headTop": [
+    48,
+    44
+   ],
+   "slot": "hat",
+   "item": "mulen",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_hat_mulen.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: nón Mũ len",
+   "anchor": "center",
+   "slot": "hat",
+   "item": "mulen",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_hat_mulen_2.png",
+   "w": 240,
+   "h": 248,
+   "use": "Mũ len — dạng +7 (viền lam sáng, lấp lánh) — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng đỉnh đầu (48, 44) của khung nhân vật",
+   "anchor": [
+    120,
+    176
+   ],
+   "frameScale": 2,
+   "headTop": [
+    48,
+    44
+   ],
+   "slot": "hat",
+   "item": "mulen",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_hat_mulen_2.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: nón Mũ len — dạng +7 (viền lam sáng, lấp lánh)",
+   "anchor": "center",
+   "slot": "hat",
+   "item": "mulen",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_hat_mulen_3.png",
+   "w": 240,
+   "h": 248,
+   "use": "Mũ len — dạng +10 (vàng lửa, lấp lánh) — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng đỉnh đầu (48, 44) của khung nhân vật",
+   "anchor": [
+    120,
+    176
+   ],
+   "frameScale": 2,
+   "headTop": [
+    48,
+    44
+   ],
+   "slot": "hat",
+   "item": "mulen",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_hat_mulen_3.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: nón Mũ len — dạng +10 (vàng lửa, lấp lánh)",
+   "anchor": "center",
+   "slot": "hat",
+   "item": "mulen",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_hat_caoboi.png",
+   "w": 240,
+   "h": 248,
+   "use": "Nón cao bồi — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng đỉnh đầu (48, 44) của khung nhân vật",
+   "anchor": [
+    120,
+    176
+   ],
+   "frameScale": 2,
+   "headTop": [
+    48,
+    44
+   ],
+   "slot": "hat",
+   "item": "caoboi",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_hat_caoboi.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: nón Nón cao bồi",
+   "anchor": "center",
+   "slot": "hat",
+   "item": "caoboi",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_hat_caoboi_2.png",
+   "w": 240,
+   "h": 248,
+   "use": "Nón cao bồi — dạng +7 (viền lam sáng, lấp lánh) — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng đỉnh đầu (48, 44) của khung nhân vật",
+   "anchor": [
+    120,
+    176
+   ],
+   "frameScale": 2,
+   "headTop": [
+    48,
+    44
+   ],
+   "slot": "hat",
+   "item": "caoboi",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_hat_caoboi_2.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: nón Nón cao bồi — dạng +7 (viền lam sáng, lấp lánh)",
+   "anchor": "center",
+   "slot": "hat",
+   "item": "caoboi",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_hat_caoboi_3.png",
+   "w": 240,
+   "h": 248,
+   "use": "Nón cao bồi — dạng +10 (vàng lửa, lấp lánh) — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng đỉnh đầu (48, 44) của khung nhân vật",
+   "anchor": [
+    120,
+    176
+   ],
+   "frameScale": 2,
+   "headTop": [
+    48,
+    44
+   ],
+   "slot": "hat",
+   "item": "caoboi",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_hat_caoboi_3.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: nón Nón cao bồi — dạng +10 (vàng lửa, lấp lánh)",
+   "anchor": "center",
+   "slot": "hat",
+   "item": "caoboi",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_hat_phuthuy.png",
+   "w": 240,
+   "h": 248,
+   "use": "Mũ phù thuỷ — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng đỉnh đầu (48, 44) của khung nhân vật",
+   "anchor": [
+    120,
+    176
+   ],
+   "frameScale": 2,
+   "headTop": [
+    48,
+    44
+   ],
+   "slot": "hat",
+   "item": "phuthuy",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_hat_phuthuy.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: nón Mũ phù thuỷ",
+   "anchor": "center",
+   "slot": "hat",
+   "item": "phuthuy",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_hat_phuthuy_2.png",
+   "w": 240,
+   "h": 248,
+   "use": "Mũ phù thuỷ — dạng +7 (viền lam sáng, lấp lánh) — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng đỉnh đầu (48, 44) của khung nhân vật",
+   "anchor": [
+    120,
+    176
+   ],
+   "frameScale": 2,
+   "headTop": [
+    48,
+    44
+   ],
+   "slot": "hat",
+   "item": "phuthuy",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_hat_phuthuy_2.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: nón Mũ phù thuỷ — dạng +7 (viền lam sáng, lấp lánh)",
+   "anchor": "center",
+   "slot": "hat",
+   "item": "phuthuy",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_hat_phuthuy_3.png",
+   "w": 240,
+   "h": 248,
+   "use": "Mũ phù thuỷ — dạng +10 (vàng lửa, lấp lánh) — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng đỉnh đầu (48, 44) của khung nhân vật",
+   "anchor": [
+    120,
+    176
+   ],
+   "frameScale": 2,
+   "headTop": [
+    48,
+    44
+   ],
+   "slot": "hat",
+   "item": "phuthuy",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_hat_phuthuy_3.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: nón Mũ phù thuỷ — dạng +10 (vàng lửa, lấp lánh)",
+   "anchor": "center",
+   "slot": "hat",
+   "item": "phuthuy",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_hat_vuongmien.png",
+   "w": 240,
+   "h": 248,
+   "use": "Vương miện — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng đỉnh đầu (48, 44) của khung nhân vật",
+   "anchor": [
+    120,
+    176
+   ],
+   "frameScale": 2,
+   "headTop": [
+    48,
+    44
+   ],
+   "slot": "hat",
+   "item": "vuongmien",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_hat_vuongmien.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: nón Vương miện",
+   "anchor": "center",
+   "slot": "hat",
+   "item": "vuongmien",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_hat_vuongmien_2.png",
+   "w": 240,
+   "h": 248,
+   "use": "Vương miện — dạng +7 (viền lam sáng, lấp lánh) — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng đỉnh đầu (48, 44) của khung nhân vật",
+   "anchor": [
+    120,
+    176
+   ],
+   "frameScale": 2,
+   "headTop": [
+    48,
+    44
+   ],
+   "slot": "hat",
+   "item": "vuongmien",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_hat_vuongmien_2.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: nón Vương miện — dạng +7 (viền lam sáng, lấp lánh)",
+   "anchor": "center",
+   "slot": "hat",
+   "item": "vuongmien",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_hat_vuongmien_3.png",
+   "w": 240,
+   "h": 248,
+   "use": "Vương miện — dạng +10 (vàng lửa, lấp lánh) — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng đỉnh đầu (48, 44) của khung nhân vật",
+   "anchor": [
+    120,
+    176
+   ],
+   "frameScale": 2,
+   "headTop": [
+    48,
+    44
+   ],
+   "slot": "hat",
+   "item": "vuongmien",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_hat_vuongmien_3.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: nón Vương miện — dạng +10 (vàng lửa, lấp lánh)",
+   "anchor": "center",
+   "slot": "hat",
+   "item": "vuongmien",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_armor_aothun.png",
+   "w": 176,
+   "h": 96,
+   "use": "Áo thun — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng giữa ngực (47, 114) của khung nhân vật",
+   "anchor": [
+    86,
+    40
+   ],
+   "frameScale": 2,
+   "chest": [
+    47,
+    114
+   ],
+   "slot": "armor",
+   "item": "aothun",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_armor_aothun.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: áo Áo thun",
+   "anchor": "center",
+   "slot": "armor",
+   "item": "aothun",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_armor_aothun_2.png",
+   "w": 176,
+   "h": 96,
+   "use": "Áo thun — dạng +7 (viền lam sáng, lấp lánh) — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng giữa ngực (47, 114) của khung nhân vật",
+   "anchor": [
+    86,
+    40
+   ],
+   "frameScale": 2,
+   "chest": [
+    47,
+    114
+   ],
+   "slot": "armor",
+   "item": "aothun",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_armor_aothun_2.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: áo Áo thun — dạng +7 (viền lam sáng, lấp lánh)",
+   "anchor": "center",
+   "slot": "armor",
+   "item": "aothun",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_armor_aothun_3.png",
+   "w": 176,
+   "h": 96,
+   "use": "Áo thun — dạng +10 (vàng lửa, lấp lánh) — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng giữa ngực (47, 114) của khung nhân vật",
+   "anchor": [
+    86,
+    40
+   ],
+   "frameScale": 2,
+   "chest": [
+    47,
+    114
+   ],
+   "slot": "armor",
+   "item": "aothun",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_armor_aothun_3.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: áo Áo thun — dạng +10 (vàng lửa, lấp lánh)",
+   "anchor": "center",
+   "slot": "armor",
+   "item": "aothun",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_armor_aomua.png",
+   "w": 176,
+   "h": 96,
+   "use": "Áo mưa — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng giữa ngực (47, 114) của khung nhân vật",
+   "anchor": [
+    86,
+    40
+   ],
+   "frameScale": 2,
+   "chest": [
+    47,
+    114
+   ],
+   "slot": "armor",
+   "item": "aomua",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_armor_aomua.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: áo Áo mưa",
+   "anchor": "center",
+   "slot": "armor",
+   "item": "aomua",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_armor_aomua_2.png",
+   "w": 176,
+   "h": 96,
+   "use": "Áo mưa — dạng +7 (viền lam sáng, lấp lánh) — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng giữa ngực (47, 114) của khung nhân vật",
+   "anchor": [
+    86,
+    40
+   ],
+   "frameScale": 2,
+   "chest": [
+    47,
+    114
+   ],
+   "slot": "armor",
+   "item": "aomua",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_armor_aomua_2.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: áo Áo mưa — dạng +7 (viền lam sáng, lấp lánh)",
+   "anchor": "center",
+   "slot": "armor",
+   "item": "aomua",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_armor_aomua_3.png",
+   "w": 176,
+   "h": 96,
+   "use": "Áo mưa — dạng +10 (vàng lửa, lấp lánh) — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng giữa ngực (47, 114) của khung nhân vật",
+   "anchor": [
+    86,
+    40
+   ],
+   "frameScale": 2,
+   "chest": [
+    47,
+    114
+   ],
+   "slot": "armor",
+   "item": "aomua",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_armor_aomua_3.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: áo Áo mưa — dạng +10 (vàng lửa, lấp lánh)",
+   "anchor": "center",
+   "slot": "armor",
+   "item": "aomua",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_armor_bongda.png",
+   "w": 176,
+   "h": 96,
+   "use": "Áo bóng đá — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng giữa ngực (47, 114) của khung nhân vật",
+   "anchor": [
+    86,
+    40
+   ],
+   "frameScale": 2,
+   "chest": [
+    47,
+    114
+   ],
+   "slot": "armor",
+   "item": "bongda",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_armor_bongda.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: áo Áo bóng đá",
+   "anchor": "center",
+   "slot": "armor",
+   "item": "bongda",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_armor_bongda_2.png",
+   "w": 176,
+   "h": 96,
+   "use": "Áo bóng đá — dạng +7 (viền lam sáng, lấp lánh) — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng giữa ngực (47, 114) của khung nhân vật",
+   "anchor": [
+    86,
+    40
+   ],
+   "frameScale": 2,
+   "chest": [
+    47,
+    114
+   ],
+   "slot": "armor",
+   "item": "bongda",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_armor_bongda_2.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: áo Áo bóng đá — dạng +7 (viền lam sáng, lấp lánh)",
+   "anchor": "center",
+   "slot": "armor",
+   "item": "bongda",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_armor_bongda_3.png",
+   "w": 176,
+   "h": 96,
+   "use": "Áo bóng đá — dạng +10 (vàng lửa, lấp lánh) — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng giữa ngực (47, 114) của khung nhân vật",
+   "anchor": [
+    86,
+    40
+   ],
+   "frameScale": 2,
+   "chest": [
+    47,
+    114
+   ],
+   "slot": "armor",
+   "item": "bongda",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_armor_bongda_3.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: áo Áo bóng đá — dạng +10 (vàng lửa, lấp lánh)",
+   "anchor": "center",
+   "slot": "armor",
+   "item": "bongda",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_armor_aophao.png",
+   "w": 176,
+   "h": 96,
+   "use": "Áo phao — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng giữa ngực (47, 114) của khung nhân vật",
+   "anchor": [
+    86,
+    40
+   ],
+   "frameScale": 2,
+   "chest": [
+    47,
+    114
+   ],
+   "slot": "armor",
+   "item": "aophao",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_armor_aophao.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: áo Áo phao",
+   "anchor": "center",
+   "slot": "armor",
+   "item": "aophao",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_armor_aophao_2.png",
+   "w": 176,
+   "h": 96,
+   "use": "Áo phao — dạng +7 (viền lam sáng, lấp lánh) — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng giữa ngực (47, 114) của khung nhân vật",
+   "anchor": [
+    86,
+    40
+   ],
+   "frameScale": 2,
+   "chest": [
+    47,
+    114
+   ],
+   "slot": "armor",
+   "item": "aophao",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_armor_aophao_2.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: áo Áo phao — dạng +7 (viền lam sáng, lấp lánh)",
+   "anchor": "center",
+   "slot": "armor",
+   "item": "aophao",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_armor_aophao_3.png",
+   "w": 176,
+   "h": 96,
+   "use": "Áo phao — dạng +10 (vàng lửa, lấp lánh) — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng giữa ngực (47, 114) của khung nhân vật",
+   "anchor": [
+    86,
+    40
+   ],
+   "frameScale": 2,
+   "chest": [
+    47,
+    114
+   ],
+   "slot": "armor",
+   "item": "aophao",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_armor_aophao_3.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: áo Áo phao — dạng +10 (vàng lửa, lấp lánh)",
+   "anchor": "center",
+   "slot": "armor",
+   "item": "aophao",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_armor_giapsat.png",
+   "w": 176,
+   "h": 96,
+   "use": "Giáp sắt — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng giữa ngực (47, 114) của khung nhân vật",
+   "anchor": [
+    86,
+    40
+   ],
+   "frameScale": 2,
+   "chest": [
+    47,
+    114
+   ],
+   "slot": "armor",
+   "item": "giapsat",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_armor_giapsat.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: áo Giáp sắt",
+   "anchor": "center",
+   "slot": "armor",
+   "item": "giapsat",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_armor_giapsat_2.png",
+   "w": 176,
+   "h": 96,
+   "use": "Giáp sắt — dạng +7 (viền lam sáng, lấp lánh) — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng giữa ngực (47, 114) của khung nhân vật",
+   "anchor": [
+    86,
+    40
+   ],
+   "frameScale": 2,
+   "chest": [
+    47,
+    114
+   ],
+   "slot": "armor",
+   "item": "giapsat",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_armor_giapsat_2.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: áo Giáp sắt — dạng +7 (viền lam sáng, lấp lánh)",
+   "anchor": "center",
+   "slot": "armor",
+   "item": "giapsat",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_armor_giapsat_3.png",
+   "w": 176,
+   "h": 96,
+   "use": "Giáp sắt — dạng +10 (vàng lửa, lấp lánh) — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng giữa ngực (47, 114) của khung nhân vật",
+   "anchor": [
+    86,
+    40
+   ],
+   "frameScale": 2,
+   "chest": [
+    47,
+    114
+   ],
+   "slot": "armor",
+   "item": "giapsat",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_armor_giapsat_3.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: áo Giáp sắt — dạng +10 (vàng lửa, lấp lánh)",
+   "anchor": "center",
+   "slot": "armor",
+   "item": "giapsat",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_armor_giaprong.png",
+   "w": 176,
+   "h": 96,
+   "use": "Giáp rồng — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng giữa ngực (47, 114) của khung nhân vật",
+   "anchor": [
+    86,
+    40
+   ],
+   "frameScale": 2,
+   "chest": [
+    47,
+    114
+   ],
+   "slot": "armor",
+   "item": "giaprong",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_armor_giaprong.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: áo Giáp rồng",
+   "anchor": "center",
+   "slot": "armor",
+   "item": "giaprong",
+   "form": 1,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_armor_giaprong_2.png",
+   "w": 176,
+   "h": 96,
+   "use": "Giáp rồng — dạng +7 (viền lam sáng, lấp lánh) — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng giữa ngực (47, 114) của khung nhân vật",
+   "anchor": [
+    86,
+    40
+   ],
+   "frameScale": 2,
+   "chest": [
+    47,
+    114
+   ],
+   "slot": "armor",
+   "item": "giaprong",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_armor_giaprong_2.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: áo Giáp rồng — dạng +7 (viền lam sáng, lấp lánh)",
+   "anchor": "center",
+   "slot": "armor",
+   "item": "giaprong",
+   "form": 2,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "worn_armor_giaprong_3.png",
+   "w": 176,
+   "h": 96,
+   "use": "Giáp rồng — dạng +10 (vàng lửa, lấp lánh) — mặc lên nhân vật trong trận. Vẽ ở 2 px / 1 đơn vị khung nhân vật 96×148: cỡ hiển thị = w,h × (chiều cao nhân vật hiển thị / 148) / 2; đặt sao cho điểm anchor trùng giữa ngực (47, 114) của khung nhân vật",
+   "anchor": [
+    86,
+    40
+   ],
+   "frameScale": 2,
+   "chest": [
+    47,
+    114
+   ],
+   "slot": "armor",
+   "item": "giaprong",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "icon_armor_giaprong_3.png",
+   "w": 128,
+   "h": 128,
+   "use": "Icon cửa hàng / thẻ trang bị: áo Giáp rồng — dạng +10 (vàng lửa, lấp lánh)",
+   "anchor": "center",
+   "slot": "armor",
+   "item": "giaprong",
+   "form": 3,
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
   }
  ]
 }

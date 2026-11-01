@@ -842,7 +842,7 @@ func (r *Room) fire(p *Player, w Weapon, angle, power float64) {
 	}
 	p.lastAngle, p.lastPower = angle, power
 	p.facing = facingOf(angle, p.facing)
-	res := Fire(r.ground, r.fighters(), p.f, w, angle, power, r.wind, func() int { return r.rng.IntN(100) })
+	res := Fire(r.ground, r.fighters(), p.f, w, angle, power, r.wind, func() int { return r.rng.IntN(1000) })
 	rage := r.applyRage(p, w, res)
 	shot := map[string]any{"t": "shot", "by": p.ID, "weapon": w.ID, "arm": p.f.Gear.ArmID(), "angle": angle, "power": power, "wind": r.wind,
 		"paths": res.Paths, "blasts": orEmpty(res.Blasts), "hits": orEmpty(res.Hits), "deaths": orEmpty(res.Deaths), "tele": res.Tele,
@@ -1120,11 +1120,11 @@ func (r *Room) stateFor(viewer *Player) State {
 	for _, p := range r.players {
 		v := PlayerView{ID: p.ID, Name: p.Name, Gender: p.Gender, Outfit: p.Outfit, Hair: p.Hair, Wings: p.Wings, Face: p.Face,
 			Level: p.Level, Bot: p.Bot, BotLevel: p.BotLevel, Host: p.ID == r.hostID, Online: p.Online, Ready: p.ready,
-			Coins: p.Coins, Facing: p.facing, Gear: p.Gear, Power: p.Gear.Power(), Items: map[string]int{},
+			Coins: p.Coins, Facing: p.facing, Gear: p.Gear.Norm(), Power: p.Gear.Power(), Items: map[string]int{},
 			LastAngle: p.lastAngle, LastPower: p.lastPower, HP: p.Gear.MaxHP(), MaxHP: p.Gear.MaxHP(), Alive: true, Rage: p.rage}
 		if p.f != nil {
 			v.X, v.Y, v.HP, v.MaxHP, v.Alive = p.f.X, p.f.Y, p.f.HP, p.f.MaxHP, p.f.Alive
-			v.Gear, v.Power = p.f.Gear, p.f.Gear.Power()
+			v.Gear, v.Power = p.f.Gear.Norm(), p.f.Gear.Power()
 		}
 		for k, n := range p.items {
 			v.Items[k] = n

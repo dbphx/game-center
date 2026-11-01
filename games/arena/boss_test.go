@@ -51,7 +51,7 @@ func TestBossWinLoot(t *testing.T) {
 	do(t, a, Message{T: "start"})
 	st = cs[0].last()
 	r := a.Room
-	if st.Phase != PhasePlaying || st.Boss.MaxHP != 950*3 || st.Boss.HP != st.Boss.MaxHP || st.GameBet != 0 || st.Turn != st.Players[0].ID {
+	if st.Phase != PhasePlaying || st.Boss.MaxHP != 9500*3 || st.Boss.HP != st.Boss.MaxHP || st.GameBet != 0 || st.Turn != st.Players[0].ID {
 		t.Fatalf("bắt đầu: %+v %+v", st.Boss, st.Turn)
 	}
 	for _, p := range st.Players {

@@ -41,11 +41,11 @@ func TestHatArmorSockets(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := ArmStats{Atk: 3, Def: 4 + 4, Sta: 5}
+	want := ArmStats{Atk: 30, Def: 40 + 40, Sta: 50}
 	if inv.Gear.Bonus != want || len(inv.Gems) != 0 {
 		t.Fatalf("bonus gộp vũ khí + nón + áo: %+v %+v", inv.Gear.Bonus, inv.Gems)
 	}
-	if inv.Gear.Power() != before.Gear.Power()+2*(3+8+5) || inv.Gear.MaxHP() != before.Gear.MaxHP()+5 {
+	if inv.Gear.Power() != before.Gear.Power()+2*(30+80+50) || inv.Gear.MaxHP() != before.Gear.MaxHP()+50 {
 		t.Fatalf("ngọc nón/áo phải tăng lực chiến: %d → %d", before.Gear.Power(), inv.Gear.Power())
 	}
 	r := reply(inv, 0)
@@ -65,14 +65,14 @@ func TestHatArmorSockets(t *testing.T) {
 	tx.Commit()
 	e.next = 99
 	inv, out, err := e.a.Upgrade(ctx, e.uid, SlotHat, 1, false, false)
-	if err != nil || !out.Dropped || out.Level != 6 || inv.Gems[sta1] != 1 || inv.Sockets[SlotHat][1].valid() ||
-		!inv.Sockets[SlotHat][0].valid() || inv.Gear.Bonus != (ArmStats{Atk: 3, Def: 8}) {
+	if err != nil || !out.Dropped || out.Level != 6 || inv.Gems[sta1] != 1 || inv.Sockets[HatDefault][1].valid() ||
+		!inv.Sockets[HatDefault][0].valid() || inv.Gear.Bonus != (ArmStats{Atk: 30, Def: 80}) {
 		t.Fatalf("nón tụt cấp khoá ô: %v %+v %+v %+v", err, out, inv.Gems, inv.Gear.Bonus)
 	}
 
 	// Tháo ngọc áo: về kho; ô trống 409.
 	inv, err = e.a.UnsocketSlotGem(ctx, e.uid, SlotArmor, "", 0)
-	if err != nil || inv.Gems[def2] != 1 || inv.Gear.Bonus.Def != 4 {
+	if err != nil || inv.Gems[def2] != 1 || inv.Gear.Bonus.Def != 40 {
 		t.Fatalf("tháo ngọc áo: %v %+v", err, inv.Gems)
 	}
 	if _, err := e.a.UnsocketSlotGem(ctx, e.uid, SlotArmor, "", 0); !errors.Is(err, ErrEmptySlot) {
@@ -97,7 +97,7 @@ func TestHatArmorSockets(t *testing.T) {
 		return res.StatusCode, g
 	}
 	code, g := post("/api/arena/gems/socket", map[string]any{"slot": "armor", "idx": 0, "kind": "def", "tier": 2})
-	if code != 200 || g.SlotSockets[SlotArmor][0].Gem == nil || g.Gear.Bonus.Def != 8 {
+	if code != 200 || g.SlotSockets[SlotArmor][0].Gem == nil || g.Gear.Bonus.Def != 80 {
 		t.Fatalf("khảm áo qua API: %d %+v", code, g.SlotSockets)
 	}
 	code, g = post("/api/arena/gems/unsocket", map[string]any{"arm": "cannon", "idx": 0})

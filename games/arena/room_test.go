@@ -166,7 +166,7 @@ func TestLobbySettingsAndStart(t *testing.T) {
 	a, b := ss[0], ss[1]
 	st := cs[0].last()
 	if st.Phase != PhaseLobby || st.Map.ID != "meadow" || st.MapChoice != "meadow" || len(st.Ground) != Width || len(st.Maps) != 5 ||
-		len(st.Weapons) != 4 || st.Players[0].Power != 1000+2*32+320 || st.Players[0].MaxHP != 272 || st.Players[0].Gear.Arm != ArmCannon {
+		len(st.Weapons) != 4 || st.Players[0].Power != 10000+2*(324+196+190) || st.Players[0].MaxHP != 2410 || st.Players[0].Gear.HatID != HatDefault || st.Players[0].Gear.Arm != ArmCannon {
 		t.Fatalf("phòng chờ: %+v", st.Players)
 	}
 	if err := b.Room.Handle(b.Player, Message{T: "settings", Map: "desert"}); err == nil {
@@ -268,10 +268,10 @@ func TestFireMoveAimTurns(t *testing.T) {
 		t.Fatalf("tin shot: %v", shot)
 	}
 	hits := shot["hits"].([]Hit)
-	// Đại bác +0: tấn công 10 (×1.1), phòng thủ 5 (−5%); chí mạng ×1.5.
-	want := 57
+	// Bom tạ 550; đại bác +0: tấn công 100 (×1.1); phòng thủ 50 + nón lá 20 + áo thun 40 (−11%); chí mạng ×1.5.
+	want := 538
 	if len(hits) > 0 && hits[0].Crit {
-		want = 86
+		want = 808
 	}
 	if len(hits) == 0 || hits[0].ID != other.Player.ID || hits[0].Dmg != want {
 		t.Fatalf("trúng bom tạ %d: %+v", want, hits)
@@ -341,7 +341,7 @@ func TestPlayVsBots(t *testing.T) {
 	do(t, a, Message{T: "addBot", Level: BotHard})
 	do(t, a, Message{T: "add_bot", Level: BotEasy})
 	st := cs[0].last()
-	if len(st.Players) != 3 || st.Players[1].Power != 1000+2*43+6*180 || st.Players[1].MaxHP != 306 || st.Players[2].Name != "Máy dễ 2" {
+	if len(st.Players) != 3 || st.Players[1].Power != 14608 || st.Players[1].MaxHP != 3280 || st.Players[1].Gear.HatID != "caoboi" || st.Players[2].Name != "Máy dễ 2" {
 		t.Fatalf("máy: %+v", st.Players)
 	}
 	do(t, a, Message{T: "start"})

@@ -292,8 +292,8 @@ bet, gameBet, betOptions, turnMs, spectators, chat}`. `pos`: `-1` trong chuồng
 Khu riêng, trang `/arena/`. Bắn pháo theo lượt trên địa hình phá huỷ được: canh **góc**, **lực** và **gió**.
 
 - **2–4 ghế** (người hoặc máy `easy` / `normal` / `hard`), người vào sau khi đủ ghế / đang đánh thì xem. Cần 30 HP.
-- **Chế độ boss** (đánh chung, 1–4 người + máy đồng đội, không cược): Vua Chuột `chuot` (dễ, 350 máu/người), Robot Rác `robot`
-  (vừa, 600), Rồng Lửa `rong` (khó, 950). Boss đứng yên mép phải, thân to, bắn một phát mạnh (35 / 50 / 70) sau mỗi vòng vào
+- **Chế độ boss** (đánh chung, 1–4 người + máy đồng đội, không cược): Vua Chuột `chuot` (dễ, 3500 máu/người), Robot Rác `robot`
+  (vừa, 6000), Rồng Lửa `rong` (khó, 9500). Boss đứng yên mép phải, thân to, bắn một phát mạnh (350 / 500 / 700) sau mỗi vòng vào
   người gần nhất hoặc ngẫu nhiên; người chơi đứng ở 60% sân bên trái, không bắn trúng đồng đội. Hạ boss → mỗi người chơi thật
   nhận ngọc rơi (dễ 1–2 viên bậc I; vừa 2–3 viên bậc I–II; khó 3–4 viên bậc II–III) + 50 / 100 / 200 xu; mọi người chết hoặc
   hết 40 vòng là thua.
@@ -303,29 +303,40 @@ Khu riêng, trang `/arena/`. Bắn pháo theo lượt trên địa hình phá hu
   Nổ khoét hố tròn, sát thương giảm dần tới r + 20; tự trúng mình vẫn mất máu; đất dưới chân sập xuống vực là chết.
 - **Lượt** 25 giây (hết giờ mất lượt), mỗi lượt đi được 120 đơn vị (không leo dốc quá 6/1). Tối đa 40 vòng, hết vòng ai nhiều
   % máu nhất thắng. Rời bàn / mất kết nối quá 30 giây giữa trận là thua (mất cược ngay).
-- **Kỹ năng mỗi trận** (dùng không giới hạn): Đạn thường (30, r 40), Đạn chùm (3 × 14, r 28), Bom tạ (55, r 65),
+- **Kỹ năng mỗi trận** (dùng không giới hạn): Đạn thường (300, r 40), Đạn chùm (3 × 140, r 28), Bom tạ (550, r 65),
   Đạn dịch chuyển (bay tới đâu người bắn tới đó).
-- **Nộ + chiêu cuối**: mỗi người có nộ 0..100 (boss không có): +10 đầu mỗi lượt của mình, + sát thương gây cho người khác / 2,
-  + sát thương nhận vào. Đầy 100 thì bắn được `weapon:"ult"` — chiêu cuối của vũ khí đang trang bị (sát thương vẫn nhân Tấn công /
-  chí mạng / Phòng thủ), bắn xong nộ về 0; chưa đủ nộ thì lỗi. Đại bác "Pháo kích" (3 × 45, r 60), Dép lào "Mưa dép" (5 × 22, r 30),
-  Chổi chà "Quét sạch" (60, r 110), Cây lau nhà "Lau sàn" (50, r 70, đẩy đối thủ trong bán kính ra xa tâm nổ 80 theo chiều ngang —
-  ra khỏi sân / rơi vực là chết; boss không bị đẩy), TV "Sóng nhiễu" (80, r 60, người trúng mất hết nộ), Tủ lạnh "Tủ lạnh rơi"
-  (110, r 90). Máy đủ nộ thì tung chiêu cuối.
+- **Nộ + chiêu cuối**: mỗi người có nộ 0..100 (boss không có): +10 đầu mỗi lượt của mình, + sát thương gây cho người khác / 20,
+  + sát thương nhận vào / 10. Đầy 100 thì bắn được `weapon:"ult"` — chiêu cuối của vũ khí đang trang bị (sát thương vẫn nhân Tấn công /
+  chí mạng / Phòng thủ), bắn xong nộ về 0; chưa đủ nộ thì lỗi. Đại bác "Pháo kích" (3 × 450, r 60), Dép lào "Mưa dép" (5 × 220, r 30),
+  Chổi chà "Quét sạch" (600, r 110), Cây lau nhà "Lau sàn" (500, r 70, đẩy đối thủ trong bán kính ra xa tâm nổ 80 theo chiều ngang —
+  ra khỏi sân / rơi vực là chết; boss không bị đẩy), TV "Sóng nhiễu" (800, r 60, người trúng mất hết nộ), Tủ lạnh "Tủ lạnh rơi"
+  (1100, r 90). Máy đủ nộ thì tung chiêu cuối.
 - **Vũ khí** (mua bằng xu, mỗi cái có cấp 0..10 riêng, trang bị một cái; chỉ số gốc Tấn công / Phòng thủ / May mắn / Thể lực):
-  Đại bác (miễn phí, 10/5/2/10), Dép lào (1500, 15/8/4/15), Chổi chà (3000, 22/12/6/22), Cây lau nhà (6000, 30/16/8/30),
-  TV (12000, 40/24/10/40), Tủ lạnh (25000, 55/32/12/60). Chỉ số ở cấp L = `round(gốc × (1 + 0.1·L))` + ngọc khảm.
-  Trong trận: sát thương × (1 + Tấn công/100); giảm sát thương nhận = 3%/cấp giáp + Phòng thủ/100 (tối đa 60%);
-  May mắn = % chí mạng (× 1.5); máu tối đa = 200 + 15/cấp nón + Thể lực.
-  **Chuyển cấp**: đưa cấp của vũ khí A sang vũ khí B (A phải cao hơn B), A về +0; phí 300 xu × cấp.
-- **Ngọc khảm** Tấn công (+3/6/10), Phòng thủ (+2/4/7), May mắn (+1/2/4), Thể lực (+5/10/18) bậc I–III, rơi từ boss.
+  Đại bác (miễn phí, 100/50/20/100), Dép lào (15000, 150/80/40/150), Chổi chà (30000, 220/120/60/220),
+  Cây lau nhà (60000, 300/160/80/300), TV (120000, 400/240/100/400), Tủ lạnh (250000, 550/320/120/600). Chỉ số ở cấp L = `round(gốc × (1 + 0.1·L))` + ngọc khảm.
+  **Chuyển cấp**: đưa cấp của món A sang món B cùng loại (A phải cao hơn B), A về +0; phí 3000 xu × cấp.
+- **Nón** (thiên May mắn + Thể lực): Nón lá (miễn phí, 0/20/20/100), Mũ bảo hiểm (20000, 20/60/30/150),
+  Mũ len (40000, 40/80/50/220), Nón cao bồi (80000, 70/100/80/320), Mũ phù thuỷ (150000, 120/120/100/500),
+  Vương miện (300000, 160/180/130/800).
+  **Áo giáp** (thiên Phòng thủ + Thể lực): Áo thun (miễn phí, 0/40/0/150), Áo mưa (20000, 0/80/10/200),
+  Áo bóng đá (40000, 30/110/20/260), Áo phao (80000, 40/160/20/380), Giáp sắt (150000, 60/240/30/550),
+  Giáp rồng (300000, 100/320/50/800).
+  Mỗi món có cấp 0..10 và 3 ô khảm riêng, mua / dùng / chuyển cấp (trong cùng loại) như vũ khí; dùng 1 nón + 1 áo.
+- **Chỉ số trong trận** = tổng vũ khí + nón + áo đang dùng (mỗi món ở cấp của nó, cộng ngọc của nó): sát thương × (1 + Tấn công/1000);
+  giảm sát thương nhận = Phòng thủ/1000 (tối đa 60%); chí mạng = May mắn/10 % (× 1.5); máu tối đa = 2000 + Thể lực.
+  Đồ mặc định +0 (Đại bác + Nón lá + Áo thun): 100/110/40/350 → 2350 máu, giảm 11%, chí mạng 4%, Lực chiến 11200.
+- **Ngọc khảm** Tấn công (+30/60/100), Phòng thủ (+20/40/70), May mắn (+10/20/40), Thể lực (+50/100/180) bậc I–III, rơi từ boss.
   Mỗi vũ khí, nón và áo giáp có 3 ô, mở ở +3, +7, +10 theo cấp món đó; khảm đè thì ngọc cũ về kho, tháo miễn phí; cấp giảm
-  (cường hoá hỏng, chuyển cấp đi) thì ngọc ở ô bị khoá tự về kho. Ngọc có hiệu lực = vũ khí đang trang bị + nón + áo giáp
-  (`gear.bonus`), cộng vào chỉ số chiến đấu và Lực chiến.
-- **Trang bị** Vũ khí (ô `gun` = vũ khí đang trang bị) / Nón / Áo giáp, cấp 0..10.
-  **Lực chiến** = 1000 + 2·(Tấn công + Phòng thủ + May mắn + Thể lực, gồm ngọc) + 80·nón + 100·giáp.
-  Máy dùng Đại bác: dễ +0, thường +3, khó +6.
-- **Cường hoá**: mua đá 5 cấp (Lục 100, Lam 300, Tím 800, Vàng 2000, Đỏ 5000 xu); mỗi lần tốn 1 đá + phí 50·(L+1) xu,
-  tỉ lệ `95 − 10·L + 12·(tier−1)` (5..100%). Thất bại mất đá + phí và **tụt 1 cấp** (cấp 0 giữ 0), trừ khi dùng
+  (cường hoá hỏng, chuyển cấp đi) thì ngọc ở ô bị khoá tự về kho. Ngọc có hiệu lực = ngọc của vũ khí, nón, áo đang dùng
+  (`gear.bonus`), cộng vào chỉ số chiến đấu và Lực chiến; ngọc ở món không dùng vẫn nằm đó nhưng không tính.
+- **Trang bị** 3 ô: `gun` / `hat` / `armor` = vũ khí / nón / áo đang dùng; cường hoá ô nào là cường hoá món đang dùng ở ô đó.
+  **Lực chiến** = 10000 + 2·(Tấn công + Phòng thủ + May mắn + Thể lực, gồm ngọc).
+  Máy: dễ Đại bác + Nón lá + Áo thun +0; thường Đại bác + Mũ bảo hiểm + Áo mưa +3; khó Đại bác + Nón cao bồi + Áo phao +6.
+  Dữ liệu cũ: cấp nón / áo trong `arena_gear` và ngọc ở ô "hat" / "armor" chuyển sang Nón lá / Áo thun lúc khởi động
+  (một lần). Mọi món (vũ khí, nón, áo) lưu chung bảng `arena_arms` (id không trùng nhau), ô khảm ở `arena_sockets` theo id món.
+  Khi giá / chỉ số đổi (bản ×10), món đã mua giữ nguyên, không hoàn hay thu thêm xu.
+- **Cường hoá**: mua đá 5 cấp (Lục 500, Lam 1500, Tím 4000, Vàng 10000, Đỏ 25000 xu); mỗi lần tốn 1 đá + phí 100·(L+1) xu,
+  tỉ lệ `80 − 10·L + 6·(tier−1)` (1..95%); lên +10 (từ +9) **không quá 5%**, kể cả Đá Đỏ + bùa may mắn. Thất bại mất đá + phí và **tụt 1 cấp** (cấp 0 giữ 0), trừ khi dùng
   **Bùa giữ cấp** (2000 xu). **Bùa may mắn** (1500 xu) +15% tỉ lệ. Bùa đã chọn bị tiêu dù thành hay bại. Lên +7 / +10 thì
   trang bị biến đổi hình (`evolved`).
 - **Cược** 0, 10, 20, 50, 100, 200, 500, 1000 xu: người thắng ăn cược của mọi người thua (máy là nhà cái) + tiền người bỏ trận;
@@ -334,13 +345,17 @@ Khu riêng, trang `/arena/`. Bắn pháo theo lượt trên địa hình phá hu
 REST: `GET /api/arena/maps`; cần đăng nhập: `GET /api/arena/gear`, `POST /api/arena/stones/buy {tier, qty}`,
 `POST /api/arena/charms/buy {id, qty}`, `POST /api/arena/gear/upgrade {slot, stone, luck, protect}`,
 `POST /api/arena/arms/buy {id}`, `POST /api/arena/arms/equip {id}`, `POST /api/arena/arms/transfer {from, to}`,
-`POST /api/arena/gems/socket {slot?, arm, idx, kind, tier}`, `POST /api/arena/gems/unsocket {slot?, arm, idx}`
-(`slot` "gun" mặc định → vũ khí `arm`; "hat" / "armor" → nón / áo giáp, bỏ qua `arm`) → `{gear{arm, gun, hat, armor,
-bonus}, power, stats{dmgPct, maxHp, armorPct, atk, def, luck, sta}, arms[{id, name, price, desc, atk, def, luck, sta, eff{…},
-owned, level, equipped, sockets[{idx, unlockAt, open, gem}]}], slotSockets{hat:[…], armor:[…]} (cùng định dạng sockets),
+`POST /api/arena/items/buy {slot, id}`, `POST /api/arena/items/equip {slot, id}`, `POST /api/arena/items/transfer {slot, from, to}`
+(`slot` "gun" / "hat" / "armor", bỏ trống = "gun"; `arms/*` là bản cũ cho vũ khí),
+`POST /api/arena/gems/socket {slot?, item?, arm?, idx, kind, tier}`, `POST /api/arena/gems/unsocket {slot?, item?, arm?, idx}`
+(`slot` bỏ trống = "gun"; món = `item` (hoặc `arm` như cũ), bỏ trống = món đang dùng của ô đó)
+→ `{gear{arm, gun, hatId, hat, armorId, armor, bonus}, power, stats{dmgPct, maxHp, armorPct, atk, def, luck, sta},
+arms[{id, name, price, desc, atk, def, luck, sta, eff{…}, owned, level, equipped, sockets[{idx, unlockAt, open, gem}]}],
+hats[…], armors[…] (cùng định dạng arms), slotSockets{hat:[…], armor:[…]} (ô khảm nón / áo đang dùng),
 gems[{kind, tier, name, value, qty}], transferFeePerLevel,
-stones, stoneShop, charms, charmShop, fee, rates, luckBonus, balance, result?{…, arm}, transfer?{from, to, level}}`
-(400 sai tham số, 402 thiếu xu, 409 max / hết đá / hết bùa / đã có / chưa có vũ khí / không chuyển được / ô khoá / hết ngọc).
+stones, stoneShop, charms, charmShop, fee, rates, luckBonus, balance, result?{…, item, arm?}, transfer?{slot, from, to, level}}`
+(400 sai tham số / sai ô, 402 thiếu xu, 409 max / hết đá / hết bùa / đã có / chưa có / không chuyển được / ô khoá / hết ngọc).
+Trong trận `players[].gear` có `hatId`, `armorId` (luôn điền id, mặc định Nón lá / Áo thun).
 `GET /api/arena/bosses` → `[{id, name, level, hpPer, dmg, r, size, coins}]`.
 
 WebSocket `/ws/arena`, danh sách bàn `GET /api/arena/rooms`

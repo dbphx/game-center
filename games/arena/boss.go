@@ -38,11 +38,11 @@ type Boss struct {
 }
 
 var Bosses = []Boss{
-	{ID: "chuot", Name: "Vua Chuột", Level: BotEasy, HPPer: 350, Dmg: 35, R: 45, Size: 1.6, Noise: 10, Coins: 50,
+	{ID: "chuot", Name: "Vua Chuột", Level: BotEasy, HPPer: 3500, Dmg: 350, R: 45, Size: 1.6, Noise: 10, Coins: 50,
 		Drops: [2]int{1, 2}, Tiers: [2]int{1, 1}},
-	{ID: "robot", Name: "Robot Rác", Level: BotNormal, HPPer: 600, Dmg: 50, R: 55, Size: 1.9, Noise: 6, Coins: 100,
+	{ID: "robot", Name: "Robot Rác", Level: BotNormal, HPPer: 6000, Dmg: 500, R: 55, Size: 1.9, Noise: 6, Coins: 100,
 		Drops: [2]int{2, 3}, Tiers: [2]int{1, 2}, HighPct: 40},
-	{ID: "rong", Name: "Rồng Lửa", Level: BotHard, HPPer: 950, Dmg: 70, R: 65, Size: 2.3, Noise: 3, Coins: 200,
+	{ID: "rong", Name: "Rồng Lửa", Level: BotHard, HPPer: 9500, Dmg: 700, R: 65, Size: 2.3, Noise: 3, Coins: 200,
 		Drops: [2]int{3, 4}, Tiers: [2]int{2, 3}, HighPct: 25},
 }
 

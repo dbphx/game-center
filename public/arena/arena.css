@@ -712,3 +712,21 @@ button.socket:hover { transform: scale(1.08); }
 }
 @media (max-height: 520px) and (orientation: landscape) { .rage-meter { height: 36px; } }
 .battle { overflow: hidden; }
+
+/* ---------- Nhân vật to kiểu Gunny: phóng cả người + đồ quanh chân (gốc toạ độ) ---------- */
+.unit { --us: 1.5; }
+.u-scale { position: absolute; left: 0; top: 0; transform: scale(var(--us)); transform-origin: 0 0; }
+.u-hat.worn, .u-armor.worn { max-width: none; }
+.unit .u-tag { top: calc(-100px * var(--us) - 8px); }
+.unit .u-arrow { top: calc(-100px * var(--us) - 46px); }
+.boss-unit .u-tag { top: calc(-105px * var(--bs, 2) - 22px); }
+
+/* Tab Trang bị: chọn loại Vũ khí / Nón / Áo giáp */
+.item-cats { display: flex; gap: 6px; margin: 2px 0 10px; }
+.item-cats button { flex: 1; justify-content: center; padding: 6px 8px; font-size: 14px; border-radius: 999px; }
+.item-cats button.on { border-color: #ff9d00; background: linear-gradient(180deg, #fff3c4, #ffd36b); }
+/* Tay cầm dời ra trước người: vũ khí giơ cao (ngắm gần thẳng đứng) nằm cạnh thân, không che mặt. */
+.u-hand { left: 13px; top: -31px; }
+/* Số lớn (Lực chiến hàng chục nghìn, xu hàng triệu): không xuống dòng nhãn, thu chữ trên điện thoại. */
+.gp-label { white-space: nowrap; }
+@media (max-width: 480px) { .gp-num { font-size: 26px; } .gear-power { gap: 8px; padding: 8px 10px; } }

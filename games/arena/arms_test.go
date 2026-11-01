@@ -23,9 +23,9 @@ func TestArmsBuyEquipTransfer(t *testing.T) {
 	if _, err := e.a.EquipArm(ctx, e.uid, "dep"); !errors.Is(err, ErrNotOwned) {
 		t.Fatalf("chưa có thì không trang bị: %v", err)
 	}
-	e.setBalance(30000)
+	e.setBalance(300000)
 	inv, err := e.a.BuyArm(ctx, e.uid, "dep")
-	if err != nil || e.balance() != 28500 || inv.Gear.ArmID() != ArmCannon {
+	if err != nil || e.balance() != 285000 || inv.Gear.ArmID() != ArmCannon {
 		t.Fatalf("mua dép lào: %v ví %d %+v", err, e.balance(), inv.Gear)
 	}
 	if _, err := e.a.BuyArm(ctx, e.uid, "dep"); !errors.Is(err, ErrOwned) {
@@ -45,12 +45,12 @@ func TestArmsBuyEquipTransfer(t *testing.T) {
 	}
 	e.setBalance(1000)
 	if _, _, err := e.a.TransferArm(ctx, e.uid, ArmCannon, "tulanh"); !errors.Is(err, wallet.ErrNotEnoughCoins) {
-		t.Fatalf("phí 1500: %v", err)
+		t.Fatalf("phí 15000: %v", err)
 	}
-	e.setBalance(2000)
+	e.setBalance(20000)
 	inv, tr, err := e.a.TransferArm(ctx, e.uid, ArmCannon, "tulanh")
-	if err != nil || tr != (Transfer{ArmCannon, "tulanh", 5}) || inv.Arms["tulanh"] != 5 || inv.Arms[ArmCannon] != 0 ||
-		inv.Gear.Gun != 0 || e.balance() != 500 {
+	if err != nil || tr != (Transfer{SlotGun, ArmCannon, "tulanh", 5}) || inv.Arms["tulanh"] != 5 || inv.Arms[ArmCannon] != 0 ||
+		inv.Gear.Gun != 0 || e.balance() != 5000 {
 		t.Fatalf("chuyển cấp: %v %+v %+v ví %d", err, tr, inv.Arms, e.balance())
 	}
 	if _, _, err := e.a.TransferArm(ctx, e.uid, "dep", "tulanh"); !errors.Is(err, ErrNoLevel) {
@@ -61,10 +61,11 @@ func TestArmsBuyEquipTransfer(t *testing.T) {
 	if err != nil || inv.Gear.Arm != "tulanh" || inv.Gear.Gun != 5 {
 		t.Fatalf("trang bị: %v %+v", err, inv.Gear)
 	}
-	if s := inv.Gear.Stats(); s != (ArmStats{83, 48, 18, 90}) {
+	// Tủ lạnh +5 cộng nón lá 0/20/20/100, áo thun 0/40/0/150.
+	if s := inv.Gear.Stats(); s != (ArmStats{825, 480 + 60, 180 + 20, 900 + 250}) {
 		t.Fatalf("tủ lạnh +5: %+v", s)
 	}
-	if inv.Gear.MaxHP() != 290 || math.Abs(inv.Gear.DmgMul()-1.83) > 1e-9 || inv.Gear.CritPct() != 18 {
+	if inv.Gear.MaxHP() != 3150 || math.Abs(inv.Gear.DmgMul()-1.825) > 1e-9 || inv.Gear.CritPct() != 20 {
 		t.Fatalf("hiệu ứng: %d %v", inv.Gear.MaxHP(), inv.Gear.DmgMul())
 	}
 	// Cường hoá ô súng = vũ khí đang trang bị.
@@ -86,7 +87,7 @@ func TestArmsBuyEquipTransfer(t *testing.T) {
 		t.Fatalf("nguồn thấp hơn: %v", err)
 	}
 	r := reply(inv, 0)
-	if len(r.Arms) != 6 || r.TransferFeePerLevel != 300 || !r.Arms[0].Owned || r.Arms[3].Owned {
+	if len(r.Arms) != 6 || r.TransferFeePerLevel != 3000 || !r.Arms[0].Owned || r.Arms[3].Owned {
 		t.Fatalf("reply arms: %+v", r.Arms)
 	}
 }
@@ -113,7 +114,7 @@ func TestMigrateOldGun(t *testing.T) {
 		t.Fatal(err)
 	}
 	g, err := a.Gear(ctx, u.ID)
-	if err != nil || g != (Gear{Arm: ArmCannon, Gun: 4, Hat: 2}) {
+	if err != nil || g != (Gear{Arm: ArmCannon, Gun: 4, HatID: HatDefault, Hat: 2, ArmorID: ArmorDefault}) {
 		t.Fatalf("chuyển súng cũ: %+v %v", g, err)
 	}
 	// Chạy lại (khởi động lần sau) không ghi đè cấp đã đổi.
@@ -130,7 +131,7 @@ func TestGemsSocketLock(t *testing.T) {
 	e := newArmory(t, 100000)
 	atk2 := GemKey{GemAtk, 2}
 	sta3 := GemKey{GemSta, 3}
-	if atk2.Name() != "Ngọc Tấn công II" || atk2.Value() != 6 || sta3.Value() != 18 {
+	if atk2.Name() != "Ngọc Tấn công II" || atk2.Value() != 60 || sta3.Value() != 180 {
 		t.Fatalf("ngọc: %s %d", atk2.Name(), atk2.Value())
 	}
 	if OpenSockets(2) != 0 || OpenSockets(3) != 1 || OpenSockets(7) != 2 || OpenSockets(10) != 3 {
@@ -158,17 +159,17 @@ func TestGemsSocketLock(t *testing.T) {
 	}
 	e.a.SocketGem(ctx, e.uid, ArmCannon, 0, atk2)
 	inv, err := e.a.SocketGem(ctx, e.uid, ArmCannon, 1, sta3)
-	if err != nil || inv.Gems[atk2] != 1 || inv.Gems[sta3] != 0 || inv.Gear.Bonus != (ArmStats{Atk: 6, Sta: 18}) {
+	if err != nil || inv.Gems[atk2] != 1 || inv.Gems[sta3] != 0 || inv.Gear.Bonus != (ArmStats{Atk: 60, Sta: 180}) {
 		t.Fatalf("khảm: %v %+v %+v", err, inv.Gems, inv.Gear.Bonus)
 	}
-	if inv.Gear.Power() != before.Gear.Power()+2*(6+18) || inv.Gear.MaxHP() != before.Gear.MaxHP()+18 {
+	if inv.Gear.Power() != before.Gear.Power()+2*(60+180) || inv.Gear.MaxHP() != before.Gear.MaxHP()+180 {
 		t.Fatalf("khảm ngọc phải tăng lực chiến: %d → %d", before.Gear.Power(), inv.Gear.Power())
 	}
 	r := reply(inv, 0)
 	if s := r.Arms[0].Sockets; len(s) != 3 || !s[1].Open || s[2].Open || s[1].Gem == nil || s[1].Gem.Kind != GemSta || s[2].UnlockAt != 10 {
 		t.Fatalf("ô khảm reply: %+v", s)
 	}
-	if r.Arms[0].Eff.Atk != 17+6 || len(r.Gems) != 1 || r.Gems[0].Qty != 1 {
+	if r.Arms[0].Eff.Atk != 170+60 || len(r.Gems) != 1 || r.Gems[0].Qty != 1 {
 		t.Fatalf("eff/gems reply: %+v %+v", r.Arms[0].Eff, r.Gems)
 	}
 	// Khảm đè: ngọc cũ về kho.
@@ -183,7 +184,7 @@ func TestGemsSocketLock(t *testing.T) {
 	e.next = 99
 	inv, out, err := e.a.Upgrade(ctx, e.uid, SlotGun, 1, false, false)
 	if err != nil || !out.Dropped || inv.Gems[sta3] != 1 || inv.Sockets[ArmCannon][1].valid() || !inv.Sockets[ArmCannon][0].valid() ||
-		inv.Gear.Bonus != (ArmStats{Atk: 6}) {
+		inv.Gear.Bonus != (ArmStats{Atk: 60}) {
 		t.Fatalf("tụt cấp khoá ô: %v %+v %+v %+v", err, out, inv.Gems, inv.Sockets)
 	}
 	// Tháo ngọc: về kho; ô trống thì 409.
@@ -215,13 +216,13 @@ func TestCritAndUnlimitedSkills(t *testing.T) {
 	g := flat(700)
 	a := &Fighter{ID: "a", X: 200, Y: 700, HP: 200, MaxHP: 200, Alive: true}
 	l := Simulate(g, 200, 700, 45, 50, 0, "a", nil)
-	b := &Fighter{ID: "b", X: math.Round(l.X), Y: 700, HP: 500, MaxHP: 500, Alive: true}
+	b := &Fighter{ID: "b", X: math.Round(l.X), Y: 700, HP: 5000, MaxHP: 5000, Alive: true}
 	shell, _ := findWeapon(WeaponShell)
-	res := Fire(g, []*Fighter{a, b}, a, shell, 45, 50, 0, func() int { return 0 }) // 0 < may mắn 2: chí mạng
-	if len(res.Hits) != 1 || !res.Hits[0].Crit || res.Hits[0].Dmg != 47 {
-		t.Fatalf("chí mạng 30×1.1×1.5×0.95: %+v", res.Hits)
+	res := Fire(g, []*Fighter{a, b}, a, shell, 45, 50, 0, func() int { return 0 }) // 0 < may mắn 20+20 (phần nghìn): chí mạng
+	if len(res.Hits) != 1 || !res.Hits[0].Crit || res.Hits[0].Dmg != 441 {
+		t.Fatalf("chí mạng 300×1.1×1.5×0.89: %+v", res.Hits)
 	}
-	res = Fire(flat(700), []*Fighter{a, b}, a, shell, 45, 50, 0, func() int { return 2 })
+	res = Fire(flat(700), []*Fighter{a, b}, a, shell, 45, 50, 0, func() int { return 40 })
 	if len(res.Hits) != 1 || res.Hits[0].Crit {
 		t.Fatalf("không chí mạng: %+v", res.Hits)
 	}

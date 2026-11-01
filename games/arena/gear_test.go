@@ -70,38 +70,34 @@ func (e *armoryEnv) balance() int64 {
 	return b
 }
 
+// setLevel đặt cấp món đang dùng ở ô slot (vũ khí / nón / áo).
 func (e *armoryEnv) setLevel(slot string, lv int) {
 	tx, _ := e.w.Begin(ctx)
 	defer tx.Rollback()
-	if slot == SlotGun { // cấp vũ khí đang trang bị
-		inv, _ := loadInventory(ctx, tx, e.uid)
-		if err := setArm(ctx, tx, e.uid, inv.Gear.ArmID(), lv, true); err != nil {
-			e.t.Fatal(err)
-		}
-		tx.Commit()
-		return
-	}
-	if _, err := tx.ExecContext(ctx, `INSERT INTO arena_gear (user_id, slot, level) VALUES (?, ?, ?)
-		ON CONFLICT (user_id, slot) DO UPDATE SET level = excluded.level`, e.uid, slot, lv); err != nil {
+	inv, _ := loadInventory(ctx, tx, e.uid)
+	if err := setArm(ctx, tx, e.uid, inv.Gear.itemID(slot), lv, true); err != nil {
 		e.t.Fatal(err)
 	}
 	tx.Commit()
 }
 
 func TestRateFormula(t *testing.T) {
-	cases := [][3]int{{0, 1, 95}, {0, 2, 100}, {3, 1, 65}, {3, 2, 77}, {9, 1, 5}, {9, 5, 53}, {8, 1, 15}, {7, 3, 49}}
+	cases := [][3]int{{0, 1, 80}, {0, 2, 86}, {0, 5, 95}, {3, 1, 50}, {3, 2, 56}, {9, 1, 1}, {9, 5, 5}, {8, 1, 1}, {8, 5, 24}, {7, 3, 22}}
 	for _, c := range cases {
 		if got := Rate(c[0], c[1]); got != c[2] {
 			t.Fatalf("Rate(+%d, đá %d) = %d, phải %d", c[0], c[1], got, c[2])
 		}
 	}
-	if Fee(0) != 50 || Fee(9) != 500 {
-		t.Fatal("phí 50·(L+1)")
+	if RateCap(9) != 5 || RateCap(8) != 95 {
+		t.Fatal("lên +10 không quá 5%")
+	}
+	if Fee(0) != 100 || Fee(9) != 1000 {
+		t.Fatal("phí 100·(L+1)")
 	}
 }
 
 func TestBuyStonesAndUpgrade(t *testing.T) {
-	e := newArmory(t, 1000)
+	e := newArmory(t, 4600)
 	if _, err := e.a.BuyStones(ctx, e.uid, 6, 1); !errors.Is(err, ErrBadStone) {
 		t.Fatalf("đá cấp 6: %v", err)
 	}
@@ -121,28 +117,28 @@ func TestBuyStonesAndUpgrade(t *testing.T) {
 	if _, _, err := e.a.Upgrade(ctx, e.uid, SlotGun, 1, false, false); !errors.Is(err, ErrNoStone) {
 		t.Fatalf("hết Đá Lục: %v", err)
 	}
-	// Thành công: lên +1, mất 1 đá + phí 50.
+	// Thành công: lên +1, mất 1 đá + phí 100.
 	e.next = 0
 	inv, out, err := e.a.Upgrade(ctx, e.uid, SlotGun, 2, false, false)
-	if err != nil || !out.OK || out.Level != 1 || out.From != 0 || out.Rate != 100 || inv.Gear.Gun != 1 || inv.Stones[2] != 2 || e.balance() != 50 {
+	if err != nil || !out.OK || out.Level != 1 || out.From != 0 || out.Rate != 86 || inv.Gear.Gun != 1 || inv.Stones[2] != 2 || e.balance() != 0 {
 		t.Fatalf("cường hoá thành công: %+v %+v %v ví %d", out, inv, err, e.balance())
 	}
-	// Thất bại ở +1 (tỉ lệ 85+12=97, quay 99): tụt về +0, vẫn mất đá + phí.
+	// Thất bại ở +1 (tỉ lệ 70+6=76, quay 99): tụt về +0, vẫn mất đá + phí 200.
 	e.next = 99
-	e.setBalance(100)
+	e.setBalance(200)
 	inv, out, err = e.a.Upgrade(ctx, e.uid, SlotGun, 2, false, false)
 	if err != nil || out.OK || !out.Dropped || out.Level != 0 || out.From != 1 || inv.Gear.Gun != 0 || inv.Stones[2] != 1 || e.balance() != 0 {
 		t.Fatalf("thất bại tụt cấp: %+v %+v %v ví %d", out, inv, err, e.balance())
 	}
-	// Thất bại ở +0 (Đá Lục 95%): giữ 0, không tụt.
-	e.setBalance(150)
+	// Thất bại ở +0 (Đá Lục 80%): giữ 0, không tụt.
+	e.setBalance(600)
 	e.a.BuyStones(ctx, e.uid, 1, 1)
 	_, out, err = e.a.Upgrade(ctx, e.uid, SlotGun, 1, false, false)
 	if err != nil || out.OK || out.Dropped || out.Level != 0 {
 		t.Fatalf("cấp 0 không tụt: %+v %v", out, err)
 	}
 	// Thiếu xu phí: không mất đá.
-	e.setBalance(100)
+	e.setBalance(500)
 	inv, _ = e.a.BuyStones(ctx, e.uid, 1, 1)
 	e.setBalance(10)
 	if _, _, err := e.a.Upgrade(ctx, e.uid, SlotHat, 1, false, false); !errors.Is(err, wallet.ErrNotEnoughCoins) {
@@ -157,7 +153,7 @@ func TestBuyStonesAndUpgrade(t *testing.T) {
 	if _, _, err := e.a.Upgrade(ctx, e.uid, SlotArmor, 1, false, false); !errors.Is(err, ErrMaxed) {
 		t.Fatalf("đã max: %v", err)
 	}
-	if r := reply(inv, 0); len(r.Rates[SlotGun]) != 5 || r.Fee[SlotGun] != 50 {
+	if r := reply(inv, 0); len(r.Rates[SlotGun]) != 5 || r.Fee[SlotGun] != 100 {
 		t.Fatalf("reply: %+v", r)
 	}
 }
@@ -181,10 +177,10 @@ func TestCharmsLuckProtectEvolve(t *testing.T) {
 		t.Fatalf("mua bùa may mắn: %+v %v", inv.Charms, err)
 	}
 	e.a.BuyCharms(ctx, e.uid, CharmProtect, 1)
-	// Bùa may mắn +15%: quay 50 → 50 < 45+15 thành công; bùa bị tiêu.
-	e.next = 50
+	// Bùa may mắn +15%: quay 40 → 40 < 30+15 thành công; bùa bị tiêu.
+	e.next = 40
 	inv, out, err := e.a.Upgrade(ctx, e.uid, SlotHat, 1, true, false)
-	if err != nil || !out.OK || out.Rate != 60 || out.Level != 6 || inv.Charms[CharmLuck] != 1 {
+	if err != nil || !out.OK || out.Rate != 45 || out.Level != 6 || inv.Charms[CharmLuck] != 1 {
 		t.Fatalf("bùa may mắn: %+v %+v %v", out, inv.Charms, err)
 	}
 	// Lên +7: biến đổi.
@@ -251,9 +247,10 @@ func TestGearAPI(t *testing.T) {
 		t.Fatalf("chưa đăng nhập: %d", code)
 	}
 	var g GearReply
-	if code := call("GET", "/api/arena/gear", e.token, nil, &g); code != 200 || g.Power != 1000+2*27 || g.Stats.MaxHP != 210 || len(g.Arms) != len(Arms) || !g.Arms[0].Equipped ||
+	if code := call("GET", "/api/arena/gear", e.token, nil, &g); code != 200 || g.Power != 10000+2*(270+140+190) || g.Stats.MaxHP != 2350 || len(g.Arms) != len(Arms) || !g.Arms[0].Equipped ||
+		len(g.Hats) != len(Hats) || !g.Hats[0].Equipped || len(g.Armors) != len(Armors) || g.Gear.HatID != HatDefault ||
 		g.Balance != 5000 || len(g.StoneShop) != 5 || len(g.CharmShop) != 2 || g.LuckBonus != 15 || g.Stones["1"] != 0 ||
-		g.Rates[SlotGun][0] != 95 || g.Fee[SlotHat] != 50 {
+		g.Rates[SlotGun][0] != 80 || g.Fee[SlotHat] != 100 {
 		t.Fatalf("GET gear: %d %+v", code, g)
 	}
 	if code := call("POST", "/api/arena/stones/buy", e.token, map[string]int{"tier": 9, "qty": 1}, nil); code != 400 {
@@ -262,7 +259,7 @@ func TestGearAPI(t *testing.T) {
 	if code := call("POST", "/api/arena/stones/buy", e.token, map[string]int{"tier": 5, "qty": 2}, nil); code != 402 {
 		t.Fatalf("thiếu xu: %d", code)
 	}
-	if code := call("POST", "/api/arena/stones/buy", e.token, map[string]int{"tier": 1, "qty": 2}, &g); code != 200 || g.Stones["1"] != 2 || g.Balance != 4800 {
+	if code := call("POST", "/api/arena/stones/buy", e.token, map[string]int{"tier": 1, "qty": 2}, &g); code != 200 || g.Stones["1"] != 2 || g.Balance != 4000 {
 		t.Fatalf("mua đá: %d %+v", code, g.Stones)
 	}
 	if code := call("POST", "/api/arena/charms/buy", e.token, map[string]any{"id": "luck", "qty": 1}, &g); code != 200 || g.Charms["luck"] != 1 {
@@ -273,7 +270,7 @@ func TestGearAPI(t *testing.T) {
 	}
 	e.next = 0
 	if code := call("POST", "/api/arena/gear/upgrade", e.token, map[string]any{"slot": "gun", "stone": 1, "luck": true}, &g); code != 200 ||
-		g.Result == nil || !g.Result.OK || g.Result.Rate != 100 || g.Gear.Gun != 1 || g.Power != 1060 || g.Charms["luck"] != 0 {
+		g.Result == nil || !g.Result.OK || g.Result.Rate != 95 || g.Gear.Gun != 1 || g.Power != 10000+2*(297+140+190) || g.Charms["luck"] != 0 {
 		t.Fatalf("cường hoá: %d %+v %+v", code, g.Result, g.Gear)
 	}
 	if code := call("POST", "/api/arena/gear/upgrade", e.token, map[string]any{"slot": "x", "stone": 1}, nil); code != 400 {
@@ -302,6 +299,7 @@ func TestGearAPI(t *testing.T) {
 			t.Fatalf("%s %v: %d, phải %d", c.path, c.body, code, c.code)
 		}
 	}
+	e.setBalance(50000) // dép lào 15000, phí chuyển cấp 3000/cấp
 	if code := call("POST", "/api/arena/arms/buy", e.token, map[string]any{"id": "dep"}, &g); code != 200 || !g.Arms[1].Owned {
 		t.Fatalf("mua dép: %d %+v", code, g.Arms)
 	}
@@ -311,5 +309,19 @@ func TestGearAPI(t *testing.T) {
 	}
 	if code := call("POST", "/api/arena/arms/equip", e.token, map[string]any{"id": "dep"}, &g); code != 200 || g.Gear.Arm != "dep" || g.Gear.Gun != 1 {
 		t.Fatalf("trang bị dép: %d %+v", code, g.Gear)
+	}
+}
+
+// Lên +10 không quá 5%, kể cả Đá Đỏ + bùa may mắn.
+func TestRateCapAtTen(t *testing.T) {
+	ctx := context.Background()
+	e := newArmory(t, 100000)
+	e.setLevel(SlotGun, MaxLevel-1)
+	e.a.BuyStones(ctx, e.uid, 5, 1)
+	e.a.BuyCharms(ctx, e.uid, CharmLuck, 1)
+	e.next = 5 // quay 5 → không < 5: thất bại
+	_, out, err := e.a.Upgrade(ctx, e.uid, SlotGun, 5, true, false)
+	if err != nil || out.OK || out.Rate != 5 {
+		t.Fatalf("+9 → +10 với Đá Đỏ + bùa may mắn: %+v %v", out, err)
 	}
 }

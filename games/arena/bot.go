@@ -14,8 +14,11 @@ const (
 var BotLevels = []string{BotEasy, BotNormal, BotHard}
 
 // botGear là trang bị của máy theo mức.
-var botGear = map[string]Gear{BotEasy: {Arm: ArmCannon}, BotNormal: {Arm: ArmCannon, Gun: 3, Hat: 3, Armor: 3},
-	BotHard: {Arm: ArmCannon, Gun: 6, Hat: 6, Armor: 6}}
+var botGear = map[string]Gear{
+	BotEasy:   {Arm: ArmCannon, HatID: HatDefault, ArmorID: ArmorDefault},
+	BotNormal: {Arm: ArmCannon, Gun: 3, HatID: "mubh", Hat: 3, ArmorID: "aomua", Armor: 3},
+	BotHard:   {Arm: ArmCannon, Gun: 6, HatID: "caoboi", Hat: 6, ArmorID: "aophao", Armor: 6},
+}
 
 // botNoise là sai số (lực, góc) của máy theo mức.
 var botNoise = map[string][2]float64{BotEasy: {12, 8}, BotNormal: {6, 4}, BotHard: {2, 1}}
@@ -77,7 +80,7 @@ func BotAim(g Ground, fs []*Fighter, me *Fighter, level string, wind int, rng *m
 	best.Angle = math.Max(0, math.Min(180, best.Angle+(rng.Float64()*2-1)*n[1]))
 	best.Weapon = WeaponShell
 	switch {
-	case target.HP > 40 && level != BotEasy && rng.IntN(3) == 0:
+	case target.HP > 400 && level != BotEasy && rng.IntN(3) == 0:
 		best.Weapon = WeaponHeavy
 	case rng.IntN(4) == 0:
 		best.Weapon = WeaponTriple

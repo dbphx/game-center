@@ -36,6 +36,12 @@
     { id: 'heavy', name: 'Bom tạ', note: '55 sát thương, nổ rộng' },
     { id: 'tele', name: 'Dịch chuyển', note: 'Bay tới đâu, bạn tới đó' },
   ];
+  // Ghi chú đạn theo số liệu server gửi trong state.weapons ({id, dmg, r, n}); chưa có thì dùng chữ mặc định.
+  const weaponNote = (w) => {
+    const sw = state && (state.weapons || []).find((x) => x.id === w.id);
+    if (!sw || !sw.dmg) return w.note;
+    return sw.n > 1 ? `${sw.n} viên × ${xu(sw.dmg)} sát thương` : `${xu(sw.dmg)} sát thương${w.id === 'heavy' ? ', nổ rộng' : ''}`;
+  };
   const GEAR = {
     gun: { name: 'Vũ khí', stat: (l) => `+${l * 8}% sát thương` },
     hat: { name: 'Nón', stat: (l) => `+${l * 15} máu tối đa` },
@@ -61,12 +67,12 @@
   const ARM_STATS = [
     { k: 'atk', name: 'Tấn công', short: 'TC' },
     { k: 'def', name: 'Phòng thủ', short: 'PT' },
-    { k: 'luck', name: 'May mắn', short: 'MM', unit: '%' },
+    { k: 'luck', name: 'May mắn', short: 'MM', pct: true }, // server gửi phần nghìn: 120 → 12% chí mạng
     { k: 'sta', name: 'Thể lực', short: 'TL' },
   ];
   const armData = (id) => (gear && (gear.arms || []).find((x) => x.id === id)) || null;
   const statAt = (a, k, lv) => Math.round((a[k] || 0) * (1 + 0.1 * lv));
-  const statVal = (st, v) => `${v}${st.unit || ''}`;
+  const statVal = (st, v) => (st.pct ? `${xu(Math.round((v || 0) / 10))}%` : xu(v || 0));
   // Dòng chỉ số ngắn của vũ khí ở cấp lv (mặc định cấp hiện có).
   const armStatLine = (id, lv) => {
     const a = armData(id);
@@ -98,6 +104,28 @@
   const fbChain = (base, lv, last) => [form(lv || 0) > 1 ? `${IMG}${base}.png` : '', last || ''].filter(Boolean).join('|');
   // Icon vũ khí theo dạng; thiếu ảnh dạng 2 / 3 thì dùng dạng 1, thiếu nữa thì hình súng theo dạng.
   const armIcon = (id, lv, cls = '') => `<img class="${cls}" src="${formSrc('icon_arm_' + id, lv)}" data-fb="${fbChain('icon_arm_' + id, lv, `${IMG}gun_${form(lv || 0)}.png`)}" alt="" draggable="false">`;
+  // Ba loại trang bị có nhiều món (mua, trang bị, cường hoá riêng từng món, chuyển cấp trong cùng loại, 3 ô khảm):
+  // Vũ khí (gear.arms), Nón (gear.hats), Áo giáp (gear.armors) — cùng định dạng.
+  const KINDS = {
+    gun: { list: 'arms', icon: 'icon_arm_', old: 'gun', name: 'Vũ khí', unit: 'vũ khí', eq: (g) => armOf(g) },
+    hat: { list: 'hats', icon: 'icon_hat_', old: 'hat', name: 'Nón', unit: 'nón', eq: (g) => (g && g.hatId) || '' },
+    armor: { list: 'armors', icon: 'icon_armor_', old: 'armor', name: 'Áo giáp', unit: 'áo', eq: (g) => (g && g.armorId) || '' },
+  };
+  const itemsOf = (cat) => (gear && gear[KINDS[cat].list]) || [];
+  const hasItems = (cat) => itemsOf(cat).length > 0;
+  const itemData = (cat, id) => itemsOf(cat).find((x) => x.id === id) || null;
+  const itemIcon = (cat, id, lv, cls = '') => {
+    if (cat === 'gun') return armIcon(id, lv, cls);
+    const old = `${IMG}${KINDS[cat].old}_${form(lv || 0)}.png`;
+    if (!id) return `<img class="${cls}" src="${old}" alt="" draggable="false">`;
+    return `<img class="${cls}" src="${formSrc(KINDS[cat].icon + id, lv)}" data-fb="${fbChain(KINDS[cat].icon + id, lv, old)}" alt="" draggable="false">`;
+  };
+  const itemName = (cat, id) => (itemData(cat, id) || {}).name || (cat === 'gun' ? armName(id) : GEAR[cat].name);
+  const itemStatLine = (cat, id, lv) => {
+    const a = itemData(cat, id);
+    if (!a) return '';
+    return ARM_STATS.map((st) => `${st.short} ${statVal(st, statAt(a, st.k, lv))}`).join(' · ');
+  };
   document.addEventListener('error', (e) => {
     const im = e.target;
     if (!(im instanceof HTMLImageElement) || !im.dataset.fb) return;
@@ -113,7 +141,8 @@
     for (const it of (d && d.images) || []) if (it && it.file) artIdx[it.file] = it;
     if (state && state.phase !== 'lobby') { $('units').dataset.sig = ''; renderUnits(); }
   }).catch(() => { artIdx = {}; });
-  const HELD_W = 72; // chiều dài hiển thị tối đa của vũ khí cầm tay khi manifest không ghi scale
+  const HELD_W = 66; // chiều dài hiển thị tối đa của vũ khí cầm tay khi manifest không ghi scale
+  const HELD_H = 28; // chiều cao tối đa: ti vi, tủ lạnh (nhất là dạng 2 / 3) không che mặt nhân vật
   // Ảnh vũ khí nhân vật cầm: held_<id>_<dạng> → held_<id> → (chưa vẽ) nòng arm_<id> / cannon_barrel theo dạng.
   // Trả { src, w, h, gx, gy } (px hiển thị, điểm cầm tính từ góc trái trên ảnh).
   function heldArt(arm, lv) {
@@ -122,13 +151,37 @@
     for (const file of [f > 1 ? `held_${arm}_${f}.png` : '', `held_${arm}.png`]) {
       const it = file && idx[file];
       if (!it || !it.w) continue;
-      const k = it.scale || Math.min(1, HELD_W / it.w); // món to (tủ lạnh, ti vi) thu lại để không che người
+      const k = it.scale || Math.min(1, HELD_W / it.w, HELD_H / (it.h || HELD_H)); // món to (tủ lạnh, ti vi) thu lại để không che người
       const grip = Array.isArray(it.grip) ? it.grip : Array.isArray(it.anchor) ? it.anchor : [it.w * 0.25, it.h * 0.5];
       return { src: IMG + file, w: it.w * k, h: it.h * k, gx: grip[0] * k, gy: grip[1] * k };
     }
     const base = arm === 'cannon' ? 'cannon_barrel' : 'arm_' + arm;
     const file = f > 1 && idx[`${base}_${f}.png`] ? `${base}_${f}.png` : `${base}.png`;
     return { src: IMG + file, w: 72, h: 20, gx: 6, gy: 10 };
+  }
+  // Nón / áo mặc trên người: worn_<hat|armor>_<id>[_<dạng>].png vẽ trên khung 96×96 như hat_N / armor_N (tâm ảnh
+  // trùng tâm đầu / ngực); manifest có thể ghi "anchor": [x, y] (điểm đặt vào tâm đầu / ngực) và "scale".
+  // Chưa có ảnh riêng thì dùng hình nón / áo cũ theo dạng. Trả { src, fb, w, h, ax, ay } (px trong khung nhân vật).
+  // Khung nhân vật 96×148 hiển thị cao CHAR_H: điểm đỉnh đầu (headTop) / ngực (chest) đổi sang px trong khung.
+  const CHAR_H = 74;
+  const WORN = { hat: { k: 42 / 96, x: 25, y: 5, pt: 'headTop', def: [48, 44] }, armor: { k: 38 / 96, x: 25, y: 53, pt: 'chest', def: [47, 114] } };
+  function wornArt(slot, id, lv) {
+    const f = form(lv || 0);
+    const idx = artIdx || {};
+    const spec = WORN[slot];
+    const old = `${IMG}${slot}_${f}.png`;
+    if (id) {
+      for (const file of [f > 1 ? `worn_${slot}_${id}_${f}.png` : '', `worn_${slot}_${id}.png`]) {
+        const it = file && idx[file];
+        if (!it || !it.w) continue;
+        const fk = CHAR_H / 148; // khung nhân vật 96×148 → px hiển thị
+        const k = it.scale || fk / (it.frameScale || 2);
+        const an = Array.isArray(it.anchor) ? it.anchor : [it.w / 2, it.h / 2];
+        const pt = Array.isArray(it[spec.pt]) ? it[spec.pt] : spec.def;
+        return { src: IMG + file, fb: old, w: it.w * k, h: it.h * k, ax: pt[0] * fk - an[0] * k, ay: pt[1] * fk - an[1] * k };
+      }
+    }
+    return { src: old, fb: '', w: 96 * spec.k, h: 96 * spec.k, ax: spec.x - 48 * spec.k, ay: spec.y - 48 * spec.k };
   }
   const betText = (b) => (b ? `${xu(b)} xu` : 'Chơi vui');
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -542,8 +595,10 @@
     const g = p.gear || {};
     return ['gun', 'hat', 'armor'].map((k) => {
       const arm = k === 'gun' && (armOf(g) !== 'cannon' || g[k]) ? armOf(g) : '';
-      const pic = arm ? armIcon(arm, g[k]) : g[k] ? `<img src="${IMG}${k}_${form(g[k])}.png" alt="" draggable="false">` : '';
-      const title = arm ? `${ARM_NAMES[arm] || arm} cấp ${g[k] || 0}` : `${GEAR[k].name} cấp ${g[k] || 0}`;
+      const wid = k === 'hat' ? g.hatId : k === 'armor' ? g.armorId : '';
+      const pic = arm ? armIcon(arm, g[k]) : wid ? itemIcon(k, wid, g[k]) : g[k] ? `<img src="${IMG}${k}_${form(g[k])}.png" alt="" draggable="false">` : '';
+      const nm = wid ? ((itemData(k, wid) || {}).name || GEAR[k].name) : arm ? ARM_NAMES[arm] || arm : GEAR[k].name;
+      const title = `${nm} cấp ${g[k] || 0}`;
       return `<span class="gb" title="${escapeHtml(title)}">${pic}<b>${g[k] || 0}</b></span>`;
     }).join('');
   }
@@ -599,8 +654,16 @@
   function unitHtml(p) {
     const i = seatIndex(p);
     const gr = p.gear || {};
-    const hat = gr.hat ? `<img class="u-hat f${form(gr.hat)}" src="${IMG}hat_${form(gr.hat)}.png" alt="" draggable="false">` : '';
-    const armor = gr.armor ? `<img class="u-armor f${form(gr.armor)}" src="${IMG}armor_${form(gr.armor)}.png" alt="" draggable="false">` : '';
+    // Nón / áo: món đang mặc (hatId / armorId) vẽ theo ảnh riêng; bản cũ chỉ có cấp thì vẽ hình theo dạng khi đã cường hoá.
+    const worn = (slot) => {
+      const id = slot === 'hat' ? gr.hatId : gr.armorId;
+      if (!id && !gr[slot]) return '';
+      const w = wornArt(slot, id, gr[slot]);
+      return `<img class="u-${slot} worn f${form(gr[slot] || 0)}" src="${w.src}"${w.fb ? ` data-fb="${w.fb}"` : ''} alt="" draggable="false"
+        style="left:${w.ax.toFixed(1)}px;top:${w.ay.toFixed(1)}px;width:${w.w.toFixed(1)}px;height:${w.h.toFixed(1)}px">`;
+    };
+    const hat = worn('hat');
+    const armor = worn('armor');
     const top = Math.max(form(gr.gun || 0), form(gr.hat || 0), form(gr.armor || 0));
     const aura = top >= 2 ? `<img class="u-aura f${top}" src="${IMG}aura_${top === 3 ? 10 : 7}.png" alt="" draggable="false">` : '';
     const gf = form(gr.gun || 0);
@@ -609,12 +672,13 @@
     const h = heldArt(arm, gr.gun);
     const held = `<span class="u-hand"><img class="u-held arm-${arm}${gf > 1 ? ` f${gf}` : ''}" src="${h.src}" alt="" draggable="false"
         style="left:${-h.gx}px;top:${-h.gy}px;width:${h.w}px;height:${h.h}px;transform-origin:${h.gx}px ${h.gy}px"></span>`;
+    // u-scale phóng to cả nhân vật + đồ (gốc = chân) kiểu Gunny; tên / máu / mũi tên đặt theo chiều cao đã phóng.
     return `<div class="unit" data-pid="${escapeHtml(p.id)}" style="--seat:${SEAT_TINT[i]}">
-        ${aura}
+        <div class="u-scale">${aura}
         <div class="u-flip"><div class="u-body">
           <span class="u-char">${C.sprite(lookOf(p), { dir: 'right', size: 74 })}${armor}${hat}</span>
           ${held}
-        </div></div>
+        </div></div></div>
         <div class="u-tag"><span class="u-name">${escapeHtml(p.name)}</span><span class="u-hp"><i></i></span><span class="u-rage hidden"><i></i></span></div>
         <span class="u-arrow"></span>
       </div>`;
@@ -724,7 +788,7 @@
     const bar = el.querySelector('.u-hp i');
     bar.style.width = `${pct * 100}%`;
     bar.classList.toggle('low', pct < 0.3);
-    el.querySelector('.u-hp').title = `${Math.max(0, Math.round(p.hp))}/${p.maxHp}`;
+    el.querySelector('.u-hp').title = `${xu(Math.max(0, Math.round(p.hp)))}/${xu(p.maxHp || 0)}`;
   }
 
   function renderWind() {
@@ -777,7 +841,7 @@
     const can = myTurn();
     $('hud').classList.toggle('waiting', !can);
     // Đạn đặc biệt không giới hạn số lần mỗi trận.
-    $('weapons').innerHTML = WEAPONS.map((w) => `<button class="weapon${aim.weapon === w.id ? ' on' : ''}" data-weapon="${w.id}" ${!can ? 'disabled' : ''} title="${w.name} — ${w.note}">
+    $('weapons').innerHTML = WEAPONS.map((w) => `<button class="weapon${aim.weapon === w.id ? ' on' : ''}" data-weapon="${w.id}" ${!can ? 'disabled' : ''} title="${w.name} — ${weaponNote(w)}">
           <img src="${IMG}icon_${w.id}.png" alt="" draggable="false"><span class="wn">${w.name}</span></button>`).join('') + ultButton(mine, can);
     if (aim.weapon === 'ult' && !rageFull(mine)) { aim.weapon = 'shell'; $('weapons').querySelector('[data-weapon="shell"]')?.classList.add('on'); }
     renderRage(mine);
@@ -1037,7 +1101,7 @@
     for (const h of m.hits || []) {
       if (state && isBossId(h.id)) {
         const b = bossOf(state);
-        floater(b.x, (b.y || 700) - 220, `−${Math.round(h.dmg)}`, h.crit ? 'dmg crit' : 'dmg');
+        floater(b.x, (b.y || 700) - 220, `−${xu(Math.round(h.dmg))}`, h.crit ? 'dmg crit' : 'dmg');
         if (h.crit) floater(b.x, (b.y || 700) - 270, 'Chí mạng!', 'crit-label');
         if (h.hp != null) b.hp = h.hp;
         bossHurt();
@@ -1047,7 +1111,7 @@
       }
       const p = state && state.players.find((q) => q.id === h.id);
       if (!p) continue;
-      floater(p.x, (p.y || 700) - 120, `−${Math.round(h.dmg)}`, h.crit ? 'dmg crit' : 'dmg');
+      floater(p.x, (p.y || 700) - 120, `−${xu(Math.round(h.dmg))}`, h.crit ? 'dmg crit' : 'dmg');
       if (h.crit) floater(p.x, (p.y || 700) - 170, 'Chí mạng!', 'crit-label');
       // Cập nhật thanh máu ngay khi nổ, không chờ state.
       p.hp = h.hp;
@@ -1152,7 +1216,9 @@
     // Camera điện thoại: theo đạn, không thì theo người tới lượt.
     if (!focus && state.phase === 'playing') {
       const p = state.players.find((q) => q.id === state.turn);
+      const b = bossOf(state);
       if (p) focus = { x: p.x };
+      else if (b && isBossId(state.turn)) focus = { x: b.x }; // điện thoại: boss ra đòn thì camera quay sang boss
     }
     updateCamera(focus);
     // Nòng của người khác chạy theo tin ngắm.
@@ -1414,17 +1480,18 @@
     $('gear-list').innerHTML = ['gun', 'hat', 'armor'].map((k) => {
       const lv = (gear.gear || {})[k] || 0;
       const pips = Array.from({ length: max }, (_, i) => `<i class="${i < lv ? 'on' : ''}"></i>`).join('');
-      const pic = k === 'gun' ? armIcon(armOf(gear.gear), lv, 'gc-img') : `<img class="gc-img" src="${IMG}${k}_${form(lv)}.png" alt="" draggable="false">`;
-      const name = k === 'gun' ? armName(armOf(gear.gear)) : GEAR[k].name;
+      const id = KINDS[k].eq(gear.gear);
+      const pic = itemIcon(k, id, lv, 'gc-img');
+      const name = k === 'gun' || hasItems(k) ? itemName(k, id) : GEAR[k].name;
       return `<div class="gear-cell"><button type="button" class="gear-card${forge.slot === k ? ' on' : ''}" data-slot="${k}">
           ${pic}
           <span class="gc-info">
             <span class="gc-name">${escapeHtml(name)} <span class="lv-chip">+${lv}</span></span>
             <span class="gc-pips">${pips}</span>
-            <span class="gc-stat">${k === 'gun' ? armStatLine(armOf(gear.gear), lv) || GEAR[k].stat(lv) : GEAR[k].stat(lv)}</span>
+            <span class="gc-stat">${itemStatLine(k, id, lv) || GEAR[k].stat(lv)}</span>
             <span class="gc-form">${lv >= 10 ? 'Dạng huyền thoại' : lv >= 7 ? 'Đã biến đổi · lần nữa ở +10' : 'Biến đổi ở +7 / +10'}</span>
           </span>
-        </button>${k === 'gun' ? socketsHtml(armData(armOf(gear.gear)) || {}, 'forge') : slotSocketsHtml(k)}</div>`;
+        </button>${k === 'gun' || (hasItems(k) && itemData(k, id)) ? socketsHtml(k, itemData(k, id) || {}, 'forge') : slotSocketsHtml(k)}</div>`;
     }).join('');
     renderForge();
     renderStoneShop();
@@ -1435,7 +1502,8 @@
     const k = forge.slot;
     const lv = (gear.gear || {})[k] || 0;
     const max = gear.maxLevel || 10;
-    const slotName = k === 'gun' ? armName(armOf(gear.gear)) : GEAR[k].name;
+    const curId = KINDS[k].eq(gear.gear);
+    const slotName = k === 'gun' || hasItems(k) ? itemName(k, curId) : GEAR[k].name;
     const rates = ((gear.rates || {})[k]) || [];
     const fee = ((gear.fee || {})[k]) || 0;
     if (lv >= max || !rates.length) {
@@ -1467,12 +1535,12 @@
     const evolve = lv + 1 === 7 || lv + 1 === 10 ? `<span class="evolve-tag">${I.svg('sparkles')}Biến đổi!</span>` : '';
     $('forge').innerHTML = `
       <div class="forge-head">${escapeHtml(slotName)} <b>+${lv}</b> → <b class="up">+${lv + 1}</b> ${evolve}
-        <span class="muted">${k === 'gun' ? armStatLine(armOf(gear.gear), lv + 1) || GEAR[k].stat(lv + 1) : GEAR[k].stat(lv + 1)}</span></div>
+        <span class="muted">${itemStatLine(k, curId, lv + 1) || GEAR[k].stat(lv + 1)}</span></div>
       <div class="stone-row">${stones}</div>
       <div class="charm-row">${CHARMS.map(charm).join('')}</div>
       <div class="forge-go">
         <div class="forge-anvil" id="forge-anvil">
-          ${k === 'gun' ? armIcon(armOf(gear.gear), lv, 'fa-item').replace('<img ', '<img id="forge-item" ') : `<img class="fa-item" id="forge-item" src="${IMG}${k}_${form(lv)}.png" alt="" draggable="false">`}
+          ${itemIcon(k, curId, lv, 'fa-item').replace('<img ', '<img id="forge-item" ')}
           ${stoneImg(forge.stone, 'fa-stone')}
           <img class="fa-fx hidden" id="forge-fx" alt="" draggable="false">
           <span class="fa-label hidden" id="forge-label"></span>
@@ -1518,33 +1586,43 @@
 
   // ---------- Vũ khí: mua, trang bị, chuyển cấp cường hoá ----------
 
-  const xfer = { from: '', to: '', busy: false };
+  const xfer = { from: '', to: '', busy: false, cat: 'gun' };
+  let itemCat = 'gun'; // loại đang xem ở tab Trang bị: gun | hat | armor
 
   function renderArms() {
     const box = $('arms-grid');
     if (!box || !gear) return;
-    const arms = gear.arms || [];
-    if (!arms.length) { box.innerHTML = '<p class="muted">Chưa có danh sách vũ khí.</p>'; $('arm-xfer').innerHTML = ''; return; }
-    // Thanh chỉ số so với món mạnh nhất cùng thuộc tính (tính cả cấp đã cường hoá).
+    document.querySelectorAll('#item-cats [data-cat]').forEach((b) => b.classList.toggle('on', b.dataset.cat === itemCat));
+    const cat = itemCat;
+    const arms = itemsOf(cat);
+    if (!arms.length) {
+      box.innerHTML = `<p class="muted">Chưa có danh sách ${KINDS[cat].unit}.</p>`;
+      $('arm-xfer').innerHTML = '';
+      renderGemPick();
+      renderGemBag();
+      return;
+    }
+    // Thanh chỉ số chia theo chỉ số gốc lớn nhất của danh mục cùng loại (món đã cường hoá vượt thì đầy thanh).
     const top = {};
-    for (const st of ARM_STATS) top[st.k] = Math.max(1, ...arms.map((a) => (a.eff || a)[st.k] || 0));
+    for (const st of ARM_STATS) top[st.k] = Math.max(1, ...arms.map((a) => a[st.k] || 0));
     box.innerHTML = arms.map((a) => {
       const vals = a.owned && a.eff ? a.eff : a;
       const bars = ARM_STATS.map((st) => {
         const v = vals[st.k] || 0;
         return `<span class="as-row as-${st.k}" title="${st.name}${st.k === 'luck' ? ' (tỉ lệ chí mạng)' : ''}">
-            <span class="as-name">${st.name}</span><span class="as-bar"><i style="width:${Math.round((v / top[st.k]) * 100)}%"></i></span><b>${statVal(st, v)}</b></span>`;
+            <span class="as-name">${st.name}</span><span class="as-bar"><i style="width:${Math.min(100, Math.round((v / top[st.k]) * 100))}%"></i></span><b>${statVal(st, v)}</b></span>`;
       }).join('');
       let act;
+      const key = `${cat}:${escapeHtml(a.id)}`;
       if (a.equipped) act = `<button type="button" class="arm-btn" disabled>${I.svg('check')}Đang dùng</button>`;
-      else if (a.owned) act = `<button type="button" class="arm-btn primary" data-equip="${escapeHtml(a.id)}">Trang bị</button>`;
-      else act = `<button type="button" class="arm-btn primary" data-buy-arm="${escapeHtml(a.id)}" ${gear.balance < a.price ? 'disabled title="Không đủ xu"' : ''}>Mua · ${I.svg('coins')}${xu(a.price)}</button>`;
+      else if (a.owned) act = `<button type="button" class="arm-btn primary" data-equip="${key}">Trang bị</button>`;
+      else act = `<button type="button" class="arm-btn primary" data-buy-arm="${key}" ${gear.balance < a.price ? 'disabled title="Không đủ xu"' : ''}>Mua · ${I.svg('coins')}${xu(a.price)}</button>`;
       return `<div class="arm-card${a.equipped ? ' on' : ''}${a.owned ? '' : ' locked'}">
-          <div class="ac-top">${armIcon(a.id, a.level, 'ac-img')}
+          <div class="ac-top">${itemIcon(cat, a.id, a.level, 'ac-img')}
             <div class="ac-title"><b>${escapeHtml(a.name)}</b>${a.owned ? `<span class="lv-chip">+${a.level || 0}</span>` : `<span class="ac-price">${a.price ? `${I.svg('coins')}${xu(a.price)}` : 'Miễn phí'}</span>`}</div></div>
           ${a.desc ? `<div class="ac-desc">${escapeHtml(a.desc)}</div>` : ''}
           <div class="ac-stats">${bars}</div>
-          ${socketsHtml(a)}
+          ${socketsHtml(cat, a)}
           ${act}
         </div>`;
     }).join('');
@@ -1556,7 +1634,8 @@
   // ---------- Ngọc khảm: 3 ô trên mỗi vũ khí, mở ở +3 / +7 / +10 ----------
 
   // Ô đang chọn để khảm / gỡ: của vũ khí (arm) hoặc của Nón / Áo giáp (slot); where = khung chọn ngọc ở tab nào.
-  const gemSel = { arm: '', slot: '', idx: -1, where: 'arms' };
+  // cat + arm: ô của một món (vũ khí / nón / áo) trong danh sách; slot: ô kiểu cũ của Nón / Áo đang mặc (slotSockets).
+  const gemSel = { cat: 'gun', arm: '', slot: '', idx: -1, where: 'arms' };
   const clearGemSel = () => { gemSel.arm = ''; gemSel.slot = ''; gemSel.idx = -1; };
   const sockBtn = (sk, on, attr, key) => {
     if (!sk.open) {
@@ -1578,9 +1657,10 @@
   // Lực chiến một viên ngọc góp vào (lực chiến = 1000 + 2 × tổng 4 chỉ số + …); server có thể gửi sẵn `power`.
   const gemPower = (g) => (g ? (g.power != null ? g.power : 2 * (g.value || 0)) : 0);
 
-  function socketsHtml(a, where = 'arms') {
+  function socketsHtml(cat, a, where = 'arms') {
     if (!a.owned || !Array.isArray(a.sockets)) return '';
-    return `<div class="sockets">${a.sockets.map((sk) => sockBtn(sk, !gemSel.slot && gemSel.where === where && gemSel.arm === a.id && gemSel.idx === sk.idx, 'data-socket', a.id)).join('')}</div>`;
+    const on = (sk) => !gemSel.slot && gemSel.where === where && gemSel.cat === cat && gemSel.arm === a.id && gemSel.idx === sk.idx;
+    return `<div class="sockets">${a.sockets.map((sk) => sockBtn(sk, on(sk), 'data-socket', `${cat}:${a.id}`)).join('')}</div>`;
   }
 
   // Chủ của ô đang chọn: vũ khí hoặc Nón / Áo giáp.
@@ -1592,10 +1672,14 @@
       return { sockets: list, name: GEAR[gemSel.slot].name, level: lv, live: true,
         icon: `<img class="gp-arm" src="${IMG}${gemSel.slot}_${form(lv)}.png" alt="" draggable="false">` };
     }
-    const a = armData(gemSel.arm);
-    return a ? { sockets: a.sockets || [], name: a.name, level: a.level, live: !!a.equipped, icon: armIcon(a.id, a.level, 'gp-arm') } : null;
+    const a = itemData(gemSel.cat, gemSel.arm);
+    return a ? { sockets: a.sockets || [], name: a.name, level: a.level, live: !!a.equipped, icon: itemIcon(gemSel.cat, a.id, a.level, 'gp-arm') } : null;
   }
-  const gemBody = (extra) => ({ ...(gemSel.slot ? { slot: gemSel.slot } : { arm: gemSel.arm }), idx: gemSel.idx, ...extra });
+  // Vũ khí: {arm}; nón / áo trong danh sách: {slot, item}; ô kiểu cũ của món đang mặc: {slot}.
+  const gemBody = (extra) => {
+    const who = gemSel.slot ? { slot: gemSel.slot } : gemSel.cat === 'gun' ? { arm: gemSel.arm } : { slot: gemSel.cat, item: gemSel.arm };
+    return { ...who, idx: gemSel.idx, ...extra };
+  };
 
   // Khung chọn ngọc cho ô đang chọn: khảm (xem trước lực chiến tăng) hoặc gỡ.
   function renderGemPick() {
@@ -1631,7 +1715,7 @@
         ${gemImg(g, 'sc-img')}
         <div class="sc-info"><b>${escapeHtml(g.name || 'Ngọc')}</b><span class="muted">${escapeHtml(gemText(g))} · cấp ${g.tier}</span></div>
         <b class="gem-qty">×${g.qty}</b>
-      </div>`).join('') + '<p class="hint">Khảm ngọc vào ô dưới Vũ khí, Nón, Áo giáp (tab Cường hoá) hoặc trên từng vũ khí (tab Vũ khí); ô mở ở +3, +7, +10.</p>'
+      </div>`).join('') + '<p class="hint">Khảm ngọc vào ô dưới Vũ khí, Nón, Áo giáp (tab Cường hoá) hoặc trên từng món (tab Trang bị); ô mở ở +3, +7, +10.</p>'
       : '<p class="muted">Chưa có ngọc nào. Thắng chế độ Đấu boss để nhận ngọc từ rương.</p>';
   }
 
@@ -1664,11 +1748,14 @@
 
   function renderXfer() {
     const el = $('arm-xfer');
-    const owned = (gear.arms || []).filter((a) => a.owned);
+    const cat = itemCat;
+    const unit = KINDS[cat].unit;
+    if (xfer.cat !== cat) Object.assign(xfer, { cat, from: '', to: '' });
+    const owned = itemsOf(cat).filter((a) => a.owned);
     const froms = owned.filter((a) => (a.level || 0) > 0);
     if (!froms.length || owned.length < 2) {
-      el.innerHTML = `<div class="xf-head">${I.svg('sparkles')}Chuyển cấp cường hoá</div>
-        <p class="muted xf-empty">${owned.length < 2 ? 'Cần sở hữu ít nhất 2 vũ khí để chuyển cấp.' : 'Chưa có vũ khí nào đã cường hoá để chuyển.'}</p>`;
+      el.innerHTML = `<div class="xf-head">${I.svg('sparkles')}Chuyển cấp cường hoá · ${escapeHtml(KINDS[cat].name)}</div>
+        <p class="muted xf-empty">${owned.length < 2 ? `Cần sở hữu ít nhất 2 ${unit} để chuyển cấp.` : `Chưa có ${unit} nào đã cường hoá để chuyển.`}</p>`;
       return;
     }
     if (!froms.some((a) => a.id === xfer.from)) xfer.from = froms[0].id;
@@ -1679,7 +1766,7 @@
     const opt = (a, sel) => `<option value="${escapeHtml(a.id)}"${a.id === sel ? ' selected' : ''}>${escapeHtml(a.name)} +${a.level || 0}</option>`;
     const n = src.level;
     const fee = (gear.transferFeePerLevel || 300) * n;
-    let preview = '<p class="muted xf-empty">Không có vũ khí nào cấp thấp hơn để nhận.</p>';
+    let preview = `<p class="muted xf-empty">Không có ${unit} nào cấp thấp hơn để nhận.</p>`;
     if (dst) {
       const rows = ARM_STATS.map((st) => {
         const before = statAt(dst, st.k, dst.level || 0);
@@ -1687,14 +1774,14 @@
         return `<span class="xf-stat"><span>${st.name}</span><b>${statVal(st, before)}</b>→<b class="up">${statVal(st, after)}</b></span>`;
       }).join('');
       preview = `<div class="xf-preview">
-          <div class="xf-move">${armIcon(src.id, n, 'xf-img')}<span><b>+${n}</b> →</span>${armIcon(dst.id, n, 'xf-img')}</div>
+          <div class="xf-move">${itemIcon(cat, src.id, n, 'xf-img')}<span><b>+${n}</b> →</span>${itemIcon(cat, dst.id, n, 'xf-img')}</div>
           <div class="xf-note">${escapeHtml(dst.name)} <b>+${dst.level || 0} → +${n}</b>; ${escapeHtml(src.name)} về <b>+0</b></div>
           <div class="xf-stats">${rows}</div>
         </div>
         <button type="button" class="primary xf-btn" id="btn-xfer" ${gear.balance < fee || xfer.busy ? 'disabled' : ''}>${I.svg('sparkles')}Chuyển cấp · ${I.svg('coins')}${xu(fee)}</button>
         ${gear.balance < fee ? '<div class="forge-short">Không đủ xu trả phí</div>' : ''}`;
     }
-    el.innerHTML = `<div class="xf-head">${I.svg('sparkles')}Chuyển cấp cường hoá <small class="muted">phí ${xu(gear.transferFeePerLevel || 300)} xu mỗi cấp</small></div>
+    el.innerHTML = `<div class="xf-head">${I.svg('sparkles')}Chuyển cấp cường hoá · ${escapeHtml(KINDS[cat].name)} <small class="muted">phí ${xu(gear.transferFeePerLevel || 300)} xu mỗi cấp</small></div>
       <div class="xf-pick">
         <label>Từ<select data-xfer="from">${froms.map((a) => opt(a, xfer.from)).join('')}</select></label>
         <label>Sang<select data-xfer="to" ${tos.length ? '' : 'disabled'}>${tos.map((a) => opt(a, xfer.to)).join('')}</select></label>
@@ -1716,8 +1803,9 @@
 
   async function doTransfer() {
     if (xfer.busy) return;
-    const src = armData(xfer.from);
-    const dst = armData(xfer.to);
+    const cat = xfer.cat;
+    const src = itemData(cat, xfer.from);
+    const dst = itemData(cat, xfer.to);
     if (!src || !dst) return;
     const n = src.level || 0;
     const fee = (gear.transferFeePerLevel || 300) * n;
@@ -1726,7 +1814,9 @@
     if (!ok) return;
     xfer.busy = true;
     try {
-      gear = await A.api('/api/arena/arms/transfer', { method: 'POST', body: { from: src.id, to: dst.id } });
+      gear = cat === 'gun'
+        ? await A.api('/api/arena/arms/transfer', { method: 'POST', body: { from: src.id, to: dst.id } })
+        : await A.api('/api/arena/items/transfer', { method: 'POST', body: { slot: cat, from: src.id, to: dst.id } });
       showBalance(gear.balance);
       const t = gear.transfer || { level: n };
       xfer.busy = false;
@@ -1767,7 +1857,9 @@
     forge.busy = true;
     const slot = forge.slot;
     const fromLv = (gear.gear || {})[slot] || 0;
-    const fromSrc = slot === 'gun' && armOf(gear.gear) !== 'cannon' ? '' : `${IMG}${slot}_${form(fromLv)}.png`;
+    // Hình trước khi cường hoá (để diễn "biến đổi" từ hình cũ sang hình mới).
+    const fromId = KINDS[slot].eq(gear.gear);
+    const fromSrc = slot === 'gun' ? formSrc('icon_arm_' + fromId, fromLv) : fromId ? formSrc(KINDS[slot].icon + fromId, fromLv) : `${IMG}${slot}_${form(fromLv)}.png`;
     $('btn-forge').disabled = true;
     $('forge-anvil').classList.add('working');
     try {
@@ -1780,7 +1872,7 @@
       showBalance(gear.balance);
       renderGear();
       const r = res.result || {};
-      const name = slot === 'gun' ? armName(r.arm || armOf(gear.gear)) : GEAR[slot].name;
+      const name = slot === 'gun' ? armName(r.arm || armOf(gear.gear)) : itemName(slot, r.item || KINDS[slot].eq(gear.gear));
       if (r.ok && r.evolved) {
         forgeFx('evolve', `Biến đổi! +${r.level}`, fromSrc);
         A.toast(`${name} biến đổi! Lên +${r.level}`);
@@ -1836,27 +1928,35 @@
       $('pane-gems').classList.toggle('hidden', tab.dataset.tab !== 'gems');
       return;
     }
+    const ct = e.target.closest('[data-cat]');
+    if (ct) { itemCat = ct.dataset.cat; clearGemSel(); renderArms(); return; }
     const ba = e.target.closest('[data-buy-arm]');
     if (ba) {
-      const id = ba.dataset.buyArm;
-      armAction('/api/arena/arms/buy', { id }, () => `Đã mua ${armName(id)}`);
+      const [cat, id] = ba.dataset.buyArm.split(':');
+      if (cat === 'gun') armAction('/api/arena/arms/buy', { id }, () => `Đã mua ${itemName(cat, id)}`);
+      else armAction('/api/arena/items/buy', { slot: cat, id }, () => `Đã mua ${itemName(cat, id)}`);
       return;
     }
     const eq = e.target.closest('[data-equip]');
     if (eq) {
-      const id = eq.dataset.equip;
-      armAction('/api/arena/arms/equip', { id }, () => `Đã trang bị ${armName(id)}`);
+      const [cat, id] = eq.dataset.equip.split(':');
+      if (cat === 'gun') armAction('/api/arena/arms/equip', { id }, () => `Đã trang bị ${itemName(cat, id)}`);
+      else armAction('/api/arena/items/equip', { slot: cat, id }, () => `Đã mặc ${itemName(cat, id)}`);
       return;
     }
     if (e.target.closest('#btn-xfer')) { doTransfer(); return; }
     const sk = e.target.closest('[data-socket], [data-ssocket]');
     if (sk) {
       const isSlot = !!sk.dataset.ssocket;
-      const [key, idx] = (isSlot ? sk.dataset.ssocket : sk.dataset.socket).split(':');
+      // data-socket = "<loại>:<id món>:<ô>", data-ssocket = "<hat|armor>:<ô>" (ô kiểu cũ của món đang mặc).
+      const parts = (isSlot ? sk.dataset.ssocket : sk.dataset.socket).split(':');
+      const idx = parts.pop();
+      const key = parts.pop();
+      const cat = isSlot ? key : parts[0] || 'gun';
       const where = sk.closest('#pane-forge') ? 'forge' : 'arms';
-      const same = gemSel.where === where && gemSel.idx === Number(idx) && (isSlot ? gemSel.slot === key : !gemSel.slot && gemSel.arm === key);
+      const same = gemSel.where === where && gemSel.idx === Number(idx) && (isSlot ? gemSel.slot === key : !gemSel.slot && gemSel.cat === cat && gemSel.arm === key);
       clearGemSel();
-      if (!same) Object.assign(gemSel, { arm: isSlot ? '' : key, slot: isSlot ? key : '', idx: Number(idx), where });
+      if (!same) Object.assign(gemSel, { cat, arm: isSlot ? '' : key, slot: isSlot ? key : '', idx: Number(idx), where });
       renderGear();
       if (!same) $(where === 'forge' ? 'gem-pick-forge' : 'gem-pick').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       return;

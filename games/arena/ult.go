@@ -8,7 +8,10 @@ import "errors"
 const (
 	RageMax     = 100
 	RagePerTurn = 10 // đầu mỗi lượt của mình
-	WeaponUlt   = "ult"
+	// Sát thương đã ×10 nên chia lại để tốc độ tích nộ như cũ: gây / 20, nhận / 10.
+	RageDealtDiv = 20
+	RageTakenDiv = 10
+	WeaponUlt    = "ult"
 )
 
 // Ult là chiêu cuối của một vũ khí; sát thương vẫn nhân Tấn công / chí mạng / Phòng thủ như đạn thường.
@@ -19,12 +22,12 @@ type Ult struct {
 }
 
 var Ults = []Ult{
-	{ArmCannon, "3 quả pháo nổ rộng", Weapon{ID: WeaponUlt, Name: "Pháo kích", Dmg: 45, R: 60, Spread: []float64{-4, 0, 4}, Uses: -1}},
-	{"dep", "5 chiếc dép rơi như mưa", Weapon{ID: WeaponUlt, Name: "Mưa dép", Dmg: 22, R: 30, Spread: []float64{-10, -5, 0, 5, 10}, Uses: -1}},
-	{"choi", "Một nhát quét cực rộng", Weapon{ID: WeaponUlt, Name: "Quét sạch", Dmg: 60, R: 110, Spread: []float64{0}, Uses: -1}},
-	{"launha", "Đẩy văng mọi đối thủ quanh chỗ nổ ra xa", Weapon{ID: WeaponUlt, Name: "Lau sàn", Dmg: 50, R: 70, Spread: []float64{0}, Uses: -1, Push: 80}},
-	{"tv", "Đối thủ trúng đòn mất hết nộ", Weapon{ID: WeaponUlt, Name: "Sóng nhiễu", Dmg: 80, R: 60, Spread: []float64{0}, Uses: -1, Drain: true}},
-	{"tulanh", "Cú rơi nặng nhất", Weapon{ID: WeaponUlt, Name: "Tủ lạnh rơi", Dmg: 110, R: 90, Spread: []float64{0}, Uses: -1}},
+	{ArmCannon, "3 quả pháo nổ rộng", Weapon{ID: WeaponUlt, Name: "Pháo kích", Dmg: 450, R: 60, Spread: []float64{-4, 0, 4}, Uses: -1}},
+	{"dep", "5 chiếc dép rơi như mưa", Weapon{ID: WeaponUlt, Name: "Mưa dép", Dmg: 220, R: 30, Spread: []float64{-10, -5, 0, 5, 10}, Uses: -1}},
+	{"choi", "Một nhát quét cực rộng", Weapon{ID: WeaponUlt, Name: "Quét sạch", Dmg: 600, R: 110, Spread: []float64{0}, Uses: -1}},
+	{"launha", "Đẩy văng mọi đối thủ quanh chỗ nổ ra xa", Weapon{ID: WeaponUlt, Name: "Lau sàn", Dmg: 500, R: 70, Spread: []float64{0}, Uses: -1, Push: 80}},
+	{"tv", "Đối thủ trúng đòn mất hết nộ", Weapon{ID: WeaponUlt, Name: "Sóng nhiễu", Dmg: 800, R: 60, Spread: []float64{0}, Uses: -1, Drain: true}},
+	{"tulanh", "Cú rơi nặng nhất", Weapon{ID: WeaponUlt, Name: "Tủ lạnh rơi", Dmg: 1100, R: 90, Spread: []float64{0}, Uses: -1}},
 }
 
 // UltOf là chiêu cuối của vũ khí arm (lạ thì của đại bác).
@@ -76,8 +79,8 @@ func weaponFor(p *Player, id string) (Weapon, error) {
 	return w, nil
 }
 
-// applyRage cộng nộ sau một phát bắn của shooter (nil = boss): người bắn + sát thương gây cho người khác / 2,
-// người trúng + sát thương nhận; chiêu cuối thì người bắn về 0; Sóng nhiễu xoá nộ người trúng. Trả nộ mọi người sau phát bắn.
+// applyRage cộng nộ sau một phát bắn của shooter (nil = boss): người bắn + sát thương gây cho người khác / RageDealtDiv,
+// người trúng + sát thương nhận / RageTakenDiv; chiêu cuối thì người bắn về 0; Sóng nhiễu xoá nộ người trúng. Trả nộ mọi người sau phát bắn.
 func (r *Room) applyRage(shooter *Player, w Weapon, res ShotResult) map[string]int {
 	dealt := 0
 	for _, h := range res.Hits {
@@ -85,14 +88,14 @@ func (r *Room) applyRage(shooter *Player, w Weapon, res ShotResult) map[string]i
 			dealt += h.Dmg
 		}
 		if p := r.findPlayer(h.ID); p != nil {
-			p.rage += h.Dmg
+			p.rage += h.Dmg / RageTakenDiv
 		}
 	}
 	if shooter != nil {
 		if w.ID == WeaponUlt {
 			shooter.rage = 0
 		} else {
-			shooter.rage += dealt / 2
+			shooter.rage += dealt / RageDealtDiv
 		}
 	}
 	for _, id := range res.Drained {

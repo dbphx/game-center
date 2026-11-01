@@ -27,7 +27,7 @@ var GemKinds = []string{GemAtk, GemDef, GemLuck, GemSta}
 var gemNames = map[string]string{GemAtk: "Tấn công", GemDef: "Phòng thủ", GemLuck: "May mắn", GemSta: "Thể lực"}
 
 // gemValues là giá trị cộng theo loại và bậc 1..3.
-var gemValues = map[string][GemTiers]int{GemAtk: {3, 6, 10}, GemDef: {2, 4, 7}, GemLuck: {1, 2, 4}, GemSta: {5, 10, 18}}
+var gemValues = map[string][GemTiers]int{GemAtk: {30, 60, 100}, GemDef: {20, 40, 70}, GemLuck: {10, 20, 40}, GemSta: {50, 100, 180}}
 
 // SocketUnlock là cấp trang bị mở từng ô khảm.
 var SocketUnlock = [SocketCount]int{3, 7, 10}
@@ -191,13 +191,13 @@ func loadGems(ctx context.Context, tx *wallet.Tx, uid int64, inv *Inventory) err
 	return nil
 }
 
-// activeBonus là tổng ngọc của vũ khí đang trang bị, nón và áo giáp.
+// activeBonus là tổng ngọc của vũ khí, nón và áo đang dùng.
 func activeBonus(inv *Inventory) ArmStats {
 	var s ArmStats
 	for _, b := range []ArmStats{
 		gemBonus(inv.Sockets[inv.Gear.ArmID()], inv.Gear.Gun),
-		gemBonus(inv.Sockets[SlotHat], inv.Gear.Hat),
-		gemBonus(inv.Sockets[SlotArmor], inv.Gear.Armor),
+		gemBonus(inv.Sockets[inv.Gear.itemID(SlotHat)], inv.Gear.Hat),
+		gemBonus(inv.Sockets[inv.Gear.itemID(SlotArmor)], inv.Gear.Armor),
 	} {
 		s.Atk, s.Def, s.Luck, s.Sta = s.Atk+b.Atk, s.Def+b.Def, s.Luck+b.Luck, s.Sta+b.Sta
 	}
@@ -233,31 +233,37 @@ func lockSockets(ctx context.Context, tx *wallet.Tx, uid int64, inv Inventory, a
 	return nil
 }
 
-// socketOwner trả khoá lưu ô khảm (cột arm) và cấp hiện tại của món được khảm: ô slot "gun" (hoặc rỗng) là vũ khí arm,
-// "hat" / "armor" là nón / áo giáp.
-func socketOwner(inv Inventory, slot, arm string) (string, int, error) {
+// itemSlot chuẩn hoá ô trang bị của API khảm: rỗng = "gun".
+func itemSlot(slot string) (string, error) {
 	switch slot {
 	case "", SlotGun:
-		lv, have := inv.Arms[arm]
-		if !have {
-			return "", 0, ErrNotOwned
-		}
-		return arm, lv, nil
+		return SlotGun, nil
 	case SlotHat, SlotArmor:
-		return slot, inv.Gear.level(slot), nil
+		return slot, nil
 	}
-	return "", 0, ErrBadSlot
+	return "", ErrBadSlot
 }
 
-func checkSocketArgs(slot, arm string, idx int) error {
-	switch slot {
-	case "", SlotGun:
-		if _, ok := findArm(arm); !ok {
-			return ErrBadArm
-		}
-	case SlotHat, SlotArmor:
-	default:
-		return ErrBadSlot
+// socketOwner trả id món được khảm (cột arm của arena_sockets) và cấp hiện tại của nó: món item của ô slot,
+// item rỗng = món đang dùng của ô đó.
+func socketOwner(inv Inventory, slot, item string) (string, int, error) {
+	if item == "" {
+		item = inv.Gear.itemID(slot)
+	}
+	lv, have := inv.Arms[item]
+	if !have {
+		return "", 0, ErrNotOwned
+	}
+	return item, lv, nil
+}
+
+func checkSocketArgs(slot, item string, idx int) error {
+	s, err := itemSlot(slot)
+	if err != nil {
+		return err
+	}
+	if _, ok := findItem(s, item); item != "" && !ok {
+		return ErrBadArm
 	}
 	if idx < 0 || idx >= SocketCount {
 		return ErrBadSocket
@@ -270,16 +276,18 @@ func (a *Armory) SocketGem(ctx context.Context, uid int64, arm string, idx int, 
 	return a.SocketSlotGem(ctx, uid, SlotGun, arm, idx, k)
 }
 
-// SocketSlotGem khảm ngọc vào ô idx của ô trang bị slot: "gun" (vũ khí arm), "hat" hoặc "armor" (arm bỏ qua).
-func (a *Armory) SocketSlotGem(ctx context.Context, uid int64, slot, arm string, idx int, k GemKey) (Inventory, error) {
-	if err := checkSocketArgs(slot, arm, idx); err != nil {
+// SocketSlotGem khảm ngọc vào ô idx của món item thuộc ô trang bị slot ("gun" / "hat" / "armor");
+// item rỗng = món đang dùng của ô đó.
+func (a *Armory) SocketSlotGem(ctx context.Context, uid int64, slot, item string, idx int, k GemKey) (Inventory, error) {
+	if err := checkSocketArgs(slot, item, idx); err != nil {
 		return Inventory{}, err
 	}
 	if !k.valid() {
 		return Inventory{}, ErrBadGem
 	}
 	return a.withInv(ctx, uid, func(tx *wallet.Tx, inv Inventory) error {
-		key, lv, err := socketOwner(inv, slot, arm)
+		s, _ := itemSlot(slot)
+		key, lv, err := socketOwner(inv, s, item)
 		switch {
 		case err != nil:
 			return err
@@ -305,15 +313,16 @@ func (a *Armory) UnsocketGem(ctx context.Context, uid int64, arm string, idx int
 	return a.UnsocketSlotGem(ctx, uid, SlotGun, arm, idx)
 }
 
-// UnsocketSlotGem tháo ngọc ở ô idx của ô trang bị slot ("gun" + vũ khí arm, "hat", "armor") về kho.
-func (a *Armory) UnsocketSlotGem(ctx context.Context, uid int64, slot, arm string, idx int) (Inventory, error) {
-	if err := checkSocketArgs(slot, arm, idx); err != nil {
+// UnsocketSlotGem tháo ngọc ở ô idx của món item (ô slot; item rỗng = nón / áo đang dùng) về kho.
+func (a *Armory) UnsocketSlotGem(ctx context.Context, uid int64, slot, item string, idx int) (Inventory, error) {
+	if err := checkSocketArgs(slot, item, idx); err != nil {
 		return Inventory{}, err
 	}
 	return a.withInv(ctx, uid, func(tx *wallet.Tx, inv Inventory) error {
-		key := arm
-		if slot == SlotHat || slot == SlotArmor {
-			key = slot
+		s, _ := itemSlot(slot)
+		key, _, err := socketOwner(inv, s, item)
+		if err != nil {
+			return err
 		}
 		k := inv.Sockets[key][idx]
 		if !k.valid() {

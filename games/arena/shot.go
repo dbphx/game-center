@@ -23,9 +23,9 @@ const (
 )
 
 var Weapons = []Weapon{
-	{ID: WeaponShell, Name: "Đạn thường", Dmg: 30, R: 40, Spread: []float64{0}, Uses: -1},
-	{ID: WeaponTriple, Name: "Đạn chùm", Dmg: 14, R: 28, Spread: []float64{-6, 0, 6}, Uses: -1},
-	{ID: WeaponHeavy, Name: "Bom tạ", Dmg: 55, R: 65, Spread: []float64{0}, Uses: -1},
+	{ID: WeaponShell, Name: "Đạn thường", Dmg: 300, R: 40, Spread: []float64{0}, Uses: -1},
+	{ID: WeaponTriple, Name: "Đạn chùm", Dmg: 140, R: 28, Spread: []float64{-6, 0, 6}, Uses: -1},
+	{ID: WeaponHeavy, Name: "Bom tạ", Dmg: 550, R: 65, Spread: []float64{0}, Uses: -1},
 	{ID: WeaponTele, Name: "Đạn dịch chuyển", Spread: []float64{0}, Uses: -1, Tele: true},
 }
 
@@ -126,10 +126,10 @@ func targetsOf(fs []*Fighter, shooter *Fighter) []Body {
 }
 
 // Fire bắn một phát của shooter bằng vũ khí w; sửa địa hình g và máu / vị trí các fighter ngay tại chỗ.
-// roll trả số 0..99 để xét chí mạng (may mắn của vũ khí người bắn); nil thì không chí mạng.
+// roll trả số 0..999 để xét chí mạng (phần nghìn = may mắn người bắn); nil thì không chí mạng.
 func Fire(g Ground, fs []*Fighter, shooter *Fighter, w Weapon, angle, power float64, wind int, roll func() int) ShotResult {
 	res := ShotResult{}
-	crit := roll != nil && !w.Tele && roll() < shooter.Gear.CritPct()
+	crit := roll != nil && !w.Tele && roll() < shooter.Gear.CritPermille()
 	mul := shooter.Gear.DmgMul()
 	if crit {
 		mul *= CritMul

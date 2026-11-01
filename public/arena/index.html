@@ -76,7 +76,7 @@
       </div>
       <div class="gear-tabs" role="tablist">
         <button type="button" role="tab" data-tab="forge" class="on"><i data-icon="sparkles"></i>Cường hoá</button>
-        <button type="button" role="tab" data-tab="arms"><i data-icon="flame"></i>Vũ khí</button>
+        <button type="button" role="tab" data-tab="arms"><i data-icon="flame"></i>Trang bị</button>
         <button type="button" role="tab" data-tab="gems"><i data-icon="sparkles"></i>Kho ngọc</button>
         <button type="button" role="tab" data-tab="stones"><i data-icon="coins"></i>Cửa hàng</button>
       </div>
@@ -86,6 +86,11 @@
         <div class="forge" id="forge"></div>
       </div>
       <div class="gear-pane hidden" id="pane-arms">
+        <div class="item-cats" id="item-cats" role="tablist">
+          <button type="button" data-cat="gun" class="on">Vũ khí</button>
+          <button type="button" data-cat="hat">Nón</button>
+          <button type="button" data-cat="armor">Áo giáp</button>
+        </div>
         <div class="arms-grid" id="arms-grid"><p class="muted">Đang tải…</p></div>
         <div class="gem-pick hidden" id="gem-pick"></div>
         <div class="arm-xfer" id="arm-xfer"></div>
@@ -96,7 +101,7 @@
       <div class="gear-pane hidden" id="pane-stones">
         <div class="stone-shop" id="stone-shop"></div>
       </div>
-      <p class="hint">Mỗi lần cường hoá tốn 1 viên đá + phí xu; thất bại mất đá, phí và tụt 1 cấp (trừ khi dùng Bùa giữ cấp). Trang bị biến đổi ở +7 và +10. Mỗi vũ khí giữ cấp riêng; có thể chuyển cấp sang vũ khí khác (tốn phí, vũ khí cũ về +0). Đá càng quý tỉ lệ càng cao. Trận đang đánh giữ chỉ số lúc bắt đầu.</p>
+      <p class="hint">Mỗi lần cường hoá tốn 1 viên đá + phí xu; thất bại mất đá, phí và tụt 1 cấp (trừ khi dùng Bùa giữ cấp). Trang bị biến đổi ở +7 và +10. Mỗi vũ khí, nón, áo giữ cấp riêng; có thể chuyển cấp sang món cùng loại (tốn phí, món cũ về +0). Đá càng quý tỉ lệ càng cao. Trận đang đánh giữ chỉ số lúc bắt đầu.</p>
       <div class="actions"><button class="primary" value="ok">Xong</button></div>
     </form>
   </dialog>
