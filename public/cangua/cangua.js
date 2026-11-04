@@ -218,13 +218,13 @@
       await rollDice(s.dice, p && p.color);
       if (!s.rolled) {
         // Đổ xong mà không có nước đi.
-        if (sameTurn && s.dice === 6) toast('Ra 6 nhưng không có nước đi — được đổ tiếp!', p && p.color);
+        if (sameTurn && s.dice === 6) toast('Ra 6, không có nước đi — đổ tiếp!', p && p.color);
         else if (s.dice === 6 && (prev.sixes || 0) >= 2) toast('Ra 6 ba lần liền — mất lượt!', p && p.color);
         else toast('Không có nước đi — mất lượt', p && p.color);
         await sleep(reduced() ? 200 : 900);
       } else if (!(s.movable || []).length) {
         // Server giữ lượt ~1.8 s với rolled=true, movable rỗng rồi mới chuyển lượt / cho đổ tiếp.
-        if (s.dice === 6 && (s.sixes || 0) < 3) toast('Ra 6 nhưng không có nước đi — được đổ tiếp!', p && p.color);
+        if (s.dice === 6 && (s.sixes || 0) < 3) toast('Ra 6, không có nước đi — đổ tiếp!', p && p.color);
         else if (s.dice === 6) toast('Ra 6 ba lần liền — mất lượt!', p && p.color);
         else toast('Không có nước đi — mất lượt', p && p.color);
       }
@@ -658,6 +658,15 @@
     $('sixes').textContent = six ? `Đã ra 6 × ${six}` : '';
     const tp = s.players.find((p) => p.id === s.turn);
     box.className = `center-dice${tp && tp.color ? ' c-' + tp.color : ''}${canRoll() ? ' ready' : ''}`;
+    // Thanh dưới bàn: viền màu và mặt người tới lượt (hết ván / chờ thì để trống).
+    const playing = s.phase === 'playing' && tp;
+    const bar = $('dice-bar');
+    [...bar.classList].filter((k) => k.startsWith('c-')).forEach((k) => bar.classList.remove(k));
+    if (playing && tp.color) bar.classList.add('c-' + tp.color);
+    const head = $('turn-head');
+    head.classList.toggle('hidden', !playing);
+    if (playing && head.dataset.pid !== tp.id) { head.dataset.pid = tp.id; head.innerHTML = C.head(lookOf(tp)); }
+    if (!playing) delete head.dataset.pid;
     box.classList.toggle('hidden', s.phase === 'lobby');
     box.disabled = !canRoll();
     box.title = canRoll() ? 'Bấm để đổ (Space)' : '';
@@ -666,7 +675,7 @@
     img.classList.toggle('idle', s.phase === 'playing' && !s.rolled);
   }
 
-  // Dòng thông báo ngắn trên bàn (ra 6, mất lượt, đá ngựa…).
+  // Dòng thông báo ngắn trong thanh dưới bàn (ra 6, mất lượt, đá ngựa…).
   let toastTimer = null;
   function toast(text, color) {
     const el = $('dice-toast');
@@ -678,17 +687,15 @@
     toastTimer = setTimeout(() => el.classList.add('hidden'), 2200);
   }
 
-  // Banner báo lượt: trượt vào mỗi khi đổi lượt; tới lượt mình thì nổi bật, rung thẻ, kêu "ting".
+  // Báo đổi lượt: tới lượt mình thì thanh dưới bàn sáng lên, rung thẻ, kêu "ting".
   function announceTurn(prev, s) {
     const p = s.players.find((x) => x.id === s.turn);
-    const el = $('turn-banner');
-    if (!p) return el.classList.add('hidden');
+    if (!p) return;
     const mine = p.id === s.you;
-    el.className = `turn-banner c-${p.color}${mine ? ' mine' : ''}`;
-    el.innerHTML = `<span class="tb-head">${C.head(lookOf(p))}</span>
-      <span class="tb-text">${mine ? '<b>Tới lượt bạn!</b> Bấm xúc xắc / Space' : `Lượt của <b>${escapeHtml(p.name)}</b> (${COLOR_NAMES[p.color] || ''})`}</span>`;
-    void el.offsetWidth;
-    el.classList.add('in');
+    const bar = $('dice-bar');
+    bar.classList.remove('mine');
+    void bar.offsetWidth;
+    bar.classList.toggle('mine', mine);
     if (mine) {
       const card = document.querySelector(`.pcard[data-pid="${CSS.escape(p.id)}"]`);
       if (card) { card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake'); }

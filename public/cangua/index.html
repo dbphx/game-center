@@ -77,14 +77,16 @@
             <span class="dice-shadow"></span>
             <img class="dice" id="dice" src="/img/toon/cangua/dice_6.png" alt="" draggable="false">
           </button>
-          <!-- Banner báo lượt / sự kiện ở giữa phía trên bàn -->
-          <div class="turn-banner hidden" id="turn-banner"></div>
-          <div class="dice-toast hidden" id="dice-toast"></div>
         </div>
-        <div class="dice-bar">
+        <!-- Mọi thông báo (tới lượt ai, ra 6, mất lượt, đá ngựa) nằm ở thanh này, không đè lên bàn cờ -->
+        <div class="dice-bar" id="dice-bar">
+          <span class="tb-head hidden" id="turn-head"></span>
           <div class="dice-info">
             <p class="status" id="status"></p>
-            <span class="sixes hidden" id="sixes"></span>
+            <div class="dice-notes">
+              <span class="sixes hidden" id="sixes"></span>
+              <span class="dice-toast hidden" id="dice-toast"></span>
+            </div>
           </div>
           <button class="primary roll-btn" id="btn-roll" disabled><i data-icon="play"></i>Đổ <kbd>Space</kbd></button>
         </div>
