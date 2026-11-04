@@ -186,5 +186,8 @@ func Catalog() map[string]any {
 		"barn":    Buildings[placeBarn],
 		"pond":    Buildings[placePond],
 		"storage": Stores,
+		// Đất tốt, xem zombie.go.
+		"goodSoilPrice":   int64(GoodSoilPrice),
+		"goodSoilSpeedup": GoodSoilSpeedup,
 	}
 }

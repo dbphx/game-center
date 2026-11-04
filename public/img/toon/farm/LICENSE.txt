@@ -6,6 +6,7 @@ Hình trong thư mục này đều dùng giấy phép CC0 1.0 (public domain) �
 - DCity (vẽ / ghép bằng PIL cho dự án) — DCity — CC0 
 - Fish Pack — Kenney — CC0 https://kenney.nl/assets/fish-pack
 - Free Fence Game Background — bevouliin.com — CC0 https://opengameart.org/content/bevouliin-free-fence-game-background-for-game-developers
+- Toon Characters — Kenney — CC0 https://kenney.nl/assets/toon-characters-1
 - Vector Dog & Sheep — ChiliGames — CC0 https://opengameart.org/content/vector-dog-sheep
 - Vector Farm Pack — cemkalyoncu — CC0 https://opengameart.org/content/vector-farm-pack
 

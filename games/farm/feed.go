@@ -144,6 +144,16 @@ func migrate(ctx context.Context, w *wallet.Wallet, now int64) error {
 			return err
 		}
 	}
+	// Đất tốt: cột mới của ô đất.
+	var hasGood bool
+	if err := tx.QueryRowContext(ctx, `SELECT count(*) > 0 FROM pragma_table_info('farm_plots') WHERE name = 'good'`).Scan(&hasGood); err != nil {
+		return err
+	}
+	if !hasGood {
+		if _, err := tx.ExecContext(ctx, `ALTER TABLE farm_plots ADD COLUMN good INTEGER NOT NULL DEFAULT 0`); err != nil {
+			return err
+		}
+	}
 	// Gà vịt từ bản cũ nuôi trong chuồng → chuyển ra sân gia cầm; sân đủ chỗ cho cả đàn (tối đa MaxCapacity).
 	yard := Buildings[placeYard]
 	if _, err := tx.ExecContext(ctx, `UPDATE farm_stock SET place = ? WHERE place = ? AND kind IN ('chicken', 'duck')`,

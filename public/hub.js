@@ -219,6 +219,52 @@
   const inHospital = () => !!(user && user.hospitalUntil && user.hospitalUntil > serverNow());
 
   // Gán user mới từ server và ghi lại mốc tính HP tự hồi.
+  // Thông báo zombie trên bản đồ: hỏi server khi mở trang và đầu mỗi giờ; đang có zombie thì hỏi lại mỗi 30 giây
+  // (có thể đã đập ở tab khác). Khung chữ và nút, không có hình vẽ; ảnh zombie là PNG.
+  const zombieWatch = { hour: 0, until: 0, count: 0, checked: 0, closedFor: 0, el: null };
+  function zombieTick() {
+    const z = zombieWatch;
+    const now = serverNow();
+    const hour = Math.floor(now / 3600);
+    if (hour !== z.hour || (z.until > now && now - z.checked >= 30)) {
+      z.hour = hour;
+      z.checked = now;
+      A.api('/api/farm/zombie/status').then((r) => {
+        z.count = r.count;
+        z.until = r.until;
+        zombieDraw();
+      }).catch(() => {});
+    }
+    zombieDraw();
+  }
+  function zombieDraw() {
+    const z = zombieWatch;
+    const left = z.until - serverNow();
+    const show = z.count > 0 && left > 0 && z.closedFor !== z.until;
+    if (!show) {
+      if (z.el) z.el.remove();
+      z.el = null;
+      return;
+    }
+    if (!z.el) {
+      z.el = document.createElement('div');
+      z.el.id = 'zombie-notice';
+      z.el.style.cssText = 'position:fixed;top:76px;left:12px;right:12px;margin:0 auto;width:fit-content;z-index:60;display:flex;align-items:center;gap:8px;'
+        + 'padding:6px 10px 6px 6px;border-radius:16px;border:3px solid #7f1d1d;background:#fff7ed;color:#7f1d1d;'
+        + 'font-weight:800;font-size:14px;box-shadow:0 4px 12px rgba(40,20,5,.35)';
+      z.el.innerHTML = `<img src="/img/toon/farm/zombie.png" alt="" style="height:36px;width:auto;flex:none">
+        <span data-text style="min-width:0"></span>
+        <a href="/farm/" class="primary" style="flex:none;padding:6px 12px;border-radius:999px;background:#b91c1c;color:#fff;text-decoration:none;white-space:nowrap">Về nông trại</a>
+        <button type="button" aria-label="Đóng" style="flex:none;padding:2px 8px;min-width:0">×</button>`;
+      z.el.querySelector('button').onclick = () => {
+        z.closedFor = z.until;
+        zombieDraw();
+      };
+      document.body.appendChild(z.el);
+    }
+    z.el.querySelector('[data-text]').textContent = `Zombie đang phá nông trại của bạn! ${z.count} con · còn ${fmtLeft(left)}`;
+  }
+
   function setUser(u) {
     user = u;
     if (u && typeof u.now === 'number') clockSkew = u.now - Date.now() / 1000;
@@ -913,6 +959,9 @@
       setInterval(tick, 1000);
       // Đồng bộ máu / xu với server định kỳ (máu tự hồi, có thể thay đổi ở trang khác).
       setInterval(() => A.me().then((u) => u && (setUser(u), renderHUD())).catch(() => {}), 30000);
+      // Nông trại đang bị zombie tấn công: báo ngay trên bản đồ.
+      zombieTick();
+      setInterval(zombieTick, 1000);
       await loadGames();
       setInterval(loadGames, 15000);
       // Số lời mời kết bạn mới trên nút Bạn bè.

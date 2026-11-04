@@ -84,6 +84,7 @@ type VisitPlot struct {
 	Stolen    bool   `json:"stolen"`
 	Tried     bool   `json:"tried"`  // người xem đã thử trộm ô này trong vụ này (thành công hay bị bắt)
 	Locked    bool   `json:"locked"` // người khác đang bị chó đuổi vì ô này
+	Zombie    bool   `json:"zombie"` // đang có zombie: không trộm được
 }
 
 // Visit là nông trại của bạn bè (chỉ xem): ô đất, chó và số lượt trộm còn lại hôm nay của người xem.
@@ -178,7 +179,7 @@ func (f *Farm) visit(ctx context.Context, q querier, owner, viewer int64, now ti
 		k := [2]int64{int64(p.Index), p.PlantedAt}
 		planted := p.Crop != ""
 		v.Plots[i] = VisitPlot{Index: p.Index, Crop: p.Crop, PlantedAt: p.PlantedAt, ReadyAt: p.ReadyAt,
-			Ripe: planted && p.ReadyAt <= sec, Stolen: p.Stolen, Tried: planted && tried[k], Locked: planted && locked[k]}
+			Ripe: planted && p.ReadyAt <= sec, Stolen: p.Stolen, Tried: planted && tried[k], Locked: planted && locked[k], Zombie: p.Zombie}
 	}
 	if v.Dog, err = loadDog(ctx, q, owner, sec); err != nil {
 		return Visit{}, err
@@ -237,6 +238,9 @@ func (f *Farm) Visit(ctx context.Context, owner, viewer int64) (Visit, error) {
 	if err := settleChases(ctx, tx, now.UnixMilli()); err != nil {
 		return Visit{}, err
 	}
+	if err := f.settleZombies(ctx, tx, owner, now.Unix()); err != nil {
+		return Visit{}, err
+	}
 	v, err := f.visit(ctx, tx, owner, viewer, now)
 	if err != nil {
 		return Visit{}, err
@@ -261,6 +265,7 @@ func (f *Farm) Summaries(ctx context.Context, viewer int64, ids []int64) (map[in
 		var s Summary
 		if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM farm_plots p WHERE p.user_id = ? AND p.crop != '' AND p.ready_at <= ?
 			AND NOT EXISTS (SELECT 1 FROM farm_stolen s WHERE s.user_id = p.user_id AND s.idx = p.idx AND s.planted_at = p.planted_at)
+			AND NOT EXISTS (SELECT 1 FROM farm_zombies z WHERE z.user_id = p.user_id AND z.idx = p.idx)
 			AND NOT EXISTS (SELECT 1 FROM farm_thefts t WHERE t.owner_id = p.user_id AND t.idx = p.idx AND t.planted_at = p.planted_at
 				AND t.thief_id = ?)`,
 			id, now, viewer).Scan(&s.Ripe); err != nil {
@@ -311,6 +316,9 @@ func (f *Farm) Steal(ctx context.Context, thief, owner int64, plot int) (StealRe
 	if err := settleChases(ctx, tx, nowMs); err != nil {
 		return StealResult{}, err
 	}
+	if err := f.settleZombies(ctx, tx, owner, now.Unix()); err != nil {
+		return StealResult{}, err
+	}
 	v, err := f.visit(ctx, tx, owner, thief, now)
 	if err != nil {
 		return StealResult{}, err
@@ -325,6 +333,8 @@ func (f *Farm) Steal(ctx context.Context, thief, owner int64, plot int) (StealRe
 		return StealResult{}, conflict("ô này chưa trồng gì")
 	case !p.Ripe:
 		return StealResult{}, conflict(c.Name + " chưa chín")
+	case p.Zombie:
+		return StealResult{}, conflict("Ô này đang có zombie, không trộm được")
 	case p.Stolen:
 		return StealResult{}, conflict("Ô này đã bị trộm rồi")
 	case p.Tried:
@@ -421,6 +431,10 @@ func (f *Farm) FinishSteal(ctx context.Context, thief, owner int64, token string
 		return StealResult{}, err
 	}
 	if err := settleChases(ctx, tx, nowMs); err != nil {
+		return StealResult{}, err
+	}
+	// Cuộc đuổi đã chốt theo luật trộm ở trên, giờ mới tính zombie của chủ nhà.
+	if err := f.settleZombies(ctx, tx, owner, now.Unix()); err != nil {
 		return StealResult{}, err
 	}
 	if res.Visit, err = f.visit(ctx, tx, owner, thief, now); err != nil {

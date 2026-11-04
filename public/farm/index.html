@@ -52,6 +52,10 @@
       </div>
       <!-- Đang ở nhà bạn (?visit=id): chủ nhà, lượt trộm còn lại, chó canh hay đói, nút về nhà -->
       <div class="visit-bar hidden" id="visit-bar"></div>
+      <!-- Đợt zombie đang diễn ra: đếm ngược 5 phút, bấm để đi tới con đầu tiên -->
+      <button type="button" class="zombie-alert hidden" id="zombie-alert">
+        <img src="/img/toon/farm/zombie.png" alt="" draggable="false"><span data-zombie-text></span>
+      </button>
       <!-- Bị chó đuổi: chạy ra cổng -->
       <div class="chase-bar hidden" id="chase-bar" role="alert"></div>
       <!-- Thanh công cụ kiểu game: chọn công cụ rồi bấm ô đất, nhân vật đi tới làm -->

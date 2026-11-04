@@ -37,6 +37,7 @@ func newEnv(t *testing.T, balance, xp int64) *env {
 	}
 	e := &env{t: t, w: w, f: f, clock: time.Unix(1_800_000_000, 0)}
 	f.now = func() time.Time { return e.clock }
+	f.noZombies = true // test cũ tua đồng hồ nhiều giờ; test zombie tự bật lại
 	u, _, err := w.Register(ctx, "nongdan", "matkhau123", wallet.Profile{Name: "Nông dân"})
 	if err != nil {
 		t.Fatal(err)

@@ -35,6 +35,7 @@
       readyAt: p.readyAt || 0,
       stolen: !!(p.stolen || p.stolenBy),
       tried: !!p.tried, // mình đã thử trộm ô này vụ này (bị bắt cũng tính) — không thử lại được
+      zombie: !!p.zombie, // đang có zombie — không trộm được
     }));
     const now = f.now || r.now || Date.now() / 1000;
     return {
@@ -90,7 +91,7 @@
     if (!el || !v) return;
     const now = v.farm.now;
     const guard = dogGuarding(v.dog, now);
-    const ripe = v.farm.plots.filter((p) => p.crop && now >= p.readyAt && !p.stolen && !p.tried).length;
+    const ripe = v.farm.plots.filter((p) => p.crop && now >= p.readyAt && !p.stolen && !p.tried && !p.zombie).length;
     el.innerHTML = `${C.head(look(v.owner), { cls: 'vb-avatar' })}
       <span class="vb-text"><span>Đang ở nhà <b>${esc(v.owner.name)}</b></span>
         <span class="vb-meta">${v.friend

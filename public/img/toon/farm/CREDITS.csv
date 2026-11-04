@@ -204,3 +204,7 @@ crop_durian_ripe.png,DCity (vẽ quả bằng PIL; lá từ crop_carrot_2.png),D
 item_durian.png,DCity (vẽ bằng PIL),DCity,CC0,
 seed_durian.png,DCity (túi từ seed_carrot.png; hình nông sản vẽ bằng PIL),DCity,CC0,
 item_feed_dog.png,DCity (túi từ item_feed_livestock.png; khúc xương vẽ bằng PIL),DCity,CC0,
+zombie.png,Kenney Toon Characters,Kenney,CC0,https://kenney.nl/assets/toon-characters-1
+soil_plot_good.png,DCity (vẽ / ghép bằng PIL cho dự án),DCity,CC0,
+soil_plot_light_good.png,DCity (vẽ / ghép bằng PIL cho dự án),DCity,CC0,
+soil_plot_light_wet_good.png,DCity (vẽ / ghép bằng PIL cho dự án),DCity,CC0,

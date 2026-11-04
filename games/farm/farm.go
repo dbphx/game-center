@@ -96,8 +96,9 @@ func errStatus(err error) int {
 
 // Farm là dịch vụ nông trại cho mọi người chơi.
 type Farm struct {
-	w   *wallet.Wallet
-	now func() time.Time
+	w         *wallet.Wallet
+	now       func() time.Time
+	noZombies bool // tắt zombie (test tua đồng hồ nhiều giờ không liên quan tới zombie)
 }
 
 func New(ctx context.Context, w *wallet.Wallet) (*Farm, error) {
@@ -106,6 +107,9 @@ func New(ctx context.Context, w *wallet.Wallet) (*Farm, error) {
 	}
 	if err := w.ExecSchema(ctx, stealSchema); err != nil {
 		return nil, fmt.Errorf("tạo bảng chó / trộm: %w", err)
+	}
+	if err := w.ExecSchema(ctx, zombieSchema); err != nil {
+		return nil, fmt.Errorf("tạo bảng zombie: %w", err)
 	}
 	if err := migrate(ctx, w, time.Now().Unix()); err != nil {
 		return nil, fmt.Errorf("nâng cấp bảng nông trại: %w", err)
@@ -121,6 +125,8 @@ type Plot struct {
 	PlantedAt int64  `json:"plantedAt"`
 	ReadyAt   int64  `json:"readyAt"`
 	Stolen    bool   `json:"stolen"` // vụ này đã bị bạn bè trộm mất nông sản (thu hoạch chỉ còn XP), xem steal.go
+	Good      bool   `json:"good"`   // đất tốt: cây gieo trên ô này chín nhanh hơn, xem zombie.go
+	Zombie    bool   `json:"zombie"` // đang có zombie, phải đập trước khi thu hoạch
 }
 
 // Animal là một con trong chuồng / sân / ao. Con vật chỉ lớn và cho sản phẩm trong lúc no (now < fedUntil).
@@ -164,8 +170,10 @@ type State struct {
 	Yard          *Pen    `json:"yard"` // sân gia cầm, luôn có
 	Pond          *Pen    `json:"pond"`
 	Storage       Storage `json:"storage"`
-	Dog           Dog     `json:"dog"`    // chó giữ nhà, xem dog.go
-	Thefts        []Theft `json:"thefts"` // nhật ký bạn bè vào trộm, mới nhất trước
+	Dog           Dog     `json:"dog"`         // chó giữ nhà, xem dog.go
+	Thefts        []Theft `json:"thefts"`      // nhật ký bạn bè vào trộm, mới nhất trước
+	ZombieUntil   int64   `json:"zombieUntil"` // hạn đập zombie (unix), 0 nếu không có zombie
+	ZombieEaten   int     `json:"zombieEaten"` // số cây bị zombie ăn kể từ lần báo trước
 }
 
 // Gained là phần thưởng của một lần thu hoạch / bán.
@@ -197,7 +205,8 @@ func ensurePlots(ctx context.Context, q querier, uid int64) error {
 
 func loadPlots(ctx context.Context, q querier, uid int64) ([]Plot, error) {
 	rows, err := q.QueryContext(ctx, `SELECT p.idx, p.crop, p.planted_at, p.ready_at,
-		p.crop != '' AND EXISTS (SELECT 1 FROM farm_stolen s WHERE s.user_id = p.user_id AND s.idx = p.idx AND s.planted_at = p.planted_at)
+		p.crop != '' AND EXISTS (SELECT 1 FROM farm_stolen s WHERE s.user_id = p.user_id AND s.idx = p.idx AND s.planted_at = p.planted_at),
+		p.good, EXISTS (SELECT 1 FROM farm_zombies z WHERE z.user_id = p.user_id AND z.idx = p.idx)
 		FROM farm_plots p WHERE p.user_id = ? ORDER BY p.idx`, uid)
 	if err != nil {
 		return nil, err
@@ -206,7 +215,7 @@ func loadPlots(ctx context.Context, q querier, uid int64) ([]Plot, error) {
 	plots := []Plot{}
 	for rows.Next() {
 		var p Plot
-		if err := rows.Scan(&p.Index, &p.Crop, &p.PlantedAt, &p.ReadyAt, &p.Stolen); err != nil {
+		if err := rows.Scan(&p.Index, &p.Crop, &p.PlantedAt, &p.ReadyAt, &p.Stolen, &p.Good, &p.Zombie); err != nil {
 			return nil, err
 		}
 		plots = append(plots, p)
@@ -322,6 +331,9 @@ func (f *Farm) load(ctx context.Context, q querier, uid int64) (State, error) {
 	if s.Thefts, err = loadThefts(ctx, q, uid); err != nil {
 		return State{}, err
 	}
+	if s.ZombieUntil, s.ZombieEaten, err = loadZombieInfo(ctx, q, uid); err != nil {
+		return State{}, err
+	}
 	return s, nil
 }
 
@@ -336,9 +348,18 @@ func (f *Farm) State(ctx context.Context, uid int64) (State, error) {
 	if err := settleChases(ctx, tx, f.now().UnixMilli()); err != nil {
 		return State{}, err
 	}
+	if err := f.settleZombies(ctx, tx, uid, f.now().Unix()); err != nil {
+		return State{}, err
+	}
 	s, err := f.load(ctx, tx, uid)
 	if err != nil {
 		return State{}, err
+	}
+	// Số cây bị ăn chỉ báo một lần, khi chủ mở nông trại.
+	if s.ZombieEaten > 0 {
+		if _, err := tx.ExecContext(ctx, `UPDATE farm_zombie_progress SET eaten = 0 WHERE user_id = ?`, uid); err != nil {
+			return State{}, err
+		}
 	}
 	return s, tx.Commit()
 }
@@ -351,6 +372,9 @@ func (f *Farm) do(ctx context.Context, uid int64, op func(tx *wallet.Tx, s State
 	}
 	defer tx.Rollback()
 	if err := settleChases(ctx, tx, f.now().UnixMilli()); err != nil {
+		return State{}, err
+	}
+	if err := f.settleZombies(ctx, tx, uid, f.now().Unix()); err != nil {
 		return State{}, err
 	}
 	s, err := f.load(ctx, tx, uid)
@@ -423,13 +447,16 @@ func (f *Farm) Plant(ctx context.Context, uid int64, plot int, cropID string) (S
 		}
 		now := f.now().Unix()
 		_, err := tx.ExecContext(ctx, `UPDATE farm_plots SET crop = ?, planted_at = ?, ready_at = ? WHERE user_id = ? AND idx = ?`,
-			c.ID, now, now+c.GrowSeconds, uid, plot)
+			c.ID, now, now+growSeconds(c, s.Plots[plot].Good), uid, plot)
 		return err
 	})
 }
 
 func clearPlot(ctx context.Context, tx *wallet.Tx, uid int64, plot int) error {
 	if _, err := tx.ExecContext(ctx, `UPDATE farm_plots SET crop = '', planted_at = 0, ready_at = 0 WHERE user_id = ? AND idx = ?`, uid, plot); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM farm_zombies WHERE user_id = ? AND idx = ?`, uid, plot); err != nil {
 		return err
 	}
 	_, err := tx.ExecContext(ctx, `DELETE FROM farm_stolen WHERE user_id = ? AND idx = ?`, uid, plot)
@@ -450,6 +477,9 @@ func (f *Farm) Harvest(ctx context.Context, uid int64, plot int) (State, Gained,
 		}
 		if p.ReadyAt > f.now().Unix() {
 			return conflict(c.Name + " chưa chín")
+		}
+		if p.Zombie {
+			return conflict("Phải đập zombie trước khi thu hoạch")
 		}
 		if p.Stolen {
 			// Nông sản đã bị trộm: dọn ô, chỉ còn XP.
@@ -481,10 +511,14 @@ func (f *Farm) HarvestAll(ctx context.Context, uid int64) (State, Gained, error)
 		now := f.now().Unix()
 		free := s.Storage.Products.free()
 		g.Items = map[string]int{}
-		ripe, stored := 0, 0 // stored: số nông sản cất vào kho (ô bị trộm không tốn chỗ)
+		ripe, stored, guarded := 0, 0, 0 // stored: số nông sản cất vào kho (ô bị trộm không tốn chỗ); guarded: ô chín có zombie
 		for _, p := range s.Plots {
 			c, ok := findCrop(p.Crop)
 			if !ok || p.ReadyAt > now {
+				continue
+			}
+			if p.Zombie {
+				guarded++
 				continue
 			}
 			ripe++
@@ -509,6 +543,9 @@ func (f *Farm) HarvestAll(ctx context.Context, uid int64) (State, Gained, error)
 			}
 		}
 		if ripe == 0 {
+			if guarded > 0 {
+				return conflict("Các ô đã chín đang có zombie, hãy đập zombie trước")
+			}
 			return conflict("chưa có ô nào chín")
 		}
 		if g.Count == 0 {

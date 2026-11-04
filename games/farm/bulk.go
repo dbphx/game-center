@@ -24,10 +24,10 @@ func (f *Farm) PlantAll(ctx context.Context, uid int64, cropID string) (State, G
 	}
 	var g Gained
 	s, err := f.do(ctx, uid, func(tx *wallet.Tx, s State) error {
-		empty := []int{}
+		empty := []Plot{}
 		for _, p := range s.Plots {
 			if p.Crop == "" {
-				empty = append(empty, p.Index)
+				empty = append(empty, p)
 			}
 		}
 		if len(empty) == 0 {
@@ -56,9 +56,9 @@ func (f *Farm) PlantAll(ctx context.Context, uid int64, cropID string) (State, G
 			return err
 		}
 		now := f.now().Unix()
-		for _, idx := range empty[:n] {
+		for _, p := range empty[:n] {
 			if _, err := tx.ExecContext(ctx, `UPDATE farm_plots SET crop = ?, planted_at = ?, ready_at = ? WHERE user_id = ? AND idx = ?`,
-				c.ID, now, now+c.GrowSeconds, uid, idx); err != nil {
+				c.ID, now, now+growSeconds(c, p.Good), uid, p.Index); err != nil {
 				return err
 			}
 		}

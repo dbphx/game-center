@@ -3,7 +3,7 @@ package farm
 import "context"
 
 // Worth trả giá trị nông trại (xu) của mọi người chơi có nông trại, tính theo giá trong game:
-//   - ô đất đã mua: tổng giá đã trả (6 ô miễn phí tính 0), cây đang trồng tính giá hạt;
+//   - ô đất đã mua: tổng giá đã trả (6 ô miễn phí tính 0), cây đang trồng tính giá hạt, ô đất tốt cộng giá nâng cấp;
 //   - chuồng / ao: giá mua + các lần mở rộng đã trả (sân gia cầm có sẵn, chỉ tính mở rộng); mở rộng kho cũng vậy;
 //   - vật nuôi / cá đang nuôi: giá mua (không tính lớn thêm để giá trị không nhảy theo đồng hồ);
 //   - kho giống: hạt và thức ăn theo giá mua; kho sản phẩm: theo giá bán.
@@ -19,18 +19,22 @@ func (f *Farm) Worth(ctx context.Context) (map[int64]int64, error) {
 
 	// Ô đất: đếm số ô của từng người, cộng hạt đang gieo.
 	plots := map[int64]int{}
-	rows, err := tx.QueryContext(ctx, `SELECT user_id, crop FROM farm_plots`)
+	rows, err := tx.QueryContext(ctx, `SELECT user_id, crop, good FROM farm_plots`)
 	if err != nil {
 		return nil, err
 	}
 	for rows.Next() {
 		var uid int64
 		var crop string
-		if err := rows.Scan(&uid, &crop); err != nil {
+		var good bool
+		if err := rows.Scan(&uid, &crop, &good); err != nil {
 			rows.Close()
 			return nil, err
 		}
 		plots[uid]++
+		if good {
+			worth[uid] += GoodSoilPrice
+		}
 		if c, ok := findCrop(crop); ok {
 			worth[uid] += c.SeedPrice
 		}

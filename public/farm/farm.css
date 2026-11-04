@@ -26,6 +26,8 @@ img.toon { display: block; user-select: none; -webkit-user-drag: none; }
 .plot .soil { position: absolute; inset: 0; background: url('/img/toon/farm/soil_plot_light.png') center / 100% 100% no-repeat; filter: drop-shadow(0 4px 0 rgba(70, 120, 30, .45)); }
 .plot .soil.wet { background-image: url('/img/toon/farm/soil_plot_light_wet.png'); }
 .plot .soil.grass { background-image: url('/img/toon/farm/grass_plot.png'); }
+.plot .soil.good { background-image: url('/img/toon/farm/soil_plot_light_good.png'); }
+.plot .soil.wet.good { background-image: url('/img/toon/farm/soil_plot_light_wet_good.png'); }
 .plot .crop, .plot-top .crop {
   position: absolute; left: 50%; bottom: 24%; transform: translateX(-50%);
   pointer-events: none; z-index: 1;
@@ -878,3 +880,29 @@ button.danger { background: linear-gradient(180deg, #ff8a7a, #e03131); border-co
 .pet-card:not(.hidden) ~ .hint { display: none; }
 /* Nhà bạn: thông báo nổi phía trên băng "Đang ở nhà …" thay vì bị băng che. */
 .visiting .toast { z-index: 7000; bottom: 96px; }
+
+/* Zombie: đứng trên cây, bấm để đập; ảnh ngã xuống khi chết. */
+.plot-top .zombie-img {
+  position: absolute; left: 50%; bottom: 8%; height: calc(var(--plot) * 1.15); width: auto; transform: translateX(-50%);
+  transform-origin: 50% 100%; pointer-events: auto; cursor: pointer; user-select: none;
+  filter: drop-shadow(0 0 5px rgba(220, 38, 38, .95)) drop-shadow(0 3px 2px rgba(40, 20, 0, .4));
+  animation: zombie-sway 1.1s ease-in-out infinite;
+}
+@keyframes zombie-sway { 0%, 100% { rotate: -5deg; } 50% { rotate: 5deg; } }
+.plot-top.zombie .crop img { animation: none; }
+.tag-pill.zombie { color: #fff; background: linear-gradient(180deg, #ef4444, #b91c1c); border-color: #7f1d1d; opacity: 1; }
+.visiting .plot.zombie { cursor: default; }
+.visiting .plot-top .zombie-img { cursor: default; }
+.zombie-die { position: fixed; z-index: 7000; pointer-events: none; transform-origin: 50% 100%; animation: zombie-die .75s ease-in forwards; }
+@keyframes zombie-die { 30% { transform: translateY(-8px) rotate(-14deg); } 100% { transform: translateY(6px) rotate(88deg); opacity: 0; } }
+.soil-row .thumb img { display: block; }
+.zombie-alert {
+  position: absolute; top: 76px; left: 50%; transform: translateX(-50%); z-index: 6000; display: inline-flex; align-items: center; gap: 8px;
+  max-width: calc(100% - 20px); padding: 4px 14px 4px 6px; border-radius: 999px; border: 3px solid #7f1d1d; color: #fff;
+  background: linear-gradient(180deg, #ef4444, #b91c1c); box-shadow: 0 3px 0 #7f1d1d; font-weight: 800; font-size: 14px;
+  white-space: nowrap; cursor: pointer; animation: zombie-pulse 1.2s ease-in-out infinite;
+}
+.zombie-alert:hover:not(:disabled), .zombie-alert:active:not(:disabled) { transform: translateX(-50%); background: linear-gradient(180deg, #ef4444, #b91c1c); box-shadow: 0 3px 0 #7f1d1d; }
+.zombie-alert img { height: 30px; width: auto; }
+@keyframes zombie-pulse { 50% { box-shadow: 0 3px 0 #7f1d1d, 0 0 0 4px rgba(239, 68, 68, .45); } }
+@media (max-width: 600px) { .zombie-alert { font-size: 12px; padding-right: 10px; } .zombie-alert img { height: 24px; } }

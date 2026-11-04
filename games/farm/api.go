@@ -60,24 +60,34 @@ func (f *Farm) Handler() http.Handler {
 		// AutoBuy: cho ăn tất cả thì tự mua thức ăn còn thiếu.
 		AutoBuy bool `json:"autoBuy"`
 	}
-	// handle bọc xác thực, đọc body và gọi thao tác; thao tác trả State và (tuỳ chọn) phần thưởng.
-	handle := func(pattern string, op func(r *http.Request, uid int64, b body) (State, *Gained, error)) {
+	// auth đọc người chơi từ token; không hợp lệ thì trả lỗi và ok = false.
+	auth := func(w http.ResponseWriter, r *http.Request) (u wallet.User, ok bool) {
+		u, err := f.w.UserByToken(r.Context(), strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
+		if errors.Is(err, wallet.ErrNotFound) {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "phiên đăng nhập không hợp lệ"})
+			return u, false
+		}
+		if err != nil {
+			writeErr(w, err)
+			return u, false
+		}
+		return u, true
+	}
+	// route bọc xác thực, đọc body và gọi thao tác; thao tác trả State và (tuỳ chọn) phần thưởng.
+	route := func(pattern string, checkHP bool, op func(r *http.Request, uid int64, b body) (State, *Gained, error)) {
 		mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
-			u, err := f.w.UserByToken(r.Context(), strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
-			if errors.Is(err, wallet.ErrNotFound) {
-				writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "phiên đăng nhập không hợp lệ"})
-				return
-			}
-			if err != nil {
-				writeErr(w, err)
+			u, ok := auth(w, r)
+			if !ok {
 				return
 			}
 			var b body
 			if r.Method == http.MethodPost {
 				// Làm nông cần đủ máu và không nằm viện; xem nông trại (GET) thì luôn được.
-				if err := wallet.CheckZone(u, GameID); err != nil {
-					writeErr(w, err)
-					return
+				if checkHP {
+					if err := wallet.CheckZone(u, GameID); err != nil {
+						writeErr(w, err)
+						return
+					}
 				}
 				json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&b)
 			}
@@ -88,6 +98,9 @@ func (f *Farm) Handler() http.Handler {
 			}
 			reply(w, r, u.ID, s, g)
 		})
+	}
+	handle := func(pattern string, op func(r *http.Request, uid int64, b body) (State, *Gained, error)) {
+		route(pattern, true, op)
 	}
 	plot := func(b body) int {
 		if b.Plot == nil {
@@ -112,6 +125,25 @@ func (f *Farm) Handler() http.Handler {
 	})
 	handle("POST /api/farm/harvest-all", func(r *http.Request, uid int64, _ body) (State, *Gained, error) {
 		return gain(f.HarvestAll(r.Context(), uid))
+	})
+	handle("POST /api/farm/plot/upgrade", func(r *http.Request, uid int64, b body) (State, *Gained, error) {
+		return noGain(f.UpgradePlot(r.Context(), uid, plot(b)))
+	})
+	// Đập zombie được cả khi máu dưới mức làm nông, nếu không người chơi không cứu nổi cây; HitZombie tự chặn lúc nằm viện.
+	route("POST /api/farm/zombie/hit", false, func(r *http.Request, uid int64, b body) (State, *Gained, error) {
+		return noGain(f.HitZombie(r.Context(), uid, plot(b)))
+	})
+	mux.HandleFunc("GET /api/farm/zombie/status", func(w http.ResponseWriter, r *http.Request) {
+		u, ok := auth(w, r)
+		if !ok {
+			return
+		}
+		count, until, err := f.ZombieStatus(r.Context(), u.ID)
+		if err != nil {
+			writeErr(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"count": count, "until": until})
 	})
 	// Chuồng (/animals), sân gia cầm (/poultry, có sẵn nên không có /yard/buy), ao (/fish).
 	for _, place := range []string{placeBarn, placeYard, placePond} {

@@ -2771,6 +2771,50 @@
    "source": [
     "DCity (vẽ / ghép bằng PIL cho dự án)"
    ]
+  },
+  {
+   "file": "zombie.png",
+   "w": 142,
+   "h": 208,
+   "use": "Zombie đứng trên ô đất, nền trong, neo chân ở giữa cạnh dưới; bấm để đập",
+   "anchor": "bottom",
+   "tile": false,
+   "source": [
+    "Kenney — Toon Characters (kenney.nl/assets/toon-characters-1)"
+   ]
+  },
+  {
+   "file": "soil_plot_good.png",
+   "w": 96,
+   "h": 96,
+   "use": "Đất tốt: bản đậm của soil_plot.png, viền vàng, đốm mùn",
+   "anchor": "top-left",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "soil_plot_light_good.png",
+   "w": 96,
+   "h": 96,
+   "use": "Đất tốt: bản đậm của soil_plot_light.png, viền vàng, đốm mùn (ô chưa tưới)",
+   "anchor": "top-left",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "soil_plot_light_wet_good.png",
+   "w": 96,
+   "h": 96,
+   "use": "Đất tốt: bản đậm của soil_plot_light_wet.png, viền vàng, đốm mùn (ô đã trồng)",
+   "anchor": "top-left",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
   }
  ]
 }

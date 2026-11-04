@@ -130,6 +130,8 @@
 
   // Tiến độ 0..1 của một thứ đang lớn.
   const progress = (start, ready) => (ready <= start ? 1 : Math.min(1, Math.max(0, (nowS() - start) / (ready - start))));
+  // Ô chín thu hoạch được ngay (ô có zombie phải đập trước).
+  const harvestable = (p) => p.crop && !p.zombie && nowS() >= p.readyAt;
 
   async function call(path, body) {
     try {
@@ -152,6 +154,7 @@
     farm = f;
     offset = f.now - Date.now() / 1000;
     render();
+    renderZombieAlert();
   }
 
   // ---------- Topbar ----------
@@ -314,13 +317,23 @@
   function plotHTML(p, x, y) {
     const ground = `data-obj="plot${p.index}" style="${pos(x, y, 5)}"`;
     const top = (cls, inner) => `<div class="plot-top ${cls}" data-obj="plot${p.index}" style="${pos(x, y, y + PLOT)}">${inner}</div>`;
-    if (!p.crop && VISIT) return `<div class="plot empty visit" ${ground}><span class="soil"></span></div>`;
+    const soil = (wet) => `<span class="soil${wet ? ' wet' : ''}${p.good ? ' good' : ''}"></span>`;
+    if (!p.crop && VISIT) return `<div class="plot empty visit" ${ground}>${soil()}</div>`;
     if (!p.crop) {
-      return `<div class="plot empty" ${ground} title="Gieo hạt">
-        <span class="soil"></span><span class="tag-pill add">${I.svg('plus')}Gieo hạt</span></div>`;
+      return `<div class="plot empty" ${ground} title="${p.good ? 'Đất tốt — gieo hạt' : 'Gieo hạt'}">
+        ${soil()}<span class="tag-pill add">${I.svg('plus')}Gieo hạt</span></div>`;
     }
     const c = find('crops', p.crop);
     const pr = progress(p.plantedAt, p.readyAt);
+    if (p.zombie) {
+      // Zombie đứng trên cây: chủ nhà bấm để đập; nhà bạn thì chỉ xem, không trộm được.
+      const stage = pr >= 1 ? 'ripe' : pr < 0.34 ? 1 : pr < 0.67 ? 2 : 3;
+      const label = VISIT ? 'Có zombie' : 'Đập!';
+      return `<div class="plot zombie${VISIT ? ' stolen' : ''}" ${ground} title="${VISIT ? `Zombie đang phá ${esc(c.name)}` : `Đập zombie cứu ${esc(c.name)} (−2 máu)`}">
+        ${soil(pr < 1)}<span class="tag-pill zombie">${label}</span></div>
+        ${top('zombie', `<span class="crop">${art.crop(p.crop, stage)}</span>
+        <img class="zombie-img" src="/img/toon/farm/zombie.png" alt="Zombie" draggable="false">`)}`;
+    }
     if (pr >= 1 && VISIT) {
       // Nhà bạn: ô chín bấm để trộm. Ô đã bị trộm (mỗi vụ một lần) hoặc mình đã thử rồi (bị bắt cũng tính) thì mờ đi,
       // không bấm trộm được nữa.
@@ -343,7 +356,7 @@
     }
     if (pr >= 1) {
       return `<div class="plot ripe" ${ground} title="Thu hoạch ${esc(c.name)}">
-        <span class="soil"></span><span class="tag-pill go">Thu hoạch</span></div>
+        ${soil()}<span class="tag-pill go">Thu hoạch</span></div>
         ${top('ripe', `<span class="crop">${art.crop(p.crop, 'ripe')}</span>
         <span class="harvest-arrow">${I.svg('chevronDown')}</span>
         <span class="twinkle t1">${I.svg('sparkles')}</span><span class="twinkle t2">${I.svg('sparkles')}</span>`)}`;
@@ -351,7 +364,7 @@
     const stage = pr < 0.34 ? 1 : pr < 0.67 ? 2 : 3;
     return `<div class="plot growing" ${ground} data-start="${p.plantedAt}" data-ready="${p.readyAt}" data-stage="${stage}"
         title="${esc(c.name)}">
-      <span class="soil wet"></span>
+      ${soil(true)}
       <span class="tag-pill"><span data-left>${countdown(p.readyAt - nowS())}</span>
         <span class="bar"><span style="width:${Math.round(pr * 100)}%"></span></span></span></div>
       ${top('growing', `<span class="crop">${art.crop(p.crop, stage)}</span>`)}`;
@@ -412,6 +425,7 @@
   }
 
   function plotVerb(p) {
+    if (p.zombie) return VISIT ? 'Có zombie' : 'Đập zombie';
     if (VISIT) return !p.crop ? 'Ô trống' : nowS() < p.readyAt ? 'Xem cây' : p.stolen ? 'Đã bị trộm' : p.tried ? 'Đã thử trộm' : !(visit && visit.friend) ? `${find('crops', p.crop).name} đã chín` : `Trộm ${find('crops', p.crop).name}`;
     if (!p.crop) return tool === 'plant' && seedSel ? `Gieo ${find('crops', seedSel).name}` : 'Gieo hạt';
     return nowS() >= p.readyAt ? 'Thu hoạch' : 'Xem cây';
@@ -719,7 +733,7 @@
   function renderToolbar() {
     const seeds = store('seeds');
     const prods = store('products');
-    const ripe = farm ? farm.plots.filter((p) => p.crop && nowS() >= p.readyAt).length : 0;
+    const ripe = farm ? farm.plots.filter(harvestable).length : 0;
     const badge = (n) => (n ? `<span class="badge">${n}</span>` : '');
     let n = 0;
     const btn = (attr, pic, label, extra = '', on = false) =>
@@ -755,7 +769,7 @@
 
   function quickCount() {
     if (!farm) return 0;
-    const ripe = farm.plots.filter((p) => p.crop && nowS() >= p.readyAt).length;
+    const ripe = farm.plots.filter(harvestable).length;
     let n = ripe;
     for (const p of pets.values()) if (isHungry(p.data) || (!p.fish && prodReady(p.data))) n++;
     return n;
@@ -763,7 +777,7 @@
 
   function renderQuick() {
     const empty = farm.plots.filter((p) => !p.crop).length;
-    const ripe = farm.plots.filter((p) => p.crop && nowS() >= p.readyAt).length;
+    const ripe = farm.plots.filter(harvestable).length;
     const all = [...pets.values()];
     const hungry = all.filter((p) => isHungry(p.data)).length;
     const goods = all.filter((p) => !p.fish && prodReady(p.data)).length;
@@ -967,7 +981,7 @@
   }
 
   function renderHarvestAll() {
-    const ripe = farm.plots.filter((p) => p.crop && nowS() >= p.readyAt).length;
+    const ripe = farm.plots.filter(harvestable).length;
     const fish = readyFish().length;
     $('btn-harvest-all').classList.toggle('hidden', ripe < 2 && !fish);
     $('btn-harvest-all').querySelector('span').textContent = `Thu hoạch tất cả (${ripe + fish})`;
@@ -1004,6 +1018,8 @@
   function tick() {
     if (!farm) return;
     let changed = false;
+    pollZombies();
+    renderZombieAlert();
     document.querySelectorAll('.plot.growing').forEach((el) => {
       const start = +el.dataset.start;
       const ready = +el.dataset.ready;
@@ -1683,6 +1699,7 @@
     const p = farm.plots[index];
     if (!p || !visit) return;
     if (!p.crop) return A.toast('Ô này còn trống');
+    if (p.zombie) return A.toast('Ô này đang có zombie, không trộm được');
     const c = find('crops', p.crop);
     if (nowS() < p.readyAt) return A.toast(`${c.name} còn ${fmtDur(p.readyAt - nowS())} nữa mới chín`);
     if (p.stolen) return A.toast(`Ô ${c.name} này đã bị trộm rồi`);
@@ -2226,7 +2243,7 @@
     if (pm && !run && !VISIT) {
       // Ghi ý định lúc bấm: tới nơi mà ô đã đổi (vd vừa "thu hoạch tất cả") thì thôi, không mở nhầm hộp thoại.
       const p = farm.plots[+pm[1]];
-      const intent = !p.crop ? 'plant' : nowS() >= p.readyAt ? 'harvest' : 'view';
+      const intent = p.zombie ? 'hit' : !p.crop ? 'plant' : nowS() >= p.readyAt ? 'harvest' : 'view';
       run = () => plotAction(+pm[1], intent);
     }
     const job = { key, run: run || o.run, work: !!pm || (/^barn|^pond/.test(key) && !!run) };
@@ -2374,7 +2391,7 @@
       if (!m || swept.has(+m[1]) || Math.abs(me.x - o.x) > PITCH / 2 || Math.abs(me.y - o.y) > PITCH / 2) continue;
       swept.add(+m[1]);
       const p = farm.plots[+m[1]];
-      const ok = tool === 'plant' ? p && !p.crop : p && p.crop && nowS() >= p.readyAt;
+      const ok = tool === 'plant' ? p && !p.crop : p && harvestable(p);
       if (ok) sweepQueue.push([+m[1], tool === 'plant' ? 'plant' : 'harvest']);
     }
     drainSweep();
@@ -2683,7 +2700,12 @@
     for (const [k, o] of Object.entries(objs)) {
       const d = Math.hypot(me.x - o.x, me.y - o.y);
       // Ô đất: tính khoảng cách tới điểm trước mặt để E thao tác ô đang đứng / ô đối diện.
-      if (d < 60) list.push({ key: k, d: /^plot|^buyplot/.test(k) ? Math.hypot(fx - o.x, fy - o.y) : d });
+      if (d >= 60) continue;
+      // Zombie trong tầm luôn được chọn trước: nút E không che con zombie bằng thao tác của ô khác.
+      const pm = /^plot(\d+)$/.exec(k);
+      const zombie = !VISIT && pm && farm.plots[+pm[1]] && farm.plots[+pm[1]].zombie;
+      const near = /^plot|^buyplot/.test(k) ? Math.hypot(fx - o.x, fy - o.y) : d;
+      list.push({ key: k, d: zombie ? near - 1000 : near });
     }
     for (const p of pets.values()) {
       const d = Math.hypot(me.x - p.x, me.y - p.y);
@@ -2844,7 +2866,12 @@
       dragged = false;
       return;
     }
-    if (e.target.closest('[data-hint]')) return actTarget();
+    if (e.target.closest('[data-hint]')) {
+      // Nút E nổi đè lên ảnh zombie thì cú bấm là để đập con zombie đó.
+      const under = !VISIT && document.elementsFromPoint(e.clientX, e.clientY).find((el) => el.classList.contains('zombie-img'));
+      const obj = under && under.closest('[data-obj]');
+      return obj ? goTo(obj.dataset.obj) : actTarget();
+    }
     const r = $('world-wrap').getBoundingClientRect();
     const wx = (e.clientX - r.left) / zoom;
     const wy = (e.clientY - r.top) / zoom - OY;
@@ -2946,18 +2973,110 @@
   async function plotAction(index, intent) {
     const p = farm.plots[index];
     if (!p) return;
+    if (p.zombie) {
+      // Quét hàng loạt không tự đập để khỏi mất máu ngoài ý muốn.
+      if (intent === 'harvest' || intent === 'plant') return A.toast('Ô này có zombie — đập trước đã');
+      return hitZombie(index);
+    }
+    if (intent === 'hit') return; // zombie vừa hết trong lúc đi tới
     if ((intent === 'harvest' && !p.crop) || (intent === 'plant' && p.crop)) return;
     if (!p.crop) {
       if (tool === 'harvest') return A.toast('Ô này chưa trồng gì');
       if (tool === 'plant' && seedSel) return call('/api/farm/plant', { plot: index, crop: seedSel });
       return openShop('crops', index);
     }
-    if (nowS() < p.readyAt) return A.toast(`${find('crops', p.crop).name} còn ${fmtDur(p.readyAt - nowS())} nữa mới chín`);
+    if (nowS() < p.readyAt) {
+      return A.toast(`${find('crops', p.crop).name} còn ${fmtDur(p.readyAt - nowS())} nữa mới chín`);
+    }
     const el = document.querySelector(`[data-obj="plot${index}"]`);
     const res = await call('/api/farm/harvest', { plot: index });
     if (res) {
       flyToStore(el, res.gained && res.gained.items);
       floatGain(el, res.gained, itemsText(res.gained && res.gained.items));
+    }
+  }
+
+  // Nâng ô lên đất tốt: cây gieo từ vụ sau chín nhanh hơn.
+  async function upgradePlot(index) {
+    const res = await call('/api/farm/plot/upgrade', { plot: index });
+    if (res) A.toast(`Ô ${index + 1} đã thành đất tốt`);
+    return res;
+  }
+
+  // ---------- Zombie ----------
+
+  const zombieHits = new Set(); // ô đang gửi yêu cầu đập, chống bấm đúp
+  const zombies = () => (farm && !VISIT ? farm.plots.filter((p) => p.zombie) : []);
+
+  // Một nhát: zombie chết, trừ máu; ảnh zombie ngã và chữ trừ máu bay lên tại chỗ.
+  async function hitZombie(index) {
+    if (zombieHits.has(index)) return;
+    zombieHits.add(index);
+    const img = document.querySelector(`.plot-top[data-obj="plot${index}"] .zombie-img`);
+    const r = img ? img.getBoundingClientRect() : null;
+    const before = user.hp;
+    try {
+      const res = await call('/api/farm/zombie/hit', { plot: index });
+      // Lỗi (zombie vừa hết hạn, đang nằm viện): tải lại để hiện đúng bàn.
+      if (!res) return refreshFarm();
+      if (!r) return;
+      const die = document.createElement('img');
+      die.className = 'zombie-die';
+      die.src = '/img/toon/farm/zombie.png';
+      die.alt = '';
+      die.style.cssText = `left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px`;
+      document.body.appendChild(die);
+      setTimeout(() => die.remove(), 800);
+      const g = document.createElement('span');
+      g.className = 'gain lose';
+      g.textContent = `−${Math.max(0, before - user.hp) || 2} máu`;
+      g.style.left = `${r.left + r.width / 2}px`;
+      g.style.top = `${r.top}px`;
+      document.body.appendChild(g);
+      setTimeout(() => g.remove(), 1700);
+      if (user.hospitalUntil && user.hospitalUntil > nowS()) A.toast('Hết máu! Bạn được đưa vào bệnh viện.');
+      else if (!zombies().length) A.toast('Đã đập hết zombie — cây an toàn!');
+    } finally {
+      zombieHits.delete(index);
+    }
+  }
+
+  // Báo số cây bị zombie ăn lúc vắng mặt (server chỉ báo một lần khi đọc nông trại).
+  function notifyEaten(f) {
+    if (f && f.zombieEaten > 0) A.toast(`Zombie đã ăn mất ${f.zombieEaten} cây`);
+  }
+
+  async function refreshFarm() {
+    if (VISIT) return;
+    const res = await call('/api/farm');
+    if (res) notifyEaten(res.farm);
+  }
+
+  // Băng đếm ngược: bấm để đi tới con zombie đầu tiên.
+  function renderZombieAlert() {
+    const el = $('zombie-alert');
+    const list = zombies();
+    const left = farm && farm.zombieUntil ? farm.zombieUntil - nowS() : 0;
+    el.classList.toggle('hidden', !list.length || left <= 0);
+    if (!list.length || left <= 0) return;
+    el.querySelector('[data-zombie-text]').textContent = `Zombie tấn công! ${list.length} con · còn ${countdown(left)} để đập`;
+  }
+
+  // Đầu mỗi giờ (lệch vài giây để các máy không gọi cùng lúc) và lúc hết hạn đập thì hỏi lại server.
+  let zombieHour = 0;
+  let zombiePollAt = 0;
+  function pollZombies() {
+    if (VISIT || !farm) return;
+    const hour = Math.floor(nowS() / 3600);
+    if (!zombieHour) zombieHour = hour;
+    if (hour !== zombieHour) {
+      zombieHour = hour;
+      zombiePollAt = nowS() + Math.random() * 5;
+    }
+    if (farm.zombieUntil && nowS() >= farm.zombieUntil && !zombiePollAt) zombiePollAt = nowS();
+    if (zombiePollAt && nowS() >= zombiePollAt) {
+      zombiePollAt = 0;
+      refreshFarm();
     }
   }
 
@@ -3198,6 +3317,15 @@
       const seeds = store('seeds');
       if (plot !== null) {
         $('shop-note').textContent = 'Chọn hạt để gieo — hạt có sẵn trong kho giống được dùng trước.';
+        const good = !!(farm.plots[plot] && farm.plots[plot].good);
+        const speedup = cat.goodSoilSpeedup || 0;
+        const growOf = (c) => (good ? Math.floor(c.growSeconds * (1 - speedup)) : c.growSeconds);
+        if (cat.goodSoilPrice) {
+          rows.push(`<div class="shop-row soil-row${good ? ' feature' : ''}"><span class="thumb"><img src="/img/toon/farm/soil_plot_light_good.png" alt="" width="46" height="46"></span>
+            <div><b>Đất tốt</b>${metaLine([['timer', `cây chín nhanh hơn ${Math.round(speedup * 100)}%`]])}</div>
+            ${good ? `<button disabled>${I.svg('check')}Đã nâng</button>`
+              : `<button data-upgrade-plot="${plot}" ${user.balance < cat.goodSoilPrice ? 'disabled' : ''}>${I.svg('coins')}Nâng ${xu(cat.goodSoilPrice)} xu</button>`}</div>`);
+        }
         // Hạt đang có trong kho lên đầu.
         const crops = [...cat.crops].sort((a, b) => (seeds.items[b.id] ? 1 : 0) - (seeds.items[a.id] ? 1 : 0));
         for (const c of crops) {
@@ -3208,7 +3336,7 @@
           else if (have) btn = `<button class="primary" data-plant="${c.id}">${I.svg('sprout')}Gieo (còn ${have})</button>`;
           else btn = `<button data-plant="${c.id}" ${user.balance < c.seedPrice ? 'disabled' : ''}>${I.svg('coins')}Mua 1 hạt ${xu(c.seedPrice)} xu</button>`;
           rows.push(`<div class="shop-row${locked ? ' locked' : ''}${have ? ' feature' : ''}"><span class="thumb">${have ? art.seed(c.id, 46) : art.item(c.id, 40)}</span>
-            <div><b>${esc(c.name)}</b>${have ? `<span class="have">×${have} trong kho</span>` : ''}${metaLine([['timer', fmtDur(c.growSeconds)], ['coins', `bán ${xu(c.sellPrice)}`], ['trophy', `+${c.xp} XP`]])}</div>${btn}</div>`);
+            <div><b>${esc(c.name)}</b>${have ? `<span class="have">×${have} trong kho</span>` : ''}${metaLine([['timer', fmtDur(growOf(c))], ['coins', `bán ${xu(c.sellPrice)}`], ['trophy', `+${c.xp} XP`]])}</div>${btn}</div>`);
         }
       } else {
         $('shop-note').innerHTML = `Hạt mua được cất vào <b>Kho giống</b> (${seeds.used}/${seeds.capacity} chỗ).`;
@@ -3407,6 +3535,7 @@
     if (res) {
       $('farm').classList.remove('hidden');
       if (res.farm) window.FarmVisit.notifyThefts(res.farm.thefts);
+      notifyEaten(res.farm);
     }
     return res;
   }
@@ -3415,6 +3544,18 @@
 
   document.addEventListener('click', onClick);
   $('dlg-shop').addEventListener('close', () => (shopMode.plot = null));
+  $('dlg-shop').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-upgrade-plot]');
+    if (!b) return;
+    e.stopPropagation();
+    upgradePlot(+b.dataset.upgradePlot);
+  });
+  $('zombie-alert').addEventListener('click', (e) => {
+    e.stopPropagation();
+    e.currentTarget.blur();
+    const first = zombies()[0];
+    if (first) goTo(`plot${first.index}`);
+  });
   document.querySelectorAll('#shop-tabs .tab').forEach((b) => b.addEventListener('click', (e) => {
     e.stopPropagation();
     shopMode = { tab: b.dataset.tab, plot: null };
@@ -3450,7 +3591,7 @@
     A.toast(`Đã lấy thịt ${(res.gained && res.gained.count) || ready.length} con vào kho thóc${left > 0 ? ` · còn ${left} con vì kho đầy` : ''}`);
   }
   async function harvestEverything(btn) {
-    const ripe = farm.plots.filter((p) => p.crop && nowS() >= p.readyAt).map((p) => document.querySelector(`[data-obj="plot${p.index}"]`));
+    const ripe = farm.plots.filter(harvestable).map((p) => document.querySelector(`[data-obj="plot${p.index}"]`));
     const fishEls = readyFish().map((f) => pets.get(f.id)).filter(Boolean).map((q) => q.el);
     const items = {};
     let xp = 0;

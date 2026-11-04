@@ -113,7 +113,7 @@ Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè c
 ## Nông trại
 
 - 6 ô đất miễn phí, ô thứ 7 giá 10.000 xu, mỗi ô sau +2.000 xu, tối đa 48 ô. Cây có thời gian chín, level tối thiểu.
-  Cây ngắn lãi / giờ cao cho người chơi liên tục; cây dài (4–12 giờ) cho người treo máy:
+  Cây ngắn lãi / giờ cao cho người chơi liên tục; cây dài (4–12 giờ) lãi mỗi vụ cao hơn nhưng phải canh zombie (xem bên dưới):
 
 | Cây | Level | Hạt | Chín sau | Bán | XP |
 |---|---|---|---|---|---|
@@ -183,6 +183,22 @@ Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè c
 | `POST /api/farm/storage/{seeds,products}/expand` | |
 
 Mã lỗi: 400 dữ liệu sai, 402 không đủ xu, 403 thiếu level / HP, 404 không tìm thấy, 409 trùng / đầy / chưa chín, 423 đang nằm viện.
+
+
+### Đất tốt và zombie
+
+- **Đất tốt**: mỗi ô nâng một lần, giá 8.000 xu, giữ vĩnh viễn. Cây gieo sau đó chín nhanh hơn 30% (`POST /api/farm/plot/upgrade {plot}`);
+  cây đang trồng giữ nguyên giờ chín. Tiền nâng cấp tính vào giá trị nông trại ở Khu danh vọng.
+- **Zombie**: đúng đầu mỗi giờ theo giờ server có một đợt chung cho mọi nông trại, chủ có 5 phút để đập. Mục tiêu chọn ngẫu nhiên trong
+  các ô có cây gieo trước lúc đợt bắt đầu, gồm cả cây đã chín. Số zombie là `max(1, ceil(p × số cây))` với `p = 1 − 0,5^(1/12) ≈ 5,61%`,
+  không vượt quá số cây; nhà không có cây thì không có zombie.
+- **Không đập kịp**: hết 5 phút, zombie ăn cây (mất cây, mất hạt) với xác suất `p × số cây / số zombie`, ngược lại bỏ đi. Nhờ vậy người
+  không canh mất khoảng 50% số cây sau mỗi 12 giờ, nhà to nhỏ như nhau, kể cả khi đang offline.
+- **Đập** (`POST /api/farm/zombie/hit {plot}`): 1 nhát chết, trừ 2 máu, không có thưởng; được đập cả khi máu dưới 40, trừ lúc nằm viện. Chỉ chủ
+  nông trại đập được. Hết máu ở nhát đập thì vào viện như các nguồn mất máu khác.
+- Ô có zombie không thu hoạch được và không bị bạn bè trộm được. `GET /api/farm/zombie/status` trả `{count, until}` cho bản đồ thành phố.
+- Không có tiến trình nền: server tính bù các đợt đã qua mỗi khi nông trại được đọc, tối đa 720 đợt gần nhất, ngẫu nhiên có seed theo
+  `(người chơi, đợt)`. Lần đầu thấy một nông trại thì không tính ngược, đợt đầu tiên là đầu giờ kế tiếp.
 
 ## Bầu Cua Tôm Cá
 
