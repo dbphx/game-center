@@ -29,26 +29,25 @@ func moveOf(b Board, seat, horse int, d Dice) (Move, bool) {
 	return Move{}, false
 }
 
-func TestLeaveHomeOn1Or6OrDouble(t *testing.T) {
+func TestLeaveHomeOnlyOn11Or16Or66(t *testing.T) {
 	b := NewBoard(2)
 	for a := 1; a <= 6; a++ {
 		for c := 1; c <= 6; c++ {
-			want := a == 1 || a == 6 || c == 1 || c == 6 || a == c
+			want := (a == 1 || a == 6) && (c == 1 || c == 6)
 			if got := len(b.Moves(0, Dice{a, c})) == Horses; got != want {
 				t.Fatalf("đổ %d + %d: xuất quân = %v, muốn %v", a, c, got, want)
 			}
 		}
 	}
-	// Ra ô xuất phát rồi dừng, viên còn lại bỏ.
-	m, ok := moveOf(b, 1, 0, Dice{6, 3})
+	// Ra ô xuất phát rồi dừng, không đi thêm.
+	m, ok := moveOf(b, 1, 0, Dice{6, 1})
 	if !ok || m.To != Side {
 		t.Fatalf("màu 1 xuất quân ở ô %d, muốn %d", m.To, Side)
 	}
-	if m, ok := moveOf(b, 0, 0, Dice{2, 2}); !ok || m.To != 0 {
-		t.Fatalf("đổ đôi 2 phải ra quân: %+v %v", m, ok)
-	}
-	if _, ok := moveOf(b, 0, 0, Dice{2, 3}); ok {
-		t.Fatal("đổ 2 + 3 không được ra quân")
+	for _, d := range []Dice{{6, 3}, {1, 4}, {2, 2}, {5, 5}} {
+		if _, ok := moveOf(b, 0, 0, d); ok {
+			t.Fatalf("đổ %v không được ra quân", d)
+		}
 	}
 	// Ô xuất phát có ngựa mình thì không xuất quân được.
 	b[0][2] = 0

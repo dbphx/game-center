@@ -61,8 +61,10 @@ func (d Dice) Double() bool { return d[0] == d[1] }
 // has: có viên nào ra đúng số n.
 func (d Dice) has(n int) bool { return d[0] == n || d[1] == n }
 
-// canLeaveHome: có viên 1 hoặc 6, hoặc đổ đôi thì được xuất quân.
-func (d Dice) canLeaveHome() bool { return d.has(1) || d.has(6) || d.Double() }
+// canLeaveHome: chỉ đổ 1 + 1, 1 + 6 hoặc 6 + 6 mới được xuất quân.
+func (d Dice) canLeaveHome() bool {
+	return (d[0] == 1 || d[0] == 6) && (d[1] == 1 || d[1] == 6)
+}
 
 // Move là một nước đi hợp lệ: ngựa horse của ghế seat từ From tới To, có thể đá ngựa (KickSeat, KickHorse).
 type Move struct {
@@ -114,7 +116,7 @@ func (b Board) horseMoves(seat, horse int, d Dice) []Move {
 	p := b[seat][horse]
 	m := Move{Seat: seat, Horse: horse, From: p, KickSeat: -1, KickHorse: -1}
 	switch {
-	case p == Home: // ra ô xuất phát rồi dừng, viên còn lại bỏ
+	case p == Home: // ra ô xuất phát rồi dừng, không đi thêm
 		if !d.canLeaveHome() {
 			return nil
 		}

@@ -273,8 +273,8 @@ mỗi người 4 ngựa.
 
 - **Bàn**: đường chung 56 ô (mỗi màu một cạnh 14 ô). Màu thứ i xuất quân ở ô `14·i`; cửa chuồng đích là ô ngay trước
   ô xuất phát (`14·i − 1`, đi đủ một vòng). Chuồng đích có 6 bậc.
-- **Đổ 2 xúc xắc** (server quay), mỗi lượt đi một nước. Có viên ra 1 hoặc 6, hoặc đổ đôi, thì được xuất quân (ngựa ra ô
-  xuất phát rồi dừng, viên còn lại bỏ). Đổ đôi được đổ thêm; đôi lần thứ 3 liên tiếp thì mất lượt.
+- **Đổ 2 xúc xắc** (server quay), mỗi lượt đi một nước. Chỉ đổ 1 + 1, 1 + 6 hoặc 6 + 6 mới được xuất quân (ngựa ra ô
+  xuất phát rồi dừng). Đổ đôi được đổ thêm; đôi lần thứ 3 liên tiếp thì mất lượt.
   Không có nước đi thì bỏ lượt (ra đôi thì vẫn được đổ tiếp).
 - **Đi** đúng tổng 2 viên, không được vượt qua ngựa nào trên đường; đến đúng ô có ngựa đối thủ thì **đá** ngựa đó về chuồng;
   không đứng chồng lên ngựa mình. Đổ 1 + 1 được chọn đi 1 ô hoặc 2 ô. Tổng dư thì dừng ngay ở cửa đích. Từ cửa lên bậc bằng
