@@ -307,7 +307,8 @@ button.hseat.empty:hover .seat-join { transform: translate(-50%, -50%) scale(1.0
 }
 .dice-bar.mine { animation: bar-glow 1.2s ease-in-out 3; }
 @keyframes bar-glow { 50% { box-shadow: 0 3px 0 rgba(40, 20, 5, .4), 0 0 0 4px rgba(255, 214, 80, .8), 0 0 22px rgba(255, 200, 40, .9); } }
-/* 2 viên xúc xắc giữa bàn trên ô đích ngôi sao, nằm dưới ngựa, quầng màu người tới lượt, bấm để đổ. */
+/* 2 viên xúc xắc giữa bàn trên ô đích ngôi sao, luôn nổi trên ngựa, quầng màu người tới lượt.
+   Chỉ nhận bấm khi tới lượt đổ; lúc khác cú bấm xuyên xuống con ngựa bên dưới. */
 .center-dice {
   position: absolute;
   left: 50%;
@@ -322,11 +323,12 @@ button.hseat.empty:hover .seat-join { transform: translate(-50%, -50%) scale(1.0
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 5;
+  z-index: 1100;
+  pointer-events: none;
   cursor: default;
 }
 .center-dice:hover:not(:disabled), .center-dice:active:not(:disabled), .center-dice:disabled { transform: translate(-50%, -50%); background: none; box-shadow: none; filter: none; opacity: 1; }
-.center-dice.ready { cursor: pointer; animation: dice-ready 1s ease-in-out infinite; }
+.center-dice.ready { pointer-events: auto; cursor: pointer; animation: dice-ready 1s ease-in-out infinite; }
 @keyframes dice-ready {
   50% { filter: drop-shadow(0 0 7px rgba(255, 200, 40, 1)) drop-shadow(0 0 3px rgba(255, 214, 80, 1)); }
 }
