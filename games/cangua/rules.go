@@ -87,10 +87,12 @@ func (b Board) land(m Move) (Move, bool) {
 	return m, true
 }
 
-// walk đi n ô trên đường chung: không vượt ngựa nào, số dư thì dừng ngay ở cửa đích.
+// walk đi đúng n ô trên đường chung: không vượt ngựa nào, không đi quá cửa đích.
 func (b Board) walk(m Move, n int) (Move, bool) {
 	r := rel(m.Seat, m.From)
-	n = min(n, Track-1-r)
+	if r+n > Track-1 {
+		return m, false
+	}
 	for s := 1; s < n; s++ {
 		if os, _ := b.at(abs(m.Seat, r+s)); os >= 0 {
 			return m, false
@@ -146,7 +148,7 @@ func (b Board) horseMoves(seat, horse int, d Dice) []Move {
 		out = append(out, long)
 	}
 	if d == (Dice{1, 1}) { // gỡ kẹt: tổng nhỏ nhất là 2, riêng 1 + 1 được chọn đi 1 ô
-		if short, ok := b.walk(m, 1); ok && (!okLong || short.To != long.To) {
+		if short, ok := b.walk(m, 1); ok {
 			short.Short = true
 			out = append(out, short)
 		}

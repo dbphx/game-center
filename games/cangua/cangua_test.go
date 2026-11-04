@@ -84,27 +84,41 @@ func TestSumMoveBlockedAndKick(t *testing.T) {
 	}
 }
 
-func TestSurplusStopsAtDoor(t *testing.T) {
+func TestMustMoveExactSumToDoor(t *testing.T) {
 	door := Track - 1
 	b := NewBoard(2)
-	b[0][0] = door - 2
-	if m, ok := moveOf(b, 0, 0, Dice{6, 5}); !ok || m.To != door {
-		t.Fatalf("tổng dư phải dừng ở cửa: %+v %v", m, ok)
+	// Cách cửa 4 ô: đổ 4 + 4 phải đi đủ 8 nên không đi được, không được dừng ở cửa.
+	b[0][0] = door - 4
+	if _, ok := moveOf(b, 0, 0, Dice{4, 4}); ok {
+		t.Fatal("4 + 4 cách cửa 4 ô không được đi")
 	}
-	// Có ngựa chắn trước cửa thì vẫn không vượt được; đối thủ đứng ở cửa thì bị đá.
-	b[1][0] = door - 1
 	if _, ok := moveOf(b, 0, 0, Dice{6, 5}); ok {
-		t.Fatal("không được vượt ngựa trên đường tới cửa")
+		t.Fatal("tổng dư không được đi")
+	}
+	if m, ok := moveOf(b, 0, 0, Dice{1, 3}); !ok || m.To != door {
+		t.Fatalf("đúng tổng thì tới cửa: %+v %v", m, ok)
+	}
+	// Có ngựa chắn trước cửa thì không vượt được; đối thủ đứng ở cửa thì bị đá.
+	b[0][0] = door - 2
+	b[1][0] = door - 1
+	if _, ok := moveOf(b, 0, 0, Dice{1, 1}); !ok {
+		t.Fatal("1 + 1 vẫn được đi 1 ô đá ngựa chắn")
+	}
+	if m, _ := moveOf(b, 0, 0, Dice{1, 1}); !m.Short || m.KickSeat != 1 {
+		t.Fatalf("chỉ còn nước 1 ô đá ngựa: %+v", m)
 	}
 	b[1][0] = door
-	if m, ok := moveOf(b, 0, 0, Dice{6, 5}); !ok || m.KickSeat != 1 {
-		t.Fatalf("đối thủ ở cửa phải bị đá: %+v %v", m, ok)
+	if m, ok := moveOf(b, 0, 0, Dice{1, 1}); !ok || m.Short || m.To != door || m.KickSeat != 1 {
+		t.Fatalf("đi đủ 2 ô đá đối thủ ở cửa: %+v %v", m, ok)
 	}
 	// Màu 1: cửa là ô 13.
 	b2 := NewBoard(2)
-	b2[1][0] = Side - 2
-	if m, ok := moveOf(b2, 1, 0, Dice{6, 6}); !ok || m.To != Side-1 {
-		t.Fatalf("màu 1 dừng ở cửa ô 13: %+v %v", m, ok)
+	b2[1][0] = Side - 3
+	if _, ok := moveOf(b2, 1, 0, Dice{6, 6}); ok {
+		t.Fatal("màu 1: tổng dư không được đi")
+	}
+	if m, ok := moveOf(b2, 1, 0, Dice{1, 1}); !ok || m.To != Side-1 {
+		t.Fatalf("màu 1 đi đủ 2 ô tới cửa ô 13: %+v %v", m, ok)
 	}
 }
 
@@ -132,11 +146,14 @@ func TestDoubleOneChoosesOneOrTwoCells(t *testing.T) {
 	if !ok || !m.Short || m.To != 6 || m.KickSeat != 1 {
 		t.Fatalf("chỉ còn nước 1 ô: %+v %v", m, ok)
 	}
-	// Cách cửa 1 ô: hai cách đều tới cửa thì chỉ tính một nước.
+	// Cách cửa 1 ô: chỉ 1 + 1 đi được, đúng 1 ô tới cửa; số khác đều dư.
 	b2 := NewBoard(2)
 	b2[0][0] = Track - 2
-	if got := len(b2.Moves(0, Dice{1, 1})); got != Horses {
-		t.Fatalf("muốn 3 ngựa ra quân + 1 nước tới cửa, có %d nước", got)
+	if m, ok := moveOf(b2, 0, 0, Dice{1, 1}); !ok || !m.Short || m.To != Track-1 {
+		t.Fatalf("1 + 1 cách cửa 1 ô: %+v %v", m, ok)
+	}
+	if _, ok := moveOf(b2, 0, 0, Dice{1, 2}); ok {
+		t.Fatal("1 + 2 cách cửa 1 ô không đi được")
 	}
 	// Các số khác không có nước ngắn.
 	b3 := NewBoard(2)

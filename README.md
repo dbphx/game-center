@@ -277,7 +277,7 @@ mỗi người 4 ngựa.
   xuất phát rồi dừng). Đổ đôi được đổ thêm; đôi lần thứ 3 liên tiếp thì mất lượt.
   Không có nước đi thì bỏ lượt (ra đôi thì vẫn được đổ tiếp).
 - **Đi** đúng tổng 2 viên, không được vượt qua ngựa nào trên đường; đến đúng ô có ngựa đối thủ thì **đá** ngựa đó về chuồng;
-  không đứng chồng lên ngựa mình. Đổ 1 + 1 được chọn đi 1 ô hoặc 2 ô. Tổng dư thì dừng ngay ở cửa đích. Từ cửa lên bậc bằng
+  không đứng chồng lên ngựa mình. Đổ 1 + 1 được chọn đi 1 ô hoặc 2 ô. Phải đi đúng tổng, tổng dư thì ngựa đó không đi được. Từ cửa lên bậc bằng
   viên lớn hơn, bị ngựa mình chặn thì dùng viên nhỏ hơn; trong chuồng đích, ngựa ở bậc b lên khi có viên bằng b+1.
 - **Thắng**: ai đủ 4 ngựa trong chuồng đích trước thì thắng, ván kết thúc ngay.
 - **Lượt** 20 giây; hết giờ máy đổ / đi thay một bước (không xử thua). Rời bàn giữa ván hoặc mất kết nối quá 30 giây thì
