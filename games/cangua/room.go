@@ -34,7 +34,7 @@ const (
 	XPWin   = 25
 	XPOther = 10
 
-	maxSixes = 3 // ra 6 lần thứ 3 liên tiếp thì mất lượt
+	maxDoubles = 3 // đổ đôi lần thứ 3 liên tiếp thì mất lượt
 )
 
 // BetOptions là các mức cược chủ bàn được chọn; 0 là chơi vui.
@@ -158,9 +158,9 @@ type Room struct {
 	gameBet    int
 	board      Board
 	turn       int  // ghế đang tới lượt
-	dice       int  // số vừa đổ, 0 khi chưa đổ
+	dice       Dice // 2 viên vừa đổ, {0, 0} khi chưa đổ
 	rolled     bool // lượt này đã đổ, đang chờ đi ngựa
-	sixes      int  // số lần ra 6 liên tiếp trong lượt
+	doubles    int  // số lần đổ đôi liên tiếp trong lượt
 	last       *LastMove
 	winner     string // id người thắng
 	lastWinner string // để ván sau người thắng đi trước
@@ -171,7 +171,7 @@ type Room struct {
 	botSeq     int
 	closed     bool
 	rng        *mrand.Rand
-	dicer      func() int // thay xúc xắc trong test; nil = quay ngẫu nhiên
+	dicer      func() int // thay từng viên xúc xắc trong test; nil = quay ngẫu nhiên
 	busyUntil  time.Time  // giao diện đang chạy hoạt ảnh (xúc xắc / ngựa) tới lúc này
 	chatLog    chat.Log
 }
@@ -294,7 +294,7 @@ func (r *Room) seatAdded() {
 
 func (r *Room) resetGame() {
 	r.board, r.result, r.last, r.winner = nil, nil, nil, ""
-	r.dice, r.rolled, r.sixes = 0, false, 0
+	r.dice, r.rolled, r.doubles = Dice{}, false, 0
 }
 
 func (r *Room) remove(p *Player, notify bool) {
@@ -378,6 +378,7 @@ type Message struct {
 	Level string `json:"level,omitempty"`
 	ID    string `json:"id,omitempty"`
 	Horse int    `json:"horse"`
+	Short bool   `json:"short,omitempty"` // đổ 1 + 1: chọn đi 1 ô thay vì 2 ô
 	Text  string `json:"text,omitempty"`
 }
 
@@ -503,11 +504,18 @@ func (r *Room) Handle(p *Player, m Message) error {
 		if r.stuck() {
 			return errors.New("lượt này không đi được ngựa nào")
 		}
-		mv, ok := r.board.target(r.turn, m.Horse, r.dice)
-		if m.Horse < 0 || m.Horse >= Horses || !ok {
+		if m.Horse < 0 || m.Horse >= Horses {
 			return errors.New("ngựa này không đi được")
 		}
-		r.apply(mv)
+		moves := r.board.horseMoves(r.turn, m.Horse, r.dice)
+		i := slices.IndexFunc(moves, func(mv Move) bool { return mv.Short == m.Short })
+		if i < 0 && !m.Short && len(moves) > 0 { // không chọn gì mà chỉ còn nước 1 ô thì đi nước đó
+			i = 0
+		}
+		if i < 0 {
+			return errors.New("ngựa này không đi được")
+		}
+		r.apply(moves[i])
 
 	default:
 		return fmt.Errorf("không hiểu lệnh %q", m.T)
@@ -623,34 +631,34 @@ func (r *Room) startGame() error {
 
 // roll đổ xúc xắc cho ghế đang tới lượt.
 func (r *Room) roll() {
-	d := r.rng.IntN(6) + 1
-	if r.dicer != nil {
-		d = r.dicer()
-	}
+	d := Dice{r.die(), r.die()}
 	r.dice, r.rolled = d, true
 	r.busy(r.opts.RollShow)
-	if d == 6 {
-		r.sixes++
-		if r.sixes >= maxSixes { // 3 lần 6 liên tiếp: mất lượt (giữ số trên màn hình rồi mới chuyển)
+	if d.Double() {
+		r.doubles++
+		if r.doubles >= maxDoubles { // đôi lần 3 liên tiếp: mất lượt (giữ số trên màn hình rồi mới chuyển)
 			r.schedule()
 			r.broadcast()
 			return
 		}
 	}
-	if len(r.board.Moves(r.turn, d)) == 0 {
-		if d == 6 { // không đi được nhưng ra 6 thì vẫn được đổ tiếp
-			r.rolled = false
-		}
-		// Không đi được: giữ số hiện trên màn hình hết RollShow rồi mới chuyển lượt (schedule → step).
-		r.schedule()
-		r.broadcast()
-		return
+	if len(r.board.Moves(r.turn, d)) == 0 && d.Double() {
+		r.rolled = false // không đi được nhưng ra đôi thì vẫn được đổ tiếp
 	}
+	// Không đi được: giữ số hiện trên màn hình hết RollShow rồi mới chuyển lượt (schedule → step).
 	r.schedule()
 	r.broadcast()
 }
 
-// apply đi ngựa, kiểm tra thắng, rồi ra 6 thì đổ tiếp, không thì sang lượt người sau.
+// die quay một viên xúc xắc.
+func (r *Room) die() int {
+	if r.dicer != nil {
+		return r.dicer()
+	}
+	return r.rng.IntN(6) + 1
+}
+
+// apply đi ngựa, kiểm tra thắng, rồi ra đôi thì đổ tiếp, không thì sang lượt người sau.
 func (r *Room) apply(mv Move) {
 	r.board.Apply(mv)
 	r.busy(min(time.Duration(cells(mv))*r.opts.StepAnim, r.opts.MaxMoveAnim))
@@ -662,7 +670,7 @@ func (r *Room) apply(mv Move) {
 		r.finish(r.players[mv.Seat])
 		return
 	}
-	if r.dice == 6 {
+	if r.dice.Double() {
 		r.rolled = false
 		r.schedule()
 		r.broadcast()
@@ -671,9 +679,9 @@ func (r *Room) apply(mv Move) {
 	r.nextTurn()
 }
 
-// stuck: đã đổ nhưng không được đi (3 lần 6 hoặc không có nước) — chỉ chờ hoạt ảnh rồi sang lượt.
+// stuck: đã đổ nhưng không được đi (3 lần đôi hoặc không có nước) — chỉ chờ hoạt ảnh rồi sang lượt.
 func (r *Room) stuck() bool {
-	return r.rolled && (r.sixes >= maxSixes || len(r.board.Moves(r.turn, r.dice)) == 0)
+	return r.rolled && (r.doubles >= maxDoubles || len(r.board.Moves(r.turn, r.dice)) == 0)
 }
 
 // busy: giao diện cần thêm d để chạy hoạt ảnh, tính từ bây giờ.
@@ -698,7 +706,7 @@ func cells(mv Move) int {
 
 func (r *Room) nextTurn() {
 	r.turn = (r.turn + 1) % len(r.players)
-	r.rolled, r.sixes = false, 0
+	r.rolled, r.doubles = false, 0
 	r.schedule()
 	r.broadcast()
 }
@@ -863,10 +871,11 @@ type State struct {
 	Phase      string           `json:"phase"`
 	Players    []PlayerView     `json:"players"`
 	Turn       string           `json:"turn"` // id người tới lượt
-	Dice       *int             `json:"dice"`
+	Dice       *Dice            `json:"dice"` // [a, b] hoặc null khi chưa đổ
 	Rolled     bool             `json:"rolled"`
-	Sixes      int              `json:"sixes"`
+	Doubles    int              `json:"doubles"`
 	Movable    []int            `json:"movable"`
+	Moves      []MoveView       `json:"moves"` // các nước của người xem, để xem trước ô tới và chọn 1 / 2 ô
 	Horses     map[string][]int `json:"horses"`
 	Last       *LastMove        `json:"last"`
 	Winner     *string          `json:"winner"`
@@ -879,15 +888,22 @@ type State struct {
 	Chat       []chat.Line      `json:"chat"`
 }
 
+// MoveView là một nước đi gửi cho giao diện.
+type MoveView struct {
+	Horse int  `json:"horse"`
+	To    int  `json:"to"`
+	Short bool `json:"short,omitempty"`
+}
+
 func (r *Room) stateFor(viewer *Player) State {
-	s := State{T: "state", Code: r.Code, Phase: r.phase, Players: []PlayerView{}, Rolled: r.rolled, Sixes: r.sixes,
-		Movable: []int{}, Horses: map[string][]int{}, Last: r.last, Result: r.result, Bet: r.bet, GameBet: r.gameBet,
+	s := State{T: "state", Code: r.Code, Phase: r.phase, Players: []PlayerView{}, Rolled: r.rolled, Doubles: r.doubles,
+		Movable: []int{}, Moves: []MoveView{}, Horses: map[string][]int{}, Last: r.last, Result: r.result, Bet: r.bet, GameBet: r.gameBet,
 		BetOptions: BetOptions, Spectators: len(r.spectators), Chat: r.chatLog.List()}
 	seat := r.seatOf(viewer)
 	if seat >= 0 {
 		s.You = viewer.ID
 	}
-	if r.dice > 0 {
+	if r.dice[0] > 0 {
 		d := r.dice
 		s.Dice = &d
 	}
@@ -902,7 +918,10 @@ func (r *Room) stateFor(viewer *Player) State {
 		s.Turn = r.players[r.turn].ID
 		if seat == r.turn && r.rolled && !r.stuck() {
 			for _, mv := range r.board.Moves(r.turn, r.dice) {
-				s.Movable = append(s.Movable, mv.Horse)
+				if !slices.Contains(s.Movable, mv.Horse) {
+					s.Movable = append(s.Movable, mv.Horse)
+				}
+				s.Moves = append(s.Moves, MoveView{Horse: mv.Horse, To: mv.To, Short: mv.Short})
 			}
 		}
 	}

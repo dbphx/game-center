@@ -72,15 +72,6 @@
     return out.length ? out : [to];
   }
 
-  // Ô đích dự kiến của một ngựa với số xúc xắc d (chỉ để xem trước; nước hợp lệ do server gửi trong movable).
-  function previewTarget(color, pos, d) {
-    if (pos < 0) return SIDE * ci(color);
-    if (pos >= 100) return pos + 1;
-    const r = relOf(color, pos);
-    if (r === TRACK_N - 1) return 100 + d;
-    return absOf(color, r + d);
-  }
-
   let ws = null;
   let state = null;
   let pending = null;
@@ -92,6 +83,7 @@
   let pick = 0; // ngựa đang chọn bằng bàn phím
   let shown = null; // vị trí ngựa đang vẽ trên bàn (trễ hơn state khi đang chạy hiệu ứng)
   let animating = false; // đang chạy hiệu ứng trong hàng đợi: chưa cho đổ / đi
+  let stepOne = false; // đổ 1 + 1: đang chọn đi 1 ô thay vì 2 ô
 
   const store = (k, v) => { try { v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch (e) { /* bỏ qua */ } };
   const load = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
@@ -211,21 +203,21 @@
     // vừa đổ (rolled false → true), hoặc đổ không đi được (sang lượt / ra 6 đổ tiếp — rolled vẫn false).
     const rolled = !moved && s.dice != null && (
       (s.rolled && !prev.rolled) ||
-      (!s.rolled && !prev.rolled && (!sameTurn || s.sixes !== prev.sixes || s.dice !== prev.dice)));
+      (!s.rolled && !prev.rolled && (!sameTurn || s.doubles !== prev.doubles || String(s.dice) !== String(prev.dice))));
     if (rolled) {
       const roller = s.rolled ? s.turn : prev.turn;
       const p = s.players.find((x) => x.id === roller);
       await rollDice(s.dice, p && p.color);
       if (!s.rolled) {
         // Đổ xong mà không có nước đi.
-        if (sameTurn && s.dice === 6) toast('Ra 6, không có nước đi — đổ tiếp!', p && p.color);
-        else if (s.dice === 6 && (prev.sixes || 0) >= 2) toast('Ra 6 ba lần liền — mất lượt!', p && p.color);
+        if (sameTurn && isDouble(s.dice)) toast('Đổ đôi, không có nước đi — đổ tiếp!', p && p.color);
+        else if (isDouble(s.dice) && (prev.doubles || 0) >= 2) toast('Đổ đôi ba lần liền — mất lượt!', p && p.color);
         else toast('Không có nước đi — mất lượt', p && p.color);
         await sleep(reduced() ? 200 : 900);
       } else if (!(s.movable || []).length) {
         // Server giữ lượt ~1.8 s với rolled=true, movable rỗng rồi mới chuyển lượt / cho đổ tiếp.
-        if (s.dice === 6 && (s.sixes || 0) < 3) toast('Ra 6, không có nước đi — đổ tiếp!', p && p.color);
-        else if (s.dice === 6) toast('Ra 6 ba lần liền — mất lượt!', p && p.color);
+        if (isDouble(s.dice) && (s.doubles || 0) < 3) toast('Đổ đôi, không có nước đi — đổ tiếp!', p && p.color);
+        else if (isDouble(s.dice)) toast('Đổ đôi ba lần liền — mất lượt!', p && p.color);
         else toast('Không có nước đi — mất lượt', p && p.color);
       }
     }
@@ -237,10 +229,10 @@
       }
       shown = JSON.parse(JSON.stringify(prev.horses || {}));
       await animateMove(s.last, s.horses);
-      // Ra 6 thì được đổ thêm (vẫn lượt mình, chưa đổ).
+      // Ra đôi thì được đổ thêm (vẫn lượt mình, chưa đổ).
       const mover = s.players.find((x) => x.color === s.last.color);
-      if (prev.dice === 6 && mover && s.turn === mover.id && !s.rolled && s.phase === 'playing') {
-        toast(mover.id === s.you ? 'Ra 6 — bạn được đổ tiếp!' : `Ra 6 — ${mover.name} được đổ tiếp!`, mover.color);
+      if (isDouble(prev.dice) && mover && s.turn === mover.id && !s.rolled && s.phase === 'playing') {
+        toast(mover.id === s.you ? 'Đổ đôi — bạn được đổ tiếp!' : `Đổ đôi — ${mover.name} được đổ tiếp!`, mover.color);
         await sleep(reduced() ? 150 : 500);
       }
     }
@@ -277,6 +269,12 @@
   const myTurn = () => !!(state && state.phase === 'playing' && state.you && state.turn === state.you);
   const canRoll = () => myTurn() && !state.rolled && !animating;
   const canMove = () => myTurn() && state.rolled && (state.movable || []).length > 0 && !animating;
+  const isDouble = (d) => !!d && d[0] === d[1];
+  const movesOf = (i) => (state.moves || []).filter((m) => m.horse === i);
+  // Nước sẽ đi của ngựa i: theo lựa chọn 1 / 2 ô, ngựa chỉ có một cách đi thì lấy cách đó.
+  const moveOf = (i) => { const l = movesOf(i); return l.find((m) => !!m.short === stepOne) || l[0]; };
+  // Đổ 1 + 1 mà có ngựa đi được cả 1 ô lẫn 2 ô thì mới cần chọn.
+  const canChooseStep = () => canMove() && (state.moves || []).some((m) => m.short && movesOf(m.horse).length > 1);
   const playerOf = (color) => (state ? state.players.find((p) => p.color === color) : null);
 
   function showBalance(coins) { $('balance').textContent = xu(coins); }
@@ -564,7 +562,7 @@
     const s = state;
     const i = hoverHorse >= 0 ? hoverHorse : pick;
     const myColor = me() && me().color;
-    if (!canMove() || !myColor || !(s.movable || []).includes(i) || !s.dice) {
+    if (!canMove() || !myColor || !movesOf(i).length) {
       if (g) g.classList.add('hidden');
       return;
     }
@@ -574,7 +572,7 @@
       g.className = 'ghost';
       $('horses').appendChild(g);
     }
-    const to = previewTarget(myColor, s.horses[myColor][i], s.dice);
+    const to = moveOf(i).to;
     g.innerHTML = horseImg(myColor);
     g.classList.remove('hidden');
     place(g, myColor, i, to);
@@ -616,30 +614,27 @@
 
   // ---------- Xúc xắc giữa bàn ----------
 
-  // Lăn xúc xắc ~1.1 s (nảy, xoay, đổi mặt chậm dần), dừng ở mặt thật rồi giữ số ~0.6 s.
-  async function rollDice(n, color) {
-    const img = $('dice');
+  // Lăn 2 viên ~1.1 s (nảy, xoay, đổi mặt chậm dần), dừng ở mặt thật rồi giữ số ~0.6 s.
+  async function rollDice(d, color) {
+    const imgs = [$('dice-a'), $('dice-b')];
     const box = $('dice-box');
     box.className = `center-dice${color ? ' c-' + color : ''}`;
-    img.classList.remove('idle');
+    imgs.forEach((img) => img.classList.remove('idle'));
     $('btn-roll').disabled = true;
     $('btn-roll').classList.remove('pulse');
+    const showFaces = () => imgs.forEach((img, k) => { img.src = `${IMG}dice_${d[k]}.png`; });
     if (reduced()) {
-      img.src = `${IMG}dice_${n}.png`;
+      showFaces();
       await sleep(400);
       return;
     }
     box.classList.add('rolling');
     const steps = [70, 75, 85, 95, 110, 130, 155, 185];
-    let last = 0;
     for (const ms of steps) {
-      let f = 1 + Math.floor(Math.random() * 6);
-      if (f === last) f = (f % 6) + 1;
-      last = f;
-      img.src = `${IMG}dice_${f}.png`;
+      imgs.forEach((img) => { img.src = `${IMG}dice_${1 + Math.floor(Math.random() * 6)}.png`; });
       await sleep(ms);
     }
-    img.src = `${IMG}dice_${n}.png`;
+    showFaces();
     box.classList.remove('rolling');
     box.classList.add('landed');
     await sleep(600);
@@ -649,13 +644,19 @@
   // Trạng thái xúc xắc khi không lăn: mặt vừa đổ (hoặc 6 mờ), khung màu người tới lượt, nhấp nháy khi tới lượt mình.
   function renderDice() {
     const s = state;
-    const img = $('dice');
+    const imgs = [$('dice-a'), $('dice-b')];
     const box = $('dice-box');
     $('btn-roll').disabled = !canRoll();
     $('btn-roll').classList.toggle('pulse', canRoll());
-    const six = s.sixes || 0;
-    $('sixes').classList.toggle('hidden', !(s.phase === 'playing' && six > 0));
-    $('sixes').textContent = six ? `Đã ra 6 × ${six}` : '';
+    const dbl = s.doubles || 0;
+    $('doubles').classList.toggle('hidden', !(s.phase === 'playing' && dbl > 0));
+    $('doubles').textContent = dbl ? `Đã ra đôi × ${dbl}` : '';
+    // Chọn đi 1 / 2 ô khi ra 1 + 1: nút thay chỗ nút Đổ, mặc định đi đủ 2 ô.
+    const choose = canChooseStep();
+    if (!choose) stepOne = false;
+    $('btn-step').classList.toggle('hidden', !choose);
+    $('btn-roll').classList.toggle('hidden', choose);
+    $('btn-step').textContent = `Đang đi ${stepOne ? 1 : 2} ô · đổi`;
     const tp = s.players.find((p) => p.id === s.turn);
     box.className = `center-dice${tp && tp.color ? ' c-' + tp.color : ''}${canRoll() ? ' ready' : ''}`;
     // Thanh dưới bàn: viền màu và mặt người tới lượt (hết ván / chờ thì để trống).
@@ -670,9 +671,11 @@
     box.classList.toggle('hidden', s.phase === 'lobby');
     box.disabled = !canRoll();
     box.title = canRoll() ? 'Bấm để đổ (Space)' : '';
-    if (s.dice) img.src = `${IMG}dice_${s.dice}.png`;
-    // Chưa đổ trong lượt này thì xúc xắc mờ (số cũ của lượt trước).
-    img.classList.toggle('idle', s.phase === 'playing' && !s.rolled);
+    imgs.forEach((img, k) => {
+      if (s.dice) img.src = `${IMG}dice_${s.dice[k]}.png`;
+      // Chưa đổ trong lượt này thì xúc xắc mờ (số cũ của lượt trước).
+      img.classList.toggle('idle', s.phase === 'playing' && !s.rolled);
+    });
   }
 
   // Dòng thông báo ngắn trong thanh dưới bàn (ra 6, mất lượt, đá ngựa…).
@@ -725,6 +728,8 @@
     } catch (e) { /* không có âm thanh */ }
   }
 
+  const diceText = (d) => `${d[0]} + ${d[1]} = ${d[0] + d[1]}`;
+
   function renderStatus() {
     const s = state;
     if (s.phase === 'lobby') {
@@ -735,11 +740,12 @@
     const tp = s.players.find((p) => p.id === s.turn);
     if (myTurn()) {
       if (!s.rolled) return status('Tới lượt bạn — bấm Đổ (Space)');
-      if ((s.movable || []).length) return status(`Ra ${s.dice} — chọn ngựa để đi (1–4, Enter)`);
-      return status(`Ra ${s.dice} — không có ngựa nào đi được`);
+      if (canChooseStep()) return status('Ra 1 + 1 — đi 1 hay 2 ô?');
+      if ((s.movable || []).length) return status(`Ra ${diceText(s.dice)} — chọn ngựa (1–4, Enter)`);
+      return status(`Ra ${diceText(s.dice)} — không có ngựa nào đi được`);
     }
     if (!tp) return status('');
-    status(s.rolled && s.dice ? `${tp.name} ra ${s.dice}…` : `${tp.name} đang đổ xúc xắc…`);
+    status(s.rolled && s.dice ? `${tp.name} ra ${diceText(s.dice)}…` : `${tp.name} đang đổ xúc xắc…`);
   }
 
   function resultLine() {
@@ -820,7 +826,7 @@
   function moveHorse(i) {
     if (!canMove() || !(state.movable || []).includes(i)) return;
     hoverHorse = -1;
-    send({ t: 'move', horse: i });
+    send({ t: 'move', horse: i, short: !!moveOf(i).short });
   }
 
   $('horses').addEventListener('click', (e) => {
@@ -872,6 +878,14 @@
   $('btn-leave').addEventListener('click', leave);
   $('btn-roll').addEventListener('click', roll);
   $('dice-box').addEventListener('click', roll);
+  function toggleStep() {
+    if (!canChooseStep()) return;
+    stepOne = !stepOne;
+    $('btn-step').blur(); // Space / Enter sau đó là đi ngựa, không bấm lại nút này
+    renderDice();
+    drawGhost();
+  }
+  $('btn-step').addEventListener('click', toggleStep);
   $('btn-rematch').addEventListener('click', rematch);
   $('btn-board').addEventListener('click', () => { hideResult = true; renderResult(); });
   $('btn-show-result').addEventListener('click', () => { hideResult = false; renderResult(); });
@@ -911,6 +925,9 @@
       const k = mv.indexOf(pick);
       pick = mv[(k + (e.shiftKey ? mv.length - 1 : 1)) % mv.length];
       drawShown();
+    } else if ((e.key === 'x' || e.key === 'X') && canChooseStep()) {
+      e.preventDefault();
+      toggleStep();
     } else if ((e.key === 'n' || e.key === 'N') && state.phase === 'over') {
       rematch();
     } else if (e.key === 'Escape' && state.phase === 'over' && !hideResult) {

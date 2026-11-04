@@ -307,13 +307,13 @@ button.hseat.empty:hover .seat-join { transform: translate(-50%, -50%) scale(1.0
 }
 .dice-bar.mine { animation: bar-glow 1.2s ease-in-out 3; }
 @keyframes bar-glow { 50% { box-shadow: 0 3px 0 rgba(40, 20, 5, .4), 0 0 0 4px rgba(255, 214, 80, .8), 0 0 22px rgba(255, 200, 40, .9); } }
-/* Xúc xắc giữa bàn: một viên duy nhất trên ô đích ngôi sao, quầng màu người tới lượt, bấm để đổ. */
+/* 2 viên xúc xắc giữa bàn trên ô đích ngôi sao, nằm dưới ngựa, quầng màu người tới lượt, bấm để đổ. */
 .center-dice {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 11%;
-  aspect-ratio: 1;
+  width: 14%;
+  aspect-ratio: 2;
   padding: 0;
   transform: translate(-50%, -50%);
   background: none;
@@ -322,7 +322,7 @@ button.hseat.empty:hover .seat-join { transform: translate(-50%, -50%) scale(1.0
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 900;
+  z-index: 5;
   cursor: default;
 }
 .center-dice:hover:not(:disabled), .center-dice:active:not(:disabled), .center-dice:disabled { transform: translate(-50%, -50%); background: none; box-shadow: none; filter: none; opacity: 1; }
@@ -330,13 +330,13 @@ button.hseat.empty:hover .seat-join { transform: translate(-50%, -50%) scale(1.0
 @keyframes dice-ready {
   50% { filter: drop-shadow(0 0 7px rgba(255, 200, 40, 1)) drop-shadow(0 0 3px rgba(255, 214, 80, 1)); }
 }
-.center-dice .dice { width: 100%; height: 100%; filter: drop-shadow(0 3px 2px rgba(40, 20, 0, .4)); transition: opacity .2s; }
+.center-dice .dice { width: 50%; height: 100%; object-fit: contain; filter: drop-shadow(0 3px 2px rgba(40, 20, 0, .4)); transition: opacity .2s; }
 /* Số cũ của lượt trước: mờ nhẹ; tới lượt mình thì rõ hẳn để bấm */
 .center-dice .dice.idle { opacity: .8; }
 .center-dice.ready .dice.idle { opacity: 1; }
-.dice-shadow { position: absolute; left: 18%; right: 18%; bottom: -16%; height: 14%; border-radius: 50%; background: rgba(40, 20, 5, .35); filter: blur(3px); pointer-events: none; }
 /* Lăn: nảy lên xuống + xoay, đổi mặt ở JS. */
 .center-dice.rolling .dice { animation: dice-tumble .36s ease-in-out infinite; }
+.center-dice.rolling .dice + .dice { animation-delay: -.14s; animation-direction: reverse; }
 @keyframes dice-tumble {
   0% { transform: translateY(0) rotate(0); }
   25% { transform: translateY(-34%) rotate(100deg) scale(1.08); }
@@ -344,8 +344,6 @@ button.hseat.empty:hover .seat-join { transform: translate(-50%, -50%) scale(1.0
   75% { transform: translateY(-16%) rotate(280deg); }
   100% { transform: translateY(0) rotate(360deg); }
 }
-.center-dice.rolling .dice-shadow { animation: shadow-tumble .36s ease-in-out infinite; }
-@keyframes shadow-tumble { 25%, 75% { transform: scaleX(.7); opacity: .6; } }
 .center-dice.landed .dice { animation: dice-land .45s cubic-bezier(.3, 1.9, .5, 1); }
 @keyframes dice-land { from { transform: scale(1.5) rotate(-12deg); } }
 .center-dice.landed { filter: drop-shadow(0 0 8px var(--c, #ffc94a)) drop-shadow(0 0 3px #fff); }
@@ -354,9 +352,9 @@ button.hseat.empty:hover .seat-join { transform: translate(-50%, -50%) scale(1.0
 .tb-head > * { width: 100%; height: 100%; }
 
 /* Thông báo ngắn (ra 6, mất lượt, đá ngựa) — dưới dòng trạng thái trong thanh xúc xắc */
-/* Luôn một dòng để thanh không đổi chiều cao (bàn cờ không bị xô); có thông báo thì tạm ẩn bộ đếm 6 */
+/* Luôn một dòng để thanh không đổi chiều cao (bàn cờ không bị xô); có thông báo thì tạm ẩn bộ đếm đôi */
 .dice-notes { display: flex; align-items: center; gap: 6px; min-height: 19px; max-width: 100%; min-width: 0; }
-.sixes:has(+ .dice-toast:not(.hidden)) { display: none; }
+.doubles:has(+ .dice-toast:not(.hidden)) { display: none; }
 .dice-toast {
   padding: 1px 10px;
   border-radius: 999px;
@@ -379,8 +377,8 @@ button.hseat.empty:hover .seat-join { transform: translate(-50%, -50%) scale(1.0
 @keyframes card-shake { 20% { transform: translateX(-5px) rotate(-1deg); } 40% { transform: translateX(5px) rotate(1deg); } 60% { transform: translateX(-3px); } 80% { transform: translateX(3px); } }
 .dice-info { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; }
 .dice-info .status { background: none; padding: 0; text-align: left; }
-.sixes { padding: 1px 8px; border-radius: 999px; background: #ffe066; color: #5a3000; font-size: 12px; font-weight: 800; }
-.roll-btn { flex: none; }
+.doubles { padding: 1px 8px; border-radius: 999px; background: #ffe066; color: #5a3000; font-size: 12px; font-weight: 800; }
+.roll-btn, .step-btn { flex: none; }
 .roll-btn kbd { font-size: 10px; }
 .roll-btn.pulse:not(:disabled) { animation: roll-pulse 1s ease-in-out infinite; }
 @keyframes roll-pulse { 50% { filter: brightness(1.1); box-shadow: 0 0 0 4px rgba(255, 200, 60, .45), 0 4px 0 #b65a00; } }

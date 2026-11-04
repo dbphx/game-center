@@ -1,5 +1,5 @@
 // Package cangua là Cờ Cá Ngựa online của DCity: 2–4 người (hoặc máy), mỗi người 4 ngựa,
-// đổ xúc xắc chạy hết một vòng bàn rồi lên chuồng đích. Cược và XP vào ví chung của hub.
+// đổ 2 xúc xắc chạy hết một vòng bàn rồi lên chuồng đích. Cược và XP vào ví chung của hub.
 package cangua
 
 import (
@@ -52,69 +52,111 @@ func (b Board) at(pos int) (seat, horse int) {
 	return -1, -1
 }
 
+// Dice là số của 2 viên xúc xắc vừa đổ.
+type Dice [2]int
+
+func (d Dice) Sum() int     { return d[0] + d[1] }
+func (d Dice) Double() bool { return d[0] == d[1] }
+
+// has: có viên nào ra đúng số n.
+func (d Dice) has(n int) bool { return d[0] == n || d[1] == n }
+
+// canLeaveHome: có viên 1 hoặc 6, hoặc đổ đôi thì được xuất quân.
+func (d Dice) canLeaveHome() bool { return d.has(1) || d.has(6) || d.Double() }
+
 // Move là một nước đi hợp lệ: ngựa horse của ghế seat từ From tới To, có thể đá ngựa (KickSeat, KickHorse).
 type Move struct {
 	Seat, Horse int
 	From, To    int
 	KickSeat    int // -1 nếu không đá
 	KickHorse   int
+	Short       bool // đổ 1 + 1 và chọn đi 1 ô thay vì 2 ô
 }
 
-// target tính nước đi của một ngựa với số xúc xắc d; ok = false nếu không đi được.
-func (b Board) target(seat, horse, d int) (Move, bool) {
-	p := b[seat][horse]
-	m := Move{Seat: seat, Horse: horse, From: p, KickSeat: -1, KickHorse: -1}
-	switch {
-	case p == Home: // chỉ ra 1 hoặc 6 mới được xuất quân
-		if d != 1 && d != 6 {
-			return m, false
-		}
-		m.To = startOf(seat)
-	case p >= FinishBase: // trong chuồng đích: chỉ lên đúng bậc kế tiếp
-		step := p - FinishBase
-		if d != step+1 || step+1 > FinishSteps || slices.Contains(b[seat][:], FinishBase+step+1) {
-			return m, false
-		}
-		m.To = FinishBase + step + 1
-		return m, true
-	default:
-		r := rel(seat, p)
-		if r == Track-1 { // đứng ở cửa đích: đổ k lên bậc k, không vượt ngựa mình
-			for s := 1; s <= d; s++ {
-				if slices.Contains(b[seat][:], FinishBase+s) {
-					return m, false
-				}
-			}
-			m.To = FinishBase + d
-			return m, true
-		}
-		if r+d > Track-1 { // phải dừng đúng cửa, không đi quá
-			return m, false
-		}
-		for s := 1; s < d; s++ { // không được vượt qua ngựa nào trên đường
-			if os, _ := b.at(abs(seat, r+s)); os >= 0 {
-				return m, false
-			}
-		}
-		m.To = abs(seat, r+d)
-	}
+// land đặt ngựa xuống ô m.To của đường chung: không chồng lên ngựa mình, gặp đối thủ thì đá.
+func (b Board) land(m Move) (Move, bool) {
 	os, oh := b.at(m.To)
 	switch {
-	case os == seat:
-		return m, false // không đứng chồng lên ngựa mình
+	case os == m.Seat:
+		return m, false
 	case os >= 0:
 		m.KickSeat, m.KickHorse = os, oh
 	}
 	return m, true
 }
 
-// Moves liệt kê các nước đi hợp lệ của ghế seat với số d.
-func (b Board) Moves(seat, d int) []Move {
+// walk đi n ô trên đường chung: không vượt ngựa nào, số dư thì dừng ngay ở cửa đích.
+func (b Board) walk(m Move, n int) (Move, bool) {
+	r := rel(m.Seat, m.From)
+	n = min(n, Track-1-r)
+	for s := 1; s < n; s++ {
+		if os, _ := b.at(abs(m.Seat, r+s)); os >= 0 {
+			return m, false
+		}
+	}
+	m.To = abs(m.Seat, r+n)
+	return b.land(m)
+}
+
+// enter lên chuồng đích từ cửa: tới bậc k, không vượt ngựa mình.
+func (b Board) enter(m Move, k int) (Move, bool) {
+	for s := 1; s <= k; s++ {
+		if slices.Contains(b[m.Seat][:], FinishBase+s) {
+			return m, false
+		}
+	}
+	m.To = FinishBase + k
+	return m, true
+}
+
+// horseMoves liệt kê nước đi của một ngựa: thường một nước, đổ 1 + 1 trên đường chung thì có thể có hai.
+func (b Board) horseMoves(seat, horse int, d Dice) []Move {
+	p := b[seat][horse]
+	m := Move{Seat: seat, Horse: horse, From: p, KickSeat: -1, KickHorse: -1}
+	switch {
+	case p == Home: // ra ô xuất phát rồi dừng, viên còn lại bỏ
+		if !d.canLeaveHome() {
+			return nil
+		}
+		m.To = startOf(seat)
+		if mv, ok := b.land(m); ok {
+			return []Move{mv}
+		}
+		return nil
+	case p >= FinishBase: // trong chuồng đích: có viên nào bằng bậc kế tiếp thì lên
+		next := p - FinishBase + 1
+		if next > FinishSteps || !d.has(next) || slices.Contains(b[seat][:], FinishBase+next) {
+			return nil
+		}
+		m.To = FinishBase + next
+		return []Move{m}
+	case rel(seat, p) == Track-1: // ở cửa đích: lên bậc bằng viên lớn hơn, bị chặn thì dùng viên nhỏ
+		for _, k := range []int{max(d[0], d[1]), min(d[0], d[1])} {
+			if mv, ok := b.enter(m, k); ok {
+				return []Move{mv}
+			}
+		}
+		return nil
+	}
+	var out []Move
+	long, okLong := b.walk(m, d.Sum())
+	if okLong {
+		out = append(out, long)
+	}
+	if d == (Dice{1, 1}) { // gỡ kẹt: tổng nhỏ nhất là 2, riêng 1 + 1 được chọn đi 1 ô
+		if short, ok := b.walk(m, 1); ok && (!okLong || short.To != long.To) {
+			short.Short = true
+			out = append(out, short)
+		}
+	}
+	return out
+}
+
+// Moves liệt kê các nước đi hợp lệ của ghế seat với 2 viên d.
+func (b Board) Moves(seat int, d Dice) []Move {
 	var out []Move
 	for h := range Horses {
-		if m, ok := b.target(seat, h, d); ok {
-			out = append(out, m)
-		}
+		out = append(out, b.horseMoves(seat, h, d)...)
 	}
 	return out
 }
@@ -147,7 +189,7 @@ const (
 
 var BotLevels = []string{BotEasy, BotNormal, BotHard}
 
-// threatened: ô pos (đường chung) nằm trong tầm 1–6 ô phía trước một ngựa đối thủ.
+// threatened: ô pos (đường chung) nằm trong tầm 2–12 ô (tổng 2 viên) phía trước một ngựa đối thủ.
 func (b Board) threatened(seat, pos int) bool {
 	for s := range b {
 		if s == seat {
@@ -157,7 +199,7 @@ func (b Board) threatened(seat, pos int) bool {
 			if p < 0 || p >= FinishBase {
 				continue
 			}
-			if d := (pos - p + Track) % Track; d >= 1 && d <= 6 {
+			if d := (pos - p + Track) % Track; d >= 2 && d <= 12 {
 				return true
 			}
 		}
@@ -195,7 +237,7 @@ func (b Board) score(m Move, level string) int {
 func (b Board) clone() Board { return slices.Clone(b) }
 
 // BestMove chọn nước đi cho máy (hoặc đi thay người hết giờ); ok = false nếu không có nước nào.
-func BestMove(b Board, seat, d int, level string, rng *mrand.Rand) (Move, bool) {
+func BestMove(b Board, seat int, d Dice, level string, rng *mrand.Rand) (Move, bool) {
 	moves := b.Moves(seat, d)
 	if len(moves) == 0 {
 		return Move{}, false
