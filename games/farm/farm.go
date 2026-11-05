@@ -111,6 +111,9 @@ func New(ctx context.Context, w *wallet.Wallet) (*Farm, error) {
 	if err := w.ExecSchema(ctx, zombieSchema); err != nil {
 		return nil, fmt.Errorf("tạo bảng zombie: %w", err)
 	}
+	if err := w.ExecSchema(ctx, cloudSchema); err != nil {
+		return nil, fmt.Errorf("tạo bảng tầng mây: %w", err)
+	}
 	if err := migrate(ctx, w, time.Now().Unix()); err != nil {
 		return nil, fmt.Errorf("nâng cấp bảng nông trại: %w", err)
 	}
@@ -176,6 +179,7 @@ type State struct {
 	ZombieEaten   int     `json:"zombieEaten"` // số cây bị zombie ăn kể từ lần báo trước
 	Gun           Gun     `json:"gun"`         // súng đậu, xem zombie.go
 	GunKilled     int     `json:"gunKilled"`   // số zombie súng đã diệt kể từ lần báo trước
+	Cloud         Cloud   `json:"cloud"`       // đậu thần và tầng mây, xem cloud.go
 }
 
 // Gained là phần thưởng của một lần thu hoạch / bán.
@@ -339,6 +343,9 @@ func (f *Farm) load(ctx context.Context, q querier, uid int64) (State, error) {
 	if s.Gun, s.GunKilled, err = loadGun(ctx, q, uid); err != nil {
 		return State{}, err
 	}
+	if s.Cloud, err = loadCloud(ctx, q, uid, len(s.Plots)); err != nil {
+		return State{}, err
+	}
 	return s, nil
 }
 
@@ -354,6 +361,9 @@ func (f *Farm) State(ctx context.Context, uid int64) (State, error) {
 		return State{}, err
 	}
 	if err := f.settleZombies(ctx, tx, uid, f.now().Unix()); err != nil {
+		return State{}, err
+	}
+	if err := f.settleBean(ctx, tx, uid, f.now().Unix()); err != nil {
 		return State{}, err
 	}
 	s, err := f.load(ctx, tx, uid)
@@ -385,6 +395,9 @@ func (f *Farm) do(ctx context.Context, uid int64, op func(tx *wallet.Tx, s State
 		return State{}, err
 	}
 	if err := f.settleZombies(ctx, tx, uid, f.now().Unix()); err != nil {
+		return State{}, err
+	}
+	if err := f.settleBean(ctx, tx, uid, f.now().Unix()); err != nil {
 		return State{}, err
 	}
 	s, err := f.load(ctx, tx, uid)

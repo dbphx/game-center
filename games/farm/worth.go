@@ -7,7 +7,8 @@ import "context"
 //   - chuồng / ao: giá mua + các lần mở rộng đã trả (sân gia cầm có sẵn, chỉ tính mở rộng); mở rộng kho cũng vậy;
 //   - vật nuôi / cá đang nuôi: giá mua (không tính lớn thêm để giá trị không nhảy theo đồng hồ);
 //   - kho giống: hạt và thức ăn theo giá mua; kho sản phẩm: theo giá bán;
-//   - súng đậu: giá mua, đạn còn lại theo giá mua.
+//   - súng đậu: giá mua, đạn còn lại theo giá mua;
+//   - trên mây: tiền hạt đậu của tầng đã mở và hạt đang lớn, giá chậu, tiền hạt của cây trong chậu.
 //
 // Chỉ đọc (transaction bị huỷ cuối hàm), mỗi bảng một câu SQL cho mọi người chơi.
 func (f *Farm) Worth(ctx context.Context) (map[int64]int64, error) {
@@ -139,6 +140,10 @@ func (f *Farm) Worth(ctx context.Context) (map[int64]int64, error) {
 	}
 	rows.Close()
 	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if err := addCloudWorth(ctx, tx, worth); err != nil {
 		return nil, err
 	}
 

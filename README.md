@@ -204,6 +204,24 @@ Mã lỗi: 400 dữ liệu sai, 402 không đủ xu, 403 thiếu level / HP, 404
 - Không có tiến trình nền: server tính bù các đợt đã qua mỗi khi nông trại được đọc, tối đa 720 đợt gần nhất, ngẫu nhiên có seed theo
   `(người chơi, đợt)`. Lần đầu thấy một nông trại thì không tính ngược, đợt đầu tiên là đầu giờ kế tiếp.
 
+### Đậu thần và tầng mây
+
+- Đủ 48 ô đất thì có **ô thứ 49**, chỉ để trồng đậu thần (`POST /api/farm/bean/plant`). Trả tiền hạt ngay, mỗi lúc một hạt, không huỷ và không
+  trả tiền để chín nhanh. Hạt chín thì tầng kế tiếp mở vĩnh viễn và ô 49 trống lại, kể cả khi chủ offline.
+- Trên mây mỗi tầng có 6 chỗ đặt chậu, chỉ đặt được loại chậu của tầng đó. Mua lần lượt từng chậu (`POST /api/farm/pot/buy {floor}`),
+  không bán lại được. Trồng (`POST /api/farm/pot/plant {floor, slot}`) trừ thẳng tiền hạt bằng xu, không qua kho giống. Cây chín sau 12 giờ,
+  thu hoạch (`POST /api/farm/pot/harvest {floor, slot}`) được 1 nông sản vào kho sản phẩm và XP; kho đầy thì cây vẫn còn.
+
+| Tầng | Hạt đậu | Chờ | Giá chậu | Cây mây | Hạt | Bán | XP |
+|---|---|---|---|---|---|---|---|
+| 1 | 200.000 | 24 giờ | 100.000 | Dâu mây | 5.000 | 20.000 | 200 |
+| 2 | 1.000.000 | 48 giờ | 500.000 | Lê sương | 20.000 | 70.000 | 300 |
+| 3 | 3.000.000 | 72 giờ | 2.000.000 | Nho sao | 50.000 | 200.000 | 450 |
+| 4 | 10.000.000 | 96 giờ | 10.000.000 | Đào tiên | 100.000 | 600.000 | 700 |
+
+- Zombie không tấn công ô 49 và cây mây. Bạn bè không trộm được, cũng không thấy ô 49 và tầng mây khi ghé thăm. Đất tốt không áp dụng cho chậu.
+- Tiền hạt đậu, chậu và cây đang trồng trong chậu tính vào giá trị nông trại ở Khu danh vọng.
+
 ## Bầu Cua Tôm Cá
 
 Trong khu Casino. Có **sòng chung** (mã `chung`, máy luôn làm cái) và **bàn riêng** người chơi tự mở để chơi với
@@ -457,7 +475,7 @@ Bảng vàng top 10 người giàu nhất theo **tổng tài sản** (xu), tính
 - **Đồ thời trang** đã có (quần áo, tóc, cánh, gương mặt) theo giá shop; món miễn phí / không còn bán tính 0.
 - **Nông trại** theo giá trong game: ô đất đã mua (6 ô miễn phí tính 0) + hạt của cây đang trồng; chuồng / ao (giá mua +
   các lần mở rộng; sân gia cầm chỉ tính mở rộng) và mở rộng kho; vật nuôi / cá đang nuôi theo giá mua;
-  kho giống (hạt, thức ăn) theo giá mua, kho sản phẩm theo giá bán.
+  kho giống (hạt, thức ăn) theo giá mua, kho sản phẩm theo giá bán; trên mây: tiền hạt đậu, chậu và hạt của cây trong chậu.
 
 Bằng tổng thì ai tạo tài khoản trước đứng trên. Bảng chỉ có tên hiển thị và ngoại hình, không có tên đăng nhập.
 

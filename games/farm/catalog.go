@@ -128,6 +128,9 @@ func product(item string) (name string, price int64, ok bool) {
 	if c, ok := findCrop(item); ok {
 		return c.Name, c.SellPrice, true
 	}
+	if c, ok := findCloudCrop(item); ok {
+		return c.Name, c.SellPrice, true
+	}
 	for _, y := range yields {
 		if y.Product != nil && y.Product.ID == item {
 			return y.Product.Name, y.Product.SellPrice, true
@@ -191,5 +194,6 @@ func Catalog() map[string]any {
 		"goodSoilSpeedup": GoodSoilSpeedup,
 		"gunPrice":        int64(GunPrice),
 		"ammoPrice":       int64(AmmoPrice),
+		"cloudFloors":     CloudFloors,
 	}
 }

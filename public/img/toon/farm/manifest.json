@@ -2837,6 +2837,292 @@
    "source": [
     "DCity (vẽ / ghép bằng PIL cho dự án)"
    ]
+  },
+  {
+   "file": "bean_1.png",
+   "w": 110,
+   "h": 130,
+   "use": "Đậu thần mới nảy mầm trên gò đất (ô 49)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "bean_2.png",
+   "w": 150,
+   "h": 250,
+   "use": "Đậu thần đang lớn, thân xoắn (ô 49)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "bean_3.png",
+   "w": 190,
+   "h": 430,
+   "use": "Đậu thần trưởng thành vươn lên mây, leo được lên tầng mây (ô 49)",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Background Elements Remastered"
+   ]
+  },
+  {
+   "file": "pot_1.png",
+   "w": 120,
+   "h": 104,
+   "use": "Chậu đất nung, tầng 1; đặt cây sao cho đáy ảnh cây (y=106 của ảnh crop) nằm ở y=plantY của chậu",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "plantY": 14,
+   "floor": 1
+  },
+  {
+   "file": "pot_2.png",
+   "w": 120,
+   "h": 104,
+   "use": "Chậu sứ trắng men lam, tầng 2; đặt cây sao cho đáy ảnh cây (y=106 của ảnh crop) nằm ở y=plantY của chậu",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "plantY": 14,
+   "floor": 2
+  },
+  {
+   "file": "pot_3.png",
+   "w": 120,
+   "h": 104,
+   "use": "Chậu ngọc bích viền bạc, tầng 3; đặt cây sao cho đáy ảnh cây (y=106 của ảnh crop) nằm ở y=plantY của chậu",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "plantY": 14,
+   "floor": 3
+  },
+  {
+   "file": "pot_4.png",
+   "w": 120,
+   "h": 104,
+   "use": "Chậu vàng khảm đá quý, tầng 4; đặt cây sao cho đáy ảnh cây (y=106 của ảnh crop) nằm ở y=plantY của chậu",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "plantY": 14,
+   "floor": 4
+  },
+  {
+   "file": "crop_cloud_berry_1.png",
+   "w": 96,
+   "h": 120,
+   "use": "Dâu mây non",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "crop": "cloud_berry",
+   "stage": 1
+  },
+  {
+   "file": "crop_cloud_berry_2.png",
+   "w": 96,
+   "h": 120,
+   "use": "Dâu mây đang lớn",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "crop": "cloud_berry",
+   "stage": 2
+  },
+  {
+   "file": "crop_cloud_berry_ripe.png",
+   "w": 96,
+   "h": 120,
+   "use": "Dâu mây chín, chờ thu hoạch",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "crop": "cloud_berry",
+   "stage": 3
+  },
+  {
+   "file": "item_cloud_berry.png",
+   "w": 60,
+   "h": 60,
+   "use": "Nông sản Dâu mây (biểu tượng kho / hiệu ứng thu hoạch)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "crop_mist_pear_1.png",
+   "w": 96,
+   "h": 120,
+   "use": "Lê sương non",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "crop": "mist_pear",
+   "stage": 1
+  },
+  {
+   "file": "crop_mist_pear_2.png",
+   "w": 96,
+   "h": 120,
+   "use": "Lê sương đang lớn",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "crop": "mist_pear",
+   "stage": 2
+  },
+  {
+   "file": "crop_mist_pear_ripe.png",
+   "w": 96,
+   "h": 120,
+   "use": "Lê sương chín, chờ thu hoạch",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "crop": "mist_pear",
+   "stage": 3
+  },
+  {
+   "file": "item_mist_pear.png",
+   "w": 60,
+   "h": 60,
+   "use": "Nông sản Lê sương (biểu tượng kho / hiệu ứng thu hoạch)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "crop_star_grape_1.png",
+   "w": 96,
+   "h": 120,
+   "use": "Nho sao non",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "crop": "star_grape",
+   "stage": 1
+  },
+  {
+   "file": "crop_star_grape_2.png",
+   "w": 96,
+   "h": 120,
+   "use": "Nho sao đang lớn",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "crop": "star_grape",
+   "stage": 2
+  },
+  {
+   "file": "crop_star_grape_ripe.png",
+   "w": 96,
+   "h": 120,
+   "use": "Nho sao chín, chờ thu hoạch",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "crop": "star_grape",
+   "stage": 3
+  },
+  {
+   "file": "item_star_grape.png",
+   "w": 60,
+   "h": 60,
+   "use": "Nông sản Nho sao (biểu tượng kho / hiệu ứng thu hoạch)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "crop_fairy_peach_1.png",
+   "w": 96,
+   "h": 120,
+   "use": "Đào tiên non",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "crop": "fairy_peach",
+   "stage": 1
+  },
+  {
+   "file": "crop_fairy_peach_2.png",
+   "w": 96,
+   "h": 120,
+   "use": "Đào tiên đang lớn",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "crop": "fairy_peach",
+   "stage": 2
+  },
+  {
+   "file": "crop_fairy_peach_ripe.png",
+   "w": 96,
+   "h": 120,
+   "use": "Đào tiên chín, chờ thu hoạch",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ],
+   "crop": "fairy_peach",
+   "stage": 3
+  },
+  {
+   "file": "item_fairy_peach.png",
+   "w": 60,
+   "h": 60,
+   "use": "Nông sản Đào tiên (biểu tượng kho / hiệu ứng thu hoạch)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
   }
  ]
 }

@@ -95,6 +95,9 @@
   function product(id) {
     const f = feedOf(id);
     if (f) return { ...f, sellPrice: 0, list: 'feeds', draw: (h) => art.item(id, h) };
+    // Nông sản mây: chỉ nằm trong catalog.cloudFloors, không có trong hộp gieo hạt.
+    const cloud = ((cat && cat.cloudFloors) || []).find((x) => x.crop.id === id);
+    if (cloud) return { ...cloud.crop, list: 'crops', draw: (h) => art.item(id, h) };
     // Trứng / sữa / lông / thịt: lấy từ catalog.animals[i].product / .meat, hình item_<id>.png.
     for (const a of allStock()) {
       for (const it of [a.product, a.meat]) {
@@ -155,6 +158,8 @@
     offset = f.now - Date.now() / 1000;
     render();
     renderZombieAlert();
+    notifyFloors(f);
+    if (window.FarmCloud && !VISIT) window.FarmCloud.update(f);
   }
 
   // ---------- Topbar ----------
@@ -221,6 +226,7 @@
   const BX = [0, 0]; // cột khối ruộng (lối đất giữa đủ rộng để đi)
   const POND_BOX = { x: 0, y: 250, w: 260, h: 200 }; // lô cỏ có ao
   const GUN = { x: 0, y: 632 }; // chỗ đặt súng đậu: khoảng đất dưới ao, cạnh ruộng (chân súng)
+  const BEAN = { x: 0, y: 632 }; // ô 49 (đậu thần): cuối lối đi giữa ruộng và ao, cạnh súng đậu; thanh công cụ không che chỗ này
   let OX = 0; // độ dời ngang phần bên phải chuồng (chuồng nới rộng)
   let W = 1700;
   let CORE_W = 1700; // bề rộng cảnh khi chuồng + ao nhỏ nhất — luôn vừa một khung nhìn; to hơn thì kéo ngang
@@ -238,6 +244,7 @@
     POND_BOX.x = BX[1] + BLOCK_W + 40;
     POND_BOX.y = 272;
     GUN.x = POND_BOX.x + 110;
+    BEAN.x = POND_BOX.x - 14;
     W = POND_BOX.x + POND_BOX.w + 40;
     CORE_W = 834 + 28 + 2 * BLOCK_W + 48 + 40 + 260 + 40;
     Object.assign(ROAM, { x1: PEN.x1 + 34, y1: 330, x2: PEN.x2 - 30, y2: PEN.y2 - 24 });
@@ -309,6 +316,7 @@
       ...hedgeSides(X).map(([x, y1, y2]) => [x - 14, y1, x + 14, y2]),
     ];
     if (!VISIT && farm.gun && farm.gun.owned) obstacles.push([GUN.x - 30, GUN.y - 12, GUN.x + 30, GUN.y + 2]);
+    if (beanShown()) obstacles.push([BEAN.x - 30, BEAN.y - 12, BEAN.x + 30, BEAN.y + 2]);
   }
 
   const pos = (x, y, z = y) => `left:${Math.round(x)}px;top:${Math.round(y)}px;z-index:${Math.round(z)}`;
@@ -464,6 +472,77 @@
   }
 
   // Súng đậu: chưa có thì biển mua trên mảng cỏ, có rồi thì súng quay nòng về phía ruộng kèm nhãn số đạn.
+  // ---------- Ô 49: đậu thần ----------
+  const beanShown = () => !VISIT && !!(farm && farm.cloud && farm.cloud.available);
+  const beanFloors = () => (cat && cat.cloudFloors) || [];
+  // Giai đoạn hình của ô 49: 0 đất trống, 1–2 hạt đang lớn, 3 cây đậu đã có tầng mây.
+  function beanStage() {
+    const c = farm.cloud;
+    if (c.beanPlantedAt) return progress(c.beanPlantedAt, c.beanReadyAt) < 0.5 ? 1 : 2;
+    return c.floors > 0 ? 3 : 0;
+  }
+  // Cao hiển thị theo giai đoạn: thân đậu chỉ rộng hơn lối đi một chút, không che ô đất.
+  const BEAN_H = [0, 80, 130, 170];
+  function beanLabel() {
+    const c = farm.cloud;
+    if (c.beanPlantedAt) return countdown(c.beanReadyAt - nowS());
+    if (c.floors > 0) return `Lên mây · tầng ${c.floors}`;
+    const next = beanFloors()[0];
+    return next ? `Đậu thần · ${xu(next.beanPrice)} xu` : 'Đậu thần';
+  }
+  function beanHTML() {
+    const st = beanStage();
+    const h = BEAN_H[st];
+    const pic = st ? `<img class="bean-img" src="/img/toon/farm/bean_${st}.png" alt="Đậu thần" draggable="false" style="height:${h}px">` : '<img class="bean-soil" src="/img/toon/farm/soil_plot.png" alt="Ô đậu thần" draggable="false">';
+    return `<div class="obj bean-obj" data-obj="bean" data-bean-stage="${st}" style="${pos(BEAN.x, BEAN.y)}">${pic}
+      <span class="bean-label" data-bean-label style="bottom:${(h || 52) + 2}px">${beanLabel()}</span></div>`;
+  }
+  // Hộp ô 49: trồng hạt, xem hạt đang lớn, lên mây.
+  function renderBean() {
+    const c = farm.cloud;
+    const next = beanFloors()[c.floors];
+    const st = beanStage();
+    $('pen-title').textContent = 'Ô 49: đậu thần';
+    const pic = `<div class="offer-art"><img class="bean-offer" src="/img/toon/farm/bean_${st || 1}.png" alt="" draggable="false"></div>`;
+    const parts = [];
+    if (c.beanPlantedAt) {
+      parts.push(`<h3>Đậu thần đang vươn tới tầng ${c.floors + 1}</h3><p class="muted">Còn <b data-bean-left>${countdown(c.beanReadyAt - nowS())}</b> nữa, kể cả khi bạn offline.</p>`);
+    } else if (next) {
+      const hours = Math.round(next.beanSeconds / 3600);
+      parts.push(`<h3>Trồng đậu thần lên tầng ${next.floor}</h3>
+        <p class="muted">Sau ${hours} giờ, tầng ${next.floor} mở vĩnh viễn. Trên đó mua chậu ${xu(next.potPrice)} xu để trồng ${esc(next.crop.name)}. Zombie và kẻ trộm không lên được mây.</p>
+        <button class="primary" data-bean-plant ${user.balance < next.beanPrice ? 'disabled' : ''}>${I.svg('coins')}Trồng hạt ${xu(next.beanPrice)} xu</button>`);
+    } else {
+      parts.push(`<h3>Cây đậu đã vươn tới tầng cao nhất</h3><p class="muted">Đã mở đủ ${c.floors} tầng mây.</p>`);
+    }
+    if (c.floors > 0) parts.push('<button class="primary" data-bean-climb>Lên mây</button>');
+    $('pen-body').innerHTML = `<div class="pen-offer">${pic}${parts.join('')}</div>`;
+  }
+
+  // Hạt vừa chín: hỏi lại server đúng một lần cho mỗi hạt (15 giây sau đó load định kỳ vẫn chốt nếu đồng hồ lệch).
+  let beanPolled = 0;
+  function pollBean() {
+    const c = farm && farm.cloud;
+    if (VISIT || !c || !c.beanPlantedAt || nowS() < c.beanReadyAt + 1 || beanPolled === c.beanReadyAt) return;
+    beanPolled = c.beanReadyAt;
+    refreshFarm();
+  }
+
+  // Báo tầng mới mở, kể cả tầng mở lúc vắng mặt. Số tầng đã báo lưu riêng từng tài khoản trên máy này.
+  function notifyFloors(f) {
+    if (VISIT || !f.cloud || !user) return;
+    const key = `farm.cloudFloors.${user.id}`;
+    let seen = 0;
+    try {
+      seen = +localStorage.getItem(key) || 0;
+    } catch {}
+    if (f.cloud.floors <= seen) return;
+    A.toast(`Đậu thần đã vươn tới tầng ${f.cloud.floors}`);
+    try {
+      localStorage.setItem(key, String(f.cloud.floors));
+    } catch {}
+  }
+
   function gunHTML() {
     const g = farm.gun || {};
     if (!g.owned) {
@@ -696,6 +775,11 @@
     objs.pond = { x: POND_BOX.x - 18, y: POND_BOX.y + 130, face: 'right', hx: POND_BOX.x + POND_BOX.w / 2, hy: POND_BOX.y + 8, verb: farm.pond ? 'Xem ao' : 'Mua ao', run: () => openPen('pond') };
 
     // Súng đậu dưới ao (không có ở nông trại bạn bè).
+    if (beanShown()) {
+      parts.push(beanHTML());
+      const c = farm.cloud;
+      objs.bean = { x: BEAN.x, y: 600, face: 'down', hx: BEAN.x, hy: BEAN.y - BEAN_H[beanStage()] - 40, verb: c.floors > 0 && !c.beanPlantedAt ? 'Đậu thần: lên mây' : 'Đậu thần', run: () => openPen('bean') };
+    }
     if (!VISIT) {
       const owned = !!(farm.gun && farm.gun.owned);
       parts.push(gunHTML());
@@ -1041,7 +1125,16 @@
     if (!farm) return;
     let changed = false;
     pollZombies();
+    pollBean();
     renderZombieAlert();
+    if (beanShown()) {
+      document.querySelectorAll('[data-bean-label], [data-bean-left]').forEach((el) => {
+        const text = el.hasAttribute('data-bean-label') ? beanLabel() : countdown(farm.cloud.beanReadyAt - nowS());
+        if (el.textContent !== text) el.textContent = text;
+      });
+      const beanEl = document.querySelector('.bean-obj');
+      if (beanEl && beanEl.dataset.beanStage !== String(beanStage())) changed = true;
+    }
     document.querySelectorAll('.plot.growing').forEach((el) => {
       const start = +el.dataset.start;
       const ready = +el.dataset.ready;
@@ -2525,6 +2618,12 @@
       }
       return; // Enter / Space bấm nút đang focus, Esc đóng (mặc định của trình duyệt)
     }
+    // Đang ở màn mây: phím không điều khiển nhân vật dưới đất, Esc xuống đất.
+    if (window.FarmCloud && window.FarmCloud.isOpen()) {
+      keys.clear();
+      if (e.key === 'Escape') window.FarmCloud.close();
+      return;
+    }
     const qm = $('quick-menu');
     if (!qm.classList.contains('hidden')) {
       if (arrow) {
@@ -3364,6 +3463,7 @@
   function renderPen() {
     const kind = penMode;
     if (kind === 'gun') return renderGun();
+    if (kind === 'bean') return renderBean();
     const isYard = kind === 'yard';
     const isBarn = kind === 'barn' || isYard;
     const pen = isYard ? farm.yard : kind === 'barn' ? farm.barn : farm.pond;
@@ -3544,8 +3644,9 @@
 
   // ---------- Nút trong thanh tiêu đề và hộp thoại ----------
 
+  let beanBusy = false; // đang hỏi hoặc đang gọi API trồng đậu, chống bấm trùng
   async function onClick(e) {
-    if (e.target.closest('#world')) return; // cảnh xử lý riêng
+    if (e.target.closest('#world, #cloud-scene')) return; // cảnh và màn mây xử lý riêng
     const t = e.target.closest('button');
     if (!t) return;
     if (t.closest('.toolbar, .pan-btns')) t.blur(); // để Space / Enter về sau dùng cho nhân vật
@@ -3601,6 +3702,26 @@
     if (d.sellAll !== undefined) {
       const res = await call('/api/farm/products/sell-all', {});
       if (res) floatGain(t, res.gained);
+      return;
+    }
+    if (d.beanPlant !== undefined) {
+      if (beanBusy) return;
+      const next = beanFloors()[farm.cloud.floors];
+      if (!next) return;
+      beanBusy = true;
+      try {
+        const hours = Math.round(next.beanSeconds / 3600);
+        if (!(await ask(`Trồng hạt đậu thần với giá ${xu(next.beanPrice)} xu? Sau ${hours} giờ sẽ mở tầng mây ${next.floor}, không huỷ được.`, { title: 'Trồng đậu thần', ok: 'Trồng' }))) return;
+        const res = await call('/api/farm/bean/plant', {});
+        if (res) A.toast(`Đã trồng đậu thần — ${hours} giờ nữa tới tầng ${next.floor}`);
+      } finally {
+        beanBusy = false;
+      }
+      return;
+    }
+    if (d.beanClimb !== undefined) {
+      $('dlg-pen').close();
+      window.FarmCloud.open(farm, cat);
       return;
     }
     if (d.gunBuy !== undefined) {
@@ -3782,6 +3903,7 @@
   if (VISIT) document.body.classList.add('visiting');
   $('btn-thefts').addEventListener('click', (e) => (e.currentTarget.blur(), openThefts()));
   window.FarmVisit.setNames((id) => product(id).name);
+  if (window.FarmCloud) window.FarmCloud.init({ api: call, ask, toast: A.toast, xu, now: nowS, user: () => user });
   A.me().then(
     async (u) => {
       if (!u) return A.requireLogin();

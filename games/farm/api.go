@@ -57,6 +57,9 @@ func (f *Farm) Handler() http.Handler {
 		Qty  int    `json:"qty"`
 		Item string `json:"item"`
 		Feed string `json:"feed"`
+		// Floor, Slot: tầng mây (1–4) và chỗ đặt chậu (0–5).
+		Floor int  `json:"floor"`
+		Slot  *int `json:"slot"`
 		// AutoBuy: cho ăn tất cả thì tự mua thức ăn còn thiếu.
 		AutoBuy bool `json:"autoBuy"`
 	}
@@ -108,6 +111,12 @@ func (f *Farm) Handler() http.Handler {
 		}
 		return *b.Plot
 	}
+	slot := func(b body) int {
+		if b.Slot == nil {
+			return -1
+		}
+		return *b.Slot
+	}
 	noGain := func(s State, err error) (State, *Gained, error) { return s, nil, err }
 	gain := func(s State, g Gained, err error) (State, *Gained, error) { return s, &g, err }
 
@@ -134,6 +143,18 @@ func (f *Farm) Handler() http.Handler {
 	})
 	handle("POST /api/farm/gun/ammo", func(r *http.Request, uid int64, b body) (State, *Gained, error) {
 		return noGain(f.BuyAmmo(r.Context(), uid, b.Qty))
+	})
+	handle("POST /api/farm/bean/plant", func(r *http.Request, uid int64, _ body) (State, *Gained, error) {
+		return noGain(f.PlantBean(r.Context(), uid))
+	})
+	handle("POST /api/farm/pot/buy", func(r *http.Request, uid int64, b body) (State, *Gained, error) {
+		return noGain(f.BuyPot(r.Context(), uid, b.Floor))
+	})
+	handle("POST /api/farm/pot/plant", func(r *http.Request, uid int64, b body) (State, *Gained, error) {
+		return noGain(f.PlantPot(r.Context(), uid, b.Floor, slot(b)))
+	})
+	handle("POST /api/farm/pot/harvest", func(r *http.Request, uid int64, b body) (State, *Gained, error) {
+		return gain(f.HarvestPot(r.Context(), uid, b.Floor, slot(b)))
 	})
 	// Đập zombie được cả khi máu dưới mức làm nông, nếu không người chơi không cứu nổi cây; HitZombie tự chặn lúc nằm viện.
 	route("POST /api/farm/zombie/hit", false, func(r *http.Request, uid int64, b body) (State, *Gained, error) {
