@@ -174,6 +174,8 @@ type State struct {
 	Thefts        []Theft `json:"thefts"`      // nhật ký bạn bè vào trộm, mới nhất trước
 	ZombieUntil   int64   `json:"zombieUntil"` // hạn đập zombie (unix), 0 nếu không có zombie
 	ZombieEaten   int     `json:"zombieEaten"` // số cây bị zombie ăn kể từ lần báo trước
+	Gun           Gun     `json:"gun"`         // súng đậu, xem zombie.go
+	GunKilled     int     `json:"gunKilled"`   // số zombie súng đã diệt kể từ lần báo trước
 }
 
 // Gained là phần thưởng của một lần thu hoạch / bán.
@@ -334,6 +336,9 @@ func (f *Farm) load(ctx context.Context, q querier, uid int64) (State, error) {
 	if s.ZombieUntil, s.ZombieEaten, err = loadZombieInfo(ctx, q, uid); err != nil {
 		return State{}, err
 	}
+	if s.Gun, s.GunKilled, err = loadGun(ctx, q, uid); err != nil {
+		return State{}, err
+	}
 	return s, nil
 }
 
@@ -354,6 +359,11 @@ func (f *Farm) State(ctx context.Context, uid int64) (State, error) {
 	s, err := f.load(ctx, tx, uid)
 	if err != nil {
 		return State{}, err
+	}
+	if s.GunKilled > 0 {
+		if _, err := tx.ExecContext(ctx, `UPDATE farm_guns SET killed = 0 WHERE user_id = ?`, uid); err != nil {
+			return State{}, err
+		}
 	}
 	// Số cây bị ăn chỉ báo một lần, khi chủ mở nông trại.
 	if s.ZombieEaten > 0 {

@@ -2815,6 +2815,28 @@
    "source": [
     "DCity (vẽ / ghép bằng PIL cho dự án)"
    ]
+  },
+  {
+   "file": "pea_gun.png",
+   "w": 149,
+   "h": 169,
+   "use": "Súng đậu tự bắn zombie: nòng tre xanh quay sang phải, băng đạn quả đậu, chân gỗ trên gò đất; đứng cạnh ruộng",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "pea.png",
+   "w": 32,
+   "h": 32,
+   "use": "Viên đạn đậu xanh bay từ súng tới zombie",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
   }
  ]
 }

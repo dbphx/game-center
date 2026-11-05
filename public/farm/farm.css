@@ -904,5 +904,15 @@ button.danger { background: linear-gradient(180deg, #ff8a7a, #e03131); border-co
 }
 .zombie-alert:hover:not(:disabled), .zombie-alert:active:not(:disabled) { transform: translateX(-50%); background: linear-gradient(180deg, #ef4444, #b91c1c); box-shadow: 0 3px 0 #7f1d1d; }
 .zombie-alert img { height: 30px; width: auto; }
+/* Súng đậu: ảnh PNG, nòng quay về phía ruộng; chân ở giữa cạnh dưới */
+.gun-obj { position: absolute; width: 0; height: 0; cursor: pointer; }
+.gun-obj .gun-img { position: absolute; left: -44px; bottom: 0; width: 88px; height: auto; transform: scaleX(-1); filter: drop-shadow(0 3px 2px rgba(60, 30, 5, .35)); }
+.gun-label { position: absolute; left: 0; bottom: 104px; transform: translateX(-50%); padding: 1px 9px; border-radius: 999px; background: #fffbec; border: 2px solid #6fb043; color: #2f6a12; font: 800 12px var(--font-title); white-space: nowrap; pointer-events: none; }
+.gun-label.empty { border-color: #b91c1c; color: #b91c1c; }
+.gun-offer { height: 120px; width: auto; transform: scaleX(-1); }
+.gun-count.empty { color: #b91c1c; }
+.gun-ammo { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.zombie-stay { position: fixed; z-index: 6999; pointer-events: none; }
+.pea-shot { position: fixed; z-index: 7001; width: 22px; height: 22px; pointer-events: none; }
 @keyframes zombie-pulse { 50% { box-shadow: 0 3px 0 #7f1d1d, 0 0 0 4px rgba(239, 68, 68, .45); } }
 @media (max-width: 600px) { .zombie-alert { font-size: 12px; padding-right: 10px; } .zombie-alert img { height: 24px; } }

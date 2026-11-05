@@ -36,6 +36,14 @@ const (
 	zombieMaxCatchup  = 720  // vắng lâu chỉ tính bù tối đa 30 ngày gần nhất
 )
 
+// Súng đậu: mua một lần, mỗi viên đạn tự diệt một zombie từ giây GunDelay của đợt, kể cả khi chủ offline.
+const (
+	GunPrice    = 399000
+	AmmoPrice   = 500
+	GunDelay    = 30   // giây sau đầu giờ súng mới bắn, để người đang online thấy zombie và đạn bay
+	maxAmmoSale = 1000 // số đạn tối đa mỗi lần mua
+)
+
 // zombieRisk là nguy cơ mỗi giờ của một cây không được canh: mất đúng 50% sau 12 giờ.
 var zombieRisk = 1 - math.Pow(0.5, 1.0/12)
 
@@ -51,6 +59,11 @@ CREATE TABLE IF NOT EXISTS farm_zombie_progress (
 	user_id   INTEGER PRIMARY KEY REFERENCES users(id),
 	last_wave INTEGER NOT NULL,        -- đợt mới nhất đã tính
 	eaten     INTEGER NOT NULL DEFAULT 0 -- số cây bị ăn chưa báo cho chủ
+);
+CREATE TABLE IF NOT EXISTS farm_guns (
+	user_id INTEGER PRIMARY KEY REFERENCES users(id), -- có dòng = đã mua súng
+	ammo    INTEGER NOT NULL DEFAULT 0, -- đạn còn lại
+	killed  INTEGER NOT NULL DEFAULT 0  -- số zombie súng đã diệt chưa báo cho chủ
 );
 `
 
@@ -103,7 +116,7 @@ func (f *Farm) settleZombies(ctx context.Context, tx *wallet.Tx, uid, now int64)
 	if err != nil {
 		return err
 	}
-	if err := expireZombies(ctx, tx, uid, now); err != nil {
+	if err := shootThenExpire(ctx, tx, uid, now); err != nil {
 		return err
 	}
 	if last >= cur {
@@ -121,8 +134,9 @@ func (f *Farm) settleZombies(ctx context.Context, tx *wallet.Tx, uid, now int64)
 				return err
 			}
 		}
-		if len(eligible) > 0 && now >= start+ZombieWindow {
-			if err := expireZombies(ctx, tx, uid, now); err != nil {
+		// Tính bù theo thứ tự thời gian: đợt đã qua vẫn tốn đạn trước khi tới đợt sau.
+		if len(eligible) > 0 && now >= start+GunDelay {
+			if err := shootThenExpire(ctx, tx, uid, now); err != nil {
 				return err
 			}
 		}
@@ -148,6 +162,85 @@ func zombieTargets(ctx context.Context, tx *wallet.Tx, uid, start int64) ([]int,
 		out = append(out, idx)
 	}
 	return out, rows.Err()
+}
+
+// shootThenExpire cho súng bắn trước, rồi mới xử lý zombie hết hạn.
+func shootThenExpire(ctx context.Context, tx *wallet.Tx, uid, now int64) error {
+	if err := shootZombies(ctx, tx, uid, now); err != nil {
+		return err
+	}
+	return expireZombies(ctx, tx, uid, now)
+}
+
+// shootZombies dùng đạn diệt các zombie đã quá giây GunDelay, đợt cũ trước, ô nhỏ trước; hết đạn thì dừng.
+func shootZombies(ctx context.Context, tx *wallet.Tx, uid, now int64) error {
+	var ammo int
+	err := tx.QueryRowContext(ctx, `SELECT ammo FROM farm_guns WHERE user_id = ?`, uid).Scan(&ammo)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+	if err != nil || ammo <= 0 {
+		return err
+	}
+	res, err := tx.ExecContext(ctx, `DELETE FROM farm_zombies WHERE user_id = ? AND idx IN (
+		SELECT idx FROM farm_zombies WHERE user_id = ? AND wave * ? + ? <= ? ORDER BY wave, idx LIMIT ?)`,
+		uid, uid, zombieWaveSeconds, GunDelay, now, ammo)
+	if err != nil {
+		return err
+	}
+	shot, err := res.RowsAffected()
+	if err != nil || shot == 0 {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, `UPDATE farm_guns SET ammo = ammo - ?, killed = killed + ? WHERE user_id = ?`, shot, shot, uid)
+	return err
+}
+
+// Gun là súng đậu của một nông trại.
+type Gun struct {
+	Owned bool `json:"owned"`
+	Ammo  int  `json:"ammo"`
+}
+
+// loadGun đọc súng và số zombie súng đã diệt chưa báo.
+func loadGun(ctx context.Context, q querier, uid int64) (g Gun, killed int, err error) {
+	err = q.QueryRowContext(ctx, `SELECT ammo, killed FROM farm_guns WHERE user_id = ?`, uid).Scan(&g.Ammo, &killed)
+	if errors.Is(err, sql.ErrNoRows) {
+		return Gun{}, 0, nil
+	}
+	g.Owned = err == nil
+	return g, killed, err
+}
+
+// BuyGun mua súng đậu; mỗi nông trại một khẩu.
+func (f *Farm) BuyGun(ctx context.Context, uid int64) (State, error) {
+	return f.do(ctx, uid, func(tx *wallet.Tx, s State) error {
+		if s.Gun.Owned {
+			return conflict("bạn đã có súng đậu")
+		}
+		if err := tx.Charge(uid, GunPrice, GameID, "Mua súng đậu"); err != nil {
+			return err
+		}
+		_, err := tx.ExecContext(ctx, `INSERT INTO farm_guns (user_id) VALUES (?)`, uid)
+		return err
+	})
+}
+
+// BuyAmmo mua qty viên đạn đậu cho súng đã có.
+func (f *Farm) BuyAmmo(ctx context.Context, uid int64, qty int) (State, error) {
+	if qty < 1 || qty > maxAmmoSale {
+		return State{}, bad(fmt.Sprintf("mỗi lần mua từ 1 tới %d viên đạn", maxAmmoSale))
+	}
+	return f.do(ctx, uid, func(tx *wallet.Tx, s State) error {
+		if !s.Gun.Owned {
+			return conflict("hãy mua súng đậu trước")
+		}
+		if err := tx.Charge(uid, int64(qty)*AmmoPrice, GameID, fmt.Sprintf("Mua %d đạn đậu", qty)); err != nil {
+			return err
+		}
+		_, err := tx.ExecContext(ctx, `UPDATE farm_guns SET ammo = ammo + ? WHERE user_id = ?`, qty, uid)
+		return err
+	})
 }
 
 // expireZombies xử lý zombie đã hết hạn đập: con bites = 1 ăn mất cây (mất cả hạt), con còn lại bỏ đi.

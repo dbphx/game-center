@@ -2,6 +2,7 @@ package farm
 
 import (
 	"encoding/json"
+	"io"
 	"math"
 	"net/http"
 	"net/http/httptest"
@@ -606,5 +607,286 @@ func TestMigrateAddsGoodColumnOnce(t *testing.T) {
 		if err := migrate(ctx, e.w, e.clock.Unix()); err != nil {
 			t.Fatal(err)
 		}
+	}
+}
+
+// ---------- Súng đậu ----------
+
+// armed: nông trại có zombie bật, đã mua súng và n viên đạn.
+func armed(t *testing.T, n int) *env {
+	t.Helper()
+	e := newZombieEnv(t)
+	e.ok(e.f.BuyGun(ctx, e.uid))
+	if n > 0 {
+		e.ok(e.f.BuyAmmo(ctx, e.uid, n))
+	}
+	return e
+}
+
+func TestBuyGunAndAmmoPrices(t *testing.T) {
+	e := newZombieEnv(t)
+	if s := e.ok(e.f.State(ctx, e.uid)); s.Gun.Owned || s.Gun.Ammo != 0 {
+		t.Fatalf("chưa mua súng: %+v", s.Gun)
+	}
+	// Chưa có súng thì không mua được đạn.
+	_, err := e.f.BuyAmmo(ctx, e.uid, 1)
+	wantStatus(t, err, http.StatusConflict)
+
+	before := e.user().Balance
+	if s := e.ok(e.f.BuyGun(ctx, e.uid)); !s.Gun.Owned || s.Gun.Ammo != 0 {
+		t.Fatalf("đã mua súng: %+v", s.Gun)
+	}
+	if got := before - e.user().Balance; got != 399_000 {
+		t.Fatalf("giá súng: %d", got)
+	}
+	_, err = e.f.BuyGun(ctx, e.uid)
+	wantStatus(t, err, http.StatusConflict)
+
+	before = e.user().Balance
+	if s := e.ok(e.f.BuyAmmo(ctx, e.uid, 3)); s.Gun.Ammo != 3 {
+		t.Fatalf("đạn: %d", s.Gun.Ammo)
+	}
+	if got := before - e.user().Balance; got != 1_500 {
+		t.Fatalf("giá 3 viên: %d", got)
+	}
+	for _, qty := range []int{0, -1, 1001} {
+		_, err = e.f.BuyAmmo(ctx, e.uid, qty)
+		wantStatus(t, err, http.StatusBadRequest)
+	}
+	if s := e.ok(e.f.BuyAmmo(ctx, e.uid, 1000)); s.Gun.Ammo != 1003 {
+		t.Fatalf("mua tối đa 1000 viên một lần: %d", s.Gun.Ammo)
+	}
+}
+
+func TestGunAndAmmoNotEnoughCoinsKeepsCoins(t *testing.T) {
+	e := newEnv(t, GunPrice-1, 0)
+	_, err := e.f.BuyGun(ctx, e.uid)
+	wantStatus(t, err, http.StatusPaymentRequired)
+	if b := e.user().Balance; b != GunPrice-1 {
+		t.Fatalf("thiếu xu không mất xu: %d", b)
+	}
+	if s := e.ok(e.f.State(ctx, e.uid)); s.Gun.Owned {
+		t.Fatal("thiếu xu không có súng")
+	}
+	e.set(GunPrice+AmmoPrice, 0)
+	e.ok(e.f.BuyGun(ctx, e.uid))
+	_, err = e.f.BuyAmmo(ctx, e.uid, 2)
+	wantStatus(t, err, http.StatusPaymentRequired)
+	if b := e.user().Balance; b != AmmoPrice {
+		t.Fatalf("thiếu xu mua đạn không mất xu: %d", b)
+	}
+	if s := e.ok(e.f.State(ctx, e.uid)); s.Gun.Ammo != 0 {
+		t.Fatalf("thiếu xu không có đạn: %d", s.Gun.Ammo)
+	}
+}
+
+func TestGunShootsFromSecond30AndKeepsCrop(t *testing.T) {
+	e := armed(t, 5)
+	e.ok(e.f.Plant(ctx, e.uid, 0, "carrot"))
+	e.ok(e.f.Plant(ctx, e.uid, 1, "carrot"))
+	e.spawn(0, true)
+	e.spawn(1, true)
+	e.clock = e.clock.Add((GunDelay - 1) * time.Second)
+	s := e.ok(e.f.State(ctx, e.uid))
+	if len(zombieCells(s)) != 2 || s.Gun.Ammo != 5 || s.GunKilled != 0 {
+		t.Fatalf("trước giây 30 chưa bắn: %v %+v %d", zombieCells(s), s.Gun, s.GunKilled)
+	}
+	e.clock = e.clock.Add(time.Second)
+	s = e.ok(e.f.State(ctx, e.uid))
+	if len(zombieCells(s)) != 0 || s.Gun.Ammo != 3 || s.GunKilled != 2 {
+		t.Fatalf("từ giây 30 bắn hết: %v %+v %d", zombieCells(s), s.Gun, s.GunKilled)
+	}
+	if s.Plots[0].Crop == "" || s.Plots[1].Crop == "" || s.ZombieEaten != 0 {
+		t.Fatalf("súng bắn thì cây còn: %+v", s.Plots[:2])
+	}
+	// Báo một lần rồi về 0.
+	if s = e.ok(e.f.State(ctx, e.uid)); s.GunKilled != 0 {
+		t.Fatalf("gunKilled phải về 0: %d", s.GunKilled)
+	}
+}
+
+func TestDoDoesNotClearGunKilled(t *testing.T) {
+	e := armed(t, 1)
+	e.ok(e.f.Plant(ctx, e.uid, 0, "carrot"))
+	e.spawn(0, true)
+	e.clock = e.clock.Add(GunDelay * time.Second)
+	if s := e.ok(e.f.Plant(ctx, e.uid, 1, "carrot")); s.GunKilled != 1 {
+		t.Fatalf("thao tác khác vẫn trả số đã diệt: %d", s.GunKilled)
+	}
+	if s := e.ok(e.f.State(ctx, e.uid)); s.GunKilled != 1 {
+		t.Fatalf("mở nông trại mới báo: %d", s.GunKilled)
+	}
+}
+
+func TestOutOfAmmoLeavesZombieToHitOrBite(t *testing.T) {
+	e := armed(t, 1)
+	for i := range 3 {
+		e.ok(e.f.Plant(ctx, e.uid, i, "carrot"))
+		e.spawn(i, true)
+	}
+	e.clock = e.clock.Add(GunDelay * time.Second)
+	s := e.ok(e.f.State(ctx, e.uid))
+	// Đạn bắn theo thứ tự ô.
+	if got := zombieCells(s); len(got) != 2 || got[0] != 1 || got[1] != 2 || s.Gun.Ammo != 0 {
+		t.Fatalf("hết đạn còn 2 con ô 1, 2: %v %+v", got, s.Gun)
+	}
+	// Con còn lại vẫn đập được.
+	hp := e.user().HP
+	s = e.ok(e.f.HitZombie(ctx, e.uid, 1))
+	if e.user().HP != hp-ZombieHitHP || s.Plots[1].Zombie {
+		t.Fatalf("hết đạn vẫn đập tay: %+v", s.Plots[1])
+	}
+	// Con không ai đập thì ăn cây khi hết hạn.
+	e.clock = e.clock.Add(ZombieWindow * time.Second)
+	s = e.ok(e.f.State(ctx, e.uid))
+	if s.Plots[2].Crop != "" || s.ZombieEaten != 1 {
+		t.Fatalf("hết đạn, hết hạn thì mất cây: %+v eaten %d", s.Plots[2], s.ZombieEaten)
+	}
+	if s.Plots[0].Crop == "" || s.Plots[1].Crop == "" {
+		t.Fatalf("hai ô được cứu còn cây: %+v", s.Plots[:2])
+	}
+}
+
+func TestHitBeforeSecond30SavesAmmo(t *testing.T) {
+	e := armed(t, 2)
+	e.ok(e.f.Plant(ctx, e.uid, 0, "carrot"))
+	e.spawn(0, true)
+	e.clock = e.clock.Add(10 * time.Second)
+	e.ok(e.f.HitZombie(ctx, e.uid, 0))
+	e.clock = e.clock.Add(time.Minute)
+	if s := e.ok(e.f.State(ctx, e.uid)); s.Gun.Ammo != 2 || s.GunKilled != 0 {
+		t.Fatalf("đập tay trước giây 30 không tốn đạn: %+v %d", s.Gun, s.GunKilled)
+	}
+}
+
+func TestBuyAmmoMidWaveShootsOnNextSettle(t *testing.T) {
+	e := armed(t, 0)
+	e.ok(e.f.Plant(ctx, e.uid, 0, "carrot"))
+	e.spawn(0, true)
+	e.clock = e.clock.Add(time.Minute)
+	if s := e.ok(e.f.State(ctx, e.uid)); len(zombieCells(s)) != 1 {
+		t.Fatalf("chưa có đạn thì zombie còn: %v", zombieCells(s))
+	}
+	e.ok(e.f.BuyAmmo(ctx, e.uid, 1))
+	s := e.ok(e.f.State(ctx, e.uid))
+	if len(zombieCells(s)) != 0 || s.Gun.Ammo != 0 || s.GunKilled != 1 || s.Plots[0].Crop == "" {
+		t.Fatalf("mua đạn giữa đợt, lần tính sau bắn ngay: %v %+v %d", zombieCells(s), s.Gun, s.GunKilled)
+	}
+}
+
+func TestNoGunDoesNotShoot(t *testing.T) {
+	e := newZombieEnv(t)
+	e.ok(e.f.Plant(ctx, e.uid, 0, "carrot"))
+	e.spawn(0, true)
+	e.clock = e.clock.Add(GunDelay * time.Second)
+	if s := e.ok(e.f.State(ctx, e.uid)); len(zombieCells(s)) != 1 || s.GunKilled != 0 {
+		t.Fatalf("không có súng thì không bắn: %v %d", zombieCells(s), s.GunKilled)
+	}
+}
+
+func TestOfflineAmmoSavesEveryCrop(t *testing.T) {
+	e := armed(t, 500)
+	e.buyPlots(42)
+	if _, _, err := e.f.PlantAll(ctx, e.uid, "carrot"); err != nil {
+		t.Fatal(err)
+	}
+	e.clock = e.clock.Add(24*time.Hour + ZombieWindow*time.Second)
+	s := e.ok(e.f.State(ctx, e.uid))
+	if s.ZombieEaten != 0 || len(zombieCells(s)) != 0 {
+		t.Fatalf("đủ đạn thì không mất cây: eaten %d, zombie %v", s.ZombieEaten, zombieCells(s))
+	}
+	for _, p := range s.Plots {
+		if p.Crop == "" {
+			t.Fatalf("đủ đạn mà mất cây ô %d", p.Index)
+		}
+	}
+	// 48 cây: mỗi đợt 3 con, 24 đợt.
+	if s.GunKilled != 72 || s.Gun.Ammo != 500-72 {
+		t.Fatalf("tốn đạn đúng số zombie: diệt %d, còn %d", s.GunKilled, s.Gun.Ammo)
+	}
+}
+
+func TestOfflineRunsOutOfAmmoThenCropsGetEaten(t *testing.T) {
+	e := armed(t, 4)
+	e.buyPlots(42)
+	if _, _, err := e.f.PlantAll(ctx, e.uid, "carrot"); err != nil {
+		t.Fatal(err)
+	}
+	// Hai đợt đầu ăn hết 4 viên (3 con rồi 1 con); các đợt sau không còn đạn.
+	e.clock = e.clock.Add(24*time.Hour + ZombieWindow*time.Second)
+	s := e.ok(e.f.State(ctx, e.uid))
+	if s.GunKilled != 4 || s.Gun.Ammo != 0 {
+		t.Fatalf("đạn hết giữa chừng: diệt %d, còn %d", s.GunKilled, s.Gun.Ammo)
+	}
+	if s.ZombieEaten == 0 {
+		t.Fatal("hết đạn thì các đợt sau phải ăn cây")
+	}
+}
+
+func TestWorthCountsGunAndAmmo(t *testing.T) {
+	e := newZombieEnv(t)
+	before, err := e.f.Worth(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.ok(e.f.BuyGun(ctx, e.uid))
+	e.ok(e.f.BuyAmmo(ctx, e.uid, 4))
+	after, err := e.f.Worth(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := after[e.uid] - before[e.uid]; got != GunPrice+4*AmmoPrice {
+		t.Fatalf("Worth tăng %d", got)
+	}
+}
+
+func TestCatalogHasGun(t *testing.T) {
+	c := Catalog()
+	if c["gunPrice"] != int64(399_000) || c["ammoPrice"] != int64(500) {
+		t.Fatalf("catalog: %v %v", c["gunPrice"], c["ammoPrice"])
+	}
+}
+
+func TestGunAPI(t *testing.T) {
+	e := newZombieEnv(t)
+	u, token, err := e.w.Register(ctx, "bansung", "matkhau123", wallet.Profile{Name: "Bắn súng"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.setBalance(u.ID, 1_000_000)
+	srv := httptest.NewServer(e.f.Handler())
+	defer srv.Close()
+	post := func(path, body string) (int, string) {
+		t.Helper()
+		req, _ := http.NewRequest(http.MethodPost, srv.URL+path, strings.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+token)
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		b := new(strings.Builder)
+		if _, err := io.Copy(b, res.Body); err != nil {
+			t.Fatal(err)
+		}
+		return res.StatusCode, b.String()
+	}
+	if code, _ := post("/api/farm/gun/ammo", `{"qty":1}`); code != http.StatusConflict {
+		t.Fatalf("chưa có súng: %d", code)
+	}
+	if code, body := post("/api/farm/gun/buy", `{}`); code != http.StatusOK || !strings.Contains(body, `"gun":{"owned":true,"ammo":0}`) || !strings.Contains(body, `"user"`) {
+		t.Fatalf("mua súng: %d %s", code, body)
+	}
+	if code, _ := post("/api/farm/gun/buy", `{}`); code != http.StatusConflict {
+		t.Fatalf("mua lần hai: %d", code)
+	}
+	if code, _ := post("/api/farm/gun/ammo", `{"qty":1001}`); code != http.StatusBadRequest {
+		t.Fatalf("qty 1001: %d", code)
+	}
+	if code, _ := post("/api/farm/gun/ammo", `{}`); code != http.StatusBadRequest {
+		t.Fatalf("thiếu qty: %d", code)
+	}
+	if code, body := post("/api/farm/gun/ammo", `{"qty":2}`); code != http.StatusOK || !strings.Contains(body, `"gun":{"owned":true,"ammo":2}`) || !strings.Contains(body, `"gunKilled":0`) {
+		t.Fatalf("mua đạn: %d %s", code, body)
 	}
 }

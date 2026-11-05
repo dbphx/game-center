@@ -189,5 +189,7 @@ func Catalog() map[string]any {
 		// Đất tốt, xem zombie.go.
 		"goodSoilPrice":   int64(GoodSoilPrice),
 		"goodSoilSpeedup": GoodSoilSpeedup,
+		"gunPrice":        int64(GunPrice),
+		"ammoPrice":       int64(AmmoPrice),
 	}
 }

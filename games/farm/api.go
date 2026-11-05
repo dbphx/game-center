@@ -129,6 +129,12 @@ func (f *Farm) Handler() http.Handler {
 	handle("POST /api/farm/plot/upgrade", func(r *http.Request, uid int64, b body) (State, *Gained, error) {
 		return noGain(f.UpgradePlot(r.Context(), uid, plot(b)))
 	})
+	handle("POST /api/farm/gun/buy", func(r *http.Request, uid int64, _ body) (State, *Gained, error) {
+		return noGain(f.BuyGun(r.Context(), uid))
+	})
+	handle("POST /api/farm/gun/ammo", func(r *http.Request, uid int64, b body) (State, *Gained, error) {
+		return noGain(f.BuyAmmo(r.Context(), uid, b.Qty))
+	})
 	// Đập zombie được cả khi máu dưới mức làm nông, nếu không người chơi không cứu nổi cây; HitZombie tự chặn lúc nằm viện.
 	route("POST /api/farm/zombie/hit", false, func(r *http.Request, uid int64, b body) (State, *Gained, error) {
 		return noGain(f.HitZombie(r.Context(), uid, plot(b)))

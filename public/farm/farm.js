@@ -220,6 +220,7 @@
   const PEN = { x1: 18, y1: 164, x2: 318, y2: 600 }; // chuồng gia súc (hàng rào)
   const BX = [0, 0]; // cột khối ruộng (lối đất giữa đủ rộng để đi)
   const POND_BOX = { x: 0, y: 250, w: 260, h: 200 }; // lô cỏ có ao
+  const GUN = { x: 0, y: 632 }; // chỗ đặt súng đậu: khoảng đất dưới ao, cạnh ruộng (chân súng)
   let OX = 0; // độ dời ngang phần bên phải chuồng (chuồng nới rộng)
   let W = 1700;
   let CORE_W = 1700; // bề rộng cảnh khi chuồng + ao nhỏ nhất — luôn vừa một khung nhìn; to hơn thì kéo ngang
@@ -236,6 +237,7 @@
     POND_BOX.h = 236; // cao cố định (+18%); ao chỉ nới ngang về bên phải (cạnh trái cố định)
     POND_BOX.x = BX[1] + BLOCK_W + 40;
     POND_BOX.y = 272;
+    GUN.x = POND_BOX.x + 110;
     W = POND_BOX.x + POND_BOX.w + 40;
     CORE_W = 834 + 28 + 2 * BLOCK_W + 48 + 40 + 260 + 40;
     Object.assign(ROAM, { x1: PEN.x1 + 34, y1: 330, x2: PEN.x2 - 30, y2: PEN.y2 - 24 });
@@ -306,6 +308,7 @@
       ...HEDGES.map(([x1, x2, y]) => [x1, y - 12, x2, y]), // hàng rào hoa
       ...hedgeSides(X).map(([x, y1, y2]) => [x - 14, y1, x + 14, y2]),
     ];
+    if (!VISIT && farm.gun && farm.gun.owned) obstacles.push([GUN.x - 30, GUN.y - 12, GUN.x + 30, GUN.y + 2]);
   }
 
   const pos = (x, y, z = y) => `left:${Math.round(x)}px;top:${Math.round(y)}px;z-index:${Math.round(z)}`;
@@ -458,6 +461,18 @@
     const name = kind === 'barn' ? 'Mua chuồng' : 'Mua ao';
     return `<div class="obj area empty-lot" data-obj="${kind}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;z-index:3">
       <span class="lot-sign">${art.img('fence_piece', { h: 34 })}<b>${name}</b><em>${locked ? `${I.svg('lock')}Cần Lv ${cfg.level}` : `${I.svg('coins')}${xu(cfg.price)} xu`}</em></span></div>`;
+  }
+
+  // Súng đậu: chưa có thì biển mua trên mảng cỏ, có rồi thì súng quay nòng về phía ruộng kèm nhãn số đạn.
+  function gunHTML() {
+    const g = farm.gun || {};
+    if (!g.owned) {
+      return `<div class="obj area empty-lot gun-lot" data-obj="gun" style="left:${GUN.x - 95}px;top:${GUN.y - 76}px;width:190px;height:92px;z-index:3">
+        <span class="lot-sign"><b>Súng đậu</b><em>${I.svg('coins')}${xu((cat && cat.gunPrice) || 0)} xu</em></span></div>`;
+    }
+    return `<div class="obj gun-obj" data-obj="gun" style="${pos(GUN.x, GUN.y)}">
+      <img class="gun-img" src="/img/toon/farm/pea_gun.png" alt="Súng đậu" draggable="false">
+      <span class="gun-label${g.ammo ? '' : ' empty'}">${g.ammo ? `${xu(g.ammo)} viên` : 'Hết đạn'}</span></div>`;
   }
 
   function yardHTML() {
@@ -679,6 +694,13 @@
     // Ao cá ở mép phải.
     parts.push(pondHTML());
     objs.pond = { x: POND_BOX.x - 18, y: POND_BOX.y + 130, face: 'right', hx: POND_BOX.x + POND_BOX.w / 2, hy: POND_BOX.y + 8, verb: farm.pond ? 'Xem ao' : 'Mua ao', run: () => openPen('pond') };
+
+    // Súng đậu dưới ao (không có ở nông trại bạn bè).
+    if (!VISIT) {
+      const owned = !!(farm.gun && farm.gun.owned);
+      parts.push(gunHTML());
+      objs.gun = { x: GUN.x + 62, y: GUN.y + 6, face: 'left', hx: GUN.x, hy: GUN.y - (owned ? 160 : 88), verb: owned ? 'Súng đậu' : 'Mua súng đậu', run: () => openPen('gun') };
+    }
 
     // Cây kiểu Việt ở rìa: mai, đào hai bên cổng, đào trong chuồng, chuối + tre sau ao, mai góc phải.
     parts.push(deco('tree_dao', X(444), 606, 190, false, 'sway blossom'));
@@ -3008,6 +3030,57 @@
   const zombieHits = new Set(); // ô đang gửi yêu cầu đập, chống bấm đúp
   const zombies = () => (farm && !VISIT ? farm.plots.filter((p) => p.zombie) : []);
 
+  // Súng đậu tự bắn sau GUN_DELAY giây từ đầu giờ (khớp GunDelay ở games/farm/zombie.go).
+  const GUN_DELAY = 30;
+  const waveStart = () => Math.floor(nowS() / 3600) * 3600;
+  const motionOK = () => !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Ảnh zombie ngã tại chỗ r (khung trên màn hình).
+  function zombieFalls(r) {
+    const die = document.createElement('img');
+    die.className = 'zombie-die';
+    die.src = '/img/toon/farm/zombie.png';
+    die.alt = '';
+    die.style.cssText = `left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px`;
+    document.body.appendChild(die);
+    setTimeout(() => die.remove(), 800);
+  }
+
+  // Súng vừa diệt các zombie ở khung rects: đạn bay từ nòng tới từng con rồi con đó ngã (không trừ máu).
+  function gunShots(rects) {
+    const gun = document.querySelector('.gun-img');
+    const from = gun && gun.getBoundingClientRect();
+    if (!from || !motionOK()) return rects.forEach(zombieFalls);
+    const fx = from.left + from.width * 0.08;
+    const fy = from.top + from.height * 0.3;
+    rects.forEach((r, i) => {
+      // Giữ ảnh zombie đứng tới lúc đạn trúng (ô đã vẽ lại không còn zombie).
+      const stay = document.createElement('img');
+      stay.className = 'zombie-stay';
+      stay.src = '/img/toon/farm/zombie.png';
+      stay.alt = '';
+      stay.style.cssText = `left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px`;
+      document.body.appendChild(stay);
+      const pea = document.createElement('img');
+      pea.className = 'pea-shot';
+      pea.src = '/img/toon/farm/pea.png';
+      pea.alt = '';
+      pea.style.cssText = `left:${fx}px;top:${fy}px`;
+      document.body.appendChild(pea);
+      const dx = r.left + r.width / 2 - fx;
+      const dy = r.top + r.height / 2 - fy;
+      const fly = pea.animate([{ transform: 'translate(-50%, -50%)' }, { transform: `translate(calc(${dx}px - 50%), calc(${dy}px - 50%))` }],
+        { duration: 420, delay: i * 240, easing: 'linear', fill: 'both' });
+      const hit = () => {
+        pea.remove();
+        stay.remove();
+        zombieFalls(r);
+      };
+      fly.onfinish = hit;
+      fly.oncancel = hit;
+    });
+  }
+
   // Một nhát: zombie chết, trừ máu; ảnh zombie ngã và chữ trừ máu bay lên tại chỗ.
   async function hitZombie(index) {
     if (zombieHits.has(index)) return;
@@ -3020,13 +3093,7 @@
       // Lỗi (zombie vừa hết hạn, đang nằm viện): tải lại để hiện đúng bàn.
       if (!res) return refreshFarm();
       if (!r) return;
-      const die = document.createElement('img');
-      die.className = 'zombie-die';
-      die.src = '/img/toon/farm/zombie.png';
-      die.alt = '';
-      die.style.cssText = `left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px`;
-      document.body.appendChild(die);
-      setTimeout(() => die.remove(), 800);
+      zombieFalls(r);
       const g = document.createElement('span');
       g.className = 'gain lose';
       g.textContent = `−${Math.max(0, before - user.hp) || 2} máu`;
@@ -3044,12 +3111,24 @@
   // Báo số cây bị zombie ăn lúc vắng mặt (server chỉ báo một lần khi đọc nông trại).
   function notifyEaten(f) {
     if (f && f.zombieEaten > 0) A.toast(`Zombie đã ăn mất ${f.zombieEaten} cây`);
+    // gunKilled chỉ được đặt lại ở GET nên chỉ báo trong các đường GET này.
+    if (f && f.gunKilled > 0) A.toast(`Súng đậu đã diệt ${f.gunKilled} zombie`);
   }
 
   async function refreshFarm() {
     if (VISIT) return;
+    // Nhớ khung các zombie trước khi vẽ lại, để đạn bay tới đúng chỗ các con vừa bị súng diệt.
+    const before = zombies().map((p) => {
+      const img = document.querySelector(`.plot-top[data-obj="plot${p.index}"] .zombie-img`);
+      return { index: p.index, rect: img && img.getBoundingClientRect() };
+    });
     const res = await call('/api/farm');
-    if (res) notifyEaten(res.farm);
+    if (res) {
+      notifyEaten(res.farm);
+      const killed = res.farm.gunKilled || 0;
+      const gone = before.filter((z) => z.rect && !res.farm.plots[z.index].zombie);
+      if (killed && gone.length) gunShots(gone.slice(0, killed).map((z) => z.rect));
+    }
   }
 
   // Băng đếm ngược: bấm để đi tới con zombie đầu tiên.
@@ -3059,12 +3138,24 @@
     const left = farm && farm.zombieUntil ? farm.zombieUntil - nowS() : 0;
     el.classList.toggle('hidden', !list.length || left <= 0);
     if (!list.length || left <= 0) return;
-    el.querySelector('[data-zombie-text]').textContent = `Zombie tấn công! ${list.length} con · còn ${countdown(left)} để đập`;
+    const g = farm.gun || {};
+    const n = list.length;
+    let text = `Zombie tấn công! ${n} con · còn ${countdown(left)} để đập`;
+    if (g.owned && g.ammo >= n) {
+      const wait = waveStart() + GUN_DELAY - nowS();
+      text = wait > 0 ? `Zombie tấn công! ${n} con · súng bắn sau ${Math.ceil(wait)} giây` : `Zombie tấn công! ${n} con · súng đang bắn…`;
+    } else if (g.owned && g.ammo > 0) {
+      text = `Zombie! ${n} con · súng chỉ còn ${g.ammo} viên · ${countdown(left)} để đập`;
+    } else if (g.owned) {
+      text = `Zombie! ${n} con · súng hết đạn · ${countdown(left)} để đập`;
+    }
+    el.querySelector('[data-zombie-text]').textContent = text;
   }
 
   // Đầu mỗi giờ (lệch vài giây để các máy không gọi cùng lúc) và lúc hết hạn đập thì hỏi lại server.
   let zombieHour = 0;
   let zombiePollAt = 0;
+  let gunPolled = 0;
   function pollZombies() {
     if (VISIT || !farm) return;
     const hour = Math.floor(nowS() / 3600);
@@ -3074,6 +3165,12 @@
       zombiePollAt = nowS() + Math.random() * 5;
     }
     if (farm.zombieUntil && nowS() >= farm.zombieUntil && !zombiePollAt) zombiePollAt = nowS();
+    // Tới giờ súng bắn: hỏi lại một lần mỗi đợt để thấy đạn bay.
+    const wave = waveStart();
+    if (farm.gun && farm.gun.owned && farm.gun.ammo > 0 && zombies().length && nowS() >= wave + GUN_DELAY && gunPolled !== wave) {
+      gunPolled = wave;
+      if (!zombiePollAt) zombiePollAt = nowS() + Math.random() * 2;
+    }
     if (zombiePollAt && nowS() >= zombiePollAt) {
       zombiePollAt = 0;
       refreshFarm();
@@ -3243,8 +3340,30 @@
     show('dlg-pen');
   }
 
+  // Hộp súng đậu: mua súng, mua đạn. Đạn không nằm trong kho.
+  function renderGun() {
+    const g = farm.gun || {};
+    const price = (cat && cat.gunPrice) || 0;
+    const ammo = (cat && cat.ammoPrice) || 0;
+    const art_ = '<div class="offer-art"><img class="gun-offer" src="/img/toon/farm/pea_gun.png" alt="" draggable="false"></div>';
+    const note = `Mỗi viên đạn (${xu(ammo)} xu) diệt 1 zombie. Súng tự bắn sau ${GUN_DELAY} giây từ lúc zombie xuất hiện, kể cả khi bạn offline, và không mất máu.`;
+    $('pen-title').textContent = 'Súng đậu';
+    if (!g.owned) {
+      $('pen-body').innerHTML = `<div class="pen-offer">${art_}
+        <h3>Chưa có súng đậu</h3>
+        <p class="muted">${note}</p>
+        <button class="primary" data-gun-buy ${user.balance < price ? 'disabled' : ''}>${I.svg('coins')}Mua súng ${xu(price)} xu</button></div>`;
+      return;
+    }
+    $('pen-body').innerHTML = `<div class="pen-offer">${art_}
+      <h3 class="gun-count${g.ammo ? '' : ' empty'}">${g.ammo ? `Còn ${xu(g.ammo)} viên đạn` : 'Hết đạn'}</h3>
+      <p class="muted">${note}</p>
+      <div class="gun-ammo">${[10, 50, 100].map((n) => `<button class="primary" data-gun-ammo="${n}" ${user.balance < n * ammo ? 'disabled' : ''}>${I.svg('coins')}+${n} viên · ${xu(n * ammo)} xu</button>`).join('')}</div></div>`;
+  }
+
   function renderPen() {
     const kind = penMode;
+    if (kind === 'gun') return renderGun();
     const isYard = kind === 'yard';
     const isBarn = kind === 'barn' || isYard;
     const pen = isYard ? farm.yard : kind === 'barn' ? farm.barn : farm.pond;
@@ -3482,6 +3601,23 @@
     if (d.sellAll !== undefined) {
       const res = await call('/api/farm/products/sell-all', {});
       if (res) floatGain(t, res.gained);
+      return;
+    }
+    if (d.gunBuy !== undefined) {
+      if (!(await ask(`Mua súng đậu với giá ${xu(cat.gunPrice)} xu? Súng cần đạn mới bắn được, đạn mua riêng ${xu(cat.ammoPrice)} xu/viên.`, { title: 'Mua súng đậu', ok: 'Mua súng' }))) return;
+      const res = await call('/api/farm/gun/buy', {});
+      if (res) A.toast('Đã có súng đậu — mua đạn để súng bắn zombie');
+      return;
+    }
+    if (d.gunAmmo) {
+      const res = await call('/api/farm/gun/ammo', { qty: +d.gunAmmo });
+      if (!res) return;
+      A.toast(`Đã mua ${d.gunAmmo} viên đạn`);
+      // Đang có zombie quá giờ súng bắn: đóng hộp để thấy súng bắn ngay.
+      if (zombies().length && nowS() >= waveStart() + GUN_DELAY) {
+        $('dlg-pen').close();
+        refreshFarm();
+      }
       return;
     }
     if (d.buyPen) {

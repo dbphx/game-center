@@ -6,7 +6,8 @@ import "context"
 //   - ô đất đã mua: tổng giá đã trả (6 ô miễn phí tính 0), cây đang trồng tính giá hạt, ô đất tốt cộng giá nâng cấp;
 //   - chuồng / ao: giá mua + các lần mở rộng đã trả (sân gia cầm có sẵn, chỉ tính mở rộng); mở rộng kho cũng vậy;
 //   - vật nuôi / cá đang nuôi: giá mua (không tính lớn thêm để giá trị không nhảy theo đồng hồ);
-//   - kho giống: hạt và thức ăn theo giá mua; kho sản phẩm: theo giá bán.
+//   - kho giống: hạt và thức ăn theo giá mua; kho sản phẩm: theo giá bán;
+//   - súng đậu: giá mua, đạn còn lại theo giá mua.
 //
 // Chỉ đọc (transaction bị huỷ cuối hàm), mỗi bảng một câu SQL cho mọi người chơi.
 func (f *Farm) Worth(ctx context.Context) (map[int64]int64, error) {
@@ -117,6 +118,24 @@ func (f *Farm) Worth(ctx context.Context) (map[int64]int64, error) {
 		if st, ok := findStock(place, kind); ok {
 			worth[uid] += st.Price
 		}
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Súng đậu và đạn còn lại.
+	rows, err = tx.QueryContext(ctx, `SELECT user_id, ammo FROM farm_guns`)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var uid, ammo int64
+		if err := rows.Scan(&uid, &ammo); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		worth[uid] += GunPrice + ammo*AmmoPrice
 	}
 	rows.Close()
 	if err := rows.Err(); err != nil {
