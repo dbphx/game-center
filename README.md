@@ -196,7 +196,13 @@ Mã lỗi: 400 dữ liệu sai, 402 không đủ xu, 403 thiếu level / HP, 404
   không canh mất khoảng 50% số cây sau mỗi 12 giờ, nhà to nhỏ như nhau, kể cả khi đang offline.
 - **Đập** (`POST /api/farm/zombie/hit {plot}`): 1 nhát chết, trừ 2 máu, không có thưởng; được đập cả khi máu dưới 40, trừ lúc nằm viện. Chỉ chủ
   nông trại đập được. Hết máu ở nhát đập thì vào viện như các nguồn mất máu khác.
-- Ô có zombie không thu hoạch được và không bị bạn bè trộm được. `GET /api/farm/zombie/status` trả `{count, until}` cho bản đồ thành phố.
+- **Vật nuôi và cá**: mỗi đầu giờ zombie tấn công riêng từng khu chuồng, sân, ao với cùng công thức (khu có con thì có ít nhất 1 zombie), tính
+  từ đầu giờ đầu tiên sau khi có tính năng, không tính bù quá khứ. Chó không bị tấn công. Hết 5 phút zombie ăn mất con đó hoặc bỏ đi.
+  Con đang bị tấn công không bán, thu hoạch, lấy sản phẩm được (thao tác hàng loạt bỏ qua), vẫn cho ăn được. Đập bằng
+  `POST /api/farm/zombie/hit-stock {id}`, cùng luật 1 nhát, trừ 2 máu.
+- **Zombie lựa mục tiêu** ở cả ruộng và khu vật nuôi: chọn cây / con gần trưởng thành nhất (tiến độ chặn ở 100%, đã chín hay đã lớn đều ở mức
+  cao nhất), bằng tiến độ thì ngẫu nhiên. Tỉ lệ mất chung vẫn khoảng 50% sau 12 giờ, nhưng rủi ro dồn vào cây / con sắp lớn.
+- Ô có zombie không thu hoạch được và không bị bạn bè trộm được. `GET /api/farm/zombie/status` trả `{count, until}` cho bản đồ thành phố, `count` tính cả vật nuôi.
 - **Súng đậu**: mua một lần 399.000 xu (`POST /api/farm/gun/buy`), đạn 500 xu mỗi viên, mỗi lần mua 1–1.000 viên
   (`POST /api/farm/gun/ammo {qty}`). Từ giây 30 của đợt, mỗi viên tự diệt một zombie, đợt cũ trước, kể cả khi chủ offline, không mất máu và
   không mất cây. Đập tay trước giây 30 thì không tốn đạn; hết đạn thì zombie còn lại đập tay hoặc hết hạn như thường. Súng và đạn tính vào

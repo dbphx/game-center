@@ -2,11 +2,17 @@ package farm
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"math"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"slices"
+	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -120,6 +126,15 @@ func TestZombieCount(t *testing.T) {
 }
 
 // Giả lập nhiều nhà không canh 12 đợt: còn lại khoảng 50% ở mọi cỡ.
+// pickZombies: mọi cây cùng tiến độ thì zombie chọn đều.
+func pickZombies(uid, wave int64, eligible []int) []zombiePick {
+	targets := make([]zombieTarget, len(eligible))
+	for i, idx := range eligible {
+		targets[i] = zombieTarget{idx: idx, progress: 1}
+	}
+	return pickTargets(uid, uint64(wave), targets)
+}
+
 func TestUnprotectedLosesHalfIn12Hours(t *testing.T) {
 	for _, crops := range []int{6, 20, 39, 48} {
 		total, alive := 0, 0
@@ -888,5 +903,571 @@ func TestGunAPI(t *testing.T) {
 	}
 	if code, body := post("/api/farm/gun/ammo", `{"qty":2}`); code != http.StatusOK || !strings.Contains(body, `"gun":{"owned":true,"ammo":2}`) || !strings.Contains(body, `"gunKilled":0`) {
 		t.Fatalf("mua đạn: %d %s", code, body)
+	}
+}
+
+// ---------- Zombie ăn vật nuôi và cá ----------
+
+// count chạy một truy vấn đếm trên database thử.
+func (e *env) count(query string, args ...any) int {
+	e.t.Helper()
+	tx, err := e.w.Begin(ctx)
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	defer tx.Rollback()
+	var n int
+	if err := tx.QueryRowContext(ctx, query, args...).Scan(&n); err != nil {
+		e.t.Fatal(err)
+	}
+	return n
+}
+
+// nextWave tua tới đúng đầu giờ kế tiếp.
+func (e *env) nextWave() { e.clock = time.Unix((e.wave()+1)*hour, 0) }
+
+// addStock thêm thẳng một con đang đói (nên không lớn thêm) với tiến độ cho trước và trả id của nó.
+func (e *env) addStock(place, kind string, grow int64) int64 {
+	e.t.Helper()
+	e.exec(`INSERT OR IGNORE INTO farm_buildings (user_id, place, capacity) VALUES (?, ?, 100)`, e.uid, place)
+	now := e.clock.Unix()
+	e.exec(`INSERT INTO farm_stock (user_id, place, kind, bought_at, ready_at, fed_until, grow_progress, progress_at)
+		VALUES (?, ?, ?, ?, 0, 0, ?, ?)`, e.uid, place, kind, now-1, grow, now)
+	return int64(e.count(`SELECT MAX(id) FROM farm_stock WHERE user_id = ?`, e.uid))
+}
+
+// spawnStock đặt sẵn zombie đợt hiện tại lên con id và coi đợt hiện tại đã tính ở cả ruộng lẫn vật nuôi.
+func (e *env) spawnStock(id int64, bites bool) {
+	e.t.Helper()
+	e.exec(`INSERT INTO farm_stock_zombies (stock_id, user_id, wave, bites) VALUES (?, ?, ?, ?)`, id, e.uid, e.wave(), bites)
+	e.exec(`UPDATE farm_zombie_progress SET last_wave = ? WHERE user_id = ?`, e.wave(), e.uid)
+	e.exec(`UPDATE farm_stock_zombie_progress SET last_wave = ? WHERE user_id = ?`, e.wave(), e.uid)
+}
+
+// stockZombies liệt kê id các con đang có zombie, theo State.
+func stockZombies(s State) []int64 {
+	out := []int64{}
+	for _, pen := range []*Pen{s.Barn, s.Yard, s.Pond} {
+		if pen == nil {
+			continue
+		}
+		for _, a := range append(append([]Animal{}, pen.Animals...), pen.Fish...) {
+			if a.Zombie {
+				out = append(out, a.ID)
+			}
+		}
+	}
+	return out
+}
+
+func wantMsg(t *testing.T, err error, sub string) {
+	t.Helper()
+	if err == nil || !strings.Contains(err.Error(), sub) {
+		t.Fatalf("lỗi %v, muốn chứa %q", err, sub)
+	}
+}
+
+// Mỗi khu có con thì có ít nhất 1 zombie, tính riêng từng khu.
+func TestStockWaveHitsEveryZone(t *testing.T) {
+	e := newZombieEnv(t)
+	barn := e.addStock(placeBarn, "pig", 0)
+	yard := e.addStock(placeYard, "chicken", 0)
+	pond := e.addStock(placePond, "tilapia", 0)
+	e.nextWave()
+	s := e.ok(e.f.State(ctx, e.uid))
+	got := stockZombies(s)
+	if len(got) != 3 || got[0] != barn || got[1] != yard || got[2] != pond {
+		t.Fatalf("zombie: %v, muốn %d %d %d", got, barn, yard, pond)
+	}
+	if s.ZombieUntil != e.clock.Unix()+ZombieWindow {
+		t.Fatalf("hạn đập tính cả vật nuôi: %d", s.ZombieUntil-e.clock.Unix())
+	}
+	if n, until, err := e.f.ZombieStatus(ctx, e.uid); err != nil || n != 3 || until != s.ZombieUntil {
+		t.Fatalf("status: %d %d %v", n, until, err)
+	}
+}
+
+// Con mua đúng lúc đợt bắt đầu không phải mục tiêu của đợt đó; chó không bao giờ có zombie.
+func TestStockEligibilityAndDog(t *testing.T) {
+	e := newZombieEnv(t)
+	e.exec(`INSERT INTO farm_dog (user_id, fed_until) VALUES (?, ?)`, e.uid, int64(4_000_000_000))
+	e.nextWave()
+	if s := e.ok(e.f.State(ctx, e.uid)); len(stockZombies(s)) != 0 || s.ZombieUntil != 0 {
+		t.Fatalf("nhà chỉ có chó mà có zombie: %v", stockZombies(s))
+	}
+	id := e.addStock(placeYard, "chicken", 0)
+	e.exec(`UPDATE farm_stock SET bought_at = ? WHERE id = ?`, e.clock.Unix(), id)
+	e.nextWave() // đợt sau mới đủ điều kiện
+	if s := e.ok(e.f.State(ctx, e.uid)); len(stockZombies(s)) != 1 {
+		t.Fatalf("con mua trước đợt phải bị nhắm: %v", stockZombies(s))
+	}
+	f := newZombieEnv(t)
+	f.nextWave()
+	f.ok(f.f.State(ctx, f.uid))
+	id = f.addStock(placeYard, "chicken", 0)
+	f.exec(`UPDATE farm_stock SET bought_at = ? WHERE id = ?`, f.clock.Unix(), id)
+	if s := f.ok(f.f.State(ctx, f.uid)); len(stockZombies(s)) != 0 {
+		t.Fatalf("con mua lúc đợt bắt đầu bị nhắm: %v", stockZombies(s))
+	}
+}
+
+// survivors giả lập 12 đợt không canh; progress(i, w) là tiến độ của mục tiêu i ở đợt w.
+func survivors(n int, progress func(i int, w int64) float64) float64 {
+	total, alive := 0, 0
+	for uid := int64(1); uid <= 3000; uid++ {
+		left := make([]int, n)
+		for i := range left {
+			left[i] = i
+		}
+		for w := int64(500_000); w < 500_012; w++ {
+			targets := make([]zombieTarget, len(left))
+			for k, i := range left {
+				targets[k] = zombieTarget{idx: i, progress: progress(i, w)}
+			}
+			for _, z := range pickTargets(uid, uint64(w), targets) {
+				if z.bites {
+					left = slices.DeleteFunc(left, func(i int) bool { return i == z.idx })
+				}
+			}
+		}
+		total += n
+		alive += len(left)
+	}
+	return float64(alive) / float64(total)
+}
+
+// Lựa con gần lớn chỉ dồn rủi ro, không đổi tỉ lệ mất chung: còn khoảng 50% sau 12 đợt, kể cả khi trồng lệch giờ.
+func TestUnprotectedStillLosesHalfWhenStaggered(t *testing.T) {
+	for _, n := range []int{6, 20, 40} {
+		same := survivors(n, func(int, int64) float64 { return 1 })
+		// Lệch đều 12 giờ, tiến độ tăng theo đợt, đã chín thì chặn ở 1.
+		staggered := survivors(n, func(i int, w int64) float64 {
+			return min(1, (float64(w-500_000)+float64(i)*12/float64(n))/12)
+		})
+		t.Logf("%d con: cùng tiến độ còn %.3f, lệch giờ còn %.3f", n, same, staggered)
+		for _, r := range []float64{same, staggered} {
+			if r < 0.44 || r > 0.56 {
+				t.Fatalf("%d con: cùng tiến độ %.3f, lệch giờ %.3f", n, same, staggered)
+			}
+		}
+	}
+}
+
+// Cùng seed và cùng mục tiêu thì ra cùng kết quả; bằng tiến độ thì mọi mục tiêu đều có thể bị chọn.
+func TestPickTargetsDeterministicAndFairOnTies(t *testing.T) {
+	list := make([]zombieTarget, 20)
+	for i := range list {
+		list[i] = zombieTarget{idx: i, progress: 1}
+	}
+	a, b := pickTargets(7, 99, list), pickTargets(7, 99, list)
+	if !slices.Equal(a, b) {
+		t.Fatalf("cùng seed khác kết quả: %v / %v", a, b)
+	}
+	seen := map[int]bool{}
+	for w := uint64(0); w < 400; w++ {
+		for _, z := range pickTargets(7, w, list) {
+			seen[z.idx] = true
+		}
+	}
+	if len(seen) != len(list) {
+		t.Fatalf("bằng tiến độ mà chỉ chọn %d/%d mục tiêu", len(seen), len(list))
+	}
+}
+
+// setCrop đặt thẳng cây trên ô idx với tiến độ tính từ mốc start.
+func (e *env) setCrop(idx int, planted, ready int64) {
+	e.t.Helper()
+	e.exec(`UPDATE farm_plots SET crop = 'carrot', planted_at = ?, ready_at = ? WHERE user_id = ? AND idx = ?`, planted, ready, e.uid, idx)
+}
+
+func TestZombiesPreferNearlyRipeCrops(t *testing.T) {
+	e := newZombieEnv(t)
+	start := (e.wave() + 1) * hour
+	for i := 0; i < 6; i++ {
+		e.setCrop(i, start-1000, start+9000) // tiến độ 0,1
+	}
+	e.setCrop(3, start-9000, start+1000) // tiến độ 0,9
+	e.nextWave()
+	if got := zombieCells(e.ok(e.f.State(ctx, e.uid))); len(got) != 1 || got[0] != 3 {
+		t.Fatalf("zombie phải nhắm cây gần chín (ô 3): %v", got)
+	}
+}
+
+// Cây đã chín để lâu không được miễn: tiến độ chặn ở 1,0 là mức cao nhất.
+func TestRipeCropsAreNotExempt(t *testing.T) {
+	e := newZombieEnv(t)
+	start := (e.wave() + 1) * hour
+	for i := 0; i < 6; i++ {
+		e.setCrop(i, start-5000, start+5000) // tiến độ 0,5
+	}
+	e.setCrop(2, start-90000, start-80000) // đã chín từ lâu
+	e.nextWave()
+	if got := zombieCells(e.ok(e.f.State(ctx, e.uid))); len(got) != 1 || got[0] != 2 {
+		t.Fatalf("zombie phải nhắm cây đã chín (ô 2): %v", got)
+	}
+}
+
+func TestZombiesPreferNearlyGrownStock(t *testing.T) {
+	e := newZombieEnv(t)
+	for range 3 {
+		e.addStock(placeBarn, "pig", 60) // heo lớn sau 3600 giây
+	}
+	near := e.addStock(placeBarn, "pig", 3500)
+	for range 2 {
+		e.addStock(placeBarn, "pig", 60)
+	}
+	e.nextWave()
+	if got := stockZombies(e.ok(e.f.State(ctx, e.uid))); len(got) != 1 || got[0] != near {
+		t.Fatalf("zombie phải nhắm con gần lớn %d: %v", near, got)
+	}
+	// Con đã lớn cũng không được miễn.
+	f := newZombieEnv(t)
+	for range 5 {
+		f.addStock(placeBarn, "pig", 60)
+	}
+	grown := f.addStock(placeBarn, "pig", 3600)
+	f.nextWave()
+	if got := stockZombies(f.ok(f.f.State(ctx, f.uid))); len(got) != 1 || got[0] != grown {
+		t.Fatalf("zombie phải nhắm con đã lớn %d: %v", grown, got)
+	}
+}
+
+func TestHitStockZombie(t *testing.T) {
+	e := newZombieEnv(t)
+	id := e.addStock(placeYard, "chicken", 0)
+	e.spawnStock(id, true)
+	s := e.ok(e.f.HitStockZombie(ctx, e.uid, id))
+	if len(stockZombies(s)) != 0 || len(s.Yard.Animals) != 1 {
+		t.Fatalf("đập xong con còn nguyên, hết zombie: %+v", s.Yard.Animals)
+	}
+	if hp := e.user().HP; hp != wallet.MaxHP-ZombieHitHP {
+		t.Fatalf("HP: %d", hp)
+	}
+	// Đập lần hai: không có zombie, không trừ thêm máu.
+	_, err := e.f.HitStockZombie(ctx, e.uid, id)
+	wantStatus(t, err, http.StatusConflict)
+	if hp := e.user().HP; hp != wallet.MaxHP-ZombieHitHP {
+		t.Fatalf("HP sau lần hai: %d", hp)
+	}
+	_, err = e.f.HitStockZombie(ctx, e.uid, 999_999)
+	wantStatus(t, err, http.StatusNotFound)
+	// Con của người khác cũng là 404.
+	other, _, err := e.w.Register(ctx, "hangxom", "matkhau123", wallet.Profile{Name: "Hàng xóm"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = e.f.HitStockZombie(ctx, other.ID, id)
+	wantStatus(t, err, http.StatusNotFound)
+}
+
+// Đúng giây hết hạn thì zombie đã hết hạn, không trừ máu; con bites = 1 bị ăn.
+func TestHitStockAtExactExpiry(t *testing.T) {
+	e := newZombieEnv(t)
+	id := e.addStock(placeYard, "chicken", 0)
+	e.spawnStock(id, true)
+	e.clock = time.Unix(e.wave()*hour+ZombieWindow, 0)
+	_, err := e.f.HitStockZombie(ctx, e.uid, id)
+	wantStatus(t, err, http.StatusNotFound)
+	if hp := e.user().HP; hp != wallet.MaxHP {
+		t.Fatalf("HP: %d", hp)
+	}
+}
+
+func TestHitStockAtLowHPGoesToHospitalThenRefused(t *testing.T) {
+	e := newZombieEnv(t)
+	a, b := e.addStock(placeYard, "chicken", 0), e.addStock(placeYard, "chicken", 0)
+	e.spawnStock(a, true)
+	e.spawnStock(b, true)
+	e.setHP(e.uid, 2)
+	e.ok(e.f.HitStockZombie(ctx, e.uid, a))
+	if u := e.user(); u.HP != 0 || u.HospitalUntil == 0 {
+		t.Fatalf("hết máu vào viện: %d %d", u.HP, u.HospitalUntil)
+	}
+	_, err := e.f.HitStockZombie(ctx, e.uid, b)
+	wantStatus(t, err, http.StatusConflict)
+	if got := stockZombies(e.ok(e.f.State(ctx, e.uid))); len(got) != 1 || got[0] != b {
+		t.Fatalf("đang nằm viện thì zombie còn nguyên: %v", got)
+	}
+}
+
+// Hai nhát đập cùng lúc một con chỉ trừ máu một lần.
+func TestHitStockConcurrentCostsOnce(t *testing.T) {
+	e := newZombieEnv(t)
+	id := e.addStock(placeYard, "chicken", 0)
+	e.spawnStock(id, true)
+	var wg sync.WaitGroup
+	for range 8 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if _, err := e.f.HitStockZombie(ctx, e.uid, id); err != nil && errStatus(err) != http.StatusConflict {
+				t.Errorf("lỗi lạ: %v", err)
+			}
+		}()
+	}
+	wg.Wait()
+	if hp := e.user().HP; hp != wallet.MaxHP-ZombieHitHP {
+		t.Fatalf("HP: %d", hp)
+	}
+}
+
+func TestStockWithZombieIsBlocked(t *testing.T) {
+	e := newZombieEnv(t)
+	grown := func() int64 {
+		id := e.addStock(placeYard, "chicken", 900)
+		e.exec(`UPDATE farm_stock SET product_progress = 600 WHERE id = ?`, id)
+		return id
+	}
+	a, b := grown(), grown()
+	e.spawnStock(a, false)
+	_, _, err := e.f.SellStock(ctx, e.uid, placeYard, a)
+	wantMsg(t, err, "Phải đập zombie trước")
+	_, _, err = e.f.CollectStock(ctx, e.uid, placeYard, a)
+	wantMsg(t, err, "Phải đập zombie trước")
+	_, _, err = e.f.ProduceStock(ctx, e.uid, placeYard, a)
+	wantMsg(t, err, "Phải đập zombie trước")
+
+	// Hàng loạt bỏ qua con có zombie, chỉ lấy con còn lại.
+	if _, g, err := e.f.ProduceAll(ctx, e.uid); err != nil || g.Count != 1 {
+		t.Fatalf("ProduceAll: %+v %v", g, err)
+	}
+	if _, g, err := e.f.CollectAllAnimals(ctx, e.uid); err != nil || g.Count != 1 {
+		t.Fatalf("CollectAllAnimals: %+v %v", g, err)
+	}
+	s := e.ok(e.f.State(ctx, e.uid))
+	if len(s.Yard.Animals) != 1 || s.Yard.Animals[0].ID != a {
+		t.Fatalf("con có zombie phải còn lại: %+v, b = %d", s.Yard.Animals, b)
+	}
+	// Chỉ còn con có zombie: báo rõ phải đập, không báo chưa có con nào.
+	_, _, err = e.f.CollectAllAnimals(ctx, e.uid)
+	wantMsg(t, err, "đập zombie")
+	_, _, err = e.f.ProduceAll(ctx, e.uid)
+	wantMsg(t, err, "đập zombie")
+
+	fish, other := e.addStock(placePond, "tilapia", 600), e.addStock(placePond, "tilapia", 600)
+	e.spawnStock(fish, false)
+	if _, g, err := e.f.CollectAllFish(ctx, e.uid); err != nil || g.Count != 1 {
+		t.Fatalf("CollectAllFish: %+v %v (con kia %d)", g, err, other)
+	}
+	_, _, err = e.f.CollectAllFish(ctx, e.uid)
+	wantMsg(t, err, "đập zombie")
+}
+
+func TestStockWithZombieCanStillBeFed(t *testing.T) {
+	e := newZombieEnv(t)
+	id := e.addStock(placeYard, "chicken", 60)
+	e.giveItem(e.uid, storeSeeds, "feed_poultry", 3)
+	e.spawnStock(id, false)
+	s, _, err := e.f.FeedStock(ctx, e.uid, placeYard, id)
+	if err != nil {
+		t.Fatalf("vẫn cho ăn được: %v", err)
+	}
+	if got := stockZombies(s); len(got) != 1 {
+		t.Fatalf("cho ăn không đuổi được zombie: %v", got)
+	}
+}
+
+// Đợt cũ trước; trong một đợt, ruộng trước rồi vật nuôi; hết đạn thì dừng.
+func TestGunShootsStockInOrder(t *testing.T) {
+	e := armed(t, 2)
+	e.ok(e.f.Plant(ctx, e.uid, 0, "carrot"))
+	a, b := e.addStock(placeYard, "chicken", 0), e.addStock(placeYard, "chicken", 0)
+	e.spawn(0, false)
+	e.spawnStock(a, false)
+	e.spawnStock(b, false)
+	e.clock = time.Unix(e.wave()*hour+GunDelay-1, 0)
+	if s := e.ok(e.f.State(ctx, e.uid)); s.Gun.Ammo != 2 || len(stockZombies(s)) != 2 {
+		t.Fatalf("trước giây 30 chưa bắn: %+v %v", s.Gun, stockZombies(s))
+	}
+	e.clock = time.Unix(e.wave()*hour+GunDelay, 0)
+	s := e.ok(e.f.State(ctx, e.uid))
+	if s.Gun.Ammo != 0 || s.GunKilled != 2 {
+		t.Fatalf("đạn %d, diệt %d", s.Gun.Ammo, s.GunKilled)
+	}
+	if len(zombieCells(s)) != 0 {
+		t.Fatalf("ruộng phải được bắn trước: %v", zombieCells(s))
+	}
+	if got := stockZombies(s); len(got) != 1 || got[0] != b {
+		t.Fatalf("con id nhỏ được bắn trước, còn %v", got)
+	}
+}
+
+// Đợt cũ của vật nuôi được bắn trước đợt mới của ruộng.
+func TestGunShootsOlderWaveFirstAcrossTables(t *testing.T) {
+	e := armed(t, 1)
+	id := e.addStock(placeYard, "chicken", 0)
+	e.spawnStock(id, false)
+	e.exec(`UPDATE farm_stock_zombies SET wave = wave - 1 WHERE stock_id = ?`, id)
+	e.ok(e.f.Plant(ctx, e.uid, 0, "carrot"))
+	e.spawn(0, false)
+	e.clock = time.Unix(e.wave()*hour+GunDelay, 0)
+	s := e.ok(e.f.State(ctx, e.uid))
+	if s.GunKilled != 1 || len(stockZombies(s)) != 0 || len(zombieCells(s)) != 1 {
+		t.Fatalf("đợt cũ phải bị bắn trước: diệt %d, vật nuôi %v, ruộng %v", s.GunKilled, stockZombies(s), zombieCells(s))
+	}
+}
+
+// Người offline lâu có tiến độ ruộng cũ: lần đầu mở sau deploy không mất con nào, đợt đầu của vật nuôi là giờ kế tiếp.
+func TestNoRetroactiveStockWaves(t *testing.T) {
+	e := newZombieEnv(t)
+	id := e.addStock(placeBarn, "pig", 0)
+	e.exec(`DELETE FROM farm_stock_zombie_progress WHERE user_id = ?`, e.uid)
+	e.exec(`UPDATE farm_zombie_progress SET last_wave = ? WHERE user_id = ?`, e.wave()-300, e.uid)
+	s := e.ok(e.f.State(ctx, e.uid))
+	if len(s.Barn.Animals) != 1 || len(stockZombies(s)) != 0 || s.ZombieEatenStock != 0 {
+		t.Fatalf("không tính bù vật nuôi: %+v, %v, %d", s.Barn.Animals, stockZombies(s), s.ZombieEatenStock)
+	}
+	e.nextWave()
+	if got := stockZombies(e.ok(e.f.State(ctx, e.uid))); len(got) != 1 || got[0] != id {
+		t.Fatalf("đợt kế tiếp mới có zombie: %v", got)
+	}
+	// Nông trại mới toanh: dòng tiến độ vật nuôi được tạo cả ở nhánh lần đầu thấy.
+	f := newEnv(t, 1000, 0)
+	f.f.noZombies = false
+	f.ok(f.f.State(ctx, f.uid))
+	if n := f.count(`SELECT count(*) FROM farm_stock_zombie_progress WHERE user_id = ?`, f.uid); n != 1 {
+		t.Fatalf("dòng tiến độ vật nuôi: %d", n)
+	}
+}
+
+// Con bị ăn: chuồng trống lại, giá trị giảm, báo đúng một lần; con không ăn thì bỏ đi.
+func TestEatenStockFreesCapacityAndReportsOnce(t *testing.T) {
+	e := newZombieEnv(t)
+	eat := e.addStock(placeBarn, "cow", 0)
+	keep := e.addStock(placeBarn, "cow", 0)
+	before := e.ok(e.f.State(ctx, e.uid)).Barn.Used
+	worth := e.worth()
+	e.spawnStock(eat, true)
+	e.spawnStock(keep, false)
+	e.clock = time.Unix(e.wave()*hour+ZombieWindow, 0)
+	s, err := e.f.do(ctx, e.uid, func(*wallet.Tx, State) error { return nil })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.ZombieEatenStock != 1 || len(s.Barn.Animals) != 1 || s.Barn.Animals[0].ID != keep || s.Barn.Animals[0].Zombie {
+		t.Fatalf("sau hạn: ăn %d, %+v", s.ZombieEatenStock, s.Barn.Animals)
+	}
+	if s.Barn.Used >= before {
+		t.Fatalf("chuồng phải trống lại: %d, trước %d", s.Barn.Used, before)
+	}
+	if w := e.worth(); w >= worth {
+		t.Fatalf("giá trị phải giảm: %d, trước %d", w, worth)
+	}
+	if s = e.ok(e.f.State(ctx, e.uid)); s.ZombieEatenStock != 1 || s.ZombieEaten != 0 {
+		t.Fatalf("GET báo một lần: %d, cây %d", s.ZombieEatenStock, s.ZombieEaten)
+	}
+	if s = e.ok(e.f.State(ctx, e.uid)); s.ZombieEatenStock != 0 {
+		t.Fatalf("đã báo rồi: %d", s.ZombieEatenStock)
+	}
+	if s.ZombieUntil != 0 {
+		t.Fatalf("hết zombie thì đồng hồ tắt: %d", s.ZombieUntil)
+	}
+}
+
+// Không đường xoá nào để sót dòng zombie: mọi lệnh xoá con vật đều đi qua deleteStock.
+func TestDeleteStockRemovesItsZombieRow(t *testing.T) {
+	e := newZombieEnv(t)
+	id := e.addStock(placeYard, "chicken", 0)
+	e.spawnStock(id, false)
+	tx, err := e.w.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := deleteStock(ctx, tx, e.uid, id); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	if n := e.count(`SELECT count(*) FROM farm_stock_zombies WHERE stock_id = ?`, id); n != 0 {
+		t.Fatalf("sót %d dòng zombie", n)
+	}
+	if n := e.count(`SELECT count(*) FROM farm_stock WHERE id = ?`, id); n != 0 {
+		t.Fatalf("con vật còn: %d", n)
+	}
+	// Mọi lệnh xoá farm_stock trong code đều phải đi qua deleteStock (trừ chính nó).
+	files, err := filepath.Glob("*.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := 0
+	for _, file := range files {
+		if strings.HasSuffix(file, "_test.go") {
+			continue
+		}
+		src, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		found += strings.Count(string(src), "DELETE FROM farm_stock WHERE")
+	}
+	if found != 1 {
+		t.Fatalf("có %d lệnh xoá farm_stock, chỉ được 1 trong deleteStock", found)
+	}
+}
+
+// Tính lại cùng (uid, đợt) trên dữ liệu giống nhau ra cùng kết quả.
+func TestStockWaveIsDeterministic(t *testing.T) {
+	picks := func() []int64 {
+		e := newZombieEnv(t)
+		for range 40 {
+			e.addStock(placePond, "tilapia", 600)
+		}
+		e.nextWave()
+		s, err := e.f.do(ctx, e.uid, func(*wallet.Tx, State) error { return errors.New("huỷ") })
+		if err == nil {
+			t.Fatal("phải huỷ transaction", s)
+		}
+		return stockZombies(e.ok(e.f.State(ctx, e.uid)))
+	}
+	a, b := picks(), picks()
+	if len(a) != 3 || !slices.Equal(a, b) {
+		t.Fatalf("hai lần khác nhau: %v / %v", a, b)
+	}
+}
+
+// Đập được cả khi máu dưới mức làm nông, qua API thật; khách ghé thăm không có dữ liệu zombie vật nuôi.
+func TestHitStockAPIAndVisit(t *testing.T) {
+	e := newZombieEnv(t)
+	u, token, err := e.w.Register(ctx, "keu", "matkhau123", wallet.Profile{Name: "Kêu"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	owner := e.uid
+	e.uid = u.ID
+	defer func() { e.uid = owner }()
+	e.ok(e.f.State(ctx, u.ID))
+	id := e.addStock(placeYard, "chicken", 0)
+	e.spawnStock(id, true)
+	e.setHP(u.ID, 30)
+	srv := httptest.NewServer(e.f.Handler())
+	defer srv.Close()
+	post := func(body string) (int, map[string]json.RawMessage) {
+		t.Helper()
+		req, _ := http.NewRequest(http.MethodPost, srv.URL+"/api/farm/zombie/hit-stock", strings.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+token)
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		out := map[string]json.RawMessage{}
+		raw, _ := io.ReadAll(res.Body)
+		json.Unmarshal(raw, &out)
+		return res.StatusCode, out
+	}
+	code, out := post(`{"id":` + strconv.FormatInt(id, 10) + `}`)
+	if code != http.StatusOK || out["farm"] == nil || out["user"] == nil {
+		t.Fatalf("đập dưới 40 máu: %d %v", code, out)
+	}
+	if code, _ = post(`{"id":999999}`); code != http.StatusNotFound {
+		t.Fatalf("con lạ: %d", code)
+	}
+	raw, err := json.Marshal(Visit{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(raw), "animals") || strings.Contains(string(raw), "stock") {
+		t.Fatalf("Visit lộ vật nuôi: %s", raw)
 	}
 }

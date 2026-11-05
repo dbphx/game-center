@@ -877,7 +877,7 @@
     if (!farm) return 0;
     const ripe = farm.plots.filter(harvestable).length;
     let n = ripe;
-    for (const p of pets.values()) if (isHungry(p.data) || (!p.fish && prodReady(p.data))) n++;
+    for (const p of pets.values()) if (isHungry(p.data) || (!p.fish && !p.zombie && prodReady(p.data))) n++;
     return n;
   }
 
@@ -886,7 +886,7 @@
     const ripe = farm.plots.filter(harvestable).length;
     const all = [...pets.values()];
     const hungry = all.filter((p) => isHungry(p.data)).length;
-    const goods = all.filter((p) => !p.fish && prodReady(p.data)).length;
+    const goods = all.filter((p) => !p.fish && !p.zombie && prodReady(p.data)).length;
     const row = (act, pic, label, n, key, dis) =>
       `<button class="chip quick" data-quick="${act}" ${dis ? 'disabled' : ''}>${pic}<b>${label}</b><em>${n}</em><kbd>${key}</kbd></button>`;
     $('quick-menu').innerHTML = `<p>Làm nhanh</p><div class="chips">
@@ -1021,8 +1021,9 @@
 
   async function produceAll() {
     $('quick-menu').classList.add('hidden');
-    const ready = [...pets.values()].filter((p) => !p.fish && prodReady(p.data));
-    if (!ready.length) return A.toast('Chưa có trứng / sữa / lông nào');
+    const ready = [...pets.values()].filter((p) => !p.fish && !p.zombie && prodReady(p.data));
+    const skipped = [...pets.values()].filter((p) => !p.fish && p.zombie && prodReady(p.data)).length;
+    if (!ready.length) return A.toast(skipped ? 'Các con có sản phẩm đang có zombie — đập zombie trước' : 'Chưa có trứng / sữa / lông nào');
     workFx(3);
     let res = await bulk('/api/farm/produce-all');
     let got = (res && res.gained && res.gained.items) || {};
@@ -1038,6 +1039,7 @@
     if (!res) return;
     flyToStore($('me'), got);
     floatGain($('me'), (res && res.gained) || {}, itemsText(got));
+    if (skipped) A.toast(`Bỏ qua ${skipped} con đang có zombie`);
   }
 
   function pickTool(t) {
@@ -1386,8 +1388,10 @@
       }
       p.data = a;
       if (!prodReady(a)) p.laid = false;
+      setPetZombie(p, !!a.zombie && !VISIT);
       if (a.kind !== 'dog') {
-        p.el.title = find(fish ? 'fish' : 'animals', a.kind).name;
+        const petName = find(fish ? 'fish' : 'animals', a.kind).name;
+        p.el.title = p.zombie ? `Đập zombie cứu ${petName} (−2 máu)` : petName;
         drawBadges(p);
       }
     };
@@ -1413,6 +1417,31 @@
       }
     }
     if (card) renderCard();
+  }
+
+  // Zombie đang tấn công con này: con đứng yên tại chỗ (stepPets ghim lại mỗi khung), ảnh zombie đứng cạnh.
+  // Zombie mất đi thì con đi lại bình thường.
+  function setPetZombie(p, on) {
+    if (on === !!p.zombie) return;
+    p.zombie = on;
+    p.el.classList.toggle('has-zombie', on);
+    if (on) {
+      p.zx = p.x;
+      p.zy = p.y;
+      p.goal = null;
+      p.chaseSpeed = 0;
+      const img = document.createElement('img');
+      img.className = 'pet-zombie';
+      img.src = '/img/toon/farm/zombie.png';
+      img.alt = 'Zombie';
+      img.draggable = false;
+      p.el.appendChild(img);
+      if (card && card.id === p.id) closeCard();
+      return;
+    }
+    p.el.querySelectorAll('.pet-zombie').forEach((x) => x.remove());
+    p.state = 'idle';
+    p.until = rnd(0.3, 1);
   }
 
   // Bong bóng "Đói bụng" / lấp lánh khi lớn / thanh lớn nhỏ.
@@ -1507,6 +1536,10 @@
       p.at = (p.at || 0) + dt;
       // Đói: thỉnh thoảng kêu đòi ăn.
       if (!p.decor && !p.fish && isHungry(p.data) && Math.random() < dt / 9) hungryCall(p);
+      if (p.zombie) {
+        p.state = 'zombie'; // đứng yên, không theo thức ăn hay ổ
+        continue;
+      }
       p.until -= dt;
       const sp = p.chaseSpeed || (p.fish ? 34 : (PET[p.look] || PET.chicken).speed) * (!p.decor && isHungry(p.data) ? 0.5 : 1);
       if (p.state === 'walk' || p.state === 'food') {
@@ -1586,6 +1619,11 @@
       }
     }
     for (const p of list) {
+      if (p.zombie) {
+        // Không để va đẩy làm con bị tấn công xê dịch, ảnh zombie phải đứng yên để bấm trúng.
+        p.x = p.zx;
+        p.y = p.zy;
+      }
       if (p.fish) {
         const ex = (p.x - POND.cx) / POND.rx;
         const ey = (p.y - POND.cy) / POND.ry;
@@ -1630,7 +1668,8 @@
       el.style.top = `${(p.y - h + (p.fish ? h / 2 : 8 * s)).toFixed(1)}px`;
       el.style.width = `${w.toFixed(1)}px`;
       el.style.height = `${h.toFixed(1)}px`;
-      el.style.zIndex = p.fish ? 330 + Math.round(p.y - POND.cy + 40) : p.free ? fieldZ(p.x, p.y) : Math.round(p.y);
+      // Con có zombie nổi trên các con khác để ảnh zombie luôn bấm được.
+      el.style.zIndex = (p.fish ? 330 + Math.round(p.y - POND.cy + 40) : p.free ? fieldZ(p.x, p.y) : Math.round(p.y)) + (p.zombie ? 60 : 0);
       const face = p.fish ? 1 : (sh.face || (PET[p.look] || PET.chicken).face) === 'left' ? -1 : 1;
       // Sprite sheet 1 hàng hoặc lưới nhiều hàng (manifest "columns").
       const cols = sh.cols && sh.cols < n ? sh.cols : n;
@@ -1698,6 +1737,13 @@
   function clickPet(id) {
     const p = pets.get(id);
     if (!p || chase) return;
+    if (p.zombie) {
+      // Con đang bị tấn công: bấm luôn là đập, không mở thẻ thông tin.
+      const at = standPoint(p);
+      const hit = { key: '_pet', face: at.face, work: false, run: () => hitPetZombie(id) };
+      if (Math.hypot(me.x - at.x, me.y - at.y) < 16) return arrive(hit);
+      return walkTo(at.x, at.y, hit);
+    }
     // Bấm lúc đang đi thì con dừng lại nhìn nhân vật ngay.
     p.state = 'look';
     p.until = 8;
@@ -2830,7 +2876,7 @@
     }
     for (const p of pets.values()) {
       const d = Math.hypot(me.x - p.x, me.y - p.y);
-      if (d < (p.free || me.x < PEN.x2 ? 90 : 170)) list.push({ pet: p.id, d: d + 10 });
+      if (d < (p.free || me.x < PEN.x2 ? 90 : 170)) list.push({ pet: p.id, d: p.zombie ? d - 1000 : d + 10 });
     }
     list.sort((a, b) => a.d - b.d);
     const sig = list.map(targetId).join(',');
@@ -2865,7 +2911,7 @@
       p.el.classList.add('kb-target');
       x = p.x;
       y = p.y - sheetOf(p).fh * scaleOf(p) - 18;
-      verb = p.decor ? 'Chó giữ nhà' : `${find(p.fish ? 'fish' : 'animals', p.kind).name}`;
+      verb = p.decor ? 'Chó giữ nhà' : p.zombie ? 'Đập zombie' : `${find(p.fish ? 'fish' : 'animals', p.kind).name}`;
     } else {
       const o = objs[t.key];
       x = o.hx;
@@ -2987,9 +3033,12 @@
       dragged = false;
       return;
     }
+    // Ảnh zombie nằm dưới điểm bấm (ảnh của vật nuôi có thể bị con khác hay nút E đè lên).
+    const zombieUnder = () => (VISIT ? null : document.elementsFromPoint(e.clientX, e.clientY).find((el) => el.classList.contains('zombie-img') || el.classList.contains('pet-zombie')));
     if (e.target.closest('[data-hint]')) {
       // Nút E nổi đè lên ảnh zombie thì cú bấm là để đập con zombie đó.
-      const under = !VISIT && document.elementsFromPoint(e.clientX, e.clientY).find((el) => el.classList.contains('zombie-img'));
+      const under = zombieUnder();
+      if (under && under.classList.contains('pet-zombie')) return clickPet(+under.closest('[data-pet]').dataset.pet);
       const obj = under && under.closest('[data-obj]');
       return obj ? goTo(obj.dataset.obj) : actTarget();
     }
@@ -3024,6 +3073,8 @@
     }
     if (e.target.closest('#pet-card')) return;
     closeCard();
+    const stockZombie = zombieUnder();
+    if (stockZombie && stockZombie.classList.contains('pet-zombie')) return clickPet(+stockZombie.closest('[data-pet]').dataset.pet);
     const pet = e.target.closest('[data-pet]');
     if (pet) return clickPet(+pet.dataset.pet);
     // Bấm mặt ao (không phải nhãn): ra bờ thả cám cho cá.
@@ -3128,6 +3179,9 @@
 
   const zombieHits = new Set(); // ô đang gửi yêu cầu đập, chống bấm đúp
   const zombies = () => (farm && !VISIT ? farm.plots.filter((p) => p.zombie) : []);
+  // Vật nuôi và cá đang bị zombie tấn công.
+  const stockZombies = () => (farm && !VISIT ? [...((farm.barn && farm.barn.animals) || []), ...((farm.yard && farm.yard.animals) || []), ...((farm.pond && farm.pond.fish) || [])].filter((a) => a.zombie) : []);
+  const zombieTotal = () => zombies().length + stockZombies().length;
 
   // Súng đậu tự bắn sau GUN_DELAY giây từ đầu giờ (khớp GunDelay ở games/farm/zombie.go).
   const GUN_DELAY = 30;
@@ -3201,15 +3255,50 @@
       document.body.appendChild(g);
       setTimeout(() => g.remove(), 1700);
       if (user.hospitalUntil && user.hospitalUntil > nowS()) A.toast('Hết máu! Bạn được đưa vào bệnh viện.');
-      else if (!zombies().length) A.toast('Đã đập hết zombie — cây an toàn!');
+      else if (!zombieTotal()) A.toast('Đã đập hết zombie — cây an toàn!');
     } finally {
       zombieHits.delete(index);
     }
   }
 
+  // Đập zombie đang tấn công vật nuôi hoặc cá; giống đập ở ruộng.
+  async function hitPetZombie(id) {
+    const key = `pet${id}`;
+    if (zombieHits.has(key)) return;
+    zombieHits.add(key);
+    const p = pets.get(id);
+    const img = p && p.el.querySelector('.pet-zombie');
+    if (!img) {
+      zombieHits.delete(key);
+      return; // zombie vừa mất trong lúc đi tới
+    }
+    const r = img.getBoundingClientRect();
+    const before = user.hp;
+    try {
+      const res = await call('/api/farm/zombie/hit-stock', { id });
+      // Lỗi (con vừa bị ăn, zombie vừa bỏ đi, đang nằm viện): call đã báo, tải lại để hiện đúng bàn.
+      if (!res) return refreshFarm();
+      zombieFalls(r);
+      const g = document.createElement('span');
+      g.className = 'gain lose';
+      g.textContent = `−${Math.max(0, before - user.hp) || 2} máu`;
+      g.style.left = `${r.left + r.width / 2}px`;
+      g.style.top = `${r.top}px`;
+      document.body.appendChild(g);
+      setTimeout(() => g.remove(), 1700);
+      if (user.hospitalUntil && user.hospitalUntil > nowS()) A.toast('Hết máu! Bạn được đưa vào bệnh viện.');
+      else if (!zombieTotal()) A.toast('Đã đập hết zombie — nông trại an toàn!');
+    } finally {
+      zombieHits.delete(key);
+    }
+  }
+
   // Báo số cây bị zombie ăn lúc vắng mặt (server chỉ báo một lần khi đọc nông trại).
   function notifyEaten(f) {
-    if (f && f.zombieEaten > 0) A.toast(`Zombie đã ăn mất ${f.zombieEaten} cây`);
+    const eaten = [];
+    if (f && f.zombieEaten > 0) eaten.push(`${f.zombieEaten} cây`);
+    if (f && f.zombieEatenStock > 0) eaten.push(`${f.zombieEatenStock} con vật`);
+    if (eaten.length) A.toast(`Zombie đã ăn mất ${eaten.join(', ')}`);
     // gunKilled chỉ được đặt lại ở GET nên chỉ báo trong các đường GET này.
     if (f && f.gunKilled > 0) A.toast(`Súng đậu đã diệt ${f.gunKilled} zombie`);
   }
@@ -3221,11 +3310,18 @@
       const img = document.querySelector(`.plot-top[data-obj="plot${p.index}"] .zombie-img`);
       return { index: p.index, rect: img && img.getBoundingClientRect() };
     });
+    const beforeStock = stockZombies().map((a) => {
+      const q = pets.get(a.id);
+      const img = q && q.el.querySelector('.pet-zombie');
+      return { id: a.id, rect: img && img.getBoundingClientRect() };
+    });
     const res = await call('/api/farm');
     if (res) {
       notifyEaten(res.farm);
       const killed = res.farm.gunKilled || 0;
-      const gone = before.filter((z) => z.rect && !res.farm.plots[z.index].zombie);
+      const still = new Set(stockZombies().map((a) => a.id));
+      // Cùng thứ tự với súng trên server: ruộng trước, rồi vật nuôi.
+      const gone = [...before.filter((z) => z.rect && !res.farm.plots[z.index].zombie), ...beforeStock.filter((z) => z.rect && !still.has(z.id))];
       if (killed && gone.length) gunShots(gone.slice(0, killed).map((z) => z.rect));
     }
   }
@@ -3233,12 +3329,11 @@
   // Băng đếm ngược: bấm để đi tới con zombie đầu tiên.
   function renderZombieAlert() {
     const el = $('zombie-alert');
-    const list = zombies();
+    const n = zombieTotal();
     const left = farm && farm.zombieUntil ? farm.zombieUntil - nowS() : 0;
-    el.classList.toggle('hidden', !list.length || left <= 0);
-    if (!list.length || left <= 0) return;
+    el.classList.toggle('hidden', !n || left <= 0);
+    if (!n || left <= 0) return;
     const g = farm.gun || {};
-    const n = list.length;
     let text = `Zombie tấn công! ${n} con · còn ${countdown(left)} để đập`;
     if (g.owned && g.ammo >= n) {
       const wait = waveStart() + GUN_DELAY - nowS();
@@ -3266,7 +3361,7 @@
     if (farm.zombieUntil && nowS() >= farm.zombieUntil && !zombiePollAt) zombiePollAt = nowS();
     // Tới giờ súng bắn: hỏi lại một lần mỗi đợt để thấy đạn bay.
     const wave = waveStart();
-    if (farm.gun && farm.gun.owned && farm.gun.ammo > 0 && zombies().length && nowS() >= wave + GUN_DELAY && gunPolled !== wave) {
+    if (farm.gun && farm.gun.owned && farm.gun.ammo > 0 && zombieTotal() && nowS() >= wave + GUN_DELAY && gunPolled !== wave) {
       gunPolled = wave;
       if (!zombiePollAt) zombiePollAt = nowS() + Math.random() * 2;
     }
@@ -3496,7 +3591,9 @@
           const hungry = isHungry(it);
           const yd = yieldOf(it.kind);
           const feedB = canFeed(it) ? `<button class="${hungry ? 'primary' : ''}" data-feed-${isBarn ? 'animal' : 'fish'}="${it.id}" title="Cho ăn">${art.item(feedNeed({ kind: it.kind, fish: !isBarn, yard: isYard }).id, 16)}Cho ăn</button>` : '';
-          const action = ready && isBarn
+          const action = it.zombie
+            ? `<button class="primary danger" data-hit-pet="${it.id}" title="Đập zombie (−2 máu)">Đập zombie</button>${feedB}`
+            : ready && isBarn
             ? `${yd.product && prodReady(it) ? `<button class="primary" data-produce="${it.id}">${art.item(yd.product.id, 16)}${PRODUCE_VERB[yd.product.id] || 'Lấy'}</button>` : ''}${feedB}<button data-collect-animal="${it.id}" title="Lấy thịt (con vật mất)">Lấy thịt</button>`
             : ready
             ? `<button class="primary" data-collect-fish="${it.id}">${I.svg('sprout')}Thu hoạch</button>`
@@ -3762,6 +3859,7 @@
     if (d.buyAnimal) return call('/api/farm/animals/buy', { kind: d.buyAnimal });
     if (d.buyPoultry) return call('/api/farm/poultry/buy', { kind: d.buyPoultry });
     if (d.buyFish) return call('/api/farm/fish/buy', { kind: d.buyFish });
+    if (d.hitPet) return hitPetZombie(+d.hitPet);
     if (d.feedAnimal || d.feedFish) {
       const p = pets.get(+(d.feedFish || d.feedAnimal));
       if (p) return feedPet(p);
@@ -3811,7 +3909,9 @@
     e.stopPropagation();
     e.currentTarget.blur();
     const first = zombies()[0];
-    if (first) goTo(`plot${first.index}`);
+    if (first) return goTo(`plot${first.index}`);
+    const pet = stockZombies()[0];
+    if (pet) clickPet(pet.id);
   });
   document.querySelectorAll('#shop-tabs .tab').forEach((b) => b.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -3823,15 +3923,18 @@
     feedAll();
   });
   // Thu hoạch tất cả: ô chín (harvest-all) + cá đã lớn (fish/collect-all), toast tổng hợp.
-  const readyFish = () => ((farm.pond && farm.pond.fish) || []).filter((f) => grown(f));
+  const readyFish = () => ((farm.pond && farm.pond.fish) || []).filter((f) => grown(f) && !f.zombie);
+  const zombieFishGrown = () => ((farm.pond && farm.pond.fish) || []).filter((f) => grown(f) && f.zombie).length;
   // Gia súc (chuồng) và gia cầm (sân) đã lớn, lấy thịt được.
-  const readyMeat = () => [...pets.values()].filter((p) => !p.decor && !p.fish && grown(p.data));
+  const readyMeat = () => [...pets.values()].filter((p) => !p.decor && !p.fish && !p.zombie && grown(p.data));
+  const zombieMeatGrown = () => [...pets.values()].filter((p) => !p.decor && !p.fish && p.zombie && grown(p.data)).length;
 
   // Lấy thịt tất cả gia súc, gia cầm đã lớn vào kho thóc (tới khi kho đầy).
   async function collectAllMeat() {
     $('quick-menu').classList.add('hidden');
     const ready = readyMeat();
-    if (!ready.length) return A.toast('Chưa có con nào lớn để lấy thịt');
+    const skipped = zombieMeatGrown();
+    if (!ready.length) return A.toast(skipped ? 'Các con đã lớn đang có zombie — đập zombie trước' : 'Chưa có con nào lớn để lấy thịt');
     if (!(await ask(`Lấy thịt ${ready.length} con đã lớn? Con vật sẽ không còn trong chuồng / sân.`, { title: 'Lấy thịt tất cả', ok: 'Lấy thịt' }))) return;
     workFx(3);
     let res = await bulk('/api/farm/animals/collect-all');
@@ -3845,7 +3948,7 @@
     flyToStore($('me'), got);
     floatGain($('me'), res.gained || {}, itemsText(got));
     const left = ready.length - ((res.gained && res.gained.count) || ready.length);
-    A.toast(`Đã lấy thịt ${(res.gained && res.gained.count) || ready.length} con vào kho thóc${left > 0 ? ` · còn ${left} con vì kho đầy` : ''}`);
+    A.toast(`Đã lấy thịt ${(res.gained && res.gained.count) || ready.length} con vào kho thóc${left > 0 ? ` · còn ${left} con vì kho đầy` : ''}${skipped ? ` · bỏ qua ${skipped} con có zombie` : ''}`);
   }
   async function harvestEverything(btn) {
     const ripe = farm.plots.filter(harvestable).map((p) => document.querySelector(`[data-obj="plot${p.index}"]`));
@@ -3863,12 +3966,13 @@
     }
     if (fishEls.length) xp += (await collectAllFish(fishEls, items)) || 0;
     if (Object.keys(items).length) floatGain(btn || $('me'), { xp }, itemsText(items));
-    else if (!ripe.length && !fishEls.length) A.toast('Chưa có gì để thu hoạch');
+    else if (!ripe.length && !fishEls.length) A.toast(zombieFishGrown() || farm.plots.some((p) => p.zombie) ? 'Còn zombie — đập zombie trước rồi thu hoạch' : 'Chưa có gì để thu hoạch');
   }
   // Thu mọi cá đã lớn (fish/collect-all); cá bay vào kho thóc. Trả XP.
   async function collectAllFish(fishEls, items = {}) {
     fishEls = fishEls || readyFish().map((f) => pets.get(f.id)).filter(Boolean).map((q) => q.el);
-    if (!fishEls.length) return A.toast('Chưa có cá nào lớn'), 0;
+    const skippedFish = zombieFishGrown();
+    if (!fishEls.length) return A.toast(skippedFish ? 'Các con cá đã lớn đang có zombie — đập zombie trước' : 'Chưa có cá nào lớn'), 0;
     const snap = fishEls.map((el) => el.getBoundingClientRect());
     let res = await bulk('/api/farm/fish/collect-all');
     if (res === null) {
@@ -3889,7 +3993,7 @@
       flyToStore(ghost, { [id]: 1 });
       setTimeout(() => ghost.remove(), 50);
     });
-    A.toast(`Đã thu ${res.gained && res.gained.count ? res.gained.count : fishEls.length} con cá vào kho thóc`);
+    A.toast(`Đã thu ${res.gained && res.gained.count ? res.gained.count : fishEls.length} con cá vào kho thóc${skippedFish ? ` · bỏ qua ${skippedFish} con có zombie` : ''}`);
     return (res.gained && res.gained.xp) || 0;
   }
   $('btn-harvest-all').addEventListener('click', (e) => harvestEverything(e.currentTarget));

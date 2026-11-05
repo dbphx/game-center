@@ -148,7 +148,7 @@ func (f *Farm) CollectAllAnimals(ctx context.Context, uid int64) (State, Gained,
 	s, err := f.do(ctx, uid, func(tx *wallet.Tx, s State) error {
 		free := s.Storage.Products.free()
 		g.Items = map[string]int{}
-		ready := 0
+		ready, guarded := 0, 0 // guarded: con đã lớn đang có zombie
 		for _, pen := range []*Pen{s.Barn, s.Yard} {
 			if pen == nil {
 				continue
@@ -157,12 +157,16 @@ func (f *Farm) CollectAllAnimals(ctx context.Context, uid int64) (State, Gained,
 				if !a.Grown {
 					continue
 				}
+				if a.Zombie {
+					guarded++
+					continue
+				}
 				ready++
 				if g.Count >= free {
 					continue
 				}
 				m := yields[a.Kind].Meat
-				if _, err := tx.ExecContext(ctx, `DELETE FROM farm_stock WHERE id = ? AND user_id = ?`, a.ID, uid); err != nil {
+				if err := deleteStock(ctx, tx, uid, a.ID); err != nil {
 					return err
 				}
 				g.Count++
@@ -171,6 +175,9 @@ func (f *Farm) CollectAllAnimals(ctx context.Context, uid int64) (State, Gained,
 			}
 		}
 		if ready == 0 {
+			if guarded > 0 {
+				return conflict("Các con đã lớn đang có zombie, hãy đập zombie trước")
+			}
 			return conflict("chưa có con nào lớn để lấy thịt")
 		}
 		if g.Count == 0 {
@@ -193,13 +200,17 @@ func (f *Farm) ProduceAll(ctx context.Context, uid int64) (State, Gained, error)
 		now := f.now().Unix()
 		free := s.Storage.Products.free()
 		g.Items = map[string]int{}
-		ready := 0
+		ready, guarded := 0, 0 // guarded: con có sản phẩm đang có zombie
 		for _, pen := range []*Pen{s.Barn, s.Yard} {
 			if pen == nil {
 				continue
 			}
 			for _, a := range pen.Animals {
 				if !a.ProductReady {
+					continue
+				}
+				if a.Zombie {
+					guarded++
 					continue
 				}
 				ready++
@@ -216,6 +227,9 @@ func (f *Farm) ProduceAll(ctx context.Context, uid int64) (State, Gained, error)
 			}
 		}
 		if ready == 0 {
+			if guarded > 0 {
+				return conflict("Các con có sản phẩm đang có zombie, hãy đập zombie trước")
+			}
 			return conflict("chưa có trứng / sữa / lông nào để lấy")
 		}
 		if g.Count == 0 {
@@ -235,9 +249,13 @@ func (f *Farm) CollectAllFish(ctx context.Context, uid int64) (State, Gained, er
 		}
 		free := s.Storage.Products.free()
 		g.Items = map[string]int{}
-		ready := 0
+		ready, guarded := 0, 0 // guarded: cá đã lớn đang có zombie
 		for _, a := range s.Pond.Fish {
 			if !a.Grown {
+				continue
+			}
+			if a.Zombie {
+				guarded++
 				continue
 			}
 			ready++
@@ -245,7 +263,7 @@ func (f *Farm) CollectAllFish(ctx context.Context, uid int64) (State, Gained, er
 				continue
 			}
 			st, _ := findStock(placePond, a.Kind)
-			if _, err := tx.ExecContext(ctx, `DELETE FROM farm_stock WHERE id = ? AND user_id = ?`, a.ID, uid); err != nil {
+			if err := deleteStock(ctx, tx, uid, a.ID); err != nil {
 				return err
 			}
 			g.Count++
@@ -253,6 +271,9 @@ func (f *Farm) CollectAllFish(ctx context.Context, uid int64) (State, Gained, er
 			g.Items[st.ID]++
 		}
 		if ready == 0 {
+			if guarded > 0 {
+				return conflict("Các con cá đã lớn đang có zombie, hãy đập zombie trước")
+			}
 			return conflict("chưa có con cá nào lớn")
 		}
 		if g.Count == 0 {

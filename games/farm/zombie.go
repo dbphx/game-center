@@ -1,6 +1,7 @@
 package farm
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"errors"
@@ -65,7 +66,25 @@ CREATE TABLE IF NOT EXISTS farm_guns (
 	ammo    INTEGER NOT NULL DEFAULT 0, -- đạn còn lại
 	killed  INTEGER NOT NULL DEFAULT 0  -- số zombie súng đã diệt chưa báo cho chủ
 );
+CREATE TABLE IF NOT EXISTS farm_stock_zombies (
+	stock_id INTEGER PRIMARY KEY,      -- farm_stock.id
+	user_id  INTEGER NOT NULL REFERENCES users(id),
+	wave     INTEGER NOT NULL,
+	bites    INTEGER NOT NULL          -- không gửi cho giao diện
+);
+CREATE INDEX IF NOT EXISTS farm_stock_zombies_user ON farm_stock_zombies(user_id);
+CREATE TABLE IF NOT EXISTS farm_stock_zombie_progress (
+	user_id   INTEGER PRIMARY KEY REFERENCES users(id),
+	last_wave INTEGER NOT NULL,        -- đợt vật nuôi mới nhất đã tính
+	eaten     INTEGER NOT NULL DEFAULT 0 -- số con bị ăn chưa báo cho chủ
+);
 `
+
+// stockZones là các khu vật nuôi; mỗi khu có đợt riêng với seed riêng. Chó không nằm trong farm_stock nên không bị tấn công.
+var stockZones = []struct {
+	place string
+	zone  uint64
+}{{placeBarn, 1}, {placeYard, 2}, {placePond, 3}}
 
 // zombieCount trả số zombie của một đợt và xác suất mỗi con ăn cây nếu không bị đập, để nguy cơ của mỗi cây
 // đúng bằng zombieRisk ở mọi cỡ nhà.
@@ -84,20 +103,37 @@ type zombiePick struct {
 	bites bool
 }
 
-// pickZombies chọn mục tiêu trong các ô đủ điều kiện; cùng (uid, đợt) và cùng danh sách thì ra cùng kết quả.
-func pickZombies(uid, wave int64, eligible []int) []zombiePick {
-	count, chance := zombieCount(len(eligible))
+// zombieTarget là một mục tiêu đủ điều kiện: idx là ô đất hoặc id con vật, progress là tiến độ lớn 0..1.
+type zombieTarget struct {
+	idx      int
+	progress float64
+}
+
+// pickTargets chọn mục tiêu cho một đợt: zombie lựa cây / con gần trưởng thành nhất, bằng tiến độ thì ngẫu nhiên.
+// Xáo trước rồi sắp xếp ổn định; cùng (uid, seed) và cùng danh sách thì ra cùng kết quả. Số zombie và xác suất ăn
+// không phụ thuộc mục tiêu nên tỉ lệ mất chung không đổi, rủi ro chỉ dồn vào cây / con gần lớn.
+func pickTargets(uid int64, seed uint64, targets []zombieTarget) []zombiePick {
+	count, chance := zombieCount(len(targets))
 	if count == 0 {
 		return nil
 	}
-	rng := mrand.New(mrand.NewPCG(uint64(uid), uint64(wave)))
-	plots := slices.Clone(eligible)
-	rng.Shuffle(len(plots), func(i, j int) { plots[i], plots[j] = plots[j], plots[i] })
+	rng := mrand.New(mrand.NewPCG(uint64(uid), seed))
+	list := slices.Clone(targets)
+	rng.Shuffle(len(list), func(i, j int) { list[i], list[j] = list[j], list[i] })
+	slices.SortStableFunc(list, func(a, b zombieTarget) int { return cmp.Compare(b.progress, a.progress) })
 	out := make([]zombiePick, count)
 	for i := range out {
-		out[i] = zombiePick{idx: plots[i], bites: rng.Float64() < chance}
+		out[i] = zombiePick{idx: list[i].idx, bites: rng.Float64() < chance}
 	}
 	return out
+}
+
+// growthOf là tiến độ done / total, chặn ở 1: đã chín hoặc đã lớn đều ở mức cao nhất, để lâu không an toàn hơn.
+func growthOf(done, total int64) float64 {
+	if total <= 0 || done >= total {
+		return 1
+	}
+	return float64(max(0, done)) / float64(total)
 }
 
 // settleZombies tính bù zombie của uid tới thời điểm now: cho zombie quá hạn ăn cây hoặc bỏ đi, thêm các đợt mới.
@@ -107,7 +143,14 @@ func (f *Farm) settleZombies(ctx context.Context, tx *wallet.Tx, uid, now int64)
 		return nil
 	}
 	cur := now / zombieWaveSeconds
-	var last int64
+	// Vật nuôi có tiến độ riêng: người offline lâu từ trước khi có tính năng không bị tính bù đợt quá khứ.
+	if _, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO farm_stock_zombie_progress (user_id, last_wave) VALUES (?, ?)`, uid, cur); err != nil {
+		return err
+	}
+	var last, stockLast int64
+	if err := tx.QueryRowContext(ctx, `SELECT last_wave FROM farm_stock_zombie_progress WHERE user_id = ?`, uid).Scan(&stockLast); err != nil {
+		return err
+	}
 	err := tx.QueryRowContext(ctx, `SELECT last_wave FROM farm_zombie_progress WHERE user_id = ?`, uid).Scan(&last)
 	if errors.Is(err, sql.ErrNoRows) {
 		_, err = tx.ExecContext(ctx, `INSERT INTO farm_zombie_progress (user_id, last_wave) VALUES (?, ?)`, uid, cur)
@@ -119,49 +162,106 @@ func (f *Farm) settleZombies(ctx context.Context, tx *wallet.Tx, uid, now int64)
 	if err := shootThenExpire(ctx, tx, uid, now); err != nil {
 		return err
 	}
-	if last >= cur {
+	if last >= cur && stockLast >= cur {
 		return nil
 	}
-	for w := max(last+1, cur-zombieMaxCatchup+1); w <= cur; w++ {
+	for w := max(min(last, stockLast)+1, cur-zombieMaxCatchup+1); w <= cur; w++ {
 		start := w * zombieWaveSeconds
-		eligible, err := zombieTargets(ctx, tx, uid, start)
-		if err != nil {
-			return err
-		}
-		for _, z := range pickZombies(uid, w, eligible) {
-			if _, err := tx.ExecContext(ctx, `INSERT INTO farm_zombies (user_id, idx, wave, bites) VALUES (?, ?, ?, ?)`,
-				uid, z.idx, w, z.bites); err != nil {
+		spawned := false
+		if w > last {
+			targets, err := zombieTargets(ctx, tx, uid, start)
+			if err != nil {
 				return err
+			}
+			for _, z := range pickTargets(uid, uint64(w), targets) {
+				if _, err := tx.ExecContext(ctx, `INSERT INTO farm_zombies (user_id, idx, wave, bites) VALUES (?, ?, ?, ?)`,
+					uid, z.idx, w, z.bites); err != nil {
+					return err
+				}
+				spawned = true
+			}
+		}
+		if w > stockLast {
+			for _, zone := range stockZones {
+				targets, err := stockTargets(ctx, tx, uid, zone.place, start)
+				if err != nil {
+					return err
+				}
+				for _, z := range pickTargets(uid, uint64(w)*4+zone.zone, targets) {
+					if _, err := tx.ExecContext(ctx, `INSERT INTO farm_stock_zombies (stock_id, user_id, wave, bites) VALUES (?, ?, ?, ?)`,
+						z.idx, uid, w, z.bites); err != nil {
+						return err
+					}
+					spawned = true
+				}
 			}
 		}
 		// Tính bù theo thứ tự thời gian: đợt đã qua vẫn tốn đạn trước khi tới đợt sau.
-		if len(eligible) > 0 && now >= start+GunDelay {
+		if spawned && now >= start+GunDelay {
 			if err := shootThenExpire(ctx, tx, uid, now); err != nil {
 				return err
 			}
 		}
 	}
+	if _, err = tx.ExecContext(ctx, `UPDATE farm_stock_zombie_progress SET last_wave = ? WHERE user_id = ?`, cur, uid); err != nil {
+		return err
+	}
 	_, err = tx.ExecContext(ctx, `UPDATE farm_zombie_progress SET last_wave = ? WHERE user_id = ?`, cur, uid)
 	return err
 }
 
-// zombieTargets liệt kê các ô có cây gieo trước lúc đợt bắt đầu và chưa có zombie.
-func zombieTargets(ctx context.Context, tx *wallet.Tx, uid, start int64) ([]int, error) {
-	rows, err := tx.QueryContext(ctx, `SELECT p.idx FROM farm_plots p WHERE p.user_id = ? AND p.crop != '' AND p.planted_at < ?
+// zombieTargets liệt kê các ô có cây gieo trước lúc đợt bắt đầu và chưa có zombie, kèm tiến độ tại lúc đó.
+func zombieTargets(ctx context.Context, tx *wallet.Tx, uid, start int64) ([]zombieTarget, error) {
+	rows, err := tx.QueryContext(ctx, `SELECT p.idx, p.planted_at, p.ready_at FROM farm_plots p WHERE p.user_id = ? AND p.crop != '' AND p.planted_at < ?
 		AND NOT EXISTS (SELECT 1 FROM farm_zombies z WHERE z.user_id = p.user_id AND z.idx = p.idx) ORDER BY p.idx`, uid, start)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	out := []int{}
+	out := []zombieTarget{}
 	for rows.Next() {
 		var idx int
-		if err := rows.Scan(&idx); err != nil {
+		var planted, ready int64
+		if err := rows.Scan(&idx, &planted, &ready); err != nil {
 			return nil, err
 		}
-		out = append(out, idx)
+		out = append(out, zombieTarget{idx, growthOf(start-planted, ready-planted)})
 	}
 	return out, rows.Err()
+}
+
+// stockTargets liệt kê các con ở place mua trước lúc đợt bắt đầu và chưa có zombie, kèm tiến độ lớn đã lưu.
+func stockTargets(ctx context.Context, tx *wallet.Tx, uid int64, place string, start int64) ([]zombieTarget, error) {
+	rows, err := tx.QueryContext(ctx, `SELECT s.id, s.kind, s.grow_progress FROM farm_stock s WHERE s.user_id = ? AND s.place = ? AND s.bought_at < ?
+		AND NOT EXISTS (SELECT 1 FROM farm_stock_zombies z WHERE z.stock_id = s.id) ORDER BY s.id`, uid, place, start)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []zombieTarget{}
+	for rows.Next() {
+		var id int
+		var kind string
+		var grow int64
+		if err := rows.Scan(&id, &kind, &grow); err != nil {
+			return nil, err
+		}
+		st, _ := findStock(place, kind)
+		out = append(out, zombieTarget{id, growthOf(grow, st.GrowSeconds)})
+	}
+	return out, rows.Err()
+}
+
+// errStockZombie là lỗi khi đụng vào con đang bị tấn công: bán đi không phải là cách né zombie.
+func errStockZombie() error { return conflict("Phải đập zombie trước") }
+
+// deleteStock xoá một con vật cùng zombie của nó; mọi đường xoá con vật đều đi qua đây.
+func deleteStock(ctx context.Context, tx *wallet.Tx, uid, id int64) error {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM farm_stock_zombies WHERE stock_id = ? AND user_id = ?`, id, uid); err != nil {
+		return err
+	}
+	_, err := tx.ExecContext(ctx, `DELETE FROM farm_stock WHERE id = ? AND user_id = ?`, id, uid)
+	return err
 }
 
 // shootThenExpire cho súng bắn trước, rồi mới xử lý zombie hết hạn.
@@ -169,10 +269,14 @@ func shootThenExpire(ctx context.Context, tx *wallet.Tx, uid, now int64) error {
 	if err := shootZombies(ctx, tx, uid, now); err != nil {
 		return err
 	}
-	return expireZombies(ctx, tx, uid, now)
+	if err := expireZombies(ctx, tx, uid, now); err != nil {
+		return err
+	}
+	return expireStockZombies(ctx, tx, uid, now)
 }
 
-// shootZombies dùng đạn diệt các zombie đã quá giây GunDelay, đợt cũ trước, ô nhỏ trước; hết đạn thì dừng.
+// shootZombies dùng đạn diệt các zombie đã quá giây GunDelay: đợt cũ trước; trong một đợt, ruộng theo ô rồi vật nuôi
+// theo id; hết đạn thì dừng.
 func shootZombies(ctx context.Context, tx *wallet.Tx, uid, now int64) error {
 	var ammo int
 	err := tx.QueryRowContext(ctx, `SELECT ammo FROM farm_guns WHERE user_id = ?`, uid).Scan(&ammo)
@@ -182,17 +286,44 @@ func shootZombies(ctx context.Context, tx *wallet.Tx, uid, now int64) error {
 	if err != nil || ammo <= 0 {
 		return err
 	}
-	res, err := tx.ExecContext(ctx, `DELETE FROM farm_zombies WHERE user_id = ? AND idx IN (
-		SELECT idx FROM farm_zombies WHERE user_id = ? AND wave * ? + ? <= ? ORDER BY wave, idx LIMIT ?)`,
-		uid, uid, zombieWaveSeconds, GunDelay, now, ammo)
+	rows, err := tx.QueryContext(ctx, `SELECT 0 AS stock, idx AS id, wave FROM farm_zombies WHERE user_id = ? AND wave * ? + ? <= ?
+		UNION ALL SELECT 1, stock_id, wave FROM farm_stock_zombies WHERE user_id = ? AND wave * ? + ? <= ?
+		ORDER BY wave, stock, id LIMIT ?`,
+		uid, zombieWaveSeconds, GunDelay, now, uid, zombieWaveSeconds, GunDelay, now, ammo)
 	if err != nil {
 		return err
 	}
-	shot, err := res.RowsAffected()
-	if err != nil || shot == 0 {
+	type shot struct {
+		stock bool
+		id    int64
+	}
+	var shots []shot
+	for rows.Next() {
+		var z shot
+		var wave int64
+		if err := rows.Scan(&z.stock, &z.id, &wave); err != nil {
+			rows.Close()
+			return err
+		}
+		shots = append(shots, z)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
 		return err
 	}
-	_, err = tx.ExecContext(ctx, `UPDATE farm_guns SET ammo = ammo - ?, killed = killed + ? WHERE user_id = ?`, shot, shot, uid)
+	if len(shots) == 0 {
+		return nil
+	}
+	for _, z := range shots {
+		query := `DELETE FROM farm_zombies WHERE user_id = ? AND idx = ?`
+		if z.stock {
+			query = `DELETE FROM farm_stock_zombies WHERE user_id = ? AND stock_id = ?`
+		}
+		if _, err := tx.ExecContext(ctx, query, uid, z.id); err != nil {
+			return err
+		}
+	}
+	_, err = tx.ExecContext(ctx, `UPDATE farm_guns SET ammo = ammo - ?, killed = killed + ? WHERE user_id = ?`, len(shots), len(shots), uid)
 	return err
 }
 
@@ -281,18 +412,58 @@ func expireZombies(ctx context.Context, tx *wallet.Tx, uid, now int64) error {
 	return err
 }
 
-// loadZombieInfo đọc hạn đập của đợt đang có (0 nếu không có zombie) và số cây bị ăn chưa báo.
-func loadZombieInfo(ctx context.Context, q querier, uid int64) (until int64, eaten int, err error) {
-	var wave sql.NullInt64
-	err = q.QueryRowContext(ctx, `SELECT (SELECT MAX(wave) FROM farm_zombies WHERE user_id = ?),
-		COALESCE((SELECT eaten FROM farm_zombie_progress WHERE user_id = ?), 0)`, uid, uid).Scan(&wave, &eaten)
+// expireStockZombies xử lý zombie vật nuôi đã hết hạn đập: con bites = 1 ăn mất con vật, con còn lại bỏ đi.
+func expireStockZombies(ctx context.Context, tx *wallet.Tx, uid, now int64) error {
+	rows, err := tx.QueryContext(ctx, `SELECT stock_id, bites FROM farm_stock_zombies WHERE user_id = ? AND wave * ? + ? <= ?`,
+		uid, zombieWaveSeconds, ZombieWindow, now)
 	if err != nil {
-		return 0, 0, err
+		return err
+	}
+	var picks []zombiePick
+	for rows.Next() {
+		var z zombiePick
+		if err := rows.Scan(&z.idx, &z.bites); err != nil {
+			rows.Close()
+			return err
+		}
+		picks = append(picks, z)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	eaten := 0
+	for _, z := range picks {
+		if z.bites {
+			eaten++
+			if err := deleteStock(ctx, tx, uid, int64(z.idx)); err != nil {
+				return err
+			}
+		} else if _, err := tx.ExecContext(ctx, `DELETE FROM farm_stock_zombies WHERE stock_id = ? AND user_id = ?`, z.idx, uid); err != nil {
+			return err
+		}
+	}
+	if eaten == 0 {
+		return nil
+	}
+	_, err = tx.ExecContext(ctx, `UPDATE farm_stock_zombie_progress SET eaten = eaten + ? WHERE user_id = ?`, eaten, uid)
+	return err
+}
+
+// loadZombieInfo đọc hạn đập của đợt đang có (0 nếu không có zombie), số cây và số con bị ăn chưa báo.
+func loadZombieInfo(ctx context.Context, q querier, uid int64) (until int64, eaten, eatenStock int, err error) {
+	var wave sql.NullInt64
+	err = q.QueryRowContext(ctx, `SELECT (SELECT MAX(wave) FROM (
+			SELECT wave FROM farm_zombies WHERE user_id = ? UNION ALL SELECT wave FROM farm_stock_zombies WHERE user_id = ?)),
+		COALESCE((SELECT eaten FROM farm_zombie_progress WHERE user_id = ?), 0),
+		COALESCE((SELECT eaten FROM farm_stock_zombie_progress WHERE user_id = ?), 0)`, uid, uid, uid, uid).Scan(&wave, &eaten, &eatenStock)
+	if err != nil {
+		return 0, 0, 0, err
 	}
 	if wave.Valid {
 		until = wave.Int64*zombieWaveSeconds + ZombieWindow
 	}
-	return until, eaten, nil
+	return until, eaten, eatenStock, nil
 }
 
 // UpgradePlot nâng một ô lên đất tốt; cây đang trồng giữ nguyên giờ chín, áp dụng từ lần gieo sau.
@@ -333,6 +504,40 @@ func (f *Farm) HitZombie(ctx context.Context, uid int64, plot int) (State, error
 	})
 }
 
+// HitStockZombie đập zombie trên một con vật / cá của chủ: một nhát chết, trừ ZombieHitHP máu. Đang nằm viện thì không đập được.
+func (f *Farm) HitStockZombie(ctx context.Context, uid, id int64) (State, error) {
+	return f.do(ctx, uid, func(tx *wallet.Tx, s State) error {
+		var target *Animal
+		for _, pen := range []*Pen{s.Barn, s.Yard, s.Pond} {
+			if pen == nil {
+				continue
+			}
+			for _, list := range [][]Animal{pen.Animals, pen.Fish} {
+				for i := range list {
+					if list[i].ID == id {
+						target = &list[i]
+					}
+				}
+			}
+		}
+		if target == nil {
+			return notFound("không tìm thấy con này")
+		}
+		if !target.Zombie {
+			return conflict("con này không có zombie")
+		}
+		lost, err := tx.Damage(uid, ZombieHitHP)
+		if err != nil {
+			return err
+		}
+		if lost == 0 { // Damage không trừ khi đang nằm viện
+			return conflict("đang nằm viện, không đập được zombie")
+		}
+		_, err = tx.ExecContext(ctx, `DELETE FROM farm_stock_zombies WHERE stock_id = ? AND user_id = ?`, id, uid)
+		return err
+	})
+}
+
 // ZombieStatus trả số zombie đang có và hạn đập, cho bản đồ thành phố.
 func (f *Farm) ZombieStatus(ctx context.Context, uid int64) (count int, until int64, err error) {
 	tx, err := f.w.Begin(ctx)
@@ -343,10 +548,11 @@ func (f *Farm) ZombieStatus(ctx context.Context, uid int64) (count int, until in
 	if err := f.settleZombies(ctx, tx, uid, f.now().Unix()); err != nil {
 		return 0, 0, err
 	}
-	if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM farm_zombies WHERE user_id = ?`, uid).Scan(&count); err != nil {
+	if err := tx.QueryRowContext(ctx, `SELECT (SELECT count(*) FROM farm_zombies WHERE user_id = ?) +
+		(SELECT count(*) FROM farm_stock_zombies WHERE user_id = ?)`, uid, uid).Scan(&count); err != nil {
 		return 0, 0, err
 	}
-	if until, _, err = loadZombieInfo(ctx, tx, uid); err != nil {
+	if until, _, _, err = loadZombieInfo(ctx, tx, uid); err != nil {
 		return 0, 0, err
 	}
 	return count, until, tx.Commit()

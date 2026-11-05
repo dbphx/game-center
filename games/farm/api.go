@@ -160,6 +160,9 @@ func (f *Farm) Handler() http.Handler {
 	route("POST /api/farm/zombie/hit", false, func(r *http.Request, uid int64, b body) (State, *Gained, error) {
 		return noGain(f.HitZombie(r.Context(), uid, plot(b)))
 	})
+	route("POST /api/farm/zombie/hit-stock", false, func(r *http.Request, uid int64, b body) (State, *Gained, error) {
+		return noGain(f.HitStockZombie(r.Context(), uid, b.ID))
+	})
 	mux.HandleFunc("GET /api/farm/zombie/status", func(w http.ResponseWriter, r *http.Request) {
 		u, ok := auth(w, r)
 		if !ok {

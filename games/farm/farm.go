@@ -150,6 +150,7 @@ type Animal struct {
 	ProductReadyAt      int64   `json:"productReadyAt"`
 	ProductReady        bool    `json:"productReady"`
 	ProductProgress     float64 `json:"productProgress"`
+	Zombie              bool    `json:"zombie"` // đang có zombie: phải đập trước khi bán, thu hoạch, lấy sản phẩm
 	growSec, productSec int64
 	cycleLeft           int64 // giây còn lại của chu kỳ hiện tại (lớn / ra sản phẩm), xem growth.go
 }
@@ -165,21 +166,22 @@ type Pen struct {
 }
 
 type State struct {
-	Now           int64   `json:"now"`
-	Plots         []Plot  `json:"plots"`
-	NextPlotPrice int64   `json:"nextPlotPrice"`
-	MaxPlots      int     `json:"maxPlots"`
-	Barn          *Pen    `json:"barn"`
-	Yard          *Pen    `json:"yard"` // sân gia cầm, luôn có
-	Pond          *Pen    `json:"pond"`
-	Storage       Storage `json:"storage"`
-	Dog           Dog     `json:"dog"`         // chó giữ nhà, xem dog.go
-	Thefts        []Theft `json:"thefts"`      // nhật ký bạn bè vào trộm, mới nhất trước
-	ZombieUntil   int64   `json:"zombieUntil"` // hạn đập zombie (unix), 0 nếu không có zombie
-	ZombieEaten   int     `json:"zombieEaten"` // số cây bị zombie ăn kể từ lần báo trước
-	Gun           Gun     `json:"gun"`         // súng đậu, xem zombie.go
-	GunKilled     int     `json:"gunKilled"`   // số zombie súng đã diệt kể từ lần báo trước
-	Cloud         Cloud   `json:"cloud"`       // đậu thần và tầng mây, xem cloud.go
+	Now              int64   `json:"now"`
+	Plots            []Plot  `json:"plots"`
+	NextPlotPrice    int64   `json:"nextPlotPrice"`
+	MaxPlots         int     `json:"maxPlots"`
+	Barn             *Pen    `json:"barn"`
+	Yard             *Pen    `json:"yard"` // sân gia cầm, luôn có
+	Pond             *Pen    `json:"pond"`
+	Storage          Storage `json:"storage"`
+	Dog              Dog     `json:"dog"`              // chó giữ nhà, xem dog.go
+	Thefts           []Theft `json:"thefts"`           // nhật ký bạn bè vào trộm, mới nhất trước
+	ZombieUntil      int64   `json:"zombieUntil"`      // hạn đập zombie (unix), 0 nếu không có zombie
+	ZombieEaten      int     `json:"zombieEaten"`      // số cây bị zombie ăn kể từ lần báo trước
+	ZombieEatenStock int     `json:"zombieEatenStock"` // số con vật / cá bị zombie ăn kể từ lần báo trước
+	Gun              Gun     `json:"gun"`              // súng đậu, xem zombie.go
+	GunKilled        int     `json:"gunKilled"`        // số zombie súng đã diệt kể từ lần báo trước
+	Cloud            Cloud   `json:"cloud"`            // đậu thần và tầng mây, xem cloud.go
 }
 
 // Gained là phần thưởng của một lần thu hoạch / bán.
@@ -250,7 +252,8 @@ func loadPen(ctx context.Context, q querier, uid int64, place string, now int64)
 	if pen.Capacity < b.MaxCapacity {
 		pen.NextExpandPrice = b.expandPrice(pen.expansions)
 	}
-	rows, err := q.QueryContext(ctx, `SELECT id, kind, bought_at, ready_at, fed_at, fed_until, grow_progress, progress_at, product_progress
+	rows, err := q.QueryContext(ctx, `SELECT id, kind, bought_at, ready_at, fed_at, fed_until, grow_progress, progress_at, product_progress,
+		EXISTS (SELECT 1 FROM farm_stock_zombies z WHERE z.stock_id = farm_stock.id)
 		FROM farm_stock WHERE user_id = ? AND place = ? ORDER BY id`, uid, place)
 	if err != nil {
 		return nil, err
@@ -260,7 +263,7 @@ func loadPen(ctx context.Context, q querier, uid int64, place string, now int64)
 	for rows.Next() {
 		var a Animal
 		var progressAt int64
-		if err := rows.Scan(&a.ID, &a.Kind, &a.BoughtAt, &a.ReadyAt, &a.FedAt, &a.FedUntil, &a.growSec, &progressAt, &a.productSec); err != nil {
+		if err := rows.Scan(&a.ID, &a.Kind, &a.BoughtAt, &a.ReadyAt, &a.FedAt, &a.FedUntil, &a.growSec, &progressAt, &a.productSec, &a.Zombie); err != nil {
 			rows.Close()
 			return nil, err
 		}
@@ -337,7 +340,7 @@ func (f *Farm) load(ctx context.Context, q querier, uid int64) (State, error) {
 	if s.Thefts, err = loadThefts(ctx, q, uid); err != nil {
 		return State{}, err
 	}
-	if s.ZombieUntil, s.ZombieEaten, err = loadZombieInfo(ctx, q, uid); err != nil {
+	if s.ZombieUntil, s.ZombieEaten, s.ZombieEatenStock, err = loadZombieInfo(ctx, q, uid); err != nil {
 		return State{}, err
 	}
 	if s.Gun, s.GunKilled, err = loadGun(ctx, q, uid); err != nil {
@@ -378,6 +381,11 @@ func (f *Farm) State(ctx context.Context, uid int64) (State, error) {
 	// Số cây bị ăn chỉ báo một lần, khi chủ mở nông trại.
 	if s.ZombieEaten > 0 {
 		if _, err := tx.ExecContext(ctx, `UPDATE farm_zombie_progress SET eaten = 0 WHERE user_id = ?`, uid); err != nil {
+			return State{}, err
+		}
+	}
+	if s.ZombieEatenStock > 0 {
+		if _, err := tx.ExecContext(ctx, `UPDATE farm_stock_zombie_progress SET eaten = 0 WHERE user_id = ?`, uid); err != nil {
 			return State{}, err
 		}
 	}
@@ -712,6 +720,9 @@ func (f *Farm) SellStock(ctx context.Context, uid int64, place string, id int64)
 		if err != nil {
 			return err
 		}
+		if a.Zombie {
+			return errStockZombie()
+		}
 		if !a.Grown {
 			return conflict(st.Name + " chưa lớn")
 		}
@@ -722,8 +733,7 @@ func (f *Farm) SellStock(ctx context.Context, uid int64, place string, id int64)
 			return err
 		}
 		g = Gained{Coins: st.SellPrice, XP: st.XP}
-		_, err = tx.ExecContext(ctx, `DELETE FROM farm_stock WHERE id = ? AND user_id = ?`, id, uid)
-		return err
+		return deleteStock(ctx, tx, uid, id)
 	})
 	return s, g, err
 }

@@ -133,6 +133,9 @@ func (f *Farm) CollectStock(ctx context.Context, uid int64, place string, id int
 		if err != nil {
 			return err
 		}
+		if a.Zombie {
+			return errStockZombie()
+		}
 		if !a.Grown {
 			return conflict(st.Name + " chưa lớn")
 		}
@@ -151,8 +154,7 @@ func (f *Farm) CollectStock(ctx context.Context, uid int64, place string, id int
 			return err
 		}
 		g = Gained{XP: xp, Count: 1, Items: map[string]int{item: 1}}
-		_, err = tx.ExecContext(ctx, `DELETE FROM farm_stock WHERE id = ? AND user_id = ?`, id, uid)
-		return err
+		return deleteStock(ctx, tx, uid, id)
 	})
 	return s, g, err
 }

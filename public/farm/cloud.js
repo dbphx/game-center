@@ -65,7 +65,7 @@
   }
 
   // Hiện báo zombie ở dưới đất để người chơi đang trên mây không bỏ lỡ.
-  const zombieDown = () => !!farm.zombieUntil && farm.zombieUntil > cfg.now() && farm.plots.some((p) => p.zombie);
+  const zombieDown = () => !!farm.zombieUntil && farm.zombieUntil > cfg.now();
 
   function render() {
     const c = farm.cloud;
@@ -95,7 +95,7 @@
         <h2>Tầng mây</h2>
         <span class="cloud-coins">${I().svg('coins')}${cfg.xu(u ? u.balance : 0)}</span>
       </div>
-      ${zombieDown() ? '<p class="cloud-zombie">Zombie đang tấn công ruộng dưới đất!</p>' : ''}
+      ${zombieDown() ? '<p class="cloud-zombie">Zombie đang tấn công nông trại dưới đất!</p>' : ''}
       <div class="cloud-tabs">${tabs}</div>
       <p class="cloud-facts">${facts}</p>
       ${body}`;

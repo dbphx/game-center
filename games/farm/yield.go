@@ -67,6 +67,9 @@ func (f *Farm) ProduceStock(ctx context.Context, uid int64, place string, id int
 		if err != nil {
 			return err
 		}
+		if a.Zombie {
+			return errStockZombie()
+		}
 		now := f.now().Unix()
 		p := yields[a.Kind].Product
 		if p == nil {
