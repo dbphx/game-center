@@ -1467,7 +1467,8 @@ func TestHitStockAPIAndVisit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(raw), "animals") || strings.Contains(string(raw), "stock") {
+	// Khách thấy danh sách con rút gọn (Visit.Stock, xem TestVisitStockFields), không thấy chuồng và thông tin nuôi của chủ.
+	if strings.Contains(string(raw), "animals") || strings.Contains(string(raw), "barn") {
 		t.Fatalf("Visit lộ vật nuôi: %s", raw)
 	}
 }

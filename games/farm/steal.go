@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/dbphx/game-center/internal/wallet"
@@ -13,7 +14,8 @@ import (
 
 // ---------- Trộm nông trại bạn bè ----------
 //
-// Bạn bè được vào nông trại của nhau trộm ô cây đã chín. Mỗi ô mỗi vụ chỉ bị trộm thành công một lần, và mỗi người
+// Bạn bè được vào nông trại của nhau trộm ô cây đã chín, hoặc con vật / cá đã lớn (chung lượt trong ngày, kẻ trộm nhận đúng
+// món chủ nhận khi thu con đó, chủ mất con). Mỗi ô mỗi vụ chỉ bị trộm thành công một lần, và mỗi người
 // chỉ được thử một ô một lần mỗi vụ (bị chó bắt cũng mất lượt thử ô đó). Mỗi ô chỉ ra 1 nông sản nên kẻ trộm lấy đúng
 // nông sản đó (chủ thu hoạch ô bị trộm chỉ còn XP): đồ không tự sinh thêm, hai tài khoản trộm qua lại cũng không lời hơn.
 //
@@ -87,12 +89,24 @@ type VisitPlot struct {
 	Zombie    bool   `json:"zombie"` // đang có zombie: không trộm được
 }
 
-// Visit là nông trại của bạn bè (chỉ xem): ô đất, chó và số lượt trộm còn lại hôm nay của người xem.
+// VisitStock là một con vật / cá khi xem nông trại của bạn: chỉ đủ để vẽ và trộm, không có thông tin nuôi của chủ.
+type VisitStock struct {
+	ID     int64  `json:"id"`
+	Place  string `json:"place"`
+	Kind   string `json:"kind"`
+	Grown  bool   `json:"grown"`
+	Tried  bool   `json:"tried"`  // người xem đã thử trộm con này
+	Locked bool   `json:"locked"` // người khác đang bị chó đuổi vì con này
+	Zombie bool   `json:"zombie"` // đang có zombie: không trộm được
+}
+
+// Visit là nông trại của bạn bè (chỉ xem): ô đất, con vật, chó và số lượt trộm còn lại hôm nay của người xem.
 type Visit struct {
-	Now        int64       `json:"now"`
-	Plots      []VisitPlot `json:"plots"`
-	Dog        Dog         `json:"dog"`
-	StealsLeft int         `json:"stealsLeft"`
+	Now        int64        `json:"now"`
+	Plots      []VisitPlot  `json:"plots"`
+	Stock      []VisitStock `json:"stock"`
+	Dog        Dog          `json:"dog"`
+	StealsLeft int          `json:"stealsLeft"`
 }
 
 // Summary là tóm tắt nông trại cho danh sách bạn bè.
@@ -104,7 +118,8 @@ type Summary struct {
 // Chase là một cuộc chó đuổi: giao diện vẽ chó chạy theo nhân vật rồi báo kết quả bằng FinishSteal(ID).
 type Chase struct {
 	ID        string `json:"id"`
-	Plot      int    `json:"plot"`
+	Plot      int    `json:"plot"`  // -1 nếu là con vật
+	Stock     int64  `json:"stock"` // 0 nếu là ô đất
 	Item      string `json:"item"`
 	Qty       int    `json:"qty"`
 	StartedAt int64  `json:"startedAt"` // ms
@@ -140,7 +155,7 @@ func (f *Farm) stealsLeft(ctx context.Context, q querier, thief, owner, now int6
 func plotMarks(ctx context.Context, q querier, owner, viewer, nowMs int64) (tried, locked map[[2]int64]bool, err error) {
 	rows, err := q.QueryContext(ctx, `SELECT t.idx, t.planted_at, t.thief_id = ?, t.pending = 1 AND t.expires_ms > ? FROM farm_thefts t
 		JOIN farm_plots p ON p.user_id = t.owner_id AND p.idx = t.idx AND p.planted_at = t.planted_at
-		WHERE t.owner_id = ?`, viewer, nowMs, owner)
+		WHERE t.owner_id = ? AND t.stock_id = 0`, viewer, nowMs, owner)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -159,6 +174,76 @@ func plotMarks(ctx context.Context, q querier, owner, viewer, nowMs int64) (trie
 		}
 	}
 	return tried, locked, rows.Err()
+}
+
+// migrateThefts thêm cột stock_id cho database từ bản cũ (CREATE TABLE IF NOT EXISTS không thêm cột).
+func migrateThefts(ctx context.Context, w *wallet.Wallet) error {
+	tx, err := w.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	var has bool
+	if err := tx.QueryRowContext(ctx, `SELECT count(*) > 0 FROM pragma_table_info('farm_thefts') WHERE name = 'stock_id'`).Scan(&has); err != nil {
+		return err
+	}
+	if !has {
+		if _, err := tx.ExecContext(ctx, `ALTER TABLE farm_thefts ADD COLUMN stock_id INTEGER NOT NULL DEFAULT 0`); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+// stockMarks: các con của owner mà viewer đã thử trộm, và các con người khác đang bị đuổi (khoá).
+func stockMarks(ctx context.Context, q querier, owner, viewer, nowMs int64) (tried, locked map[int64]bool, err error) {
+	rows, err := q.QueryContext(ctx, `SELECT stock_id, thief_id = ?, pending = 1 AND expires_ms > ? FROM farm_thefts
+		WHERE owner_id = ? AND stock_id > 0`, viewer, nowMs, owner)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer rows.Close()
+	tried, locked = map[int64]bool{}, map[int64]bool{}
+	for rows.Next() {
+		var id int64
+		var mine, chasing bool
+		if err := rows.Scan(&id, &mine, &chasing); err != nil {
+			return nil, nil, err
+		}
+		if mine {
+			tried[id] = true
+		} else if chasing {
+			locked[id] = true
+		}
+	}
+	return tried, locked, rows.Err()
+}
+
+// visitStock liệt kê các con của owner trong chuồng, sân, ao cho viewer xem.
+func visitStock(ctx context.Context, q querier, owner, viewer int64, now time.Time) ([]VisitStock, error) {
+	tried, locked, err := stockMarks(ctx, q, owner, viewer, now.UnixMilli())
+	if err != nil {
+		return nil, err
+	}
+	out := []VisitStock{}
+	for _, place := range []string{placeBarn, placeYard, placePond} {
+		pen, err := loadPen(ctx, q, owner, place, now.Unix())
+		if err != nil {
+			return nil, err
+		}
+		if pen == nil {
+			continue
+		}
+		list := pen.Animals
+		if place == placePond {
+			list = pen.Fish
+		}
+		for _, a := range list {
+			out = append(out, VisitStock{ID: a.ID, Place: place, Kind: a.Kind, Grown: a.Grown,
+				Tried: tried[a.ID], Locked: locked[a.ID], Zombie: a.Zombie})
+		}
+	}
+	return out, nil
 }
 
 func (f *Farm) visit(ctx context.Context, q querier, owner, viewer int64, now time.Time) (Visit, error) {
@@ -180,6 +265,9 @@ func (f *Farm) visit(ctx context.Context, q querier, owner, viewer int64, now ti
 		planted := p.Crop != ""
 		v.Plots[i] = VisitPlot{Index: p.Index, Crop: p.Crop, PlantedAt: p.PlantedAt, ReadyAt: p.ReadyAt,
 			Ripe: planted && p.ReadyAt <= sec, Stolen: p.Stolen, Tried: planted && tried[k], Locked: planted && locked[k], Zombie: p.Zombie}
+	}
+	if v.Stock, err = visitStock(ctx, q, owner, viewer, now); err != nil {
+		return Visit{}, err
 	}
 	if v.Dog, err = loadDog(ctx, q, owner, sec); err != nil {
 		return Visit{}, err
@@ -294,6 +382,21 @@ func take(ctx context.Context, tx *wallet.Tx, thief, owner int64, plot int, plan
 	return addItem(ctx, tx, thief, storeProducts, item, 1)
 }
 
+// takeStock cho kẻ trộm lấy con id của owner (đã kiểm tra con còn): cất món vào kho kẻ trộm, xoá con kèm zombie nếu có.
+func takeStock(ctx context.Context, tx *wallet.Tx, thief, owner, id int64, item string) error {
+	if err := addItem(ctx, tx, thief, storeProducts, item, 1); err != nil {
+		return err
+	}
+	return deleteStock(ctx, tx, owner, id)
+}
+
+// stockExists: con id còn và thuộc owner.
+func stockExists(ctx context.Context, q querier, owner, id int64) (bool, error) {
+	var ok bool
+	err := q.QueryRowContext(ctx, `SELECT count(*) > 0 FROM farm_stock WHERE id = ? AND user_id = ?`, id, owner).Scan(&ok)
+	return ok, err
+}
+
 func newToken() string {
 	b := make([]byte, 12)
 	rand.Read(b)
@@ -377,6 +480,84 @@ func (f *Farm) Steal(ctx context.Context, thief, owner int64, plot int) (StealRe
 	return res, tx.Commit()
 }
 
+// StealStock: thief trộm con id đã lớn của owner (đã kiểm tra là bạn bè). Chó đói thì lấy được ngay; chó đang canh thì bắt đầu
+// cuộc đuổi như trộm cây, kết quả chốt ở FinishSteal.
+func (f *Farm) StealStock(ctx context.Context, thief, owner, id int64) (StealResult, error) {
+	if thief == owner {
+		return StealResult{}, bad("không thể trộm nhà mình")
+	}
+	tx, err := f.w.Begin(ctx)
+	if err != nil {
+		return StealResult{}, err
+	}
+	defer tx.Rollback()
+	now := f.now()
+	nowMs := now.UnixMilli()
+	if err := settleChases(ctx, tx, nowMs); err != nil {
+		return StealResult{}, err
+	}
+	if err := f.settleZombies(ctx, tx, owner, now.Unix()); err != nil {
+		return StealResult{}, err
+	}
+	v, err := f.visit(ctx, tx, owner, thief, now)
+	if err != nil {
+		return StealResult{}, err
+	}
+	i := slices.IndexFunc(v.Stock, func(s VisitStock) bool { return s.ID == id })
+	if i < 0 {
+		return StealResult{}, gone("không có con này")
+	}
+	a := v.Stock[i]
+	st, ok := findStock(a.Place, a.Kind)
+	if !ok {
+		return StealResult{}, gone("không có con này")
+	}
+	switch {
+	case a.Zombie:
+		return StealResult{}, conflict("Con này đang có zombie, không trộm được")
+	case !a.Grown:
+		return StealResult{}, conflict(st.Name + " chưa lớn")
+	case a.Tried:
+		return StealResult{}, conflict("Bạn đã thử trộm con này rồi")
+	case a.Locked:
+		return StealResult{}, conflict("Có người đang trộm con này, chó đang đuổi")
+	case v.StealsLeft <= 0:
+		return StealResult{}, conflict(fmt.Sprintf("hôm nay bạn đã vào nhà này %d lần, mai quay lại nhé", StealsPerDay))
+	}
+	products, err := loadStore(ctx, tx, thief, storeProducts)
+	if err != nil {
+		return StealResult{}, err
+	}
+	if products.free() < 1 {
+		return StealResult{}, productsFull(products)
+	}
+	item, _ := collected(st)
+	res := StealResult{Result: "stolen", Item: item, Qty: 1}
+	if v.Dog.Guarding {
+		// Chó đang canh: chưa lấy đồ, giữ chỗ con này tới khi có kết quả đuổi (đã tính một lượt thử).
+		ch := &Chase{ID: newToken(), Plot: -1, Stock: id, Item: item, Qty: 1, StartedAt: nowMs, DogSpeed: DogSpeed,
+			MinMs: ChaseMinMs, ExpiresAt: nowMs + ChaseTTLMs}
+		res = StealResult{Result: "chase", Item: item, Qty: 1, Chase: ch}
+		if _, err := tx.ExecContext(ctx, `INSERT INTO farm_thefts (owner_id, thief_id, idx, stock_id, item, qty, at, pending, token,
+			started_ms, expires_ms) VALUES (?, ?, -1, ?, ?, 0, ?, 1, ?, ?, ?)`,
+			owner, thief, id, item, now.Unix(), ch.ID, ch.StartedAt, ch.ExpiresAt); err != nil {
+			return StealResult{}, err
+		}
+	} else {
+		if err := takeStock(ctx, tx, thief, owner, id, item); err != nil {
+			return StealResult{}, err
+		}
+		if _, err := tx.ExecContext(ctx, `INSERT INTO farm_thefts (owner_id, thief_id, idx, stock_id, item, qty, at)
+			VALUES (?, ?, -1, ?, ?, 1, ?)`, owner, thief, id, item, now.Unix()); err != nil {
+			return StealResult{}, err
+		}
+	}
+	if res.Visit, err = f.visit(ctx, tx, owner, thief, now); err != nil {
+		return StealResult{}, err
+	}
+	return res, tx.Commit()
+}
+
 // FinishSteal chốt cuộc đuổi token: escaped = chạy ra tới cổng (lấy được đồ), không thì bị chó cắn.
 // Báo thoát sớm hơn ChaseMinMs kể từ lúc bắt đầu, hoặc khi đã quá hạn, cũng tính là bị cắn. Mỗi token dùng một lần.
 func (f *Farm) FinishSteal(ctx context.Context, thief, owner int64, token string, escaped bool) (StealResult, error) {
@@ -390,13 +571,13 @@ func (f *Farm) FinishSteal(ctx context.Context, thief, owner int64, token string
 	defer tx.Rollback()
 	now := f.now()
 	nowMs := now.UnixMilli()
-	var id, plantedAt, startedMs, expiresMs int64
+	var id, plantedAt, stockID, startedMs, expiresMs int64
 	var plot int
 	var item string
 	var pending bool
-	if err := tx.QueryRowContext(ctx, `SELECT id, idx, planted_at, item, pending, started_ms, expires_ms FROM farm_thefts
+	if err := tx.QueryRowContext(ctx, `SELECT id, idx, planted_at, stock_id, item, pending, started_ms, expires_ms FROM farm_thefts
 		WHERE token = ? AND thief_id = ? AND owner_id = ?`, token, thief, owner).
-		Scan(&id, &plot, &plantedAt, &item, &pending, &startedMs, &expiresMs); err != nil {
+		Scan(&id, &plot, &plantedAt, &stockID, &item, &pending, &startedMs, &expiresMs); err != nil {
 		return StealResult{}, gone("không có cuộc đuổi này")
 	}
 	if !pending {
@@ -404,12 +585,20 @@ func (f *Farm) FinishSteal(ctx context.Context, thief, owner int64, token string
 	}
 	res := StealResult{Result: "caught", Item: item}
 	if escaped && nowMs >= startedMs+ChaseMinMs && nowMs < expiresMs {
-		// Ô vẫn là vụ cũ (chủ chưa thu hoạch trong lúc đuổi) thì mới lấy được.
-		var cur int64
-		if err := tx.QueryRowContext(ctx, `SELECT planted_at FROM farm_plots WHERE user_id = ? AND idx = ?`, owner, plot).Scan(&cur); err != nil {
-			return StealResult{}, err
+		// Ô vẫn là vụ cũ, hoặc con vẫn còn (chủ chưa thu / bán, zombie chưa ăn trong lúc đuổi) thì mới lấy được.
+		var still bool
+		if stockID > 0 {
+			if still, err = stockExists(ctx, tx, owner, stockID); err != nil {
+				return StealResult{}, err
+			}
+		} else {
+			var cur int64
+			if err := tx.QueryRowContext(ctx, `SELECT planted_at FROM farm_plots WHERE user_id = ? AND idx = ?`, owner, plot).Scan(&cur); err != nil {
+				return StealResult{}, err
+			}
+			still = cur == plantedAt
 		}
-		if cur == plantedAt {
+		if still {
 			products, err := loadStore(ctx, tx, thief, storeProducts)
 			if err != nil {
 				return StealResult{}, err
@@ -417,7 +606,12 @@ func (f *Farm) FinishSteal(ctx context.Context, thief, owner int64, token string
 			if products.free() < 1 {
 				return StealResult{}, productsFull(products) // còn hạn: bán bớt rồi báo lại
 			}
-			if err := take(ctx, tx, thief, owner, plot, plantedAt, item); err != nil {
+			if stockID > 0 {
+				err = takeStock(ctx, tx, thief, owner, stockID, item)
+			} else {
+				err = take(ctx, tx, thief, owner, plot, plantedAt, item)
+			}
+			if err != nil {
 				return StealResult{}, err
 			}
 			res = StealResult{Result: "stolen", Item: item, Qty: 1}

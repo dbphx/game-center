@@ -125,6 +125,14 @@ func (f *Farm) ExpandStore(ctx context.Context, uid int64, store string) (State,
 	})
 }
 
+// collected là món và XP khi thu một con: vật nuôi cho thịt (meat_pig...), cá vào kho nguyên con.
+func collected(st Stock) (item string, xp int64) {
+	if y, ok := yields[st.ID]; ok {
+		return y.Meat.ID, y.Meat.XP
+	}
+	return st.ID, st.XP
+}
+
 // CollectStock thu một con đã lớn từ chuồng / sân / ao vào kho sản phẩm (vật nuôi, gia cầm lấy thịt), cộng XP.
 func (f *Farm) CollectStock(ctx context.Context, uid int64, place string, id int64) (State, Gained, error) {
 	var g Gained
@@ -142,11 +150,7 @@ func (f *Farm) CollectStock(ctx context.Context, uid int64, place string, id int
 		if s.Storage.Products.free() < 1 {
 			return productsFull(s.Storage.Products)
 		}
-		// Vật nuôi cho thịt (meat_pig...); cá vào kho nguyên con.
-		item, xp := st.ID, st.XP
-		if y, ok := yields[st.ID]; ok {
-			item, xp = y.Meat.ID, y.Meat.XP
-		}
+		item, xp := collected(st)
 		if err := addItem(ctx, tx, uid, storeProducts, item, 1); err != nil {
 			return err
 		}

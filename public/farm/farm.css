@@ -567,6 +567,7 @@ button.wide { width: 100%; justify-content: center; }
   72% { transform: translateY(0) scale(1.12, .88); }
   100% { transform: none; }
 }
+.pet-visit-tag { position: static; transform: none; white-space: nowrap; font-size: 11px; margin-bottom: 4px; }
 .pet-badges { position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; pointer-events: none; }
 .pet.fish .pet-badges { bottom: 80%; }
 .bubble-hungry {

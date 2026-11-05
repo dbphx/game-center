@@ -1,7 +1,11 @@
 package farm
 
 import (
+	"encoding/json"
 	"net/http"
+	"slices"
+	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -81,18 +85,50 @@ func TestDogFeedFourHours(t *testing.T) {
 	if !s.Dog.Guarding || s.Dog.FedUntil != e.clock.Unix()+4*3600 || s.Storage.Seeds.Items[DogFeedID] != 2 {
 		t.Fatalf("sau khi cho ăn: %+v, còn %d phần", s.Dog, s.Storage.Seeds.Items[DogFeedID])
 	}
-	// Còn no hơn 1 giờ thì chưa cho ăn lại được.
-	e.clock = e.clock.Add(2*time.Hour + 59*time.Minute)
-	_, err = e.f.FeedDog(ctx, e.uid)
-	wantStatus(t, err, http.StatusConflict)
 	// Hết 4 giờ: đói, không canh nhà.
-	e.clock = e.clock.Add(61 * time.Minute)
+	e.clock = e.clock.Add(4 * time.Hour)
 	if s = e.ok(e.f.State(ctx, e.uid)); s.Dog.Guarding {
 		t.Fatalf("quá 4 giờ chó vẫn canh: %+v", s.Dog)
 	}
 	if s = e.ok(e.f.FeedDog(ctx, e.uid)); !s.Dog.Guarding {
 		t.Fatal("cho ăn lại mà chó không canh")
 	}
+}
+
+// Thức ăn cho chó cộng dồn: mỗi phần thêm 4 giờ vào thời gian còn lại, tối đa 7 ngày tính từ bây giờ.
+func TestDogFeedStacks(t *testing.T) {
+	e := newEnv(t, 10_000, 0)
+	e.giveItem(e.uid, storeSeeds, DogFeedID, 50)
+	s := e.ok(e.f.FeedDog(ctx, e.uid))
+	if s.Dog.MaxFull != 7*24*3600 {
+		t.Fatalf("maxFull: %+v", s.Dog)
+	}
+	e.clock = e.clock.Add(time.Hour) // còn 3 giờ, cho ăn thành 7 giờ
+	if s = e.ok(e.f.FeedDog(ctx, e.uid)); s.Dog.FedUntil != e.clock.Unix()+7*3600 {
+		t.Fatalf("còn 3 giờ cho ăn thêm: còn %d giây", s.Dog.FedUntil-e.clock.Unix())
+	}
+	// Đói từ lâu thì tính từ bây giờ, không cộng phần đã qua.
+	e.clock = e.clock.Add(24 * time.Hour)
+	if s = e.ok(e.f.FeedDog(ctx, e.uid)); s.Dog.FedUntil != e.clock.Unix()+4*3600 {
+		t.Fatalf("đói rồi cho ăn: còn %d giây", s.Dog.FedUntil-e.clock.Unix())
+	}
+	for range 41 { // đủ 42 phần = đúng 7 ngày
+		s = e.ok(e.f.FeedDog(ctx, e.uid))
+	}
+	if s.Dog.FedUntil != e.clock.Unix()+DogMaxFull {
+		t.Fatalf("42 phần: còn %d giây", s.Dog.FedUntil-e.clock.Unix())
+	}
+	before := s.Storage.Seeds.Items[DogFeedID]
+	xp := e.xpOf(e.uid)
+	_, err := e.f.FeedDog(ctx, e.uid)
+	wantStatus(t, err, http.StatusConflict)
+	s = e.ok(e.f.State(ctx, e.uid))
+	if s.Storage.Seeds.Items[DogFeedID] != before || e.xpOf(e.uid) != xp || s.Dog.FedUntil != e.clock.Unix()+DogMaxFull {
+		t.Fatalf("no tối đa mà vẫn trừ: %+v còn %d phần", s.Dog, s.Storage.Seeds.Items[DogFeedID])
+	}
+	// Vơi đi 4 giờ thì lại cho ăn được đúng 1 phần.
+	e.clock = e.clock.Add(4 * time.Hour)
+	e.ok(e.f.FeedDog(ctx, e.uid))
 }
 
 // Chó đói: trộm được ngay, mỗi ô mỗi vụ một lần; chủ thu hoạch ô bị trộm chỉ còn XP.
@@ -473,5 +509,431 @@ func TestChaseFinishNeedsRoom(t *testing.T) {
 	e.giveItem(thief, storeProducts, "corn", -1)
 	if res, err := e.f.FinishSteal(ctx, thief, e.uid, ch.ID, true); err != nil || res.Result != "stolen" {
 		t.Fatalf("báo lại: %+v, %v", res, err)
+	}
+}
+
+// ---------- Trộm vật nuôi và cá ----------
+
+// grownStock thêm vào nhà chủ một con đã lớn.
+func (e *env) grownStock(place, kind string) int64 {
+	e.t.Helper()
+	st, ok := findStock(place, kind)
+	if !ok {
+		e.t.Fatalf("không có %s ở %s", kind, place)
+	}
+	return e.addStock(place, kind, st.GrowSeconds)
+}
+
+func (e *env) feedOwnerDog() {
+	e.t.Helper()
+	e.exec(`INSERT INTO farm_dog (user_id, fed_until) VALUES (?, ?) ON CONFLICT (user_id) DO UPDATE SET fed_until = excluded.fed_until`,
+		e.uid, e.clock.Unix()+4*3600)
+}
+
+func (e *env) hasStock(id int64) bool {
+	e.t.Helper()
+	return e.count(`SELECT count(*) FROM farm_stock WHERE id = ?`, id) == 1
+}
+
+func (e *env) xpOf(uid int64) int64 {
+	e.t.Helper()
+	u, err := e.w.User(ctx, uid)
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	return u.XP
+}
+
+// Chó đói: lấy ngay đúng món chủ nhận khi thu con đó, không có XP; chủ mất con và chỗ trong chuồng.
+func TestStealStockHungryDog(t *testing.T) {
+	cases := []struct{ place, kind, item string }{
+		{placeBarn, "cow", "meat_cow"},
+		{placeYard, "chicken", "meat_chicken"},
+		{placePond, "koi", "koi"},
+	}
+	for _, c := range cases {
+		e, thief := thiefEnv(t, 1000)
+		id := e.grownStock(c.place, c.kind)
+		used := penOf(e.ok(e.f.State(ctx, e.uid)), c.place).Used
+		xp := e.xpOf(thief)
+		res, err := e.f.StealStock(ctx, thief, e.uid, id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if res.Result != "stolen" || res.Item != c.item || res.Qty != 1 || res.HPLost != 0 || res.Chase != nil {
+			t.Fatalf("%s: %+v", c.kind, res)
+		}
+		if res.Visit.StealsLeft != StealsPerDay-1 || len(res.Visit.Stock) != 0 {
+			t.Fatalf("%s: sau khi trộm %+v", c.kind, res.Visit)
+		}
+		if e.hasStock(id) {
+			t.Fatalf("%s: chủ vẫn còn con", c.kind)
+		}
+		st := e.ok(e.f.State(ctx, e.uid))
+		if penOf(st, c.place).Used >= used {
+			t.Fatalf("%s: chuồng không trống lại: %d", c.kind, penOf(st, c.place).Used)
+		}
+		if len(st.Thefts) != 1 || st.Thefts[0].Item != c.item || st.Thefts[0].Qty != 1 || st.Thefts[0].Caught || st.Thefts[0].Thief.ID != thief {
+			t.Fatalf("%s: nhật ký %+v", c.kind, st.Thefts)
+		}
+		if got := e.ok(e.f.State(ctx, thief)).Storage.Products.Items[c.item]; got != 1 {
+			t.Fatalf("%s: kho kẻ trộm có %d", c.kind, got)
+		}
+		if e.xpOf(thief) != xp {
+			t.Fatalf("%s: trộm không được cộng XP", c.kind)
+		}
+	}
+}
+
+// Các trường hợp bị từ chối: không đổi gì ở cả hai nhà, không mất lượt.
+func TestStealStockRefused(t *testing.T) {
+	e, thief := thiefEnv(t, 1000)
+	refused := func(id int64, status int) {
+		t.Helper()
+		left := e.mustVisit(thief).StealsLeft
+		had := e.hasStock(id)
+		_, err := e.f.StealStock(ctx, thief, e.uid, id)
+		wantStatus(t, err, status)
+		if e.mustVisit(thief).StealsLeft != left || e.hasStock(id) != had {
+			t.Fatalf("con %d: bị từ chối mà vẫn đổi", id)
+		}
+	}
+	young := e.addStock(placeBarn, "pig", 0)
+	refused(young, http.StatusConflict)
+	refused(999_999, http.StatusNotFound)
+	refused(0, http.StatusNotFound)
+
+	// Con của nhà khác, kể cả của chính kẻ trộm.
+	e.exec(`INSERT INTO farm_stock (user_id, place, kind, bought_at, ready_at, fed_until, grow_progress, progress_at)
+		VALUES (?, 'barn', 'pig', 1, 0, 0, 999999, 1)`, thief)
+	other := int64(e.count(`SELECT MAX(id) FROM farm_stock WHERE user_id = ?`, thief))
+	refused(other, http.StatusNotFound)
+
+	bitten := e.grownStock(placeBarn, "pig")
+	e.exec(`INSERT INTO farm_stock_zombies (stock_id, user_id, wave, bites) VALUES (?, ?, ?, 0)`, bitten, e.uid, e.clock.Unix()/3600)
+	refused(bitten, http.StatusConflict)
+
+	id := e.grownStock(placeBarn, "pig")
+	e.giveItem(thief, storeProducts, "carrot", e.ok(e.f.State(ctx, thief)).Storage.Products.Capacity)
+	refused(id, http.StatusConflict) // kho đầy
+	e.exec(`DELETE FROM farm_items WHERE user_id = ?`, thief)
+
+	for range StealsPerDay { // hết lượt, chung với trộm cây
+		e.exec(`INSERT INTO farm_thefts (owner_id, thief_id, idx, planted_at, item, qty, at) VALUES (?, ?, 0, 0, 'carrot', 1, ?)`,
+			e.uid, thief, e.clock.Unix())
+	}
+	refused(id, http.StatusConflict)
+
+	if _, err := e.f.StealStock(ctx, e.uid, e.uid, id); errStatus(err) != http.StatusBadRequest {
+		t.Fatalf("trộm nhà mình: %v", err)
+	}
+}
+
+func (e *env) mustVisit(viewer int64) Visit {
+	e.t.Helper()
+	v, err := e.f.Visit(ctx, e.uid, viewer)
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	return v
+}
+
+// Chó no: thành cuộc đuổi, con khoá với người khác; thoát thì lấy được.
+func TestStealStockChaseEscape(t *testing.T) {
+	e, thief := thiefEnv(t, 1000)
+	other := e.newThief("keKhac")
+	id := e.grownStock(placeBarn, "pig")
+	e.feedOwnerDog()
+	res, err := e.f.StealStock(ctx, thief, e.uid, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Result != "chase" || res.Chase == nil || res.Chase.Stock != id || res.Chase.Plot != -1 || res.Chase.Item != "meat_pig" {
+		t.Fatalf("cuộc đuổi: %+v %+v", res, res.Chase)
+	}
+	if !e.hasStock(id) || e.count(`SELECT count(*) FROM farm_items WHERE user_id = ? AND qty > 0`, thief) != 0 {
+		t.Fatal("chưa thoát mà đã lấy được đồ")
+	}
+	if v := e.mustVisit(other); len(v.Stock) != 1 || !v.Stock[0].Locked || v.Stock[0].Tried {
+		t.Fatalf("người khác xem: %+v", v.Stock)
+	}
+	if v := e.mustVisit(thief); !v.Stock[0].Tried || v.Stock[0].Locked {
+		t.Fatalf("kẻ trộm xem: %+v", v.Stock)
+	}
+	_, err = e.f.StealStock(ctx, other, e.uid, id)
+	wantStatus(t, err, http.StatusConflict) // đang khoá
+	_, err = e.f.StealStock(ctx, thief, e.uid, id)
+	wantStatus(t, err, http.StatusConflict) // đã thử
+	e.clock = e.clock.Add(ChaseMinMs * time.Millisecond)
+	done, err := e.f.FinishSteal(ctx, thief, e.uid, res.Chase.ID, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if done.Result != "stolen" || done.Item != "meat_pig" || done.Qty != 1 || e.hasStock(id) {
+		t.Fatalf("thoát: %+v", done)
+	}
+	if got := e.ok(e.f.State(ctx, thief)).Storage.Products.Items["meat_pig"]; got != 1 {
+		t.Fatalf("kho kẻ trộm: %d", got)
+	}
+	if _, err = e.f.FinishSteal(ctx, thief, e.uid, res.Chase.ID, true); errStatus(err) != http.StatusConflict {
+		t.Fatalf("dùng lại token: %v", err)
+	}
+	if got := e.ok(e.f.State(ctx, thief)).Storage.Products.Items["meat_pig"]; got != 1 {
+		t.Fatalf("dùng lại token mà có thêm đồ: %d", got)
+	}
+}
+
+// Bị chạm hoặc quá hạn: mất 50 máu, con còn, và kẻ trộm đã mất lượt thử con đó.
+func TestStealStockCaught(t *testing.T) {
+	e, thief := thiefEnv(t, 1000)
+	id := e.grownStock(placeBarn, "pig")
+	id2 := e.grownStock(placeBarn, "pig")
+	e.feedOwnerDog()
+	hp := func() int {
+		u, err := e.w.User(ctx, thief)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return u.HP
+	}
+	before := hp()
+	res, err := e.f.StealStock(ctx, thief, e.uid, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	done, err := e.f.FinishSteal(ctx, thief, e.uid, res.Chase.ID, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if done.Result != "caught" || done.HPLost != ChaseBiteHP || hp() != before-ChaseBiteHP || !e.hasStock(id) {
+		t.Fatalf("bị bắt: %+v hp %d", done, hp())
+	}
+	_, err = e.f.StealStock(ctx, thief, e.uid, id)
+	wantStatus(t, err, http.StatusConflict) // bị bắt cũng mất lượt thử con đó
+	if v := e.mustVisit(thief); !v.Stock[0].Tried {
+		t.Fatalf("visit: %+v", v.Stock)
+	}
+	// Báo thoát quá sớm cũng tính là bị bắt.
+	res, err = e.f.StealStock(ctx, thief, e.uid, id2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if done, err = e.f.FinishSteal(ctx, thief, e.uid, res.Chase.ID, true); err != nil || done.Result != "caught" || !e.hasStock(id2) {
+		t.Fatalf("báo thoát sớm: %+v %v", done, err)
+	}
+}
+
+func TestStealStockChaseExpires(t *testing.T) {
+	e, thief := thiefEnv(t, 1000)
+	id := e.grownStock(placeBarn, "pig")
+	e.feedOwnerDog()
+	if _, err := e.f.StealStock(ctx, thief, e.uid, id); err != nil {
+		t.Fatal(err)
+	}
+	e.clock = e.clock.Add(ChaseTTLMs * time.Millisecond)
+	st := e.ok(e.f.State(ctx, e.uid))
+	if !e.hasStock(id) || len(st.Thefts) != 1 || !st.Thefts[0].Caught || st.Thefts[0].HPLost != ChaseBiteHP {
+		t.Fatalf("quá hạn: %+v", st.Thefts)
+	}
+	if v := e.mustVisit(e.newThief("keKhac")); v.Stock[0].Locked {
+		t.Fatalf("hết hạn vẫn khoá: %+v", v.Stock)
+	}
+}
+
+// Chủ thu hoặc bán con trong lúc đuổi: thoát mà không có đồ, không bị cắn.
+func TestStealStockOwnerActsDuringChase(t *testing.T) {
+	for _, act := range []string{"sell", "collect"} {
+		e, thief := thiefEnv(t, 1000)
+		id := e.grownStock(placeBarn, "pig")
+		e.feedOwnerDog()
+		res, err := e.f.StealStock(ctx, thief, e.uid, id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if act == "sell" {
+			if _, _, err = e.f.SellStock(ctx, e.uid, placeBarn, id); err != nil {
+				t.Fatal(err)
+			}
+		} else if _, _, err = e.f.CollectStock(ctx, e.uid, placeBarn, id); err != nil {
+			t.Fatal(err)
+		}
+		e.clock = e.clock.Add(ChaseMinMs * time.Millisecond)
+		u, _ := e.w.User(ctx, thief)
+		done, err := e.f.FinishSteal(ctx, thief, e.uid, res.Chase.ID, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		after, _ := e.w.User(ctx, thief)
+		if done.Result != "gone" || done.Qty != 0 || done.HPLost != 0 || after.HP != u.HP {
+			t.Fatalf("%s: %+v", act, done)
+		}
+		if n := e.ok(e.f.State(ctx, thief)).Storage.Products.Used; n != 0 {
+			t.Fatalf("%s: kẻ trộm có %d món", act, n)
+		}
+	}
+}
+
+// Hai cuộc đuổi cùng một con (dựng thẳng trong database) cũng không lấy được hai lần.
+func TestStealStockTwoTokensOneAnimal(t *testing.T) {
+	e, thief := thiefEnv(t, 1000)
+	other := e.newThief("keKhac")
+	id := e.grownStock(placeBarn, "pig")
+	e.feedOwnerDog()
+	res, err := e.f.StealStock(ctx, thief, e.uid, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	nowMs := e.clock.UnixMilli()
+	e.exec(`INSERT INTO farm_thefts (owner_id, thief_id, idx, planted_at, stock_id, item, qty, at, pending, token, started_ms, expires_ms)
+		VALUES (?, ?, -1, 0, ?, 'meat_pig', 0, ?, 1, 'token2', ?, ?)`, e.uid, other, id, e.clock.Unix(), nowMs, nowMs+ChaseTTLMs)
+	e.clock = e.clock.Add(ChaseMinMs * time.Millisecond)
+	first, err := e.f.FinishSteal(ctx, thief, e.uid, res.Chase.ID, true)
+	if err != nil || first.Result != "stolen" {
+		t.Fatalf("lần đầu: %+v %v", first, err)
+	}
+	second, err := e.f.FinishSteal(ctx, other, e.uid, "token2", true)
+	if err != nil || second.Result != "gone" {
+		t.Fatalf("lần hai: %+v %v", second, err)
+	}
+	if n := e.ok(e.f.State(ctx, other)).Storage.Products.Used; n != 0 {
+		t.Fatalf("lấy được hai lần: %d", n)
+	}
+}
+
+// Visit.stock chỉ có đúng các trường đã thống nhất, không lộ thông tin nuôi của chủ.
+func TestVisitStockFields(t *testing.T) {
+	e, thief := thiefEnv(t, 1000)
+	id := e.grownStock(placePond, "tilapia")
+	young := e.addStock(placeBarn, "pig", 0)
+	v := e.mustVisit(thief)
+	if len(v.Stock) != 2 {
+		t.Fatalf("stock: %+v", v.Stock)
+	}
+	byID := map[int64]VisitStock{}
+	for _, s := range v.Stock {
+		byID[s.ID] = s
+	}
+	if s := byID[id]; s.Place != placePond || s.Kind != "tilapia" || !s.Grown || s.Tried || s.Locked || s.Zombie {
+		t.Fatalf("cá: %+v", s)
+	}
+	if s := byID[young]; s.Place != placeBarn || s.Grown {
+		t.Fatalf("heo non: %+v", s)
+	}
+	raw, err := json.Marshal(v.Stock[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fields map[string]any
+	json.Unmarshal(raw, &fields)
+	want := []string{"grown", "id", "kind", "locked", "place", "tried", "zombie"}
+	got := make([]string, 0, len(fields))
+	for k := range fields {
+		got = append(got, k)
+	}
+	sort.Strings(got)
+	if !slices.Equal(got, want) {
+		t.Fatalf("trường của stock: %v", got)
+	}
+	// Nhà không có con nào: mảng rỗng, không phải null.
+	e2, thief2 := thiefEnv(t, 1000)
+	raw, _ = json.Marshal(e2.mustVisit(thief2))
+	if !strings.Contains(string(raw), `"stock":[]`) {
+		t.Fatalf("visit rỗng: %s", raw)
+	}
+}
+
+// Dòng trộm con không làm sai dấu của ô đất, và trộm cây không làm sai dấu của con.
+func TestStockTheftKeepsPlotMarks(t *testing.T) {
+	e, thief := thiefEnv(t, 1000)
+	e.ripeCarrots(1)
+	id := e.grownStock(placeBarn, "pig")
+	id2 := e.grownStock(placeBarn, "pig")
+	if _, err := e.f.StealStock(ctx, thief, e.uid, id); err != nil {
+		t.Fatal(err)
+	}
+	v := e.mustVisit(thief)
+	if v.Plots[0].Tried || v.Plots[0].Stolen || v.Plots[0].Locked {
+		t.Fatalf("ô đất bị đánh dấu nhầm: %+v", v.Plots[0])
+	}
+	if _, err := e.f.Steal(ctx, thief, e.uid, 0); err != nil {
+		t.Fatal(err)
+	}
+	v = e.mustVisit(thief)
+	if !v.Plots[0].Tried || len(v.Stock) != 1 || v.Stock[0].ID != id2 || v.Stock[0].Tried {
+		t.Fatalf("sau khi trộm cây: %+v %+v", v.Plots[0], v.Stock)
+	}
+	if v.StealsLeft != StealsPerDay-2 {
+		t.Fatalf("lượt chung: %d", v.StealsLeft)
+	}
+	if s, err := e.f.Summaries(ctx, thief, []int64{e.uid}); err != nil || s[e.uid].Ripe != 0 {
+		t.Fatalf("tóm tắt: %+v %v", s, err)
+	}
+}
+
+// Xoá con bằng đường trộm thì không sót dòng zombie.
+func TestStealStockLeavesNoZombieRow(t *testing.T) {
+	e, thief := thiefEnv(t, 1000)
+	id := e.grownStock(placeBarn, "pig")
+	e.feedOwnerDog()
+	res, err := e.f.StealStock(ctx, thief, e.uid, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Zombie tới đúng lúc đang đuổi.
+	e.exec(`INSERT INTO farm_stock_zombies (stock_id, user_id, wave, bites) VALUES (?, ?, ?, 0)`, id, e.uid, e.clock.Unix()/3600)
+	e.clock = e.clock.Add(ChaseMinMs * time.Millisecond)
+	if _, err := e.f.FinishSteal(ctx, thief, e.uid, res.Chase.ID, true); err != nil {
+		t.Fatal(err)
+	}
+	if n := e.count(`SELECT count(*) FROM farm_stock_zombies WHERE stock_id = ?`, id); n != 0 {
+		t.Fatalf("sót %d dòng zombie", n)
+	}
+}
+
+// Trộm không tạo thêm giá trị so với chủ tự thu.
+func TestStealStockWorthNotCreated(t *testing.T) {
+	stolen, thief := thiefEnv(t, 1000)
+	id := stolen.grownStock(placeBarn, "cow")
+	if _, err := stolen.f.StealStock(ctx, thief, stolen.uid, id); err != nil {
+		t.Fatal(err)
+	}
+	w1, err := stolen.f.Worth(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	self, thief2 := thiefEnv(t, 1000)
+	id = self.grownStock(placeBarn, "cow")
+	if _, _, err := self.f.CollectStock(ctx, self.uid, placeBarn, id); err != nil {
+		t.Fatal(err)
+	}
+	w2, err := self.f.Worth(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a, b := w1[stolen.uid]+w1[thief], w2[self.uid]+w2[thief2]; a != b {
+		t.Fatalf("tổng giá trị khi trộm %d, khi tự thu %d", a, b)
+	}
+	if w1[thief] == 0 {
+		t.Fatal("kẻ trộm phải có giá trị món trộm")
+	}
+}
+
+// Database cũ không có cột stock_id được nâng cấp lúc khởi động, dòng cũ vẫn đúng.
+func TestMigrateAddsStockIDColumn(t *testing.T) {
+	e, thief := thiefEnv(t, 1000)
+	e.ripeCarrots(1)
+	e.exec(`ALTER TABLE farm_thefts DROP COLUMN stock_id`)
+	e.exec(`INSERT INTO farm_thefts (owner_id, thief_id, idx, planted_at, item, qty, at) VALUES (?, ?, 0, ?, 'carrot', 1, ?)`,
+		e.uid, thief, e.ok(e.f.State(ctx, e.uid)).Plots[0].PlantedAt, e.clock.Unix())
+	for range 2 { // khởi động lại hai lần: lần sau không lỗi
+		if _, err := New(ctx, e.w); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if n := e.count(`SELECT count(*) FROM farm_thefts WHERE stock_id = 0`); n != 1 {
+		t.Fatalf("dòng cũ: %d", n)
+	}
+	if v := e.mustVisit(thief); !v.Plots[0].Tried {
+		t.Fatalf("dấu ô đất cũ mất: %+v", v.Plots[0])
 	}
 }

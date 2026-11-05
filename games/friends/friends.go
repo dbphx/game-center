@@ -408,7 +408,20 @@ func (f *Friends) FinishSteal(ctx context.Context, uid, other int64, chase strin
 	if err != nil {
 		return StealReply{}, err
 	}
-	return StealReply{StealResult: res, Farm: FarmView{Owner: owner, Visit: res.Visit}}, nil
+	return StealReply{StealResult: res, Farm: FarmView{Owner: owner, Friend: true, Visit: res.Visit}}, nil
+}
+
+// StealStock: uid trộm con id trong nông trại của bạn other.
+func (f *Friends) StealStock(ctx context.Context, uid, other, id int64) (StealReply, error) {
+	owner, err := f.requireFriend(ctx, uid, other)
+	if err != nil {
+		return StealReply{}, err
+	}
+	res, err := f.farm.StealStock(ctx, uid, other, id)
+	if err != nil {
+		return StealReply{}, err
+	}
+	return StealReply{StealResult: res, Farm: FarmView{Owner: owner, Friend: true, Visit: res.Visit}}, nil
 }
 
 // Steal: uid trộm ô plot trong nông trại của bạn other.
@@ -421,5 +434,5 @@ func (f *Friends) Steal(ctx context.Context, uid, other int64, plot int) (StealR
 	if err != nil {
 		return StealReply{}, err
 	}
-	return StealReply{StealResult: res, Farm: FarmView{Owner: owner, Visit: res.Visit}}, nil
+	return StealReply{StealResult: res, Farm: FarmView{Owner: owner, Friend: true, Visit: res.Visit}}, nil
 }

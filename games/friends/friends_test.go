@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/dbphx/game-center/games/farm"
@@ -277,4 +279,75 @@ func TestHandler(t *testing.T) {
 	if code, _ := call(an, "POST", "/api/friends/"+strconv.FormatInt(binh, 10)+"/steal", map[string]any{"plot": 0}); code != http.StatusForbidden {
 		t.Fatalf("không phải bạn mà trộm được: %d", code)
 	}
+}
+
+// Trộm con: chỉ bạn bè; API nhận đúng một trong {plot}, {stock}.
+func TestStealStockAPI(t *testing.T) {
+	e := newEnv(t)
+	an, binh := e.user("an01", "An"), e.user("binh", "Bình")
+	id := e.addGrownPig(binh)
+	_, err := e.f.StealStock(ctx, an, binh, id)
+	wantStatus(t, err, http.StatusForbidden)
+	if v, err := e.f.Farm(ctx, an, binh); err != nil || len(v.Stock) != 1 || v.StealsLeft != 0 {
+		t.Fatalf("người lạ xem: %+v %v", v, err)
+	}
+	e.ok(e.f.Request(ctx, an, "binh", 0))
+	e.ok(e.f.Accept(ctx, binh, an))
+	srv := httptest.NewServer(e.f.Handler())
+	t.Cleanup(srv.Close)
+	post := func(body string) (int, map[string]any) {
+		t.Helper()
+		req, _ := http.NewRequest("POST", fmt.Sprintf("%s/api/friends/%d/steal", srv.URL, binh), strings.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+e.tokens[an])
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		out := map[string]any{}
+		json.NewDecoder(res.Body).Decode(&out)
+		return res.StatusCode, out
+	}
+	if code, _ := post(fmt.Sprintf(`{"plot":0,"stock":%d}`, id)); code != http.StatusBadRequest {
+		t.Fatalf("cả hai: %d", code)
+	}
+	if code, _ := post(`{}`); code != http.StatusBadRequest {
+		t.Fatalf("không có gì: %d", code)
+	}
+	if code, _ := post(`{"stock":999999}`); code != http.StatusNotFound {
+		t.Fatalf("con không tồn tại: %d", code)
+	}
+	code, out := post(fmt.Sprintf(`{"stock":%d}`, id))
+	if code != 200 || out["result"] != "stolen" || out["item"] != "meat_pig" {
+		t.Fatalf("trộm con: %d %v", code, out)
+	}
+	if fm, ok := out["farm"].(map[string]any); !ok || len(fm["stock"].([]any)) != 0 || fm["friend"] != true {
+		t.Fatalf("farm sau khi trộm: %v", out["farm"])
+	}
+}
+
+// addGrownPig cho uid một con heo đã lớn.
+func (e *env) addGrownPig(uid int64) int64 {
+	e.t.Helper()
+	tx, err := e.w.Begin(ctx)
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx, `INSERT INTO farm_buildings (user_id, place, capacity) VALUES (?, 'barn', 100)`, uid); err != nil {
+		e.t.Fatal(err)
+	}
+	res, err := tx.ExecContext(ctx, `INSERT INTO farm_stock (user_id, place, kind, bought_at, ready_at, fed_until, grow_progress, progress_at)
+		VALUES (?, 'barn', 'pig', 1, 0, 0, 999999, 1)`, uid)
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	if err := tx.Commit(); err != nil {
+		e.t.Fatal(err)
+	}
+	return id
 }

@@ -4,19 +4,18 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 
 	"github.com/dbphx/game-center/internal/wallet"
 )
 
 // ---------- Chó giữ nhà ----------
 
-// Mỗi nông trại có một con chó. Cho ăn một phần thức ăn cho chó thì no DogFullFor giây; trong lúc no chó canh nhà
-// (bạn bè vào trộm có thể bị bắt), đói thì nằm ngủ, không canh.
+// Mỗi nông trại có một con chó. Mỗi phần thức ăn cho chó cộng thêm DogFullFor giây no, tối đa DogMaxFull giây tính từ
+// bây giờ; trong lúc no chó canh nhà (bạn bè vào trộm có thể bị bắt), đói thì nằm ngủ, không canh.
 const (
-	DogFeedID    = "feed_dog"
-	DogFullFor   = 4 * 3600 // 4 giờ no sau mỗi lần ăn
-	dogRefeedGap = 3600     // còn no dưới 1 giờ thì được cho ăn tiếp
+	DogFeedID  = "feed_dog"
+	DogFullFor = 4 * 3600      // mỗi phần thêm 4 giờ no
+	DogMaxFull = 7 * 24 * 3600 // no tối đa 7 ngày, để người chơi vẫn phải quay lại cho ăn
 )
 
 // Bảng chó, ô bị trộm và nhật ký trộm (tạo trong New cùng các bảng nông trại).
@@ -39,6 +38,7 @@ CREATE TABLE IF NOT EXISTS farm_thefts (
 	thief_id   INTEGER NOT NULL REFERENCES users(id),
 	idx        INTEGER NOT NULL,
 	planted_at INTEGER NOT NULL DEFAULT 0, -- vụ của ô lúc thử trộm: mỗi người chỉ thử một ô một lần mỗi vụ
+	stock_id   INTEGER NOT NULL DEFAULT 0, -- trộm con vật / cá: > 0, khi đó idx = -1 và planted_at = 0
 	item       TEXT NOT NULL,
 	qty        INTEGER NOT NULL,
 	caught     INTEGER NOT NULL DEFAULT 0, -- 1 = bị chó đuổi kịp, không lấy được gì
@@ -61,10 +61,11 @@ type Dog struct {
 	FedUntil int64 `json:"fedUntil"`
 	Guarding bool  `json:"guarding"` // còn no (now < fedUntil) thì canh nhà
 	FullFor  int64 `json:"fullFor"`
+	MaxFull  int64 `json:"maxFull"` // no tối đa bao nhiêu giây tính từ bây giờ
 }
 
 func loadDog(ctx context.Context, q querier, uid, now int64) (Dog, error) {
-	d := Dog{FullFor: DogFullFor}
+	d := Dog{FullFor: DogFullFor, MaxFull: DogMaxFull}
 	err := q.QueryRowContext(ctx, `SELECT fed_until FROM farm_dog WHERE user_id = ?`, uid).Scan(&d.FedUntil)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return Dog{}, err
@@ -73,13 +74,14 @@ func loadDog(ctx context.Context, q querier, uid, now int64) (Dog, error) {
 	return d, nil
 }
 
-// FeedDog cho chó ăn một phần thức ăn cho chó trong kho giống: no 4 giờ kể từ bây giờ.
-// Chỉ cho ăn khi chó đói hoặc còn no dưới 1 giờ.
+// FeedDog cho chó ăn một phần thức ăn cho chó trong kho giống: cộng dồn thêm 4 giờ vào thời gian còn no,
+// không vượt quá 7 ngày tính từ bây giờ.
 func (f *Farm) FeedDog(ctx context.Context, uid int64) (State, error) {
 	return f.do(ctx, uid, func(tx *wallet.Tx, s State) error {
 		now := f.now().Unix()
-		if left := s.Dog.FedUntil - now; left >= dogRefeedGap {
-			return conflict(fmt.Sprintf("Chó còn no, cho ăn lại sau %s", fmtWait(left-dogRefeedGap+1)))
+		until := max(now, s.Dog.FedUntil) + DogFullFor
+		if until-now > DogMaxFull {
+			return conflict("Chó đã no tối đa")
 		}
 		if s.Storage.Seeds.Items[DogFeedID] < 1 {
 			return conflict("Hết " + dogFeedName() + ", mua thêm ở cửa hàng")
@@ -91,7 +93,7 @@ func (f *Farm) FeedDog(ctx context.Context, uid int64) (State, error) {
 			return err
 		}
 		_, err := tx.ExecContext(ctx, `INSERT INTO farm_dog (user_id, fed_until) VALUES (?, ?)
-			ON CONFLICT (user_id) DO UPDATE SET fed_until = excluded.fed_until`, uid, now+DogFullFor)
+			ON CONFLICT (user_id) DO UPDATE SET fed_until = excluded.fed_until`, uid, until)
 		return err
 	})
 }

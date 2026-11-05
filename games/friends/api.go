@@ -73,6 +73,7 @@ func (f *Friends) Handler() http.Handler {
 		Username string `json:"username"`
 		ID       int64  `json:"id"`
 		Plot     *int   `json:"plot"`
+		Stock    *int64 `json:"stock"`
 		Chase    string `json:"chase"`
 		Escaped  bool   `json:"escaped"`
 	}
@@ -135,11 +136,16 @@ func (f *Friends) Handler() http.Handler {
 		if err := wallet.CheckZone(u, farm.GameID); err != nil {
 			return nil, err
 		}
-		plot := -1
-		if b.Plot != nil {
-			plot = *b.Plot
+		// Trộm ô đất hoặc con vật, đúng một trong hai.
+		if (b.Plot == nil) == (b.Stock == nil) {
+			return nil, bad("chọn một ô đất hoặc một con để trộm")
 		}
-		res, err := f.Steal(r.Context(), u.ID, id, plot)
+		var res StealReply
+		if b.Stock != nil {
+			res, err = f.StealStock(r.Context(), u.ID, id, *b.Stock)
+		} else {
+			res, err = f.Steal(r.Context(), u.ID, id, *b.Plot)
+		}
 		return f.withUser(r, u.ID, res, err)
 	})
 	// Kết quả cuộc chó đuổi: không kiểm tra máu (đang chạy mà bị cắn hết máu vẫn phải báo được).

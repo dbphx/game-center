@@ -2,7 +2,7 @@
 //   FarmVisit.id                — id chủ nhà đang thăm (0: đang ở nhà mình)
 //   FarmVisit.load()            — tải nông trại bạn → { owner, dog, stealsLeft, farm } (farm cùng dạng state của mình)
 //   FarmVisit.banner(v)         — băng "Đang ở nhà …" trên cảnh
-//   FarmVisit.steal(plot)       — trộm một ô chín → stolen (chó đói) / chase (chó canh: phải chạy ra cổng) hoặc null khi lỗi
+//   FarmVisit.steal(target)     — trộm một ô chín (số ô) hoặc một con đã lớn ({ stock: id }) → stolen (chó đói) / chase (chó canh: phải chạy ra cổng) hoặc null khi lỗi
 //   FarmVisit.finish(chase, ok) — kết thúc cuộc chó đuổi (ok = đã ra tới cổng) → stolen / caught
 //   FarmVisit.flyToBag(el, id)  — hình nông sản bay từ ô vào túi trên băng
 //   FarmVisit.notifyThefts(list)— báo vụ trộm mới kể từ lần trước (nhà mình)
@@ -24,6 +24,7 @@
   const sec = (t) => (t > 1e12 ? t / 1000 : t || 0);
 
   let last = null; // lần tải gần nhất
+  const caps = {}; // sức chứa hiển thị của chuồng / sân / ao: không thu lại khi con bị trộm để cảnh không nhảy
 
   // Dạng trả về có thể là { owner, plots, dog, stealsLeft } hoặc kèm cả state nông trại ({ farm: {...} }).
   function normalize(r) {
@@ -38,6 +39,13 @@
       zombie: !!p.zombie, // đang có zombie — không trộm được
     }));
     const now = f.now || r.now || Date.now() / 1000;
+    // Khách chỉ biết loại con, đã lớn chưa và dấu trộm: các hàm vẽ của farm.js coi là con không đói, không có sản phẩm.
+    const stock = f.stock || r.stock || [];
+    const pen = (place, key) => {
+      const list = stock.filter((s) => s.place === place).map((s) => ({ ...s, boughtAt: 0, readyAt: 0, fedAt: 0, progress: s.grown ? 1 : 0 }));
+      caps[place] = Math.max(caps[place] || 5, list.length);
+      return list.length ? { capacity: caps[place], used: list.length, [key]: list } : null;
+    };
     return {
       owner: r.owner || { id, name: 'bạn', level: 1 },
       dog: r.dog || f.dog || null,
@@ -49,9 +57,9 @@
         plots,
         maxPlots: f.maxPlots || plots.length,
         nextPlotPrice: 0, // nhà bạn: không mua đất
-        barn: f.barn || null,
-        yard: f.yard || null,
-        pond: f.pond || null,
+        barn: pen('barn', 'animals'),
+        yard: pen('yard', 'animals'),
+        pond: pen('pond', 'fish'),
         storage: { seeds: EMPTY_STORE, products: EMPTY_STORE },
         dog: r.dog || f.dog || null,
       },
@@ -92,12 +100,14 @@
     const now = v.farm.now;
     const guard = dogGuarding(v.dog, now);
     const ripe = v.farm.plots.filter((p) => p.crop && now >= p.readyAt && !p.stolen && !p.tried && !p.zombie).length;
+    const pets = [v.farm.barn && v.farm.barn.animals, v.farm.yard && v.farm.yard.animals, v.farm.pond && v.farm.pond.fish]
+      .flatMap((x) => x || []).filter((a) => a.grown && !a.tried && !a.locked && !a.zombie).length;
     el.innerHTML = `${C.head(look(v.owner), { cls: 'vb-avatar' })}
       <span class="vb-text"><span>Đang ở nhà <b>${esc(v.owner.name)}</b></span>
         <span class="vb-meta">${v.friend
           ? `<span class="vb-steal${v.stealsLeft ? '' : ' none'}" id="visit-bag">${I.svg('hand')}còn ${v.stealsLeft} lượt trộm<span class="vb-long"> hôm nay</span></span>`
           : `<span class="vb-steal none">${I.svg('eye')}Chỉ xem<span class="vb-long"> — kết bạn để trộm</span></span>`}
-          <span class="vb-ripe">${I.svg('sprout')}${ripe} ô chín</span>
+          <span class="vb-ripe">${I.svg('sprout')}${ripe} ô chín${pets ? ` · ${pets} con lớn` : ''}</span>
           <span class="vb-dog ${guard ? 'on' : 'off'}">${I.svg('shield')}Chó: ${guard ? 'đang canh' : 'đang đói'}</span></span></span>
       ${v.friend ? '' : `<button class="vb-friend" id="vb-friend" ${v.pending ? 'disabled' : ''}>${I.svg('userPlus')}${v.pending ? 'Đã mời' : 'Kết bạn'}</button>`}
       <a class="btn primary vb-home" href="/farm/">${I.svg('door')}Về nhà</a>`;
@@ -119,12 +129,14 @@
     }
   }
 
-  async function steal(plot) {
+  async function steal(target) {
     try {
-      const r = await A.api(`/api/friends/${id}/steal`, { method: 'POST', body: { plot } });
+      const body = typeof target === 'object' ? target : { plot: target };
+      const r = await A.api(`/api/friends/${id}/steal`, { method: 'POST', body });
       // Server trả kèm nông trại bạn sau khi trộm (cùng dạng GET /api/friends/{id}/farm).
       if (r.farm) {
-        last = normalize({ ...r.farm, owner: r.farm.owner || (last && last.owner) });
+        // Trộm được nghĩa là đang là bạn; phản hồi trộm không kèm cờ friend.
+        last = normalize({ ...r.farm, friend: true, owner: r.farm.owner || (last && last.owner) });
       } else if (last) {
         last.stealsLeft = Math.max(0, last.stealsLeft - 1);
       }
@@ -140,7 +152,7 @@
   async function finish(chase, escaped) {
     try {
       const r = await A.api(`/api/friends/${id}/steal/finish`, { method: 'POST', body: { chase, escaped } });
-      if (r.farm) last = normalize({ ...r.farm, owner: r.farm.owner || (last && last.owner) });
+      if (r.farm) last = normalize({ ...r.farm, friend: true, owner: r.farm.owner || (last && last.owner) });
       return r;
     } catch (e) {
       if (e.status === 401) return A.requireLogin();
@@ -156,6 +168,7 @@
     const a = from.getBoundingClientRect();
     const b = bag.getBoundingClientRect();
     const ghost = document.createElement('img');
+    ghost.onerror = () => { ghost.onerror = null; ghost.src = `${IMG}fish_${item}.png`; }; // cá không có ảnh item_
     ghost.src = `${IMG}item_${item}.png`;
     ghost.className = 'steal-fly';
     ghost.alt = '';
@@ -226,6 +239,9 @@
           <img src="${IMG}item_${esc(t.item)}.png" alt="" width="34" height="34">
           <span>${line(t)}<small class="muted">${ago(t.at)}</small></span></li>`).join('')}</ul>`
       : '<p class="muted">Chưa có ai trộm nhà bạn. Cho chó ăn đều để nó canh nhà nhé!</p>';
+    body.querySelectorAll('.theft-list img').forEach((img) => {
+      img.onerror = () => { img.onerror = null; img.src = img.src.replace('/item_', '/fish_'); }; // cá không có ảnh item_
+    });
     const btn = $('btn-thefts');
     if (btn) btn.classList.remove('new');
     if (all.length) markSeen(all[0].at);

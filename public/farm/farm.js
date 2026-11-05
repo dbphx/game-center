@@ -459,6 +459,7 @@
       const locked = user.level < cfg.level;
       return `<span class="obj-label offer"><b>${name}</b><em>${locked ? `${I.svg('lock')}Cần Lv ${cfg.level}` : `${I.svg('coins')}Mua ${xu(cfg.price)}`}</em></span>`;
     }
+    if (VISIT) return `<span class="obj-label"><b>${name}</b><em>${pen.used} con</em></span>`; // khách không biết sức chứa của chủ
     return `<span class="obj-label"><b>${name}</b>${capBar(pen)}<em>${pen.used}/${pen.capacity}</em></span>`;
   }
 
@@ -1448,6 +1449,7 @@
   function drawBadges(p) {
     const a = p.data;
     if (p.decor) return;
+    if (VISIT) return drawVisitBadges(p);
     const ready = grown(a);
     const hungry = isHungry(a);
     const pr0 = prodReady(a);
@@ -1734,6 +1736,43 @@
     return { x, y, face: side > 0 ? 'left' : 'right' };
   }
 
+  // Nhà bạn: khách không có thông tin nuôi của chủ, chỉ hiện con trộm được hoặc đang có zombie.
+  const canStealPet = (a) => !!visit && visit.friend && visit.stealsLeft > 0 && grown(a) && !a.tried && !a.locked && !a.zombie;
+  function drawVisitBadges(p) {
+    const a = p.data;
+    const can = canStealPet(a);
+    const key = `${can}|${!!a.zombie}`;
+    if (key === p.badgeKey) return;
+    p.badgeKey = key;
+    p.badges.innerHTML = a.zombie
+      ? '<span class="tag-pill pet-visit-tag">Có zombie</span>'
+      : can ? `<span class="tag-pill go steal pet-visit-tag">${I.svg('hand')}Trộm</span>` : '';
+    p.el.classList.toggle('ready', can);
+  }
+
+  async function stealPet(id) {
+    const p = pets.get(id);
+    if (!p || p.decor || !visit || chase) return;
+    const a = p.data;
+    const name = find(p.fish ? 'fish' : 'animals', a.kind).name;
+    if (a.zombie) return A.toast(`${name} này đang có zombie, không trộm được`);
+    if (!grown(a)) return A.toast(`${name} này chưa lớn, chưa trộm được`);
+    if (a.tried) return A.toast(`Bạn đã thử trộm ${name} này rồi — mỗi con chỉ thử được một lần`);
+    if (a.locked) return A.toast(`Có người đang trộm ${name} này, chó đang đuổi`);
+    if (!visit.friend) return A.toast(`Kết bạn với ${visit.owner.name} để được trộm`);
+    if (!visit.stealsLeft) return A.toast(`Hôm nay đã hết lượt trộm nhà ${visit.owner.name}`);
+    const r = await VISIT.steal({ stock: id });
+    if (!r) {
+      // Con đã đổi trạng thái trên server (bị thu, bị trộm...): tải lại cho đúng.
+      const v = await VISIT.load();
+      if (v) applyVisit(v);
+      return;
+    }
+    if (r.user) user = r.user;
+    if (r.result === 'chase' && r.chase) return startChase(r.chase, { crop: r.chase.item });
+    stealDone(r, p.el, r.item);
+  }
+
   function clickPet(id) {
     const p = pets.get(id);
     if (!p || chase) return;
@@ -1749,7 +1788,7 @@
     p.until = 8;
     p.dir = me.x > p.x ? 1 : -1;
     const st = standPoint(p);
-    const job = { key: '_pet', face: st.face, work: false, run: () => { react(p); if (p.decor || !VISIT) openCard(p); } };
+    const job = { key: '_pet', face: st.face, work: false, run: () => { if (VISIT && !p.decor) return stealPet(id); react(p); openCard(p); } };
     if (Math.hypot(me.x - st.x, me.y - st.y) < 16) return arrive(job);
     walkTo(st.x, st.y, job);
   }
@@ -1772,6 +1811,12 @@
 
   const DOG_FEED = 'feed_dog';
   const DOG_FULL = 4 * 3600;
+  const DOG_MAX = 7 * 24 * 3600;
+  // Đã no gần mức tối đa: thêm một phần nữa sẽ vượt, server từ chối.
+  const dogMaxed = () => {
+    const d = dogInfo();
+    return !!d && Math.max(0, d.fedUntil - nowS()) + (d.fullFor || DOG_FULL) > (d.maxFull || DOG_MAX);
+  };
   const dogInfo = () => (farm && farm.dog) || null;
   // Không có thông tin chó (máy chủ cũ) thì coi như chó trang trí, không đói.
   const dogHungry = () => !!dogInfo() && !window.FarmVisit.dogGuarding(dogInfo(), nowS());
@@ -1791,7 +1836,9 @@
       btns = '<span class="muted">Chó trang trí — máy chủ chưa hỗ trợ cho chó ăn.</span>';
     } else {
       const have = feedHave(DOG_FEED);
-      btns = have
+      btns = dogMaxed()
+        ? '<span class="pc-ask">Chó đã no tối đa</span>'
+        : have
         ? `<button class="primary" data-card="dog-feed">${dogFeedImg(18)}Cho ăn (dùng 1 ${esc(dogFeedName())} — còn ${have}) <kbd>F</kbd></button>`
         : `<span class="pc-ask">Hết ${esc(dogFeedName())}</span><button class="primary" data-card="buy-feed">${dogFeedImg(18)}Mua thức ăn</button>`;
       btns += `<button data-card="thefts">${I.svg('shield')}Nhật ký trộm</button>`;
@@ -1800,8 +1847,8 @@
     el.innerHTML = `<button class="link icon-only pc-close" data-card="close" title="Đóng">${I.svg('x')}</button>
       <b>Chó giữ nhà${VISIT && visit ? ` của ${esc(visit.owner.name)}` : ''}</b>
       ${d ? `<span class="pc-state ${hungry ? 'hungry' : 'full'}">${hungry ? 'Đói bụng — không canh nhà' : `No · đang canh nhà · còn ${countdown(left)}`}</span>
-      <span class="pc-full"><span style="width:${Math.round(Math.min(1, left / fullFor) * 100)}%"></span></span>` : ''}
-      <span class="pc-note">Chó no thì canh nhà: đuổi kẻ trộm, đuổi kịp là cắn mất 50 máu. Mỗi bữa no ${fmtDur(fullFor)}.</span>
+      <span class="pc-full"><span style="width:${left > 0 ? Math.max(3, Math.round(Math.min(1, left / ((d && d.maxFull) || DOG_MAX)) * 100)) : 0}%"></span></span>` : ''}
+      <span class="pc-note">Chó no thì canh nhà: đuổi kẻ trộm, đuổi kịp là cắn mất 50 máu. Mỗi phần thức ăn no thêm ${fmtDur(fullFor)}, cộng dồn tối đa ${fmtDur((d && d.maxFull) || DOG_MAX)}.</span>
       <span class="pc-btns">${btns}</span>`;
     el.classList.remove('hidden');
     placeCard();
@@ -1809,6 +1856,7 @@
 
   async function feedDog() {
     if (VISIT) return;
+    if (dogMaxed()) return A.toast('Chó đã no tối đa');
     if (!feedHave(DOG_FEED)) {
       closeCard();
       A.toast(`Hết ${dogFeedName()} — mua ở cửa hàng`);
@@ -1819,7 +1867,7 @@
     const res = await call('/api/farm/dog/feed', {});
     if (!res) return;
     if (d) react(d);
-    A.toast(`Chó đã no — canh nhà ${fmtDur((dogInfo() && dogInfo().fullFor) || DOG_FULL)}`);
+    A.toast(`Chó no thêm ${fmtDur((dogInfo() && dogInfo().fullFor) || DOG_FULL)} — canh nhà còn ${fmtDur(Math.max(0, ((dogInfo() && dogInfo().fedUntil) || 0) - nowS()))}`);
     if (card) renderCard();
   }
 
@@ -1852,7 +1900,7 @@
       }
       const name = { barn: 'Chuồng', pond: 'Ao cá', seeds: 'Kho giống', products: 'Kho thóc', nest: 'Ổ trứng', buyplot: 'Đất' }[key];
       if (name) o.verb = `${name} nhà bạn`;
-      o.run = () => A.toast(`Đây là nhà ${visit ? visit.owner.name : 'bạn'} — chỉ trộm được ô cây đã chín`);
+      o.run = () => A.toast(`Đây là nhà ${visit ? visit.owner.name : 'bạn'} — chỉ trộm được cây đã chín và con đã lớn`);
     }
   }
 
@@ -1889,6 +1937,8 @@
     } else if (r.result === 'stolen') {
       VISIT.flyToBag(from, r.item || crop);
       A.toast(`Trộm được ${r.qty || 1} ${product(r.item || crop).name} — đã cất vào kho thóc nhà bạn`);
+    } else if (r.result === 'gone') {
+      A.toast('Chủ nhà đã thu trước khi bạn thoát — không lấy được gì');
     }
     renderHUD();
     applyVisit(VISIT.last());
@@ -2911,7 +2961,8 @@
       p.el.classList.add('kb-target');
       x = p.x;
       y = p.y - sheetOf(p).fh * scaleOf(p) - 18;
-      verb = p.decor ? 'Chó giữ nhà' : p.zombie ? 'Đập zombie' : `${find(p.fish ? 'fish' : 'animals', p.kind).name}`;
+      const petName = p.decor ? '' : find(p.fish ? 'fish' : 'animals', p.kind).name;
+      verb = p.decor ? 'Chó giữ nhà' : p.zombie ? 'Đập zombie' : VISIT && canStealPet(p.data) ? `Trộm ${petName}` : petName;
     } else {
       const o = objs[t.key];
       x = o.hx;
@@ -3078,7 +3129,7 @@
     const pet = e.target.closest('[data-pet]');
     if (pet) return clickPet(+pet.dataset.pet);
     // Bấm mặt ao (không phải nhãn): ra bờ thả cám cho cá.
-    if (e.target.closest('.pond-water') && farm.pond) return goTo('pond', () => feedPond(wx, wy));
+    if (e.target.closest('.pond-water') && farm.pond && !VISIT) return goTo('pond', () => feedPond(wx, wy));
     const obj = e.target.closest('[data-obj]');
     if (obj) return goTo(obj.dataset.obj);
     walkTo(wx, wy);
@@ -3923,7 +3974,7 @@
     feedAll();
   });
   // Thu hoạch tất cả: ô chín (harvest-all) + cá đã lớn (fish/collect-all), toast tổng hợp.
-  const readyFish = () => ((farm.pond && farm.pond.fish) || []).filter((f) => grown(f) && !f.zombie);
+  const readyFish = () => (VISIT ? [] : (farm.pond && farm.pond.fish) || []).filter((f) => grown(f) && !f.zombie);
   const zombieFishGrown = () => ((farm.pond && farm.pond.fish) || []).filter((f) => grown(f) && f.zombie).length;
   // Gia súc (chuồng) và gia cầm (sân) đã lớn, lấy thịt được.
   const readyMeat = () => [...pets.values()].filter((p) => !p.decor && !p.fish && !p.zombie && grown(p.data));

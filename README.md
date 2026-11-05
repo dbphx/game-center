@@ -493,12 +493,15 @@ Bằng tổng thì ai tạo tài khoản trước đứng trên. Bảng chỉ c�
 
 - **Kết bạn**: mời theo tên đăng nhập (không phân biệt hoa thường) hoặc id; người kia chấp nhận / từ chối (người mời cũng
   rút lại được bằng decline); huỷ kết bạn xoá cả hai chiều. Tối đa 100 bạn. Hai người mời chéo nhau thì thành bạn luôn.
+- **Trộm con**: cũng trộm được vật nuôi và cá đã lớn đang không có zombie (con non và chó thì không). Kẻ trộm nhận đúng món chủ nhận
+  khi thu con đó (thịt hoặc cá) vào kho sản phẩm, không có XP; chủ mất con, chuồng hoặc ao trống lại một chỗ. Chung 5 lượt / ngày với
+  trộm cây, mỗi người chỉ thử mỗi con một lần. Chó canh như với cây; chủ thu hoặc bán con đó trong lúc đuổi thì kẻ trộm thoát mà không có gì.
 - **Trộm**: chỉ vào được nông trại của bạn bè, chỉ trộm ô cây đã chín. Mỗi ô chỉ ra 1 nông sản nên kẻ trộm lấy đúng
   nông sản đó vào kho sản phẩm của mình (kho đầy thì không trộm được); chủ thu hoạch ô bị trộm chỉ còn XP. Mỗi vụ một ô
   chỉ bị trộm thành công một lần, và mỗi người chỉ được **thử** mỗi ô một lần mỗi vụ (bị bắt cũng mất lượt thử).
   Mỗi người được thử 5 lần / ngày (giờ Việt Nam) trên một nhà.
-- **Chó giữ nhà**: cho ăn 1 phần *Thức ăn cho chó* (40 xu, mua ở cửa hàng, cất kho giống) thì no **4 giờ**; chỉ cho ăn
-  được khi đói hoặc còn no dưới 1 giờ. Chó đói không canh: trộm lấy được ngay. Chó no thì **đuổi theo** kẻ trộm
+- **Chó giữ nhà**: cho ăn 1 phần *Thức ăn cho chó* (40 xu, mua ở cửa hàng, cất kho giống) thì no thêm **4 giờ**, cộng dồn
+  vào thời gian còn lại, tối đa **7 ngày** (42 phần). Chó đói không canh: trộm lấy được ngay. Chó no thì **đuổi theo** kẻ trộm
   (tốc độ 255, người chơi 230 đơn vị / giây): chạy ra tới cổng là thoát, lấy được đồ; bị chó chạm thì mất **50 máu**
   (hết máu thì nằm viện như bị xe đụng), không lấy được gì. Trong lúc đuổi ô đó khoá với người khác. Server kiểm tra:
   báo thoát sớm hơn 1,5 giây kể từ lúc bắt đầu, hoặc không báo kết quả trong 20 giây, đều tính là bị bắt.
@@ -509,10 +512,10 @@ Bằng tổng thì ai tạo tài khoản trước đứng trên. Bảng chỉ c�
 | `GET /api/friends` | | `{friends:[{id,name,level,gender,outfit,hair,wings,face,online,ripe,dogGuarding}], incoming:[…], outgoing:[…]}`; `ripe` = số ô chín chưa bị trộm |
 | `POST /api/friends/request` | `{username}` hoặc `{id}` | gửi lời mời (trùng / đã là bạn → 409); trả như GET |
 | `POST /api/friends/accept`, `/decline`, `/remove` | `{id}` | trả như GET |
-| `GET /api/friends/{id}/farm` | | `{owner, now, plots:[{index,crop,plantedAt,readyAt,ripe,stolen,tried,locked}], dog:{fedUntil,guarding,fullFor}, stealsLeft}`; không phải bạn → 403 |
-| `POST /api/friends/{id}/steal` | `{plot}` | chó đói: `{result:"stolen", item, qty, hpLost:0, farm, user}`; chó canh: `{result:"chase", chase:{id,plot,item,qty,startedAt,dogSpeed,minMs,expiresAt}, …}` (ms); chưa chín / đã bị trộm / đã thử / đang có người trộm / hết lượt / kho đầy → 409 |
-| `POST /api/friends/{id}/steal/finish` | `{chase, escaped}` | `{result:"stolen"\|"caught"\|"gone", item, qty, hpLost, farm, user}`; `gone` = chủ đã thu hoạch trong lúc đuổi; token sai → 404, đã dùng → 409 |
-| `POST /api/farm/dog/feed` | | cho chó ăn; `GET /api/farm` có thêm `dog:{fedUntil,guarding,fullFor}` và `thefts:[{at,thief:{id,name},item,qty,caught,hpLost,chasing}]` |
+| `GET /api/friends/{id}/farm` | | `{owner, now, plots:[{index,crop,plantedAt,readyAt,ripe,stolen,tried,locked}], stock:[{id,place,kind,grown,tried,locked,zombie}], dog:{fedUntil,guarding,fullFor,maxFull}, stealsLeft}`; không phải bạn thì `stealsLeft` = 0 |
+| `POST /api/friends/{id}/steal` | `{plot}` hoặc `{stock}` (có cả hai hoặc không có gì → 400) | chó đói: `{result:"stolen", item, qty, hpLost:0, farm, user}`; chó canh: `{result:"chase", chase:{id,plot,stock,item,qty,startedAt,dogSpeed,minMs,expiresAt}, …}` (ms); chưa chín / đã bị trộm / đã thử / đang có người trộm / hết lượt / kho đầy / con chưa lớn / có zombie → 409; con không tồn tại hoặc của nhà khác → 404; không phải bạn → 403 |
+| `POST /api/friends/{id}/steal/finish` | `{chase, escaped}` | `{result:"stolen"\|"caught"\|"gone", item, qty, hpLost, farm, user}`; `gone` = chủ đã thu hoạch, thu hoặc bán con trong lúc đuổi; token sai → 404, đã dùng → 409 |
+| `POST /api/farm/dog/feed` | | cho chó ăn, cộng dồn (no tối đa → 409); `GET /api/farm` có thêm `dog:{fedUntil,guarding,fullFor,maxFull}` và `thefts:[{at,thief:{id,name},item,qty,caught,hpLost,chasing}]` |
 
 ## Tiến Lên Miền Nam
 
