@@ -47,7 +47,8 @@ type State struct {
 	WinBy       *tienlen.WinBy     `json:"winBy"`     // tới bằng 3♠ thì multiplier = 2
 	CardsLeft   []int              `json:"cardsLeft"` // số lá bị tính tiền từng người (cóng 26)
 	Transfers   []tienlen.Transfer `json:"transfers"` // tiền chặt / thối (mức cược)
-	Money       []int              `json:"money"`     // tổng xu từng người được/mất trong ván, khi hết ván
+	Money       []int              `json:"money"`     // tổng xu từng người được/mất trong ván (sau thuế), khi hết ván
+	Tax         []int              `json:"tax"`       // thuế 5% tiền thắng từng người đã nộp (máy: 0), khi hết ván
 	XP          []int              `json:"xp"`        // XP từng người nhận được, khi hết ván (máy: 0)
 	Bet         int                `json:"bet"`       // mức cược cho ván tới
 	GameBet     int                `json:"gameBet"`   // mức cược của ván đang hiển thị
@@ -69,8 +70,13 @@ func (r *Room) stateFor(viewer *Player) State {
 			s.Delta = g.Delta
 			s.WinBy = g.WinBy
 			s.CardsLeft = g.CardsLeft
-			for _, units := range g.Money() {
-				s.Money = append(s.Money, units*r.gameBet)
+			for i, units := range g.Money() {
+				tax := 0
+				if p := r.players[i]; !p.Bot {
+					tax = int(r.gameTax[p.UserID])
+				}
+				s.Money = append(s.Money, units*r.gameBet-tax)
+				s.Tax = append(s.Tax, tax)
 			}
 			for _, p := range r.players {
 				xp := 0

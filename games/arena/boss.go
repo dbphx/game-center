@@ -311,7 +311,7 @@ func (r *Room) finishBoss(win bool, reason string) {
 	r.stopTimer()
 	r.phase = PhaseOver
 	r.turn = ""
-	res := &Result{Reason: reason, Money: map[string]int64{}, XP: map[string]int64{}, Victory: win}
+	res := &Result{Reason: reason, Money: map[string]int64{}, Tax: map[string]int64{}, XP: map[string]int64{}, Victory: win}
 	if win {
 		res.Winner = BossID // phe người chơi thắng; giao diện xem Victory
 		res.Loot = map[string][]GemInfo{}

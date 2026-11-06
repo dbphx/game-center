@@ -373,6 +373,12 @@ func (g *Game) settle(ctx context.Context, r *room, round int64, dice [3]string)
 				return err
 			}
 		}
+		// Thuế 5% tiền thắng ròng của vòng, một dòng sổ cái riêng.
+		if tax := wallet.GameTax(s.won - s.bet); tax > 0 {
+			if err := tx.Charge(uid, tax, GameID, wallet.TaxNote(fmt.Sprintf("Bầu cua vòng %d", round))); err != nil {
+				return err
+			}
+		}
 		xp := int64(XPPlay)
 		if s.won > s.bet {
 			xp += XPWin
@@ -384,7 +390,10 @@ func (g *Game) settle(ctx context.Context, r *room, round int64, dice [3]string)
 	b := r.banker
 	banked := b != nil && len(order) > 0
 	var bankroll int64
+	var bankTax int64 // quỹ cái lời thì nộp thuế 5% từ quỹ
 	if banked {
+		bankTax = wallet.GameTax(bankNet)
+		bankNet -= bankTax
 		bankroll = b.bankroll + bankNet
 		if _, err := tx.ExecContext(ctx, `UPDATE baucua_banks SET bankroll = ? WHERE room = ?`, bankroll, r.code); err != nil {
 			return err
@@ -405,6 +414,7 @@ func (g *Game) settle(ctx context.Context, r *room, round int64, dice [3]string)
 	}
 	if banked {
 		b.bankroll = bankroll
+		b.taxed += bankTax
 		r.bankNet[round] = bankNet
 	}
 	return nil
@@ -427,9 +437,10 @@ type Mine struct {
 	Bets   map[string]int64 `json:"bets"`
 	Total  int64            `json:"total"`
 	Won    *int64           `json:"won,omitempty"` // chỉ có khi mở bát: số xu nhận về
-	Net    *int64           `json:"net,omitempty"`
-	Banker bool             `json:"banker"` // mình đang làm cái bàn này
-	Host   bool             `json:"host"`   // mình là chủ bàn
+	Net    *int64           `json:"net,omitempty"` // lời / lỗ của vòng, sau thuế
+	Tax    *int64           `json:"tax,omitempty"` // thuế 5% tiền thắng ròng của vòng (0 khi không lời)
+	Banker bool             `json:"banker"`        // mình đang làm cái bàn này
+	Host   bool             `json:"host"`          // mình là chủ bàn
 }
 
 type Player struct {
@@ -445,7 +456,7 @@ type Banker struct {
 	Who
 	Bankroll int64  `json:"bankroll"`
 	Start    int64  `json:"start"`         // quỹ lúc bắt đầu làm cái
-	Net      *int64 `json:"net,omitempty"` // lãi / lỗ của quỹ trong vòng vừa mở bát
+	Net      *int64 `json:"net,omitempty"` // lãi / lỗ của quỹ trong vòng vừa mở bát (lãi đã trừ thuế 5%)
 	Leaving  bool   `json:"leaving"`       // đã xin thôi, thôi sau khi chốt vòng này
 }
 
@@ -654,7 +665,9 @@ func (g *Game) state(ctx context.Context, r *room, c clock, uid int64) (State, e
 			won += payout(face, n, dice)
 		}
 		net := won - s.Mine.Total
-		s.Mine.Won, s.Mine.Net = &won, &net
+		tax := wallet.GameTax(net)
+		net -= tax
+		s.Mine.Won, s.Mine.Net, s.Mine.Tax = &won, &net, &tax
 	}
 	var bal int64
 	if err := tx.QueryRowContext(ctx, `SELECT balance FROM users WHERE id = ?`, uid).Scan(&bal); err != nil {

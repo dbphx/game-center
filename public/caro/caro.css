@@ -364,6 +364,7 @@ button.hseat.empty:hover .seat-join { transform: translate(-50%, -50%) scale(1.0
 .gain.plus { background: #d6f5cf; color: #2b7a2f; }
 .gain.minus { background: #ffe1e1; color: #b3261e; }
 .gain.xp { background: #dff0ff; color: #2f6fae; }
+.gain.tax { background: #f3ece0; color: #8a6d3b; font-weight: 700; }
 .result-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 4px; }
 
 /* ---------- Màn hẹp ---------- */

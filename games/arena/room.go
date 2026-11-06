@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/dbphx/game-center/internal/chat"
+	"github.com/dbphx/game-center/internal/wallet"
 )
 
 const (
@@ -145,6 +146,7 @@ type Result struct {
 	Winner string           `json:"winner"` // id người thắng, "" khi hoà
 	Reason string           `json:"reason"` // last | rounds | draw | left
 	Money  map[string]int64 `json:"money"`
+	Tax    map[string]int64 `json:"tax,omitempty"` // thuế 5% tiền thắng đã thu, theo id người chơi
 	XP     map[string]int64 `json:"xp"`
 	// Chế độ boss: Victory = phe người chơi thắng; Loot = ngọc rơi theo id người chơi.
 	Victory bool                 `json:"victory,omitempty"`
@@ -900,7 +902,7 @@ func (r *Room) finish(winner *Player, reason string) {
 	r.stopTimer()
 	r.phase = PhaseOver
 	r.turn = ""
-	res := &Result{Reason: reason, Money: map[string]int64{}, XP: map[string]int64{}}
+	res := &Result{Reason: reason, Money: map[string]int64{}, Tax: map[string]int64{}, XP: map[string]int64{}}
 	if winner != nil {
 		res.Winner = winner.ID
 	} else {
@@ -937,13 +939,20 @@ func (r *Room) finish(winner *Player, reason string) {
 	ctx := context.Background()
 	if len(deltas) > 0 {
 		note := fmt.Sprintf("Đấu trường bàn %s", r.Code)
-		balances, err := r.hub.bank.Settle(ctx, GameID, note, deltas)
+		balances, taxes, err := wallet.SettleTaxed(ctx, r.hub.bank, GameID, note, deltas)
 		if err != nil {
 			log.Printf("arena: ghi kết quả %s: %v", note, err)
 		}
 		for _, p := range r.players {
 			if bal, ok := balances[p.UserID]; ok && !p.Bot {
 				p.Coins = bal
+			}
+		}
+		// Thuế 5% tiền thắng: tiền hiện ở kết quả là số sau thuế.
+		for _, p := range r.players {
+			if t := taxes[p.UserID]; t > 0 && !p.Bot {
+				res.Money[p.ID] -= t
+				res.Tax[p.ID] = t
 			}
 		}
 	}

@@ -236,11 +236,15 @@ func TestOnlineWinPaysBet(t *testing.T) {
 	if st.Phase != PhaseOver || st.Result == nil || st.Result.Winner != "x" || st.Result.Reason != "five" || len(st.WinLine) != 5 {
 		t.Fatalf("X thắng: %+v", st.Result)
 	}
-	if bal, xp := bank.get(1); bal != 1100 || xp != XPWin {
+	// Thắng 100 xu, nộp thuế 5% (5 xu); kết quả hiện số sau thuế.
+	if bal, xp := bank.get(1); bal != 1095 || xp != XPWin {
 		t.Fatalf("An thắng: ví %d XP %d", bal, xp)
 	}
 	if bal, xp := bank.get(2); bal != 900 || xp != XPLose {
 		t.Fatalf("Bình thua: ví %d XP %d", bal, xp)
+	}
+	if r := st.Result; r.Money[a.Player.ID] != 95 || r.Tax[a.Player.ID] != 5 || r.Tax[b.Player.ID] != 0 || r.Money[b.Player.ID] != -100 {
+		t.Fatalf("tiền và thuế trong kết quả: %+v", r)
 	}
 	// Chơi lại: cả hai bấm, người thua (Bình) cầm X đi trước.
 	if err := a.Room.Handle(a.Player, Message{T: "rematch"}); err != nil {

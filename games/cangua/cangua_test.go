@@ -7,6 +7,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/dbphx/game-center/internal/wallet"
 )
 
 // ---------- Luật ----------
@@ -547,7 +549,8 @@ func TestWinPaysEachLoser(t *testing.T) {
 	balA, xpA := bank.get(1)
 	balB, xpB := bank.get(2)
 	balC, _ := bank.get(3)
-	if balA != 1200 || balB != 900 || balC != 900 || xpA != XPWin || xpB != XPOther {
+	// Thắng 200 xu, nộp thuế 5% (10 xu).
+	if balA != 1190 || balB != 900 || balC != 900 || xpA != XPWin || xpB != XPOther {
 		t.Fatalf("tiền / XP: %d %d %d · %d %d", balA, balB, balC, xpA, xpB)
 	}
 	// Chơi lại: cả 3 bấm thì ván mới, người thắng đi trước.
@@ -581,7 +584,7 @@ func TestBotGameFinishesAndTimeoutAutoplay(t *testing.T) {
 	st := ca.last()
 	bal, xp := bank.get(1)
 	if *st.Winner == a.Player.ID {
-		if bal != 1020 || xp != XPWin {
+		if bal != 1019 || xp != XPWin { // thắng 20 xu, thuế 5% (1 xu)
 			t.Fatalf("thắng 2 máy: %d xu %d XP", bal, xp)
 		}
 	} else if bal != 990 || xp != XPOther {
@@ -615,7 +618,7 @@ func TestLeaveMidGameAutoplaysAndSpectator(t *testing.T) {
 	do(t, a, Message{T: "leave"})
 	balA, _ := bank.get(1)
 	balB, _ := bank.get(2)
-	if balA+balB != 2000 || balA == 1000 {
+	if t5 := wallet.GameTax(max(balA, balB) - 1000); balA+balB+t5 != 2000 || balA == 1000 { // người thắng nộp thuế 5%
 		t.Fatalf("ván phải được chốt: %d %d", balA, balB)
 	}
 	if a.Room.hub.RoomCount() != 0 {

@@ -6,6 +6,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/dbphx/game-center/internal/wallet"
 )
 
 type fakeConn struct {
@@ -185,6 +187,44 @@ func TestSoloWithBotsSettlesIntoWallet(t *testing.T) {
 			t.Error("hết ván phải lộ bài còn lại")
 		}
 	}
+}
+
+// Người thắng xu bị thu thuế 5% tiền thắng ròng; Money hiện số sau thuế, Tax là thuế đã thu.
+func TestWinnerPaysGameTax(t *testing.T) {
+	for range 40 {
+		bank := newBank(map[int64]int64{1: 1_000_000})
+		h := NewHub(bank, fastOptions)
+		s, c := mustCreate(t, h, an)
+		s.Room.Handle(s.Player, Message{T: "setBet", Bet: 100})
+		for range 3 {
+			s.Room.Handle(s.Player, Message{T: "addBot"})
+		}
+		if err := s.Room.Handle(s.Player, Message{T: "start"}); err != nil {
+			t.Fatal(err)
+		}
+		waitFor(t, "hết ván", func() bool { return c.lastState().Phase == PhaseOver })
+		st := c.lastState()
+		net, tax := int64(st.Money[0]), int64(st.Tax[0])
+		if net+tax <= 0 {
+			if tax != 0 {
+				t.Fatalf("thua mà vẫn bị thuế %d", tax)
+			}
+			continue
+		}
+		if tax != wallet.GameTax(net+tax) || tax == 0 {
+			t.Fatalf("thắng %d xu: thuế %d, muốn %d", net+tax, tax, wallet.GameTax(net+tax))
+		}
+		if bank.get(an.ID) != 1_000_000+net || st.Players[0].Coins != 1_000_000+net {
+			t.Fatalf("ví sau thuế: %d, muốn %d", bank.get(an.ID), 1_000_000+net)
+		}
+		for i := 1; i < 4; i++ {
+			if st.Tax[i] != 0 {
+				t.Fatalf("máy không có ví, không có thuế: %v", st.Tax)
+			}
+		}
+		return
+	}
+	t.Fatal("40 ván không thắng ván nào")
 }
 
 func TestTwoHumansSeeOnlyOwnHand(t *testing.T) {

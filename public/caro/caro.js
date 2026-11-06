@@ -483,8 +483,10 @@
     $('result-sub').textContent = resultLine();
     const money = mine && r.money ? r.money[mine.id] || 0 : 0;
     const xp = mine && r.xp ? r.xp[mine.id] || 0 : 0;
+    // Thắng xu thì đã trừ thuế 5% tiền thắng (số hiện là sau thuế).
+    const tax = mine && r.tax ? r.tax[mine.id] || 0 : 0;
     // Bàn chơi vui (cược 0) không thắng thua xu: chỉ hiện XP.
-    const coins = s.gameBet ? `<span class="gain ${money > 0 ? 'plus' : money < 0 ? 'minus' : ''}">${I.svg('coins')}${signed(money)} xu</span>` : '';
+    const coins = s.gameBet ? `<span class="gain ${money > 0 ? 'plus' : money < 0 ? 'minus' : ''}">${I.svg('coins')}${signed(money)} xu</span>${tax ? `<span class="gain tax">thuế 5%: ${tax.toLocaleString('vi-VN')} xu</span>` : ''}` : '';
     $('result-gain').innerHTML = mine ? `${coins}${xp ? `<span class="gain xp">+${xp} XP</span>` : ''}` : '';
     const ready = mine && mine.ready;
     $('btn-rematch').disabled = !mine || !!ready;

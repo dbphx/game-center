@@ -586,10 +586,13 @@
         const label = p.cong ? 'Cóng' : state.instant || place > 3 ? '' : last ? 'Bét' : PLACES[place];
         const cls = money > 0 ? 'delta-plus' : money < 0 ? 'delta-minus' : '';
         const xp = state.xp && state.xp[i] ? `<span class="delta-xp">+${state.xp[i]} XP</span>` : '';
+        // Người thắng xu nộp thuế 5% tiền thắng; số tiền hiện là sau thuế.
+        const t = state.tax ? state.tax[i] : 0;
+        const tax = t ? `<span class="left tax">thuế 5%: ${xu(t)} xu</span>` : '';
         // Ván dừng khi có người về nhất: những người còn lại hiện số lá đang cầm.
         const n = state.cardsLeft ? state.cardsLeft[i] : 0;
         const left = place > 0 && n > 0 && !state.instant ? `<span class="left">còn ${n} lá</span>` : '';
-        return `<li><span class="place">${label}</span><span class="who">${face(p)}${escapeHtml(playerName(i))}${left}</span>${xp}<span class="${cls}">${signed(money)} xu</span></li>`;
+        return `<li><span class="place">${label}</span><span class="who">${face(p)}${escapeHtml(playerName(i))}${left}${tax}</span>${xp}<span class="${cls}">${signed(money)} xu</span></li>`;
       })
       .join('');
 

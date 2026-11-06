@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/dbphx/game-center/internal/chat"
+	"github.com/dbphx/game-center/internal/wallet"
 )
 
 // Lobby là mã sòng chung: luôn mở, máy luôn làm cái.
@@ -46,7 +47,8 @@ type banker struct {
 	uid      int64
 	bankroll int64
 	start    int64
-	leaving  bool // đã xin thôi, thôi sau khi chốt vòng có cược
+	leaving  bool  // đã xin thôi, thôi sau khi chốt vòng có cược
+	taxed    int64 // thuế 5% quỹ đã nộp từ lúc làm cái (chỉ để ghi chú khi rút quỹ)
 }
 
 // room là một bàn bầu cua (sòng chung hoặc bàn riêng), sống trong bộ nhớ.
@@ -155,6 +157,9 @@ func (g *Game) release(ctx context.Context, r *room) error {
 		note += fmt.Sprintf(" (lãi %d)", net)
 	case net < 0:
 		note += fmt.Sprintf(" (lỗ %d)", -net)
+	}
+	if b.taxed > 0 {
+		note += fmt.Sprintf(", đã nộp thuế %d%%: %d xu", wallet.GameTaxPercent, b.taxed)
 	}
 	if b.bankroll > 0 {
 		if err := tx.Credit(b.uid, b.bankroll, GameID, note); err != nil {

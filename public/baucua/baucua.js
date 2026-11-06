@@ -294,7 +294,7 @@
       const names = st.dice.map((d) => (FACES.find((f) => f.id === d) || { name: d }).name).join(' · ');
       const diff = typeof banker().net === 'number' ? banker().net : (banker().bankroll || 0) - fundAtRoll;
       setTimeout(() => {
-        banner(diff > 0 ? `${names} — Cái ăn ${xu(diff)} xu!` : diff < 0 ? `${names} — Cái chung ${xu(-diff)} xu` : names, diff > 0 ? 'win' : diff < 0 ? 'lose' : '');
+        banner(diff > 0 ? `${names} — Cái ăn ${xu(diff)} xu! (đã trừ thuế 5%)` : diff < 0 ? `${names} — Cái chung ${xu(-diff)} xu` : names, diff > 0 ? 'win' : diff < 0 ? 'lose' : '');
         if (diff) float($('bank-fund'), `${diff > 0 ? '+' : '−'}${xu(Math.abs(diff))} xu`, diff > 0 ? 'plus' : 'minus');
       }, 500);
       setTimeout(refreshUser, 900);
@@ -317,7 +317,9 @@
         if (counts[face]) flyChips(cell, $('wallet'), 3, 200, chipStack(amount).pop() || 100);
         else flyChips(cell, $('dealer'), 2, 0, chipStack(amount).pop() || 100);
       }
-      banner(net > 0 ? `${names} — Bạn thắng ${xu(net)} xu!` : net < 0 ? `${names} — Thua ${xu(-net)} xu` : `${names} — Hoà vốn`, net > 0 ? 'win' : net < 0 ? 'lose' : '');
+      // net là tiền lời sau thuế 5%; mine.tax là thuế đã nộp.
+      const tax = mine.tax || 0;
+      banner(net > 0 ? `${names} — Bạn thắng ${xu(net)} xu!${tax ? ` (thuế 5%: ${xu(tax)} xu)` : ''}` : net < 0 ? `${names} — Thua ${xu(-net)} xu` : `${names} — Hoà vốn`, net > 0 ? 'win' : net < 0 ? 'lose' : '');
       float($('wallet'), `${net >= 0 ? '+' : '−'}${xu(Math.abs(net))} xu`, net >= 0 ? 'plus' : 'minus');
       // Mỗi vòng có cược được XP_PLAY, có lời thêm XP_WIN (server cộng; ở đây chỉ hiện chữ bay).
       setTimeout(() => float($('level-badge'), `+${XP_PLAY + (net > 0 ? XP_WIN : 0)} XP`, 'xp'), 350);

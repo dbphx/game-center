@@ -164,7 +164,7 @@ func TestSettleOnceAndReveal(t *testing.T) {
 	e.bet("cua", 100) // ra 2 lần: nhận 300
 	e.bet("ga", 50)   // ra 1 lần: nhận 100
 	e.bet("bau", 10)  // không ra: mất
-	// 840 sau khi đặt; nhận 400 → 1240.
+	// 840 sau khi đặt; nhận 400 → 1240, lời 240 nộp thuế 5% (12) → 1228.
 
 	e.clock = e.clock.Add(BettingTime + RollingTime)
 	var wg sync.WaitGroup
@@ -188,11 +188,11 @@ func TestSettleOnceAndReveal(t *testing.T) {
 	if s.Phase != PhaseResult || len(s.Dice) != 3 || s.Dice[0] != "cua" {
 		t.Fatalf("mở bát phải lộ xúc xắc: %s %v", s.Phase, s.Dice)
 	}
-	if *s.Mine.Won != 400 || *s.Mine.Net != 240 || *s.Balance != 1240 {
+	if *s.Mine.Won != 400 || *s.Mine.Net != 228 || s.Mine.Tax == nil || *s.Mine.Tax != 12 || *s.Balance != 1228 {
 		t.Fatalf("nhận %d, lời %d, số dư %d", *s.Mine.Won, *s.Mine.Net, *s.Balance)
 	}
 	u := e.user(e.uid)
-	if u.Balance != 1240 || u.XP != XPPlay+XPWin {
+	if u.Balance != 1228 || u.XP != XPPlay+XPWin {
 		t.Fatalf("ví %d, XP %d", u.Balance, u.XP)
 	}
 	if len(s.History) != 1 || s.History[0][1] != "ga" {
@@ -205,7 +205,7 @@ func TestSettleOnceAndReveal(t *testing.T) {
 	if s.Round != round0+1 || s.Phase != PhaseBetting || s.Mine.Total != 0 || len(s.History) != 1 {
 		t.Fatalf("vòng mới: %+v", s)
 	}
-	if e.user(e.uid).Balance != 1240 {
+	if e.user(e.uid).Balance != 1228 {
 		t.Fatal("không được trả thưởng lần hai")
 	}
 }
@@ -219,7 +219,7 @@ func TestLateSettle(t *testing.T) {
 	if _, err := e.g.State(ctx, Lobby, 0); err != nil {
 		t.Fatal(err)
 	}
-	if u := e.user(e.uid); u.Balance != 1300 || u.XP != XPPlay+XPWin {
+	if u := e.user(e.uid); u.Balance != 1285 || u.XP != XPPlay+XPWin { // nhận 400, lời 300, thuế 5% (15)
 		t.Fatalf("chốt muộn: ví %d, XP %d", u.Balance, u.XP)
 	}
 }
@@ -306,7 +306,7 @@ func TestNoPayoutWhileRolling(t *testing.T) {
 		t.Fatalf("đang lắc đã trả thưởng: pha %s, số dư %d, ví %d", s.Phase, *s.Balance, e.user(e.uid).Balance)
 	}
 	e.clock = e.clock.Add(RollingTime)
-	if s, _ = e.g.State(ctx, Lobby, e.uid); s.Phase != PhaseResult || *s.Balance != 1200 {
+	if s, _ = e.g.State(ctx, Lobby, e.uid); s.Phase != PhaseResult || *s.Balance != 1190 { // lời 200, thuế 10
 		t.Fatalf("mở bát: pha %s, số dư %d", s.Phase, *s.Balance)
 	}
 }

@@ -477,9 +477,11 @@ button.tseat.empty:hover .seat-join { transform: translate(-50%, -50%) scale(1.0
 .dialog h2 { margin: 0 0 14px; font-size: 22px; font-weight: 800; }
 .dialog ol { text-align: left; list-style: none; padding: 0; margin: 0 0 12px; display: flex; flex-direction: column; gap: 6px; }
 .dialog ol li { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border); }
-.dialog ol li .who { flex: 1; display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.dialog ol li .who { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font-weight: 600; }
+.dialog ol li > span:last-child { white-space: nowrap; }
 .dialog ol li .place { font-size: 12px; color: var(--muted); min-width: 34px; }
 .dialog ol li .who .left { font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.dialog ol li .who .left.tax { flex-basis: 100%; padding-left: 36px; color: #8a6d3b; } /* thuế xuống dòng dưới tên */
 .dialog ol .avatar { width: 26px; height: 26px; font-size: 12px; }
 .dialog ol .avatar.bot .icon { width: 14px; height: 14px; }
 #result-transfers { text-align: left; list-style: none; padding: 10px 0 0; margin: 0 0 16px; border-top: 1px solid var(--border); font-size: 13px; color: var(--muted); line-height: 1.8; }

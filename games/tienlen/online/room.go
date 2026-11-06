@@ -20,6 +20,7 @@ import (
 
 	"github.com/dbphx/game-center/games/tienlen"
 	"github.com/dbphx/game-center/internal/chat"
+	"github.com/dbphx/game-center/internal/wallet"
 )
 
 const (
@@ -132,6 +133,7 @@ type Room struct {
 	bet      int             // xu mỗi mức cược, chủ phòng chỉnh giữa các ván
 	gameBet  int             // mức cược của ván đang chơi / vừa xong
 	gameXP   map[int64]int64 // XP từng người nhận được ở ván vừa xong
+	gameTax  map[int64]int64 // thuế 5% tiền thắng từng người đã nộp ở ván vừa xong
 	chatLog  chat.Log        // 20 tin chat gần nhất của bàn
 }
 
@@ -480,6 +482,7 @@ func (r *Room) startGame() error {
 	r.game.Start()
 	r.gameBet = r.bet
 	r.gameXP = nil
+	r.gameTax = nil
 	r.phase = PhasePlaying
 	r.afterMove()
 	return nil
@@ -509,10 +512,13 @@ func (r *Room) settle() {
 		}
 	}
 	note := fmt.Sprintf("Tiến Lên phòng %s, ván %d", r.Code, r.game.GameNo)
-	balances, err := r.hub.bank.Settle(context.Background(), GameID, note, deltas)
+	balances, taxes, err := wallet.SettleTaxed(context.Background(), r.hub.bank, GameID, note, deltas)
+	r.gameTax = taxes
 	if err != nil {
 		log.Printf("tienlen: ghi kết quả %s: %v", note, err)
-		return
+		if balances == nil {
+			return
+		}
 	}
 	for _, p := range r.players {
 		if bal, ok := balances[p.UserID]; ok && !p.Bot {

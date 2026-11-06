@@ -318,7 +318,7 @@ func TestFireMoveAimTurns(t *testing.T) {
 	if st.Result.Winner == ss[1].Player.ID {
 		win = 2
 	}
-	if bal, xp := bank.get(int64(win)); bal != 1100 || xp != XPWin {
+	if bal, xp := bank.get(int64(win)); bal != 1095 || xp != XPWin { // thắng 100, thuế 5%
 		t.Fatalf("người thắng: ví %d XP %d", bal, xp)
 	}
 	if bal, xp := bank.get(int64(3 - win)); bal != 900 || xp != XPLose {
@@ -412,7 +412,7 @@ func TestLeaveMidGameForfeits(t *testing.T) {
 	if st.Phase != PhaseOver || st.Result.Winner != ss[1].Player.ID || st.Result.Reason != "left" {
 		t.Fatalf("còn một người thì thắng: %+v", st.Result)
 	}
-	if bal, _ := bank.get(2); bal != 1200 {
+	if bal, _ := bank.get(2); bal != 1190 { // thắng 200, thuế 5%
 		t.Fatalf("người thắng ăn cược 2 người bỏ trận: %d", bal)
 	}
 	if bal, _ := bank.get(1); bal != 900 {

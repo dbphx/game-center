@@ -159,7 +159,7 @@ func TestBankerSettlesFromBankroll(t *testing.T) {
 	if b := s.Room.Banker; b == nil || b.Bankroll != 2500 || b.Net == nil || *b.Net != -500 {
 		t.Fatalf("quỹ sau vòng: %+v", s.Room.Banker)
 	}
-	if got := e.user(p).Balance; got != 5000-1000+1500 {
+	if got := e.user(p).Balance; got != 5000-1000+1500-25 { // lời 500, thuế 5% (25)
 		t.Fatalf("khách nhận sai: %d", got)
 	}
 	if u := e.user(e.uid); u.Balance != 7000 || u.XP != XPPlay {
@@ -170,7 +170,7 @@ func TestBankerSettlesFromBankroll(t *testing.T) {
 	e.clock = e.clock.Add(ResultTime)
 	e.betIn(code, p, "bau", 500)
 	e.clock = e.clock.Add(BettingTime + RollingTime)
-	if b := e.state(code, e.uid).Room.Banker; b.Bankroll != 3000 || *b.Net != 500 {
+	if b := e.state(code, e.uid).Room.Banker; b.Bankroll != 2975 || *b.Net != 475 { // quỹ lời 500, nộp thuế 25
 		t.Fatalf("quỹ lời: %+v", b)
 	}
 	if xp := e.user(e.uid).XP; xp != 2*XPPlay+XPWin {
@@ -206,7 +206,7 @@ func TestBankRules(t *testing.T) {
 	if _, err := e.g.Bank(ctx, code, p, 3000); status(err) != http.StatusConflict {
 		t.Fatalf("bàn đã có người làm cái, được %v", err)
 	}
-	if e.user(p).Balance != 5000-100+300 {
+	if e.user(p).Balance != 5000-100+300-10 { // lời 200, thuế 10
 		t.Fatal("vòng trước bàn vẫn do máy trả thưởng")
 	}
 }
@@ -234,7 +234,7 @@ func TestUnbankTiming(t *testing.T) {
 	if s := e.state(code, p); s.Room.Banker != nil || s.Room.MaxRoundTotal != 0 {
 		t.Fatalf("chốt xong phải thôi làm cái: %+v", s.Room.Banker)
 	}
-	if b := e.user(e.uid).Balance; b != 10000+600 {
+	if b := e.user(e.uid).Balance; b != 10000+600-30 { // quỹ lời 600, nộp thuế 30
 		t.Fatalf("hoàn quỹ kèm lãi: %d", b)
 	}
 
@@ -243,7 +243,7 @@ func TestUnbankTiming(t *testing.T) {
 	if _, err := e.g.Bank(ctx, code, e.uid, 4000); err != nil {
 		t.Fatal(err)
 	}
-	if s, _ := e.g.Unbank(ctx, code, e.uid); s.Room.Banker != nil || *s.Balance != 10600 {
+	if s, _ := e.g.Unbank(ctx, code, e.uid); s.Room.Banker != nil || *s.Balance != 10570 {
 		t.Fatalf("thôi ngay: %+v số dư %d", s.Room.Banker, *s.Balance)
 	}
 }
@@ -279,7 +279,7 @@ func TestBankerAutoQuit(t *testing.T) {
 		e.betIn(code, p, "cua", 1000) // ra 3 lần: nhận 4000, quỹ còn 0
 		e.clock = e.clock.Add(BettingTime + RollingTime)
 		s := e.state(code, e.uid)
-		if s.Room.Banker != nil || e.user(p).Balance != 8000 || e.user(e.uid).Balance != 7000 {
+		if s.Room.Banker != nil || e.user(p).Balance != 8000-150 || e.user(e.uid).Balance != 7000 { // khách lời 3000, thuế 5% (150)
 			t.Fatalf("hết quỹ: %+v, khách %d, cái %d", s.Room.Banker, e.user(p).Balance, e.user(e.uid).Balance)
 		}
 	})
@@ -335,11 +335,17 @@ func TestBankerConcurrent(t *testing.T) {
 	}
 	wg.Wait()
 	b := e.state(code, e.uid).Room.Banker
-	var players int64
+	// Tiền cân sau khi cộng lại phần thuế 5% đã thu từ tiền lời (của khách và của quỹ).
+	var players, taxes int64
 	for _, id := range ids {
-		players += e.user(id).Balance
+		bal := e.user(id).Balance
+		players += bal
+		taxes += taxOfNet(bal - 20000)
 	}
-	if b == nil || b.Bankroll < 0 || players+b.Bankroll != 5*20000+30000 {
+	if b != nil {
+		taxes += taxOfNet(b.Bankroll - 30000)
+	}
+	if b == nil || b.Bankroll < 0 || players+b.Bankroll+taxes != 5*20000+30000 {
 		t.Fatalf("tiền không cân: khách %d, quỹ %+v", players, b)
 	}
 }
@@ -401,4 +407,15 @@ func TestRoomChat(t *testing.T) {
 	if s := e.state(Lobby, e.uid); len(s.Chat) != 0 {
 		t.Fatalf("sòng chung không thấy chat bàn riêng: %+v", s.Chat)
 	}
+}
+
+// taxOfNet tìm thuế đã thu khi tiền lời sau thuế là net: lời gộp g có g − thuế(g) = net (lấy g lớn nhất,
+// vì làm tròn xuống có thể cho hai g cùng net; ở test này tiền cược là bội của 1000).
+func taxOfNet(net int64) int64 {
+	for g := 2 * net; g >= net; g-- {
+		if g-wallet.GameTax(g) == net {
+			return wallet.GameTax(g)
+		}
+	}
+	return 0
 }
