@@ -11,12 +11,13 @@ import (
 // mỗi khu cần một lượng máu tối thiểu mới được vào.
 const (
 	MaxHP          = 100
-	RegenSeconds   = 60   // tự hồi 1 HP mỗi 60 giây (khi không nằm viện)
-	CarDamage      = 20   // mỗi lần bị xe đụng
-	HitCooldownMs  = 1500 // bỏ qua va chạm dồn dập trong 1.5 giây
-	HospitalStay   = 300  // nằm viện 5 phút thì tự xuất viện đầy máu
-	DischargePrice = 200  // xu để xuất viện ngay
-	HealPerHP      = 2    // xu cho mỗi HP thiếu khi chữa lúc không nằm viện
+	RegenSeconds   = 60     // tự hồi 1 HP mỗi 60 giây (khi không nằm viện)
+	CarDamage      = 20     // mỗi lần bị xe đụng
+	HitCooldownMs  = 1500   // bỏ qua va chạm dồn dập trong 1.5 giây
+	HospitalStay   = 300    // nằm viện 5 phút thì tự xuất viện đầy máu
+	DischargePrice = 200    // xu để xuất viện ngay
+	HospitalFee    = 500000 // viện phí bị trừ mỗi lần vào viện; không đủ thì trừ hết số đang có
+	HealPerHP      = 2      // xu cho mỗi HP thiếu khi chữa lúc không nằm viện
 
 	SitRegenMultiplier = 2  // ngồi ghế hồi máu nhanh gấp đôi
 	SitHeartbeat       = 60 // mỗi lần báo "đang ngồi" giữ ghế 60 giây; giao diện báo lại khoảng 30 giây một lần
@@ -190,6 +191,9 @@ func (w *Wallet) Hit(ctx context.Context, id int64, source string) (User, error)
 	hp -= CarDamage
 	if hp <= 0 {
 		hp, until = 0, t.now+HospitalStay
+		if err := t.admit(id); err != nil {
+			return User{}, err
+		}
 	}
 	if err := t.setHP(id, hp, until, nowMs); err != nil {
 		return User{}, err

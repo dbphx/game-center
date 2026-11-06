@@ -95,9 +95,14 @@ func TestHeal(t *testing.T) {
 		t.Fatalf("sổ cái chữa trị sai: %+v", h)
 	}
 
+	// Đủ xu trả viện phí vào viện rồi vẫn còn để xuất viện ngay.
+	w.db.Exec(`UPDATE users SET balance = balance + ? WHERE id = ?`, HospitalFee, u.ID)
 	for range 5 {
 		tick(2 * time.Second)
 		mustHit(t, w, u.ID)
+	}
+	if h, _ := w.History(ctx, u.ID, 1); h[0].Note != "Viện phí nằm viện" || h[0].Delta != -HospitalFee {
+		t.Fatalf("sổ cái viện phí sai: %+v", h)
 	}
 	if u, err = w.Heal(ctx, u.ID); err != nil || u.HP != MaxHP || u.HospitalUntil != 0 || u.Balance != StartBalance-80-DischargePrice {
 		t.Fatalf("xuất viện ngay: %+v %v", u, err)

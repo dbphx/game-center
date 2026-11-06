@@ -23,7 +23,7 @@ mỗi khu là một game hoặc tiện ích, tất cả **dùng chung một ví 
 
 - Nhân vật có 100 HP, tự hồi 1 HP/phút. **Bị xe tông −20 HP.**
 - **Ngồi ghế** hồi máu nhanh gấp đôi (1 HP / 30 giây); bị xe tông thì đứng dậy, đang nằm viện thì không ngồi được.
-- Hết HP → **nằm viện 5 phút** (bị đưa tới Bệnh viện, không đi / vào khu được), hồi dần tới đầy; trả 200 xu để xuất viện ngay.
+- Hết HP → **nằm viện 5 phút** (bị đưa tới Bệnh viện, không đi / vào khu được) và **bị trừ viện phí 500.000 xu** mỗi lần (không đủ thì mất hết số đang có), hồi dần tới đầy; trả 200 xu để xuất viện ngay.
   Khi khoẻ có thể chữa nhanh ở Bệnh viện: 2 xu mỗi HP thiếu.
 - HP tối thiểu để vào khu (server cũng chặn): Shop 10, Casino 30, Nông trại 40; Quảng trường, Ngân hàng, Bệnh viện 0.
 - Server Go giữ bài và kiểm tra mọi nước đi; giao diện web (HTML/CSS/JS thuần, hình vẽ SVG) được nhúng thẳng vào binary.

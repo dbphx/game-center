@@ -1932,7 +1932,7 @@
       A.toast(`Bị chó cắn! −${hp} máu`);
       // Hết máu thì phải vào viện: về thành phố (bệnh viện mở ngay).
       if (user && user.hospitalUntil > (user.now || Date.now() / 1000)) {
-        setTimeout(() => A.alert('Bạn bị chó cắn ngất xỉu, được đưa vào Bệnh viện.', { title: 'Vào viện' }).then(() => (location.href = '/')), 1400);
+        setTimeout(() => A.alert('Bạn bị chó cắn ngất xỉu, được đưa vào Bệnh viện và bị trừ viện phí.', { title: 'Vào viện' }).then(() => (location.href = '/')), 1400);
       }
     } else if (r.result === 'stolen') {
       VISIT.flyToBag(from, r.item || crop);
@@ -3305,7 +3305,7 @@
       g.style.top = `${r.top}px`;
       document.body.appendChild(g);
       setTimeout(() => g.remove(), 1700);
-      if (user.hospitalUntil && user.hospitalUntil > nowS()) A.toast('Hết máu! Bạn được đưa vào bệnh viện.');
+      if (user.hospitalUntil && user.hospitalUntil > nowS()) A.toast('Hết máu! Bạn được đưa vào bệnh viện và bị trừ viện phí.');
       else if (!zombieTotal()) A.toast('Đã đập hết zombie — cây an toàn!');
     } finally {
       zombieHits.delete(index);
@@ -3337,7 +3337,7 @@
       g.style.top = `${r.top}px`;
       document.body.appendChild(g);
       setTimeout(() => g.remove(), 1700);
-      if (user.hospitalUntil && user.hospitalUntil > nowS()) A.toast('Hết máu! Bạn được đưa vào bệnh viện.');
+      if (user.hospitalUntil && user.hospitalUntil > nowS()) A.toast('Hết máu! Bạn được đưa vào bệnh viện và bị trừ viện phí.');
       else if (!zombieTotal()) A.toast('Đã đập hết zombie — nông trại an toàn!');
     } finally {
       zombieHits.delete(key);
