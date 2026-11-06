@@ -3123,6 +3123,40 @@
    "source": [
     "DCity (vẽ / ghép bằng PIL cho dự án)"
    ]
+  },
+  {
+   "file": "beanstalk_tile.png",
+   "w": 220,
+   "h": 480,
+   "use": "Thân đậu thần lặp dọc liền mạch ở mép trái màn tầng mây",
+   "anchor": "top-center",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "cloud_band.png",
+   "w": 640,
+   "h": 230,
+   "use": "Dải mây ngang lặp liền mạch, mỗi tầng mây; chậu đứng trên mặt mây",
+   "anchor": "bottom-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)",
+    "Background Elements Remastered"
+   ]
+  },
+  {
+   "file": "vine_trim.png",
+   "w": 640,
+   "h": 80,
+   "use": "Dây leo xoăn có lá lặp ngang, viền mép dưới dải mây",
+   "anchor": "bottom-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
   }
  ]
 }

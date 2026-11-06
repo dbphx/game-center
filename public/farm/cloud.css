@@ -1,20 +1,20 @@
-/* Màn mây: phủ toàn màn hình, nền trời bằng ảnh. Hình chậu và cây đều là PNG. */
+/* Màn mây kiểu khu vườn trên mây: thân đậu thần lặp dọc ở mép trái, mỗi tầng một dải mây ngang có chậu đứng trên mặt mây.
+   Mọi hình là ảnh PNG (beanstalk_tile, cloud_band, vine_trim, pot_*, crop_*); CSS chỉ xếp chỗ. */
 #cloud-scene {
+  --s: .9;          /* tỉ lệ chậu / cây */
+  --stalk: 150px;   /* bề rộng cột thân đậu */
+  --band: 220px;    /* chiều cao dải mây */
   position: fixed; inset: 0; z-index: 6500; overflow-x: hidden; overflow-y: auto;
-  padding: 12px 16px 32px; display: flex; flex-direction: column; align-items: center; gap: 10px;
-  background: #bfe6f7 url(/img/toon/farm/bg_sky_hills.png) center bottom / cover no-repeat;
+  background: #bfe6f7 url(/img/toon/farm/bg_sky_hills.png) center bottom / cover no-repeat fixed;
   font-family: var(--font-body, inherit); color: #1f4560;
 }
 #cloud-scene.hidden { display: none; }
 body.in-cloud .toast { z-index: 9000; }
 
-.cloud-puff { position: absolute; pointer-events: none; opacity: .9; }
-.cloud-puff.a { left: 4%; top: 90px; width: 190px; }
-.cloud-puff.b { right: 5%; top: 150px; width: 230px; }
-.cloud-puff.c { left: 44%; top: 40px; width: 150px; opacity: .7; }
-
-.cloud-head, .cloud-tabs, .cloud-facts, .cloud-garden, .cloud-shut, .cloud-zombie { position: relative; z-index: 1; width: 100%; max-width: 860px; }
-.cloud-head { display: flex; align-items: center; gap: 10px; }
+.cloud-head {
+  position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 10px; padding: 10px 16px;
+  background: rgba(191, 230, 247, .88); border-bottom: 2px solid rgba(255, 255, 255, .8);
+}
 .cloud-head h2 { flex: 1; margin: 0; text-align: center; font: 800 22px var(--font-title); color: #17506f; text-shadow: 0 1px 0 #fff; white-space: nowrap; }
 .cloud-down, .cloud-coins {
   display: inline-flex; align-items: center; gap: 5px; padding: 7px 12px; border-radius: 999px; white-space: nowrap;
@@ -24,93 +24,103 @@ body.in-cloud .toast { z-index: 9000; }
 .cloud-down:hover { background: #f1ffd9; }
 .cloud-coins { border-color: #d59b23; color: #8a5a07; }
 .cloud-down .icon, .cloud-coins .icon { width: 15px; height: 15px; }
+.cloud-zombie { position: sticky; top: 58px; z-index: 5; margin: 0; padding: 5px 12px; background: #b91c1c; color: #fff; font: 800 13px var(--font-title); text-align: center; }
 
-.cloud-zombie { margin: 0; padding: 5px 12px; border-radius: 10px; background: #b91c1c; color: #fff; font: 800 13px var(--font-title); text-align: center; }
-
-.cloud-tabs { display: flex; justify-content: center; gap: 6px; }
-.cloud-tab {
-  flex: 0 1 120px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 8px 4px; cursor: pointer; white-space: nowrap;
-  border-radius: 12px; border: 2px solid #8fc6df; background: rgba(255, 255, 255, .85); color: #17506f; font: 800 14px var(--font-title);
+/* Bầu trời: cột thân đậu ở trái vẽ đè lên mép trái các dải mây, các tầng xếp chồng. */
+.cloud-sky { position: relative; min-height: calc(100% - 60px); padding: 8px 0 40px; }
+.cloud-stalk {
+  position: absolute; left: 0; top: 0; bottom: 0; width: var(--stalk); z-index: 1; pointer-events: none;
+  background: url(/img/toon/farm/beanstalk_tile.png) center top / 100% auto repeat-y;
 }
-.cloud-tab .icon { width: 13px; height: 13px; }
-.cloud-tab.shut { color: #6b7f8c; background: rgba(230, 238, 243, .85); }
-.cloud-tab.on { background: #2f86b5; border-color: #17506f; color: #fff; }
+/* Không tạo lớp riêng: thân đậu (z 1) đè lên dải mây và chậu, còn biển tên tầng (z 4) nằm trên thân đậu. */
+.cloud-floors { position: relative; display: flex; flex-direction: column; gap: 6px; }
 
-.cloud-facts { margin: 0; padding: 5px 12px; border-radius: 10px; background: rgba(255, 255, 255, .8); font-size: 13px; text-align: center; }
+.cloud-floor { position: relative; }
+.floor-sign {
+  position: relative; z-index: 4; display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; width: fit-content; max-width: calc(100% - 24px);
+  margin: 0 0 -26px calc(var(--stalk) * .82); padding: 4px 14px; border-radius: 12px;
+  background: #fffbec; border: 2px solid #6fb043; box-shadow: 0 2px 0 rgba(47, 106, 18, .25);
+}
+.floor-no { font: 800 16px var(--font-title); color: #2f6a12; }
+.floor-crop { font: 800 15px var(--font-title); color: #17506f; }
+.floor-facts { font-size: 12px; color: #4b6473; }
 
-/* Khu vườn trên mây: 6 đảo mây xếp so le, mỗi đảo nhấp nhô lệch nhịp. Mây, chậu, cây đều là ảnh PNG. */
-.cloud-garden { --s: 1; display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 8px; row-gap: 4px; padding-bottom: 8px; }
-.cloud-isle {
-  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-width: 0; min-height: 0;
-  padding: 0; cursor: pointer; border: 0; border-radius: 0; background: none; box-shadow: none; color: inherit; font: inherit;
+/* Dải mây: ảnh mây lặp ngang ở đáy, dây leo lặp ngang đè lên mép dưới. Chậu đứng lún nhẹ vào mặt mây. */
+.cloud-bands, .cloud-band {
+  --bg:
+    url(/img/toon/farm/vine_trim.png) left bottom / auto calc(var(--band) * .36) repeat-x,
+    url(/img/toon/farm/cloud_band.png) left bottom / auto var(--band) repeat-x;
+}
+/* Máy tính: hai dải nằm cạnh nhau dùng chung một nền mây chạy liền từ mép trái (dưới thân đậu) sang phải. */
+.cloud-bands { position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 0 8px 0 calc(var(--stalk) * .6); background: var(--bg); }
+.cloud-band { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; }
+.cloud-slot {
+  position: relative; display: flex; flex-direction: column; align-items: center; min-width: 0;
+  padding: 0 0 calc(var(--band) * .3); cursor: pointer; border: 0; border-radius: 0; background: none; box-shadow: none; color: inherit; font: inherit;
   -webkit-tap-highlight-color: transparent;
 }
-/* Bỏ kiểu nút chung (common.css): đảo mây không có khung, bóng hay hiệu ứng nhấn. */
-.cloud-isle:hover:not(:disabled), .cloud-isle:disabled { filter: none; }
-.cloud-isle:active:not(:disabled) { transform: none; box-shadow: none; }
-.cloud-isle:active:not(:disabled) .isle-label { transform: translateY(1px); }
-.cloud-isle:disabled { opacity: 1; }
-/* So le cao thấp: cột giữa thấp hơn, hàng dưới lệch nhẹ. */
-.cloud-isle:nth-child(3n + 2) { margin-top: calc(46px * var(--s)); }
-.cloud-isle:nth-child(n + 4) { margin-top: calc(-18px * var(--s)); }
-.cloud-isle:nth-child(5) { margin-top: calc(28px * var(--s)); }
-.isle-bob { position: relative; display: flex; flex-direction: column; align-items: center; animation: isle-bob 4.6s ease-in-out infinite; animation-delay: calc(var(--i) * -0.83s); }
-@keyframes isle-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(calc(-9px * var(--s))); } }
-@media (prefers-reduced-motion: reduce) { .isle-bob { animation: none; } }
-
-/* Chậu đứng lún nhẹ vào mặt mây: phần đáy chậu nằm trên khoảng 1/3 trên của ảnh mây. */
-.isle-cloud { position: relative; z-index: 0; width: calc(220px * var(--s)); height: auto; margin-top: calc(-84px * var(--s)); pointer-events: none; }
-.isle-cloud.flip { transform: scaleX(-1); }
-.cloud-isle .cloud-art { z-index: 1; }
-
-.isle-label {
-  position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 1px; max-width: 100%;
-  margin-top: calc(-30px * var(--s)); padding: 3px 12px 4px; border-radius: 12px;
-  background: rgba(255, 255, 255, .92); border: 2px solid #b9dcef; box-shadow: 0 2px 0 rgba(23, 80, 111, .15);
-}
-.isle-label b { font: 800 14px var(--font-title); color: #17506f; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-.isle-label em { display: inline-flex; align-items: center; gap: 3px; font-style: normal; font-size: 12px; font-weight: 700; color: #6b4a08; font-variant-numeric: tabular-nums; }
-.isle-label .icon { width: 12px; height: 12px; }
-
-.cloud-isle:hover:not(:disabled) .isle-label { border-color: #2f86b5; }
-.cloud-isle:focus-visible { outline: none; }
-.cloud-isle:focus-visible .isle-label { outline: 3px solid #f59e0b; outline-offset: 1px; }
-#cloud-scene.busy .cloud-isle { cursor: progress; }
-.cloud-isle.buy .cloud-pot { filter: saturate(.5) opacity(.7); }
-.cloud-isle.locked { cursor: default; }
-.cloud-isle.locked .cloud-pot { filter: grayscale(1) opacity(.4); }
-.cloud-isle.locked .isle-cloud { opacity: .65; }
-.cloud-isle.locked .isle-label { opacity: .75; }
-.cloud-isle.ripe .isle-label { background: #fff3c4; border-color: #f59e0b; }
-.cloud-isle.ripe .isle-label b { color: #8a4b00; }
+/* Bỏ kiểu nút chung (common.css). */
+.cloud-slot:hover:not(:disabled), .cloud-slot:disabled { filter: none; }
+.cloud-slot:active:not(:disabled) { transform: none; box-shadow: none; }
+.cloud-slot:active:not(:disabled) .slot-label { transform: translateY(1px); }
+.cloud-slot:disabled { opacity: 1; }
 
 /* Đáy cây (y=106 của ảnh 96×120) trùng y=14 của ảnh chậu 120×104; cây nằm sau miệng chậu. */
 .cloud-art { position: relative; display: block; width: calc(120px * var(--s)); height: calc(196px * var(--s)); flex: none; }
 .cloud-pot { position: absolute; left: 0; bottom: 0; width: calc(120px * var(--s)); height: calc(104px * var(--s)); z-index: 2; }
 .cloud-crop { position: absolute; left: calc(12px * var(--s)); top: 0; width: calc(96px * var(--s)); height: calc(120px * var(--s)); z-index: 1; }
 
-.cloud-shut { --s: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px; border-radius: 16px; background: rgba(255, 255, 255, .75); text-align: center; }
-.cloud-art.big { height: calc(104px * var(--s)); filter: grayscale(.8) opacity(.7); }
-.cloud-shut h3 { margin: 6px 0 0; font: 800 18px var(--font-title); color: #17506f; }
-.cloud-shut p { margin: 0; }
+.slot-label {
+  position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 1px; max-width: 100%;
+  margin-top: 6px; padding: 2px 10px 3px; border-radius: 12px;
+  background: rgba(255, 255, 255, .94); border: 2px solid #f3c7dc; box-shadow: 0 2px 0 rgba(150, 70, 110, .15);
+}
+.slot-label b { font: 800 13px var(--font-title); color: #17506f; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.slot-label em { display: inline-flex; align-items: center; gap: 3px; font-style: normal; font-size: 12px; font-weight: 700; color: #6b4a08; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.slot-label .icon { width: 12px; height: 12px; }
+
+.cloud-slot:hover:not(:disabled) .slot-label { border-color: #2f86b5; }
+.cloud-slot:focus-visible { outline: none; }
+.cloud-slot:focus-visible .slot-label { outline: 3px solid #f59e0b; outline-offset: 1px; }
+#cloud-scene.busy .cloud-slot { cursor: progress; }
+.cloud-slot.buy .cloud-pot { filter: saturate(.5) opacity(.7); }
+.cloud-slot.locked { cursor: default; }
+.cloud-slot.locked .cloud-pot { filter: grayscale(1) opacity(.4); }
+.cloud-slot.locked .slot-label { opacity: .75; }
+.cloud-slot.ripe .slot-label { background: #fff3c4; border-color: #f59e0b; }
+.cloud-slot.ripe .slot-label b { color: #8a4b00; }
+
+/* Tầng chưa mở: dải mây mờ, biển báo ở giữa. */
+.cloud-floor.shut .floor-sign { border-color: #9fb2bd; }
+.cloud-floor.shut .floor-no { color: #5d7280; }
+.cloud-bands.shut .cloud-slot { cursor: default; }
+.cloud-bands.shut::before { content: ''; position: absolute; inset: 0; background: rgba(214, 228, 238, .35); pointer-events: none; }
+.shut-sign {
+  position: absolute; left: 50%; top: 42%; z-index: 4; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 6px;
+  margin: 0; padding: 8px 16px; border-radius: 14px; max-width: 80%;
+  background: rgba(255, 255, 255, .95); border: 2px solid #8fc6df; font: 700 14px var(--font-body, inherit); color: #17506f; text-align: center;
+}
+.shut-sign .icon { width: 16px; height: 16px; flex: none; }
+.shut-sign b { font-variant-numeric: tabular-nums; }
 
 @media (max-width: 600px) {
-  #cloud-scene { padding: 10px 16px 24px; gap: 8px; }
+  #cloud-scene { --s: .6; --stalk: 84px; --band: 150px; }
+  .cloud-head { padding: 8px 12px; gap: 6px; }
   .cloud-head h2 { font-size: 16px; }
   .cloud-down, .cloud-coins { padding: 6px 9px; font-size: 12px; }
-  .cloud-garden { --s: .56; grid-template-columns: repeat(2, 1fr); column-gap: 4px; row-gap: 2px; }
-  /* Điện thoại 2 cột: cột phải thấp hơn, mỗi hàng lệch nhẹ. */
-  .cloud-isle:nth-child(n) { margin-top: 0; }
-  .cloud-isle:nth-child(2n) { margin-top: calc(40px * var(--s)); }
-  .cloud-isle:nth-child(n + 3) { margin-top: calc(-14px * var(--s)); }
-  .cloud-isle:nth-child(2n + 4) { margin-top: calc(26px * var(--s)); }
-  .isle-label { padding: 2px 8px 3px; }
-  .isle-label b { font-size: 12px; }
-  .isle-label em { font-size: 11px; }
-  .cloud-tab { font-size: 13px; }
-  .cloud-facts { font-size: 12px; }
-  .cloud-puff.a, .cloud-puff.c { display: none; }
-  .cloud-puff.b { width: 130px; top: 70px; }
+  .cloud-zombie { top: 48px; }
+  /* Điện thoại: mỗi tầng hai dải mây, mỗi dải 3 chậu. */
+  /* Điện thoại: hai dải xếp chồng, mỗi dải có nền mây riêng chạy từ mép trái. */
+  .cloud-bands { grid-template-columns: 1fr; padding: 0; background: none; }
+  .cloud-band { padding: 0 6px 0 calc(var(--stalk) * .62); background: var(--bg); }
+  .floor-sign { margin-left: calc(var(--stalk) * .82); padding: 3px 10px; }
+  .floor-no { font-size: 14px; }
+  .floor-crop { font-size: 13px; }
+  .floor-facts { font-size: 11px; flex-basis: 100%; }
+  .slot-label { padding: 1px 6px 2px; margin-top: 4px; }
+  .slot-label b { font-size: 11px; }
+  .slot-label em { font-size: 10px; }
+  .shut-sign { font-size: 12px; padding: 6px 10px; }
 }
 
 /* Ô 49: đậu thần (chân cây neo ở gốc .bean-obj) */
