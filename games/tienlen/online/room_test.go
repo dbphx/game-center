@@ -364,7 +364,8 @@ func TestCreateWithBet(t *testing.T) {
 }
 
 func TestRoomsSummary(t *testing.T) {
-	h := NewHub(richBank(), slowOptions)
+	// Đủ xu cho cả khi có người tới trắng ngay lúc chia bài (mỗi người thua trả 26 lá × mức cược).
+	h := NewHub(newBank(map[int64]int64{1: 1_000_000, 2: 1_000_000, 3: 1_000_000}), slowOptions)
 	if got := h.Rooms(); len(got) != 0 {
 		t.Fatalf("chưa có bàn nào, được %+v", got)
 	}
@@ -394,14 +395,16 @@ func TestRoomsSummary(t *testing.T) {
 	if r.Players[0] != want || r.Players[1].Name != "Bình" || r.Players[1].Host || !r.Players[2].Bot {
 		t.Fatalf("ghế sai: %+v", r.Players)
 	}
-	if rooms[1].GameNo != 1 {
-		t.Fatalf("bàn đang chơi phải có ván 1, được %d", rooms[1].GameNo)
+	if rooms[1].GameNo < 1 { // tới trắng lúc chia thì ván kết thúc ngay và vòng lặp bắt đầu ván kế tiếp
+		t.Fatalf("bàn đang chơi phải có số ván, được %d", rooms[1].GameNo)
 	}
 
 	// Người rời giữa ván không còn hiện ở ghế.
 	mustJoin(t, h, a.Room.Code, chi)
 	for a.Room.phase != PhasePlaying {
-		a.Room.Handle(a.Player, Message{T: "start"})
+		if err := a.Room.Handle(a.Player, Message{T: "start"}); err != nil {
+			t.Fatal(err)
+		}
 	}
 	var guest *Player
 	a.Room.mu.Lock()

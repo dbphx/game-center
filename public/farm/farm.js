@@ -3305,7 +3305,7 @@
       g.style.top = `${r.top}px`;
       document.body.appendChild(g);
       setTimeout(() => g.remove(), 1700);
-      if (user.hospitalUntil && user.hospitalUntil > nowS()) A.toast('Hết máu! Bạn được đưa vào bệnh viện và bị trừ viện phí.');
+      if (user.hospitalUntil && user.hospitalUntil > nowS()) A.toast('Máu dưới 10! Bạn được đưa vào bệnh viện và bị trừ viện phí.');
       else if (!zombieTotal()) A.toast('Đã đập hết zombie — cây an toàn!');
     } finally {
       zombieHits.delete(index);
@@ -3337,7 +3337,7 @@
       g.style.top = `${r.top}px`;
       document.body.appendChild(g);
       setTimeout(() => g.remove(), 1700);
-      if (user.hospitalUntil && user.hospitalUntil > nowS()) A.toast('Hết máu! Bạn được đưa vào bệnh viện và bị trừ viện phí.');
+      if (user.hospitalUntil && user.hospitalUntil > nowS()) A.toast('Máu dưới 10! Bạn được đưa vào bệnh viện và bị trừ viện phí.');
       else if (!zombieTotal()) A.toast('Đã đập hết zombie — nông trại an toàn!');
     } finally {
       zombieHits.delete(key);

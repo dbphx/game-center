@@ -314,7 +314,7 @@
     const regen = (config.hospital && config.hospital.regenPerMinute) || 1;
     el.title = inHospital()
       ? `Đang nằm viện, còn ${fmtLeft(user.hospitalUntil - serverNow())}`
-      : `Máu ${hp}/${maxHP()} HP · tự hồi ${sit ? regen * (config.sitRegenMultiplier || 2) : regen} HP mỗi phút${sit ? ' (đang ngồi ghế)' : ''}. Ngồi ghế hồi nhanh gấp đôi; va chạm xe mất máu; hết máu phải nằm viện.`;
+      : `Máu ${hp}/${maxHP()} HP · tự hồi ${sit ? regen * (config.sitRegenMultiplier || 2) : regen} HP mỗi phút${sit ? ' (đang ngồi ghế)' : ''}. Ngồi ghế hồi nhanh gấp đôi; va chạm xe mất máu; máu dưới ${(config.hospital && config.hospital.minHP) || 10} HP phải nằm viện.`;
   }
 
   // Chữ bay lên trên HUD, ví dụ "-20 HP".
@@ -347,7 +347,7 @@
     setTimeout(() => badge.classList.remove('hit'), 700);
     renderHUD();
     if (inHospital()) {
-      A.toast(`Bạn bị xe tông, hết máu! Đưa vào bệnh viện, viện phí ${A.xu((config.hospital && config.hospital.fee) || 0)} xu.`);
+      A.toast(`Bạn bị xe tông, máu quá thấp! Đưa vào bệnh viện, viện phí ${A.xu((config.hospital && config.hospital.fee) || 0)} xu.`);
       checkHospital();
     } else {
       A.toast(`Cẩn thận xe! -${dmg} HP`);
@@ -602,7 +602,7 @@
         return `${panelHead('hospital', 'Bệnh viện', 'Bạn đang nằm viện')}
           <div class="panel-section hosp-stay">
             <div class="hosp-bed">${I.svg('hospital')}</div>
-            <p style="margin:0">Hết máu nên bạn được đưa vào viện và bị trừ viện phí ${A.xu(h.fee || 0)} xu. Nằm viện xong sẽ đầy máu và đi tiếp được.</p>
+            <p style="margin:0">Máu quá thấp nên bạn được đưa vào viện và bị trừ viện phí ${A.xu(h.fee || 0)} xu. Nằm viện xong sẽ đầy máu và đi tiếp được.</p>
             <div class="stat"><div class="muted">Xuất viện sau</div><b class="hosp-left" id="hosp-left">--:--</b></div>
             <span class="hp-bar big"><span id="hosp-bar" style="width:0%"></span></span>
             <button class="primary" id="btn-discharge" ${user.balance < (h.dischargePrice || 0) ? 'disabled title="Không đủ xu"' : ''}>
@@ -624,7 +624,7 @@
         <div class="panel-section"><h3>${I.svg('scroll')}Quy tắc</h3>
           <ul class="rules">
             <li>Va chạm xe trên đường: <b>-${h.carDamage || 20} HP</b>.</li>
-            <li>Hết máu phải nằm viện <b>${h.stayMinutes || 5} phút</b> và bị trừ viện phí <b>${A.xu(h.fee || 0)} xu</b> (không đủ thì mất hết số đang có), hoặc trả <b>${A.xu(h.dischargePrice || 0)} xu</b> để xuất viện ngay.</li>
+            <li>Máu dưới <b>${h.minHP || 10} HP</b> phải nằm viện <b>${h.stayMinutes || 5} phút</b> và bị trừ viện phí <b>${A.xu(h.fee || 0)} xu</b> (không đủ thì mất hết số đang có), hoặc trả <b>${A.xu(h.dischargePrice || 0)} xu</b> để xuất viện ngay.</li>
             <li>Máu tự hồi <b>${h.regenPerMinute || 1} HP</b> mỗi phút; chữa ở đây ${h.healPerHP || 2} xu mỗi HP.</li>
             <li>Mỗi khu cần đủ máu mới vào được: ${Object.entries(config.zoneMinHP || {})
               .filter(([, n]) => n > 0)

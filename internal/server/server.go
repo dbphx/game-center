@@ -62,7 +62,7 @@ func New(w *wallet.Wallet, static fs.FS, games []Game) *Server {
 			"hair": wallet.HairCatalog, "wings": wallet.WingsCatalog, "face": wallet.FaceCatalog,
 			"zoneMinHP": wallet.ZoneMinHP,
 			"hospital": map[string]int{
-				"dischargePrice": wallet.DischargePrice, "fee": wallet.HospitalFee, "healPerHP": wallet.HealPerHP, "stayMinutes": wallet.HospitalStay / 60,
+				"dischargePrice": wallet.DischargePrice, "fee": wallet.HospitalFee, "minHP": wallet.HospitalHP, "healPerHP": wallet.HealPerHP, "stayMinutes": wallet.HospitalStay / 60,
 				"regenPerMinute": 60 / wallet.RegenSeconds, "carDamage": wallet.CarDamage,
 			},
 			"sitRegenMultiplier": wallet.SitRegenMultiplier,

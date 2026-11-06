@@ -17,6 +17,7 @@ const (
 	HospitalStay   = 300    // nằm viện 5 phút thì tự xuất viện đầy máu
 	DischargePrice = 200    // xu để xuất viện ngay
 	HospitalFee    = 500000 // viện phí bị trừ mỗi lần vào viện; không đủ thì trừ hết số đang có
+	HospitalHP     = 10     // máu tụt dưới mức này thì phải nằm viện
 	HealPerHP      = 2      // xu cho mỗi HP thiếu khi chữa lúc không nằm viện
 
 	SitRegenMultiplier = 2  // ngồi ghế hồi máu nhanh gấp đôi
@@ -189,7 +190,7 @@ func (w *Wallet) Hit(ctx context.Context, id int64, source string) (User, error)
 		return w.User(ctx, id)
 	}
 	hp -= CarDamage
-	if hp <= 0 {
+	if hp < HospitalHP {
 		hp, until = 0, t.now+HospitalStay
 		if err := t.admit(id); err != nil {
 			return User{}, err

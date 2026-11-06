@@ -39,10 +39,10 @@ func TestSpendHP(t *testing.T) {
 	if u, _ = w.User(ctx, u.ID); u.HP != 84 {
 		t.Fatalf("phần hồi dở phải được giữ: muốn 84, được %d", u.HP)
 	}
-	if _, err := spend(t, w, u.ID, 84); !errors.Is(err, ErrLowHP) {
-		t.Fatalf("không được trừ tới 0 HP, lỗi %v", err)
+	if _, err := spend(t, w, u.ID, 75); !errors.Is(err, ErrLowHP) {
+		t.Fatalf("không được trừ xuống dưới %d HP, lỗi %v", HospitalHP, err)
 	}
-	for range 5 {
+	for range 4 { // 84 → 4 HP: dưới 10 là nằm viện
 		tick(2 * time.Second)
 		mustHit(t, w, u.ID)
 	}

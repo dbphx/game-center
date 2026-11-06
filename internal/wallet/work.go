@@ -16,7 +16,7 @@ func (t *Tx) SpendHP(userID int64, amount int) (int, error) {
 	if amount <= 0 {
 		return hp, nil
 	}
-	if hp <= amount {
+	if hp-amount < HospitalHP { // làm việc không được tụt máu tới mức phải nằm viện
 		return hp, ErrLowHP
 	}
 	// Giữ phần điểm hồi lẻ (như khi đổi tư thế) để trừ máu không làm mất máu đang hồi dở; làm việc thì đứng dậy.
