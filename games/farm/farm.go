@@ -190,6 +190,7 @@ type State struct {
 // Gained là phần thưởng của một lần thu hoạch / bán.
 type Gained struct {
 	Coins  int64          `json:"coins"`
+	Tax    int64          `json:"tax,omitempty"` // thuế bán đã trừ (Coins là tiền nhận sau thuế)
 	XP     int64          `json:"xp"`
 	Count  int            `json:"count,omitempty"`
 	Items  map[string]int `json:"items,omitempty"`  // nông sản / sản phẩm vừa vào kho
@@ -729,13 +730,14 @@ func (f *Farm) SellStock(ctx context.Context, uid int64, place string, id int64)
 		if !a.Grown {
 			return conflict(st.Name + " chưa lớn")
 		}
-		if err := tx.Credit(uid, st.SellPrice, GameID, "Bán "+st.Name); err != nil {
+		tax := st.SellPrice * StockTaxPercent / 100
+		if err := tx.Credit(uid, st.SellPrice-tax, GameID, "Bán "+st.Name+taxNote(tax)); err != nil {
 			return err
 		}
 		if err := tx.AddXP(uid, st.XP); err != nil {
 			return err
 		}
-		g = Gained{Coins: st.SellPrice, XP: st.XP}
+		g = Gained{Coins: st.SellPrice - tax, XP: st.XP, Tax: tax}
 		return deleteStock(ctx, tx, uid, id)
 	})
 	return s, g, err

@@ -249,11 +249,11 @@ func TestSellAnimalAndLevel(t *testing.T) {
 		t.Fatal(err)
 	}
 	after := e.user()
-	if g.Coins != 1300 || g.XP != 12 || after.Balance != before.Balance+1300 || after.XP != before.XP+12 || len(s.Barn.Animals) != 0 {
+	if g.Coins != 1235 || g.Tax != 65 || g.XP != 12 || after.Balance != before.Balance+1235 || after.XP != before.XP+12 || len(s.Barn.Animals) != 0 { // thuế 5%
 		t.Fatalf("bán heo: %+v, số dư %d→%d", g, before.Balance, after.Balance)
 	}
 	h, _ := e.w.History(ctx, e.uid, 1)
-	if h[0].Note != "Bán Heo" {
+	if h[0].Note != "Bán Heo, thuế 65 xu" {
 		t.Fatalf("sổ cái: %+v", h[0])
 	}
 }
@@ -280,7 +280,7 @@ func TestPond(t *testing.T) {
 	e.wellFed()
 	e.clock = e.clock.Add(4 * time.Hour)
 	_, g, err := e.f.SellStock(ctx, e.uid, placePond, s.Pond.Fish[0].ID)
-	if err != nil || g.Coins != 4800 || g.XP != 50 {
+	if err != nil || g.Coins != 4560 || g.Tax != 240 || g.XP != 50 { // cá koi 4.800, thuế 5%
 		t.Fatalf("bán cá koi: %+v %v", g, err)
 	}
 	h, _ := e.w.History(ctx, e.uid, 1)
@@ -393,7 +393,7 @@ func TestProductStoreFullAndSell(t *testing.T) {
 	_, price, _ := product(item)
 	bal := e.user().Balance
 	s, g, err = e.f.SellProduct(ctx, e.uid, item, 1)
-	if err != nil || g.Coins != price || g.Count != 1 || e.user().Balance != bal+price || s.Storage.Products.Used != 1 {
+	if net := price - saleTax(item, price); err != nil || g.Coins != net || g.Count != 1 || e.user().Balance != bal+net || s.Storage.Products.Used != 1 {
 		t.Fatalf("bán 1 %s: %+v %v, kho %+v", item, g, err, s.Storage.Products)
 	}
 	xp := e.user().XP
@@ -418,12 +418,12 @@ func TestSellProductAllOfOneItem(t *testing.T) {
 	if _, _, err := e.f.HarvestAll(ctx, e.uid); err != nil {
 		t.Fatal(err)
 	}
-	s, g, err := e.f.SellProduct(ctx, e.uid, "carrot", 0) // qty 0 = bán hết
-	if err != nil || g.Count != 3 || g.Coins != 270 || s.Storage.Products.Used != 0 {
+	s, g, err := e.f.SellProduct(ctx, e.uid, "carrot", 0)                                            // qty 0 = bán hết
+	if err != nil || g.Count != 3 || g.Coins != 243 || g.Tax != 27 || s.Storage.Products.Used != 0 { // 270, thuế 10%
 		t.Fatalf("bán hết cà rốt: %+v %v", g, err)
 	}
 	h, _ := e.w.History(ctx, e.uid, 1)
-	if h[0].Note != "Bán 3 Cà rốt" || h[0].Delta != 270 {
+	if h[0].Note != "Bán 3 Cà rốt, thuế 27 xu" || h[0].Delta != 243 {
 		t.Fatalf("sổ cái: %+v", h[0])
 	}
 }
@@ -453,7 +453,7 @@ func TestCollectStock(t *testing.T) {
 		t.Fatalf("thu heo: %+v, chuồng %+v, kho %+v", g, s.Barn, s.Storage.Products)
 	}
 	s, g, err = e.f.SellProduct(ctx, e.uid, "meat_pig", 1)
-	if err != nil || g.Coins != 1300 {
+	if err != nil || g.Coins != 1235 { // 1.300, thuế 5%
 		t.Fatalf("bán thịt heo từ kho: %+v %v", g, err)
 	}
 }
@@ -785,7 +785,7 @@ func TestPoultryInYard(t *testing.T) {
 	if err != nil || g.XP != 6 || s.Storage.Products.Items["meat_duck"] != 1 {
 		t.Fatalf("thu vịt: %+v %v", g, err)
 	}
-	if _, g, err = e.f.SellProduct(ctx, e.uid, "meat_duck", 1); err != nil || g.Coins != 520 {
+	if _, g, err = e.f.SellProduct(ctx, e.uid, "meat_duck", 1); err != nil || g.Coins != 494 { // 520, thuế 5%
 		t.Fatalf("bán vịt: %+v %v", g, err)
 	}
 	_, _, err = e.f.FeedStock(ctx, e.uid, placeYard, 99999)
@@ -886,14 +886,14 @@ func TestProduceCycle(t *testing.T) {
 	wantStatus(t, err, http.StatusNotFound)
 
 	// Bán trứng, rồi lấy thịt gà.
-	if _, g, err = e.f.SellProduct(ctx, e.uid, "egg", 0); err != nil || g.Coins != 120 || g.Count != 2 {
+	if _, g, err = e.f.SellProduct(ctx, e.uid, "egg", 0); err != nil || g.Coins != 114 || g.Count != 2 { // 120, thuế 5%
 		t.Fatalf("bán 2 trứng: %+v %v", g, err)
 	}
 	s, g, err = e.f.CollectStock(ctx, e.uid, placeYard, a.ID)
 	if err != nil || g.XP != 5 || g.Items["meat_chicken"] != 1 || len(s.Yard.Animals) != 0 {
 		t.Fatalf("lấy thịt gà: %+v %v", g, err)
 	}
-	if _, g, err = e.f.SellProduct(ctx, e.uid, "meat_chicken", 1); err != nil || g.Coins != 400 {
+	if _, g, err = e.f.SellProduct(ctx, e.uid, "meat_chicken", 1); err != nil || g.Coins != 380 { // 400, thuế 5%
 		t.Fatalf("bán thịt gà: %+v %v", g, err)
 	}
 }
@@ -926,8 +926,11 @@ func TestSellNewAndOldProducts(t *testing.T) {
 	}
 	for item, price := range want {
 		bal := e.user().Balance
-		if _, g, err := e.f.SellProduct(ctx, e.uid, item, 1); err != nil || g.Coins != price || e.user().Balance != bal+price {
-			t.Fatalf("bán %s: %+v %v, muốn %d xu", item, g, err, price)
+		if net := price - saleTax(item, price); func() bool {
+			_, g, err := e.f.SellProduct(ctx, e.uid, item, 1)
+			return err != nil || g.Coins != net || e.user().Balance != bal+net
+		}() {
+			t.Fatalf("bán %s: muốn %d xu sau thuế", item, net)
 		}
 	}
 	h, _ := e.w.History(ctx, e.uid, 20)

@@ -184,8 +184,10 @@ func (f *Farm) SellProduct(ctx context.Context, uid int64, item string, qty int)
 		if qty > have {
 			return conflict(fmt.Sprintf("trong kho chỉ có %d %s", have, name))
 		}
-		g = Gained{Coins: price * int64(qty), Count: qty}
-		if err := tx.Credit(uid, g.Coins, GameID, fmt.Sprintf("Bán %d %s", qty, name)); err != nil {
+		gross := price * int64(qty)
+		g = Gained{Tax: saleTax(item, gross), Count: qty}
+		g.Coins = gross - g.Tax
+		if err := tx.Credit(uid, g.Coins, GameID, fmt.Sprintf("Bán %d %s", qty, name)+taxNote(g.Tax)); err != nil {
 			return err
 		}
 		return addItem(ctx, tx, uid, storeProducts, item, -qty)
@@ -207,7 +209,10 @@ func (f *Farm) SellAllProducts(ctx context.Context, uid int64) (State, Gained, e
 			if !ok {
 				continue // món không còn trong danh mục: để nguyên
 			}
-			g.Coins += price * int64(n)
+			gross := price * int64(n)
+			tax := saleTax(item, gross)
+			g.Coins += gross - tax
+			g.Tax += tax
 			g.Count += n
 			names = append(names, fmt.Sprintf("%d %s", n, name))
 			if err := addItem(ctx, tx, uid, storeProducts, item, -n); err != nil {
@@ -218,7 +223,7 @@ func (f *Farm) SellAllProducts(ctx context.Context, uid int64) (State, Gained, e
 			return conflict("kho sản phẩm không có món nào bán được")
 		}
 		sort.Strings(names)
-		return tx.Credit(uid, g.Coins, GameID, "Bán "+strings.Join(names, ", "))
+		return tx.Credit(uid, g.Coins, GameID, "Bán "+strings.Join(names, ", ")+taxNote(g.Tax))
 	})
 	return s, g, err
 }

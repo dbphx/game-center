@@ -62,6 +62,9 @@ Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè c
 - Tài khoản mới được **1.000 xu**, mỗi ngày nhận thêm **500 xu** (reset 0h giờ Việt Nam).
 - Số dư không bao giờ âm: thua quá số đang có thì chỉ mất hết số đang có.
 - Chơi với máy thì máy đóng vai nhà cái: thắng máy được xu thật vào ví, thua thì mất.
+- **Thuế 5% mỗi ván**: thắng xu ở Tiến Lên, Cờ Caro, Cá Ngựa, Bầu Cua (mỗi vòng, kể cả quỹ cái khi lời), Đấu trường thì bị thu 5%
+  tiền thắng ròng của ván (làm tròn xuống), kể cả khi thắng máy; người thua không bị thu thêm, bàn chơi vui 0 xu không thuế.
+  Sổ cái có dòng riêng "Thuế 5% tiền thắng — …"; tiền thuế không về tay ai. Thưởng hạ boss ở Đấu trường không bị thuế.
 - Ngân hàng có lịch sử xu (sổ cái) để xem xu đến / đi từ đâu.
 
 ## Nhân vật, level và trang phục
@@ -148,6 +151,10 @@ Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè c
   ăn được. Cho ăn +1 XP. Con đã lớn không cho sản phẩm (heo, cá) thì không cần ăn nữa.
 - **Sản phẩm vật nuôi**: con đã lớn cứ mỗi chu kỳ (tính trong lúc no) cho 1 món (để lâu vẫn chỉ 1 món chờ lấy), lấy vào kho sản phẩm;
   hoặc **lấy thịt** (con vật mất, được thịt vào kho). Cá thu nguyên con như cũ.
+- **Thuế bán**: bán trong kho sản phẩm hoặc bán thẳng con vật bị trừ thuế, tiền thuế không về ai: **nông sản** (cây trồng, cây mây)
+  **10%**, **vật nuôi và cá** (trứng, sữa, lông, thịt, cá, con vật) **5%**. Thuế tính trên tổng tiền từng món mỗi lần bán,
+  làm tròn xuống; `gained.coins` là tiền nhận sau thuế, `gained.tax` là thuế; catalog có `cropTax`, `stockTax`.
+  Giá trị nông trại ở Khu danh vọng vẫn tính theo giá bán chưa thuế.
 
 | Con | Sản phẩm (chu kỳ, giá, XP) | Thịt (giá, XP) |
 |---|---|---|

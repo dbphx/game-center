@@ -360,6 +360,7 @@ button.wide { width: 100%; justify-content: center; }
   background: linear-gradient(180deg, #5cb3ff, #2f7fd6); color: #fff; font: 900 13px var(--font-title);
 }
 .store-sellall { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-weight: 700; }
+.store-sellall .tax-note { display: block; font-size: 12px; font-weight: 600; }
 .store-empty { text-align: center; padding: 20px; }
 .shop-row .have { display: inline-block; margin-left: 8px; padding: 0 8px; border-radius: 999px; background: #dff3ff; color: #1f5f9c; font-size: 12px; font-weight: 800; }
 

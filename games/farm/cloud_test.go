@@ -354,7 +354,7 @@ func TestSellCloudProduct(t *testing.T) {
 		if err != nil {
 			t.Fatalf("lần %d: %v", round, err)
 		}
-		if g.Coins != 600_000 || e.user().Balance-before != 600_000 {
+		if g.Coins != 540_000 || g.Tax != 60_000 || e.user().Balance-before != 540_000 { // thuế nông sản 10%
 			t.Fatalf("lần %d: %+v", round, g)
 		}
 	}

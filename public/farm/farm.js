@@ -3137,6 +3137,17 @@
 
   // ---------- Hiệu ứng ----------
 
+  // Thuế bán (catalog cropTax / stockTax): nông sản (cây trồng, cây mây) và đồ từ vật nuôi / cá; làm tròn xuống như server.
+  const isCropItem = (id) => !!cat && (cat.crops.some((c) => c.id === id) || (cat.cloudFloors || []).some((f) => f.crop && f.crop.id === id));
+  const taxPct = (id) => (id === 'crop' || (id !== 'stock' && isCropItem(id)) ? (cat && cat.cropTax) ?? 10 : (cat && cat.stockTax) ?? 5);
+  const afterTax = (id, gross) => gross - Math.floor((gross * taxPct(id)) / 100);
+
+  // Bán xong: số xu bay lên và toast "Bán 3 Cà rốt +243 xu (thuế 27 xu)".
+  function sold(anchor, gained, what) {
+    floatGain(anchor, gained);
+    if (gained) A.toast(`Bán ${what.trim()} +${xu(gained.coins || 0)} xu${gained.tax ? ` (thuế ${xu(gained.tax)} xu)` : ''}`);
+  }
+
   function floatGain(anchor, gained, extra = '') {
     if (!gained) return;
     const r = anchor ? anchor.getBoundingClientRect() : { left: innerWidth / 2, top: innerHeight / 2, width: 0 };
@@ -3559,17 +3570,18 @@
         ${feeds.length ? `<h3 class="store-sub">Thức ăn vật nuôi</h3><div class="store-grid">${feeds.join('')}</div>` : ''}`;
     } else {
       const entries = Object.entries(s.items).filter(([, n]) => n > 0);
-      const total = entries.reduce((sum, [id, n]) => sum + (product(id).sellPrice || 0) * n, 0);
+      const total = entries.reduce((sum, [id, n]) => sum + afterTax(id, (product(id).sellPrice || 0) * n), 0);
       const cards = entries.map(([id, n]) => {
         const p = product(id);
         return `<div class="store-card has"><span class="count">×${n}</span>
           <span class="pic${p.list === 'fish' ? ' water' : ''}">${p.draw(52)}</span><b>${esc(p.name)}</b>
-          <span class="sub">${xu(p.sellPrice)} xu/cái</span>
+          <span class="sub">${xu(p.sellPrice)} xu/cái · thuế ${taxPct(id)}%</span>
           <span class="btns"><button data-sell-item="${id}" data-sell-qty="1">Bán 1</button>
-          <button class="primary" data-sell-item="${id}" data-sell-qty="0">Bán hết · ${xu(p.sellPrice * n)}</button></span></div>`;
+          <button class="primary" data-sell-item="${id}" data-sell-qty="0">Bán hết · ${xu(afterTax(id, p.sellPrice * n))}</button></span></div>`;
       });
       body = entries.length
-        ? `<div class="store-sellall"><span>Tổng giá trị: <b>${xu(total)} xu</b></span>
+        ? `<div class="store-sellall"><span>Nhận sau thuế: <b>${xu(total)} xu</b>
+            <span class="muted tax-note">Thuế bán: nông sản ${taxPct('crop')}%, vật nuôi và cá ${taxPct('stock')}%</span></span>
             <button class="primary" data-sell-all>${I.svg('coins')}Bán tất cả · ${xu(total)}</button></div>
           <div class="store-grid">${cards.join('')}</div>`
         : '<p class="store-empty muted">Kho trống — thu hoạch cây chín, gia súc và cá đã lớn để cất vào đây.</p>';
@@ -3844,12 +3856,12 @@
     }
     if (d.sellItem) {
       const res = await call('/api/farm/products/sell', { item: d.sellItem, qty: +d.sellQty });
-      if (res) floatGain(t, res.gained);
+      if (res) sold(t, res.gained, `${(res.gained && res.gained.count) || ''} ${product(d.sellItem).name}`);
       return;
     }
     if (d.sellAll !== undefined) {
       const res = await call('/api/farm/products/sell-all', {});
-      if (res) floatGain(t, res.gained);
+      if (res) sold(t, res.gained, `${(res.gained && res.gained.count) || ''} món`);
       return;
     }
     if (d.beanPlant !== undefined) {
