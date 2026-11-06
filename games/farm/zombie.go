@@ -40,7 +40,7 @@ const (
 // Súng đậu: mua một lần, mỗi viên đạn tự diệt một zombie từ giây GunDelay của đợt, kể cả khi chủ offline.
 const (
 	GunPrice    = 399000
-	AmmoPrice   = 500
+	AmmoPrice   = 2500
 	GunDelay    = 30   // giây sau đầu giờ súng mới bắn, để người đang online thấy zombie và đạn bay
 	maxAmmoSale = 1000 // số đạn tối đa mỗi lần mua
 )

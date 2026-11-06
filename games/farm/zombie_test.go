@@ -661,7 +661,7 @@ func TestBuyGunAndAmmoPrices(t *testing.T) {
 	if s := e.ok(e.f.BuyAmmo(ctx, e.uid, 3)); s.Gun.Ammo != 3 {
 		t.Fatalf("đạn: %d", s.Gun.Ammo)
 	}
-	if got := before - e.user().Balance; got != 1_500 {
+	if got := before - e.user().Balance; got != 7_500 {
 		t.Fatalf("giá 3 viên: %d", got)
 	}
 	for _, qty := range []int{0, -1, 1001} {
@@ -857,7 +857,7 @@ func TestWorthCountsGunAndAmmo(t *testing.T) {
 
 func TestCatalogHasGun(t *testing.T) {
 	c := Catalog()
-	if c["gunPrice"] != int64(399_000) || c["ammoPrice"] != int64(500) {
+	if c["gunPrice"] != int64(399_000) || c["ammoPrice"] != int64(2_500) {
 		t.Fatalf("catalog: %v %v", c["gunPrice"], c["ammoPrice"])
 	}
 }

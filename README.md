@@ -23,7 +23,7 @@ mỗi khu là một game hoặc tiện ích, tất cả **dùng chung một ví 
 
 - Nhân vật có 100 HP, tự hồi 1 HP/phút. **Bị xe tông −20 HP.**
 - **Ngồi ghế** hồi máu nhanh gấp đôi (1 HP / 30 giây); bị xe tông thì đứng dậy, đang nằm viện thì không ngồi được.
-- Hết HP → **nằm viện 5 phút** (bị đưa tới Bệnh viện, không đi / vào khu được) và **bị trừ viện phí 500.000 xu** mỗi lần (không đủ thì mất hết số đang có), hồi dần tới đầy; trả 200 xu để xuất viện ngay.
+- Máu dưới **10 HP** → **nằm viện 5 phút** (bị đưa tới Bệnh viện, không đi / vào khu được) và **bị trừ viện phí 500.000 xu** mỗi lần (không đủ thì mất hết số đang có), hồi dần tới đầy; trả 200 xu để xuất viện ngay.
   Khi khoẻ có thể chữa nhanh ở Bệnh viện: 2 xu mỗi HP thiếu.
 - HP tối thiểu để vào khu (server cũng chặn): Shop 10, Casino 30, Nông trại 40; Quảng trường, Ngân hàng, Bệnh viện 0.
 - Server Go giữ bài và kiểm tra mọi nước đi; giao diện web (HTML/CSS/JS thuần, hình vẽ SVG) được nhúng thẳng vào binary.
@@ -203,7 +203,7 @@ Mã lỗi: 400 dữ liệu sai, 402 không đủ xu, 403 thiếu level / HP, 404
 - **Zombie lựa mục tiêu** ở cả ruộng và khu vật nuôi: chọn cây / con gần trưởng thành nhất (tiến độ chặn ở 100%, đã chín hay đã lớn đều ở mức
   cao nhất), bằng tiến độ thì ngẫu nhiên. Tỉ lệ mất chung vẫn khoảng 50% sau 12 giờ, nhưng rủi ro dồn vào cây / con sắp lớn.
 - Ô có zombie không thu hoạch được và không bị bạn bè trộm được. `GET /api/farm/zombie/status` trả `{count, until}` cho bản đồ thành phố, `count` tính cả vật nuôi.
-- **Súng đậu**: mua một lần 399.000 xu (`POST /api/farm/gun/buy`), đạn 500 xu mỗi viên, mỗi lần mua 1–1.000 viên
+- **Súng đậu**: mua một lần 399.000 xu (`POST /api/farm/gun/buy`), đạn 2.500 xu mỗi viên, mỗi lần mua 1–1.000 viên
   (`POST /api/farm/gun/ammo {qty}`). Từ giây 30 của đợt, mỗi viên tự diệt một zombie, đợt cũ trước, kể cả khi chủ offline, không mất máu và
   không mất cây. Đập tay trước giây 30 thì không tốn đạn; hết đạn thì zombie còn lại đập tay hoặc hết hạn như thường. Súng và đạn tính vào
   giá trị nông trại ở Khu danh vọng.
