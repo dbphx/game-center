@@ -1,4 +1,4 @@
-// Màn mây: phủ toàn màn hình trên cảnh nông trại. Đổi tầng bằng tab, bấm vào chậu để mua, trồng, thu hoạch.
+// Màn mây: khu vườn trên mây phủ toàn màn hình trên cảnh nông trại. Đổi tầng bằng tab, bấm vào đảo mây để mua chậu, trồng, thu hoạch.
 // farm.js gọi FarmCloud.init một lần rồi FarmCloud.open / update; mọi lời gọi API đi qua hàm call của farm.js.
 (() => {
   const IMG = '/img/toon/farm/';
@@ -38,30 +38,32 @@
     return `<img class="cloud-crop" src="${IMG}crop_${id}_${stage}.png" alt="" draggable="false">`;
   }
 
+  // Mỗi chỗ đặt chậu là một đảo mây: ảnh mây (đổi mẫu, lật ngang cho đỡ giống nhau), chậu và cây đứng trên mặt mây,
+  // nhãn trạng thái ở dưới. Đảo nhấp nhô lệch nhịp nhau (CSS), bấm vào đâu trên đảo cũng được.
+  const ISLE_CLOUD = [1, 3, 2, 2, 1, 3];
+  const ISLE_FLIP = [false, true, false, true, true, false];
+  function isle(st, act, slot, art, label) {
+    const k = slot % ISLE_CLOUD.length;
+    const cloud = `<img class="isle-cloud${ISLE_FLIP[k] ? ' flip' : ''}" src="${IMG}cloud_${ISLE_CLOUD[k]}.png" alt="" draggable="false">`;
+    return `<button class="cloud-isle ${st}" data-act="${act}" data-slot="${slot}" style="--i:${slot}" ${st === 'locked' ? 'disabled' : ''}>
+      <span class="isle-bob"><span class="cloud-art">${art}</span>${cloud}</span>
+      <span class="isle-label">${label}</span></button>`;
+  }
+
   function slotHTML(n, slot) {
     const f = info(n);
     const st = slotState(n, slot);
     const p = potOf(n, slot);
     const pot = `<img class="cloud-pot" src="${IMG}pot_${n}.png" alt="Chậu" draggable="false">`;
     const name = f.crop.name;
-    if (st === 'buy' || st === 'locked') {
-      return `<button class="cloud-slot ${st}" data-act="buy" ${st === 'locked' ? 'disabled' : ''}>
-        <span class="cloud-art">${pot}</span>
-        <span class="cloud-slot-text"><b>${st === 'buy' ? 'Mua chậu' : 'Chưa có chậu'}</b><em>${I().svg('coins')}${cfg.xu(f.potPrice)} xu</em></span></button>`;
-    }
-    if (st === 'empty') {
-      return `<button class="cloud-slot empty" data-act="plant" data-slot="${slot}">
-        <span class="cloud-art">${pot}</span>
-        <span class="cloud-slot-text"><b>Trồng ${name}</b><em>${I().svg('coins')}${cfg.xu(f.crop.seedPrice)} xu</em></span></button>`;
-    }
+    const coins = (v) => `<em>${I().svg('coins')}${cfg.xu(v)} xu</em>`;
+    if (st === 'buy') return isle(st, 'buy', slot, pot, `<b>Mua chậu</b>${coins(f.potPrice)}`);
+    if (st === 'locked') return isle(st, 'buy', slot, pot, `<b>Chưa có chậu</b>${coins(f.potPrice)}`);
+    if (st === 'empty') return isle(st, 'plant', slot, pot, `<b>Trồng ${name}</b>${coins(f.crop.seedPrice)}`);
     if (st === 'grow') {
-      return `<button class="cloud-slot grow" data-act="wait" data-slot="${slot}">
-        <span class="cloud-art">${plantPic(f.crop.id, p)}${pot}</span>
-        <span class="cloud-slot-text"><b>${name}</b><em data-ready="${p.readyAt}">${clock(p.readyAt - cfg.now())}</em></span></button>`;
+      return isle(st, 'wait', slot, plantPic(f.crop.id, p) + pot, `<b>${name}</b><em data-ready="${p.readyAt}">${clock(p.readyAt - cfg.now())}</em>`);
     }
-    return `<button class="cloud-slot ripe" data-act="harvest" data-slot="${slot}">
-      <span class="cloud-art">${plantPic(f.crop.id, p)}${pot}</span>
-      <span class="cloud-slot-text"><b>Thu hoạch</b><em>${name}</em></span></button>`;
+    return isle(st, 'harvest', slot, plantPic(f.crop.id, p) + pot, `<b>Thu hoạch</b><em>${name}</em>`);
   }
 
   // Hiện báo zombie ở dưới đất để người chơi đang trên mây không bỏ lỡ.
@@ -84,7 +86,7 @@
         <h3>Tầng ${floor} chưa mở</h3>
         <p>${waiting ? `Đậu thần đang vươn tới tầng này, còn <b data-ready="${c.beanReadyAt}">${clock(c.beanReadyAt - cfg.now())}</b>.` : floor === c.floors + 1 ? `Xuống ô 49 trồng hạt đậu thần giá ${cfg.xu(f.beanPrice)} xu để mở tầng này.` : `Mở tầng ${floor - 1} trước đã.`}</p></div>`;
     } else {
-      body = `<div class="cloud-grid">${Array.from({ length: f.slots }, (_, i) => slotHTML(floor, i)).join('')}</div>`;
+      body = `<div class="cloud-garden">${Array.from({ length: f.slots }, (_, i) => slotHTML(floor, i)).join('')}</div>`;
     }
     root.innerHTML = `
       <img class="cloud-puff a" src="${IMG}cloud_1.png" alt="" draggable="false">

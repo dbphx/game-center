@@ -7,14 +7,13 @@
 }
 #cloud-scene.hidden { display: none; }
 body.in-cloud .toast { z-index: 9000; }
-#cloud-scene.busy .cloud-slot { cursor: progress; }
 
 .cloud-puff { position: absolute; pointer-events: none; opacity: .9; }
 .cloud-puff.a { left: 4%; top: 90px; width: 190px; }
 .cloud-puff.b { right: 5%; top: 150px; width: 230px; }
 .cloud-puff.c { left: 44%; top: 40px; width: 150px; opacity: .7; }
 
-.cloud-head, .cloud-tabs, .cloud-facts, .cloud-grid, .cloud-shut, .cloud-zombie { position: relative; z-index: 1; width: 100%; max-width: 860px; }
+.cloud-head, .cloud-tabs, .cloud-facts, .cloud-garden, .cloud-shut, .cloud-zombie { position: relative; z-index: 1; width: 100%; max-width: 860px; }
 .cloud-head { display: flex; align-items: center; gap: 10px; }
 .cloud-head h2 { flex: 1; margin: 0; text-align: center; font: 800 22px var(--font-title); color: #17506f; text-shadow: 0 1px 0 #fff; white-space: nowrap; }
 .cloud-down, .cloud-coins {
@@ -39,21 +38,51 @@ body.in-cloud .toast { z-index: 9000; }
 
 .cloud-facts { margin: 0; padding: 5px 12px; border-radius: 10px; background: rgba(255, 255, 255, .8); font-size: 13px; text-align: center; }
 
-.cloud-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; --s: 1; }
-.cloud-slot {
-  display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; padding: 6px 4px 8px; cursor: pointer; min-width: 0;
-  border-radius: 16px; border: 2px solid rgba(255, 255, 255, .9); background: rgba(255, 255, 255, .55); color: inherit; font: inherit;
+/* Khu vườn trên mây: 6 đảo mây xếp so le, mỗi đảo nhấp nhô lệch nhịp. Mây, chậu, cây đều là ảnh PNG. */
+.cloud-garden { --s: 1; display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 8px; row-gap: 4px; padding-bottom: 8px; }
+.cloud-isle {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-width: 0; min-height: 0;
+  padding: 0; cursor: pointer; border: 0; border-radius: 0; background: none; box-shadow: none; color: inherit; font: inherit;
+  -webkit-tap-highlight-color: transparent;
 }
-.cloud-slot:hover:not(:disabled) { background: rgba(255, 255, 255, .85); }
-.cloud-slot:focus-visible, .cloud-tab:focus-visible, .cloud-down:focus-visible { outline: 3px solid #f59e0b; outline-offset: 1px; }
-.cloud-slot.buy .cloud-pot { filter: saturate(.55) opacity(.75); }
-.cloud-slot.locked { cursor: default; opacity: .6; }
-.cloud-slot.locked .cloud-pot { filter: grayscale(1) opacity(.5); }
-.cloud-slot.ripe { border-color: #f59e0b; background: rgba(255, 248, 214, .9); }
-.cloud-slot-text { display: flex; flex-direction: column; align-items: center; gap: 1px; max-width: 100%; }
-.cloud-slot-text b { font: 800 14px var(--font-title); color: #17506f; }
-.cloud-slot-text em { display: inline-flex; align-items: center; gap: 3px; font-style: normal; font-size: 12px; font-weight: 700; color: #6b4a08; font-variant-numeric: tabular-nums; }
-.cloud-slot-text .icon { width: 12px; height: 12px; }
+/* Bỏ kiểu nút chung (common.css): đảo mây không có khung, bóng hay hiệu ứng nhấn. */
+.cloud-isle:hover:not(:disabled), .cloud-isle:disabled { filter: none; }
+.cloud-isle:active:not(:disabled) { transform: none; box-shadow: none; }
+.cloud-isle:active:not(:disabled) .isle-label { transform: translateY(1px); }
+.cloud-isle:disabled { opacity: 1; }
+/* So le cao thấp: cột giữa thấp hơn, hàng dưới lệch nhẹ. */
+.cloud-isle:nth-child(3n + 2) { margin-top: calc(46px * var(--s)); }
+.cloud-isle:nth-child(n + 4) { margin-top: calc(-18px * var(--s)); }
+.cloud-isle:nth-child(5) { margin-top: calc(28px * var(--s)); }
+.isle-bob { position: relative; display: flex; flex-direction: column; align-items: center; animation: isle-bob 4.6s ease-in-out infinite; animation-delay: calc(var(--i) * -0.83s); }
+@keyframes isle-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(calc(-9px * var(--s))); } }
+@media (prefers-reduced-motion: reduce) { .isle-bob { animation: none; } }
+
+/* Chậu đứng lún nhẹ vào mặt mây: phần đáy chậu nằm trên khoảng 1/3 trên của ảnh mây. */
+.isle-cloud { position: relative; z-index: 0; width: calc(220px * var(--s)); height: auto; margin-top: calc(-84px * var(--s)); pointer-events: none; }
+.isle-cloud.flip { transform: scaleX(-1); }
+.cloud-isle .cloud-art { z-index: 1; }
+
+.isle-label {
+  position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 1px; max-width: 100%;
+  margin-top: calc(-30px * var(--s)); padding: 3px 12px 4px; border-radius: 12px;
+  background: rgba(255, 255, 255, .92); border: 2px solid #b9dcef; box-shadow: 0 2px 0 rgba(23, 80, 111, .15);
+}
+.isle-label b { font: 800 14px var(--font-title); color: #17506f; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.isle-label em { display: inline-flex; align-items: center; gap: 3px; font-style: normal; font-size: 12px; font-weight: 700; color: #6b4a08; font-variant-numeric: tabular-nums; }
+.isle-label .icon { width: 12px; height: 12px; }
+
+.cloud-isle:hover:not(:disabled) .isle-label { border-color: #2f86b5; }
+.cloud-isle:focus-visible { outline: none; }
+.cloud-isle:focus-visible .isle-label { outline: 3px solid #f59e0b; outline-offset: 1px; }
+#cloud-scene.busy .cloud-isle { cursor: progress; }
+.cloud-isle.buy .cloud-pot { filter: saturate(.5) opacity(.7); }
+.cloud-isle.locked { cursor: default; }
+.cloud-isle.locked .cloud-pot { filter: grayscale(1) opacity(.4); }
+.cloud-isle.locked .isle-cloud { opacity: .65; }
+.cloud-isle.locked .isle-label { opacity: .75; }
+.cloud-isle.ripe .isle-label { background: #fff3c4; border-color: #f59e0b; }
+.cloud-isle.ripe .isle-label b { color: #8a4b00; }
 
 /* Đáy cây (y=106 của ảnh 96×120) trùng y=14 của ảnh chậu 120×104; cây nằm sau miệng chậu. */
 .cloud-art { position: relative; display: block; width: calc(120px * var(--s)); height: calc(196px * var(--s)); flex: none; }
@@ -69,9 +98,15 @@ body.in-cloud .toast { z-index: 9000; }
   #cloud-scene { padding: 10px 16px 24px; gap: 8px; }
   .cloud-head h2 { font-size: 16px; }
   .cloud-down, .cloud-coins { padding: 6px 9px; font-size: 12px; }
-  .cloud-grid { gap: 6px; --s: .72; }
-  .cloud-slot { padding: 4px 2px 6px; }
-  .cloud-slot-text b { font-size: 12px; text-align: center; }
+  .cloud-garden { --s: .56; grid-template-columns: repeat(2, 1fr); column-gap: 4px; row-gap: 2px; }
+  /* Điện thoại 2 cột: cột phải thấp hơn, mỗi hàng lệch nhẹ. */
+  .cloud-isle:nth-child(n) { margin-top: 0; }
+  .cloud-isle:nth-child(2n) { margin-top: calc(40px * var(--s)); }
+  .cloud-isle:nth-child(n + 3) { margin-top: calc(-14px * var(--s)); }
+  .cloud-isle:nth-child(2n + 4) { margin-top: calc(26px * var(--s)); }
+  .isle-label { padding: 2px 8px 3px; }
+  .isle-label b { font-size: 12px; }
+  .isle-label em { font-size: 11px; }
   .cloud-tab { font-size: 13px; }
   .cloud-facts { font-size: 12px; }
   .cloud-puff.a, .cloud-puff.c { display: none; }
