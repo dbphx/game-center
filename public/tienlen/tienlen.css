@@ -445,13 +445,7 @@ button.tseat.empty:hover .seat-join { transform: translate(-50%, -50%) scale(1.0
 #scores .avatar { width: 24px; height: 24px; font-size: 11px; }
 #scores .avatar.bot .icon { width: 13px; height: 13px; }
 #scores td:last-child { text-align: right; }
-#log { list-style: none; padding-left: 0; margin: 0; font-size: 13px; line-height: 1.6; color: var(--text); flex: 1; overflow-y: auto; }
-#log li { padding: 2px 0; }
-#log .round { color: var(--muted); margin-top: 6px; font-size: 12px; }
-#log .chop { color: var(--red); font-weight: 800; }
-#log .pay { display: flex; align-items: center; gap: 6px; color: var(--gold); }
-#log .icon { width: 14px; height: 14px; }
-#btn-leave-game { align-self: flex-start; margin-top: 8px; }
+#btn-leave-game { align-self: flex-start; margin-top: 12px; }
 
 /* ---------- Kết quả ván ---------- */
 
@@ -485,6 +479,7 @@ button.tseat.empty:hover .seat-join { transform: translate(-50%, -50%) scale(1.0
 .dialog ol li { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border); }
 .dialog ol li .who { flex: 1; display: flex; align-items: center; gap: 8px; font-weight: 600; }
 .dialog ol li .place { font-size: 12px; color: var(--muted); min-width: 34px; }
+.dialog ol li .who .left { font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
 .dialog ol .avatar { width: 26px; height: 26px; font-size: 12px; }
 .dialog ol .avatar.bot .icon { width: 14px; height: 14px; }
 #result-transfers { text-align: left; list-style: none; padding: 10px 0 0; margin: 0 0 16px; border-top: 1px solid var(--border); font-size: 13px; color: var(--muted); line-height: 1.8; }

@@ -162,11 +162,21 @@ func TestSoloWithBotsSettlesIntoWallet(t *testing.T) {
 	if want := max(0, 1000+int64(st.Money[0])); bank.get(an.ID) != want || st.Players[0].Coins != want {
 		t.Fatalf("ví sau ván: %d, hiển thị %d, muốn %d", bank.get(an.ID), st.Players[0].Coins, want)
 	}
+	// Ván dừng ngay khi có người về nhất: đủ thứ hạng cho cả bàn, chỉ người nhất hết bài (trừ tới trắng).
+	empty := 0
+	for _, p := range st.Players {
+		if p.Place < 0 {
+			t.Fatalf("hết ván ai cũng phải có thứ hạng: %+v", st.Players)
+		}
+		if p.Cards == 0 {
+			empty++
+		}
+	}
+	if empty > 1 {
+		t.Fatalf("chỉ người nhất được hết bài, có %d người", empty)
+	}
 	// XP theo thứ hạng: 4 người thì nhất 30, nhì 23, ba 16, bét 10.
 	place := st.Players[0].Place
-	if place < 0 {
-		place = 3
-	}
 	if want := int64(10 + 20*(3-place)/3); bank.getXP(an.ID) != want {
 		t.Fatalf("XP về thứ %d: muốn %d, được %d", place+1, want, bank.getXP(an.ID))
 	}

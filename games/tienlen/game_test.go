@@ -157,8 +157,18 @@ func TestSimulateBots(t *testing.T) {
 					t.Fatalf("%d người, người %d: %v", players, p, err)
 				}
 			}
-			if g.Instant == nil && len(g.Finished) != players {
+			if len(g.Finished) != players {
 				t.Fatalf("%d người: xếp hạng thiếu %v", players, g.Finished)
+			}
+			// Ván dừng ngay khi có người về nhất: chỉ đúng một người hết bài (trừ tới trắng).
+			empty := 0
+			for _, h := range g.Hands {
+				if len(h) == 0 {
+					empty++
+				}
+			}
+			if g.Instant == nil && (empty != 1 || len(g.Hands[g.Finished[0]]) != 0) {
+				t.Fatalf("%d người: ván phải dừng khi người nhất về, %d người hết bài", players, empty)
 			}
 		}
 		sum := 0

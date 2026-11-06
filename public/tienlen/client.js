@@ -122,7 +122,12 @@
   function onState(s) {
     const prevPhase = state && state.phase;
     const prevGame = state && state.gameNo;
+    // Số sự kiện đã thấy của ván này: chỉ báo các lần chặt mới (mở trang giữa ván thì không báo lại cái cũ).
+    const seen = state && state.gameNo === s.gameNo ? (state.history || []).length : (s.history || []).length;
     state = s;
+    for (const h of (s.history || []).slice(seen)) {
+      if (h.pay) A.toast(`CHẶT! ${transferText(h.pay)}`);
+    }
     if (s.phase === 'playing') showLobby = false;
     if (s.phase === 'playing' && prevPhase !== 'playing') selected.clear();
     selected = new Set([...selected].filter((c) => s.hand.includes(c)));
@@ -557,23 +562,6 @@
           `<td><span class="coins">${coinsText(p)}</span></td></tr>`,
       )
       .join('');
-
-    const items = [`<li class="round"><b>Ván ${state.gameNo}</b></li>`];
-    for (const h of state.history || []) {
-      const who = escapeHtml(playerName(h.player));
-      if (h.newRound) items.push(`<li class="round">— Vòng mới: ${who} đánh —</li>`);
-      else if (h.pass) items.push(`<li>${who} bỏ lượt</li>`);
-      else {
-        const cards = h.combo.cards.map(R.cardName).join(' ');
-        const chop = h.chop ? ` ${I.svg('flame')} CHẶT!` : '';
-        items.push(`<li class="${h.chop ? 'chop' : ''}">${who}: ${R.describe(h.combo)} <b>${cards}</b>${chop}</li>`);
-        if (h.pay) items.push(`<li class="pay">${I.svg('coins')}${transferText(h.pay)}</li>`);
-      }
-    }
-    const log = $('log');
-    const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
-    log.innerHTML = items.join('');
-    if (atBottom) log.scrollTop = log.scrollHeight;
   }
 
   function renderResult() {
@@ -594,10 +582,14 @@
       .sort((a, b) => a.place - b.place || b.money - a.money);
     $('result-list').innerHTML = order
       .map(({ i, p, place, money }) => {
-        const label = p.cong ? 'Cóng' : place < 4 && !state.instant ? PLACES[place] : '';
+        const last = place === state.players.length - 1 && place > 0;
+        const label = p.cong ? 'Cóng' : state.instant || place > 3 ? '' : last ? 'Bét' : PLACES[place];
         const cls = money > 0 ? 'delta-plus' : money < 0 ? 'delta-minus' : '';
         const xp = state.xp && state.xp[i] ? `<span class="delta-xp">+${state.xp[i]} XP</span>` : '';
-        return `<li><span class="place">${label}</span><span class="who">${face(p)}${escapeHtml(playerName(i))}</span>${xp}<span class="${cls}">${signed(money)} xu</span></li>`;
+        // Ván dừng khi có người về nhất: những người còn lại hiện số lá đang cầm.
+        const n = state.cardsLeft ? state.cardsLeft[i] : 0;
+        const left = place > 0 && n > 0 && !state.instant ? `<span class="left">còn ${n} lá</span>` : '';
+        return `<li><span class="place">${label}</span><span class="who">${face(p)}${escapeHtml(playerName(i))}${left}</span>${xp}<span class="${cls}">${signed(money)} xu</span></li>`;
       })
       .join('');
 

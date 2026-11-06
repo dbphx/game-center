@@ -68,7 +68,7 @@ Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè c
 
 - Lúc đăng ký chọn **giới tính** (Nam / Nữ, **không đổi được về sau**) và một bộ **trang phục khởi đầu** (Thường ngày hoặc Thể thao).
 - Mỗi tài khoản là một nhân vật có **level riêng**, lên level bằng XP kiếm được khi chơi.
-  Tiến Lên: hết mỗi ván người về nhất +30 XP, người bét +10 XP (ở giữa chia đều).
+  Tiến Lên: hết mỗi ván người về nhất +30 XP, người xếp bét +10 XP (ở giữa chia đều).
 - Level n cần tổng 50·n·(n−1) XP: level 2 ở 100 XP, level 3 ở 300, level 4 ở 600...
 - **Shop thời trang**: trang phục khác phải **đủ level mới mua được, trả bằng xu**; đồ đã mua mặc lại lúc nào cũng được.
 
@@ -525,6 +525,7 @@ Bằng tổng thì ai tạo tài khoản trước đứng trên. Bảng chỉ c�
 
 - Mỗi lượt 30 giây, hết giờ máy đánh thay. Mất mạng / tải lại trang vẫn giữ ghế (vào lại bằng link phòng), trong lúc vắng máy đánh thay.
 - Rời phòng giữa ván thì máy đánh nốt ván, kết quả vẫn tính vào ví người rời.
+- Máy đánh chia tay bài thành ít bộ nhất, nhớ lá đã ra để biết bộ nào không ai chặn được, chặn người sắp hết bài; máy không xem bài người khác.
 
 ### Luật
 
@@ -532,7 +533,9 @@ Bằng tổng thì ai tạo tài khoản trước đứng trên. Bảng chỉ c�
 - Bộ bài: rác, đôi, sám cô, sảnh (≥3 lá, không có 2), đôi thông (≥3 đôi liên tiếp), tứ quý.
 - Chặn: cùng loại, cùng số lá, lá cao nhất lớn hơn.
 - Chặt: 3 đôi thông chặt heo; tứ quý chặt heo, đôi heo, 3 đôi thông; 4 đôi thông chặt heo, đôi heo, 3 đôi thông, tứ quý.
-- Bỏ lượt là mất quyền đánh tới hết vòng. Người về trước mà không ai chặn thì người kế tiếp được đánh.
+- Bỏ lượt là mất quyền đánh tới hết vòng.
+- **Có người về nhất (hết bài) là ván dừng ngay**, những người còn lại không đánh tiếp. Xếp hạng: người nhất, rồi
+  người còn ít lá hơn; bằng lá thì người ngồi gần sau người nhất (theo chiều đánh) xếp trước; người bị cóng ở cuối.
 - Mỗi người 13 lá; chơi ít hơn 4 người thì phần bài còn lại để riêng.
 - Ván đầu: ai giữ lá nhỏ nhất (đủ 4 người là 3♠) đánh trước và phải đánh kèm lá đó. Các ván sau: người về nhất đánh trước.
 - Tới trắng: tứ quý heo, sảnh rồng, 6 đôi, 5 đôi thông.
@@ -550,8 +553,8 @@ Mọi khoản tính bằng *mức*, nhân với mức cược (10–500 xu/mức
 | 3 đôi thông / tứ quý / 4 đôi thông | 3 / 4 / 6 |
 
 - **Chặt heo / chặt hàng**: người bị chặt trả người chặt theo bảng trên. **Chặt chồng**: người bị chặt sau trả luôn số tiền mình vừa ăn, nên người chặt cuối ăn trọn.
-- **Thối**: hết ván, người về bét còn heo / hàng trên tay thì trả cho người về nhất.
-- **Cóng**: khi có người về nhất mà ai đó chưa đánh lá nào thì người đó bị cóng: xếp bét, bị loại khỏi ván và cũng phải thối cả tay.
+- **Thối**: hết ván, **mọi người thua** còn heo / hàng trên tay đều trả cho người về nhất (mỗi người một khoản, kể cả người bị cóng).
+- **Cóng**: khi có người về nhất mà ai đó chưa đánh lá nào thì người đó bị cóng: xếp bét, trả 26 lá và cũng phải thối heo / hàng.
 - State có `delta` (tiền đếm lá, mức), `cardsLeft` (số lá bị tính từng người lúc người nhất về, cóng 26) và `winBy: {threeSpades, multiplier}` để giao diện hiện "An còn 5 lá trả 50 xu", "Tới bằng 3 bích ×2".
 
 ## Cấu trúc

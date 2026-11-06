@@ -61,7 +61,7 @@ type Game struct {
 	GameNo     int
 
 	Hands       [][]Card
-	Finished    []int // thứ tự về; hết ván thì đủ mọi người, người bị cóng ở cuối
+	Finished    []int // xếp hạng; hết ván thì đủ mọi người: người nhất, rồi theo số lá còn lại, người bị cóng ở cuối
 	Cong        []int // người bị cóng: chưa đánh lá nào khi có người về nhất
 	Passed      []bool
 	LastPlay    *LastPlay
@@ -106,7 +106,6 @@ func (g *Game) Start() {
 		if reason := InstantWin(g.Hands[p]); reason != "" {
 			g.Instant = &Instant{Player: p, Reason: reason}
 			g.Over = true
-			g.Finished = []int{p}
 			g.LastWinner = p
 			g.CardsLeft = make([]int, n)
 			for q := range n {
@@ -116,6 +115,7 @@ func (g *Game) Start() {
 					g.Delta[p] += g.CardsLeft[q]
 				}
 			}
+			g.Finished = g.ranking(p)
 			g.settle()
 			return
 		}
@@ -140,24 +140,29 @@ func (g *Game) IsActive(p int) bool {
 	return !slices.Contains(g.Finished, p) && !slices.Contains(g.Cong, p)
 }
 
-func (g *Game) activeCount() int {
-	n := 0
-	for p := range g.Players {
-		if g.IsActive(p) {
-			n++
-		}
-	}
-	return n
-}
-
 func (g *Game) Context(p int) Context {
 	ctx := Context{MustInclude: g.MustInclude, MinOpponentCards: 13}
 	if g.LastPlay != nil {
 		ctx.Prev = g.LastPlay.Combo
 	}
+	// Chỉ thông tin công khai: lá đã đánh ra, số lá từng người, ai đã bỏ lượt; không đọc bài người khác.
+	ctx.Seat, ctx.LastPlayer = p, -1
+	if g.LastPlay != nil {
+		ctx.LastPlayer = g.LastPlay.Player
+	}
+	ctx.Passed = slices.Clone(g.Passed)
+	ctx.Counts = make([]int, g.Players)
 	for q := range g.Players {
+		if g.IsActive(q) {
+			ctx.Counts[q] = len(g.Hands[q])
+		}
 		if q != p && g.IsActive(q) {
 			ctx.MinOpponentCards = min(ctx.MinOpponentCards, len(g.Hands[q]))
+		}
+	}
+	for _, ev := range g.History {
+		if ev.Combo != nil {
+			ctx.Played = append(ctx.Played, ev.Combo.Cards...)
 		}
 	}
 	return ctx
@@ -242,8 +247,7 @@ func (g *Game) Play(p int, cards []Card) error {
 					g.CardsLeft[q] = congCards
 				}
 			}
-		}
-		if g.activeCount() <= 1 {
+			// Người nhất về là ván dừng ngay, không đánh tiếp để tìm người về bét.
 			g.finish()
 			return nil
 		}
@@ -309,13 +313,8 @@ func (g *Game) newRound(leader int) {
 
 func (g *Game) finish() {
 	g.Over = true
-	for q := range g.Players {
-		if g.IsActive(q) {
-			g.Finished = append(g.Finished, q)
-		}
-	}
-	g.Finished = append(g.Finished, g.Cong...)
 	winner := g.Finished[0]
+	g.Finished = g.ranking(winner)
 	g.LastWinner = winner
 	// Nhất ăn tất, đếm lá: mỗi người còn lại trả người nhất số lá đã ghi lúc người nhất về.
 	mul := 1
@@ -328,14 +327,36 @@ func (g *Game) finish() {
 		g.Delta[winner] += pay
 	}
 
-	// Thối: người về bét và người bị cóng trả heo / hàng còn trên tay cho người về nhất.
-	payers := append([]int{g.Finished[g.Players-1]}, g.Cong...)
-	for _, p := range slices.Compact(slices.Sorted(slices.Values(payers))) {
+	// Thối: mọi người thua (kể cả người bị cóng) còn heo / hàng trên tay đều trả người nhất, mỗi người một khoản,
+	// lần lượt theo ghế đánh sau người nhất.
+	for i := 1; i < g.Players; i++ {
+		p := (winner + i) % g.Players
 		if units, desc := Leftover(g.Hands[p]); units > 0 {
 			g.Transfers = append(g.Transfers, Transfer{From: p, To: winner, Units: units, Reason: "thối " + desc})
 		}
 	}
 	g.settle()
+}
+
+// ranking xếp hạng cả bàn khi ván dừng: người nhất, rồi người còn ít lá hơn (theo CardsLeft); bằng lá thì người ngồi
+// gần sau người nhất theo chiều đánh xếp trước; người bị cóng luôn ở cuối.
+func (g *Game) ranking(winner int) []int {
+	order := []int{winner}
+	for i := 1; i < g.Players; i++ {
+		order = append(order, (winner+i)%g.Players)
+	}
+	cong := func(p int) bool { return slices.Contains(g.Cong, p) }
+	slices.SortStableFunc(order[1:], func(a, b int) int {
+		switch {
+		case cong(a) != cong(b):
+			if cong(a) {
+				return 1
+			}
+			return -1
+		}
+		return g.CardsLeft[a] - g.CardsLeft[b]
+	})
+	return order
 }
 
 // Money trả về tổng tiền (mức cược) từng người được/mất trong ván vừa xong.

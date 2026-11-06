@@ -530,7 +530,7 @@ func (r *Room) awardXP() {
 			continue
 		}
 		place := slices.Index(r.game.Finished, i)
-		if place < 0 { // tới trắng: người không thắng tính như về bét
+		if place < 0 { // phòng hờ: ván nào cũng xếp đủ hạng (kể cả tới trắng), thiếu thì tính như về bét
 			place = n - 1
 		}
 		xp[p.UserID] += int64(minXP + bonusXP*(n-1-place)/(n-1))
