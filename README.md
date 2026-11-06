@@ -47,6 +47,11 @@ Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè c
 (nhớ gắn volume `/data` để không mất ví), hoặc deploy Dockerfile lên Fly.io / Render / Railway, hoặc mở tạm bằng tunnel
 (`cloudflared tunnel --url http://localhost:8080`).
 
+Bộ nhớ đệm của trình duyệt (và Cloudflare): js / css trong trang có `?v=<phiên bản>` được giữ 1 năm (đổi nội dung thì
+URL đổi theo); ảnh, font giữ 1 ngày rồi hỏi lại bằng ETag; HTML, json luôn hỏi lại. Vì vậy **đổi nội dung một ảnh mà
+giữ nguyên tên file thì người chơi có thể còn thấy ảnh cũ tối đa 1 ngày** — muốn thấy ngay thì đặt tên file mới.
+Ảnh lớn nên nén lại bằng bảng 256 màu giữ bóng mờ (sprite `pet3d_*` đã nén như vậy, nhẹ hơn khoảng 3 lần).
+
 ## Tài khoản và xu
 
 - Đăng ký bằng **tên đăng nhập + mật khẩu** (tên đăng nhập 3–20 ký tự: chữ không dấu, số, `_`, `.`; không phân biệt hoa thường; mật khẩu ≥ 6 ký tự, băm bcrypt).

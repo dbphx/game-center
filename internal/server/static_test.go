@@ -37,7 +37,8 @@ func TestStaticCaching(t *testing.T) {
 		res := get(p, nil)
 		res.Body.Close()
 		etag := res.Header.Get("ETag")
-		if res.StatusCode != 200 || etag == "" || res.Header.Get("Cache-Control") != "no-cache" {
+		want := map[string]string{"/": "no-cache", "/app.js": "no-cache", "/img/logo.png": "public, max-age=86400"}[p]
+		if res.StatusCode != 200 || etag == "" || res.Header.Get("Cache-Control") != want {
 			t.Fatalf("%s: %d etag=%q cc=%q", p, res.StatusCode, etag, res.Header.Get("Cache-Control"))
 		}
 		res = get(p, map[string]string{"If-None-Match": etag, "Accept-Encoding": "gzip"})
@@ -45,6 +46,15 @@ func TestStaticCaching(t *testing.T) {
 		if res.StatusCode != http.StatusNotModified {
 			t.Fatalf("%s: hỏi lại phải 304, được %d", p, res.StatusCode)
 		}
+	}
+
+	// JS / CSS có ?v= đúng phiên bản: giữ 1 năm, không hỏi lại; sai phiên bản (bản cũ) thì vẫn phải hỏi lại.
+	v := strings.Trim(st.etags["app.js"], `"`)[:10]
+	if res := get("/app.js?v="+v, nil); res.Header.Get("Cache-Control") != "public, max-age=31536000, immutable" {
+		t.Fatalf("js có phiên bản: cc=%q", res.Header.Get("Cache-Control"))
+	}
+	if res := get("/app.js?v=deadbeef00", nil); res.Header.Get("Cache-Control") != "no-cache" {
+		t.Fatalf("js sai phiên bản: cc=%q", res.Header.Get("Cache-Control"))
 	}
 
 	// JS được nén gzip khi trình duyệt nhận gzip.

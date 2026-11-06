@@ -124,8 +124,7 @@ func (s *staticFiles) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	h := w.Header()
 	h.Set("ETag", etag)
-	// Luôn hỏi lại server (rẻ: 304 khi không đổi); riêng ảnh còn được service worker giữ sẵn.
-	h.Set("Cache-Control", "no-cache")
+	h.Set("Cache-Control", cacheControl(name, etag, r.URL.Query().Get("v")))
 	h.Add("Vary", "Accept-Encoding")
 	if gz, ok := s.gz[name]; ok && r.Header.Get("Range") == "" && strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 		if match := r.Header.Get("If-None-Match"); match != "" && strings.Contains(match, etag) {
@@ -145,6 +144,22 @@ func (s *staticFiles) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.files.ServeHTTP(w, r) // FileServer tự trả 304 khi If-None-Match khớp ETag đã đặt
+}
+
+// cacheControl chọn thời gian trình duyệt (và Cloudflare) được giữ file:
+//   - js / css có ?v= đúng phiên bản hiện tại: giữ 1 năm, không hỏi lại (đổi nội dung thì URL đổi theo);
+//   - ảnh, font, âm thanh: giữ 1 ngày rồi hỏi lại bằng ETag (đổi ảnh mà giữ tên thì có thể thấy ảnh cũ tối đa 1 ngày);
+//   - HTML, js / css không có hoặc sai phiên bản, json và file chữ khác: luôn hỏi lại (304 khi không đổi).
+func cacheControl(name, etag, v string) string {
+	switch path.Ext(name) {
+	case ".js", ".css":
+		if v != "" && strings.HasPrefix(strings.Trim(etag, `"`), v) {
+			return "public, max-age=31536000, immutable"
+		}
+	case ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".woff", ".woff2", ".ttf", ".mp3", ".ogg", ".wav", ".glb", ".gltf", ".bin":
+		return "public, max-age=86400"
+	}
+	return "no-cache"
 }
 
 func contentType(name string) string {
