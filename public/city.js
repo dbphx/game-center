@@ -224,6 +224,10 @@
   const art = {};
   const sizes = {}; // tên → [w, h] hiển thị (dùng cho xe, thuyền, mây...)
   const images = {};
+  // Ảnh đồ vật đã nướng sẵn bóng đổ / màu nhà (tools/bake_city_shadows.py): đường dẫn ảnh gốc (+ '#tN') → { file, nw, pad }.
+  // Có bản nướng thì không cần CSS filter (filter trên hơn 1.000 ảnh làm vẽ lại rất nặng trên điện thoại).
+  const SHADOW_IMG = '/img/toon/cityshadow/';
+  let baked = {};
   const srcOf = (name) => (art[name] ? art[name].src : (name.startsWith('farm/') ? FARM_IMG + name.slice(5) : IMG + name) + '.png');
 
   function anchorOf(it, w, h) {
@@ -309,9 +313,10 @@
       for (const it of (m && m.images) || []) register(prefix + it.file.replace(/\.png$/, ''), dir, it);
     }));
     const dir = artSet();
-    const m = dir && (await read(dir));
+    const [m, sh] = await Promise.all([dir && read(dir), dir && read(SHADOW_IMG)]);
     if (!m) return;
     art3d = true;
+    baked = (sh && sh.images) || {};
     const byFile = {};
     for (const it of m.images || []) {
       byFile[it.file] = it;
@@ -897,18 +902,32 @@
   function propHtml([name, x, y, k, flip, cls]) {
     const a = art[name];
     if (!a) return '';
-    const w = a.w * k;
-    const h = a.h * k;
-    const left = flip ? x - (a.w - a.ax) * k : x - a.ax * k;
-    const top = y - a.ay * k;
+    let w = a.w * k;
+    let h = a.h * k;
+    let left = flip ? x - (a.w - a.ax) * k : x - a.ax * k;
+    let top = y - a.ay * k;
     let extra = '';
     if (isTree(name)) cls = `${cls} tree${h > 70 ? ' sway' : ''}`;
-    if (art3d && name.startsWith('house_')) cls += ` tint${Math.abs(Math.round(x / 7 + y)) % 5}`;
+    const tint = art3d && name.startsWith('house_') ? Math.abs(Math.round(x / 7 + y)) % 5 : -1;
+    // Bản đã nướng bóng (lề thêm quanh ảnh, tính theo điểm ảnh gốc) thì nới khung cho đúng chỗ, bỏ filter.
+    const b = baked[a.src + (tint >= 0 ? `#t${tint}` : '')];
+    let src = srcOf(name);
+    if (b) {
+      if (/\btree\b/.test(cls)) extra += ` data-g="${Math.round(left)},${Math.round(top)},${Math.round(w)},${Math.round(h)}"`; // khung gốc (không tính lề bóng) để làm mờ cây
+      const u = (a.w / b.nw) * k;
+      const [pl, pt, pr, pb] = b.pad;
+      left -= (flip ? pr : pl) * u;
+      top -= pt * u;
+      w += (pl + pr) * u;
+      h += (pt + pb) * u;
+      src = SHADOW_IMG + b.file;
+      cls += ' baked';
+    } else if (tint >= 0) cls += ` tint${tint}`;
     if ((name === 'bench' || name === 'bench_wood') && !/\bdeco\b/.test(cls)) {
       cls += ' bench';
       extra = ` data-bench="${Math.round(x)},${Math.round(y)}" title="Ngồi nghỉ (hồi máu ×2)"`;
     }
-    return `<img class="prop${flip ? ' flip' : ''}${cls ? ' ' + cls.trim() : ''}" src="${srcOf(name)}" alt="" draggable="false"${extra}
+    return `<img class="prop${flip ? ' flip' : ''}${cls ? ' ' + cls.trim() : ''}" src="${src}" alt="" draggable="false"${extra}
       style="left:${px(left)};top:${px(top)};width:${px(w)};height:${px(h)};z-index:${100 + Math.round(y)};--d:${phase(x, y)}s">`;
   }
 
@@ -938,16 +957,25 @@
       case 'smoke':
         return [0, 1, 2].map((i) => img('fx_smoke', 'fx-smoke', 26, 26, x - 13, y - 26, z, `animation-delay:${-i * 1.4}s`)).join('');
       case 'butterfly':
-        return `<div class="fx fx-butterfly" style="left:${px(x - 10)};top:${px(y - 9)};z-index:${z + 40};--d:${phase(x, y)}s"><i style="background-image:url(${srcOf('fx_butterfly')})"></i></div>`;
+        return `<div class="fx fx-butterfly" style="left:${px(x - 10)};top:${px(y - 9)};z-index:${z + 40};--d:${phase(x, y)}s"><i><b style="background-image:url(${srcOf('fx_butterfly')})"></b></i></div>`;
       case 'birds':
         return `<div class="fx fx-birds" style="left:${px(x)};top:${px(y)};z-index:5;--d:${phase(x, y)}s">${[[0, 0], [26, 10], [50, -6], [70, 14], [92, 2]]
-          .map(([dx, dy], i) => `<i style="left:${dx}px;top:${dy}px;background-image:url(${srcOf('fx_bird')});animation-delay:${-i * 0.13}s"></i>`).join('')}</div>`;
+          .map(([dx, dy], i) => `<i style="left:${dx}px;top:${dy}px"><b style="background-image:url(${srcOf('fx_bird')});animation-delay:${-i * 0.13}s"></b></i>`).join('')}</div>`;
       case 'bulbs': { // bóng đèn chạy vòng quanh viền biển CASINO (170 × 44, tâm trên x)
         let out = '';
         let i = 0;
         const L = x - 86;
-        for (let bx = L; bx <= x + 86; bx += 13) out += img('fx_bulb', 'fx-chase', 9, 9, bx - 4.5, y - 3, 400, `animation-delay:${(i++ * 0.08).toFixed(2)}s`);
-        for (let bx = x + 86; bx >= L; bx -= 13) out += img('fx_bulb', 'fx-chase', 9, 9, bx - 4.5, y + 43, 400, `animation-delay:${(i++ * 0.08).toFixed(2)}s`);
+        // Bản nướng sẵn (sáng hơn, có quầng vàng) thì chỉ cần nhấp nháy bằng opacity, không dùng filter.
+        const on = art.fx_bulb && baked[art.fx_bulb.src + '#on'];
+        const bulb = (bx, by) => {
+          const delay = `animation-delay:${(i++ * 0.08).toFixed(2)}s`;
+          if (!on) return img('fx_bulb', 'fx-chase', 9, 9, bx - 4.5, by, 400, delay);
+          const u = 9 / on.nw;
+          const [pl, pt, pr, pb] = on.pad;
+          return `<img class="fx fx-chase baked" src="${SHADOW_IMG + on.file}" alt="" draggable="false" style="left:${px(bx - 4.5 - pl * u)};top:${px(by - pt * u)};width:${px(9 + (pl + pr) * u)};height:${px(9 + (pt + pb) * u)};z-index:400;${delay}">`;
+        };
+        for (let bx = L; bx <= x + 86; bx += 13) out += bulb(bx, y - 3);
+        for (let bx = x + 86; bx >= L; bx -= 13) out += bulb(bx, y + 43);
         return out;
       }
       case 'coin':
@@ -986,7 +1014,7 @@
   function waterHtml() {
     const segs = [[-FAR / T, 14], [19, 32], [37, COLS + FAR / T]];
     return segs
-      .map(([a, b]) => `<div class="river-flow" style="left:${px(a * T)};top:${px(RIVER_ROWS[0] * T + 34)};width:${px((b - a) * T)};height:${px(RIVER_ROWS.length * T - 68)}"></div>`)
+      .map(([a, b]) => `<div class="river-flow" style="left:${px(a * T)};top:${px(RIVER_ROWS[0] * T + 34)};width:${px((b - a) * T)};height:${px(RIVER_ROWS.length * T - 68)}"><i></i></div>`)
       .join('');
   }
 
@@ -1067,7 +1095,7 @@
       const stern = (dir === 'east' ? -1 : 1) * fw * 0.4; // đuôi thuyền so với điểm chân
       wake = `<img class="wake wake-${dir}" src="${srcOf(wn)}" alt="" draggable="false" style="left:${px(stern - wa.ax * kw)};top:${px(-wa.ay * kw)};width:${px(wa.w * kw)};height:${px(wa.h * kw)}">`;
     }
-    return `<div class="boat-dir boat-${dir}${cls ? ' ' + cls : ''}">${wake}<i class="boat-sheet" style="left:${px(-fx)};top:${px(-fy)};width:${px(fw)};height:${px(fh)};background-image:url(${srcOf(`boat_${kind}_${dir}`)});background-size:${px(fw * 3)} ${px(fh)};--sw:${px(fw * 3)}"></i></div>`;
+    return `<div class="boat-dir boat-${dir}${cls ? ' ' + cls : ''}">${wake}<i class="boat-sheet" style="left:${px(-fx)};top:${px(-fy)};width:${px(fw)};height:${px(fh)}"><b style="background-image:url(${srcOf(`boat_${kind}_${dir}`)})"></b></i></div>`;
   }
   const boatMeta = {}; // tên dải khung → { w, frameW, foot } (đọc từ manifest bộ 3D)
 
@@ -1107,7 +1135,15 @@
   function signHtml() {
     const [sw, sh] = sizes.sign_casino || [170, 44];
     const [cx, cy] = casinoSignAt();
-    return `<img class="casino-sign" src="${srcOf('sign_casino')}" alt="" draggable="false"
+    const glow = art.sign_casino && baked[art.sign_casino.src + '#glow'];
+    let halo = '';
+    if (glow) {
+      const u = sw / glow.nw;
+      const [pl, pt, pr, pb] = glow.pad;
+      halo = `<img class="casino-glow" src="${SHADOW_IMG + glow.file}" alt="" draggable="false"
+        style="left:${px(cx - sw / 2 - pl * u)};top:${px(cy - sh / 2 - pt * u)};width:${px(sw + (pl + pr) * u)};height:${px(sh + (pt + pb) * u)};z-index:${100 + 8 * T}">`;
+    }
+    return `${halo}<img class="casino-sign${glow ? ' baked' : ''}" src="${srcOf('sign_casino')}" alt="" draggable="false"
       style="left:${px(cx - sw / 2)};top:${px(cy - sh / 2)};width:${px(sw)};height:${px(sh)};z-index:${100 + 8 * T + 1}">`;
   }
 
@@ -1639,6 +1675,7 @@
     lastCam = t;
     worldEl.style.transform = t;
     ensureChunks();
+    cullAnims();
   }
 
   // Dựng các mảng trong (và cạnh) khung nhìn, bỏ các mảng đã xa.
@@ -1659,6 +1696,7 @@
       ch.props.remove();
       chunks.delete(k);
     }
+    cullAnims();
   }
 
   function makeChunk(kx) {
@@ -1679,10 +1717,43 @@
       const [bx, by] = el.dataset.bench.split(',').map(Number);
       return { x: bx, y: by, el };
     });
-    const trees = [...layer.querySelectorAll('.prop.tree')].map((el) => ({
-      el, l: parseFloat(el.style.left), t: parseFloat(el.style.top), w: parseFloat(el.style.width), h: parseFloat(el.style.height),
-    }));
-    chunks.set(kx, { canvas, props: layer, benches, trees, plan });
+    const trees = [...layer.querySelectorAll('.prop.tree')].map((el) => {
+      const [l, t, w, h] = el.dataset.g ? el.dataset.g.split(',').map(Number)
+        : [el.style.left, el.style.top, el.style.width, el.style.height].map(parseFloat);
+      return { el, l, t, w, h };
+    });
+    // Phần tử có hoạt ảnh và khoảng x (đơn vị bản đồ) nó có thể chiếm, để tắt hoạt ảnh khi ra ngoài khung nhìn.
+    const anims = [...layer.querySelectorAll('.fx, .prop.sway, .cloud')].map((el) => {
+      const l = parseFloat(el.style.left) || 0;
+      const w = parseFloat(el.style.width) || 0;
+      if (el.classList.contains('fx-birds')) return { el, l: l - 200, r: l + 2100, on: true }; // đàn chim bay ngang cả mảng
+      const reach = el.classList.contains('cloud') ? 260 : 60; // mây trôi 260; khói, bướm, cờ lệch ít
+      return { el, l: l - 10, r: l + w + reach, on: true };
+    });
+    chunks.set(kx, { canvas, props: layer, benches, trees, plan, anims });
+    lastCull = null;
+  }
+
+  // Tắt hoạt ảnh CSS của khói, bướm, đèn, cây lắc... nằm ngoài khung nhìn (thêm lớp .still): ở xa thì không ai thấy mà
+  // vẫn tốn tính lại style / vẽ mỗi khung. Chỉ xét theo chiều ngang (chiều cao luôn thấy trọn); chỉ chạy khi camera đi xa
+  // hơn CULL_STEP, và chỉ đụng tới phần tử đổi trạng thái.
+  const CULL_STEP = 60;
+  const CULL_MARGIN = 160;
+  let lastCull = null;
+  function cullAnims() {
+    if (lastCull !== null && Math.abs(cam.x - lastCull) < CULL_STEP) return;
+    lastCull = cam.x;
+    const x0 = cam.x - view.w / 2 - CULL_MARGIN;
+    const x1 = cam.x + view.w / 2 + CULL_MARGIN;
+    for (const ch of chunks.values()) {
+      for (const a of ch.anims || []) {
+        const on = a.r >= x0 && a.l <= x1;
+        if (on !== a.on) {
+          a.on = on;
+          a.el.classList.toggle('still', !on);
+        }
+      }
+    }
   }
 
   // Kéo chuột / vuốt trên bản đồ để nhìn quanh; bấm (không kéo) vẫn là đi tới điểm đó.
@@ -1727,6 +1798,9 @@
       e.preventDefault();
     }, true);
   }
+
+  // Tab bị ẩn: tắt mọi hoạt ảnh CSS của bản đồ (bật lại khi quay về).
+  document.addEventListener('visibilitychange', () => { if (root) root.classList.toggle('hidden-tab', document.hidden); });
 
   function mount(el, o) {
     opts = o;

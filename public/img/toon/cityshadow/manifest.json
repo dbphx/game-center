@@ -1,0 +1,2975 @@
+{
+"note": "Sinh bởi tools/bake_city_shadows.py — ảnh đồ vật bản đồ đã có bóng đổ (và màu nhà). Khoá: đường dẫn ảnh gốc (thêm #tN cho màu nhà N). pad: lề thêm [trái, trên, phải, dưới] theo điểm ảnh gốc; nw: bề rộng ảnh gốc.",
+"images": {
+"/img/toon/city3d/building_casino.png": {
+"file": "city3d__building_casino.png",
+"nw": 382,
+"pad": [
+6,
+2,
+6,
+11
+]
+},
+"/img/toon/city3d/building_bank.png": {
+"file": "city3d__building_bank.png",
+"nw": 530,
+"pad": [
+6,
+2,
+6,
+11
+]
+},
+"/img/toon/city3d/building_shop.png": {
+"file": "city3d__building_shop.png",
+"nw": 303,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/building_hospital.png": {
+"file": "city3d__building_hospital.png",
+"nw": 350,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/house_1.png": {
+"file": "city3d__house_1.png",
+"nw": 262,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/house_1.png#t0": {
+"file": "city3d__house_1_t0.png",
+"nw": 262,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/house_1.png#t1": {
+"file": "city3d__house_1_t1.png",
+"nw": 262,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/house_1.png#t2": {
+"file": "city3d__house_1_t2.png",
+"nw": 262,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/house_1.png#t3": {
+"file": "city3d__house_1_t3.png",
+"nw": 262,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/house_1.png#t4": {
+"file": "city3d__house_1_t4.png",
+"nw": 262,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/house_2.png": {
+"file": "city3d__house_2.png",
+"nw": 238,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/house_2.png#t0": {
+"file": "city3d__house_2_t0.png",
+"nw": 238,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/house_2.png#t1": {
+"file": "city3d__house_2_t1.png",
+"nw": 238,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/house_2.png#t2": {
+"file": "city3d__house_2_t2.png",
+"nw": 238,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/house_2.png#t3": {
+"file": "city3d__house_2_t3.png",
+"nw": 238,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/house_2.png#t4": {
+"file": "city3d__house_2_t4.png",
+"nw": 238,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/house_3.png": {
+"file": "city3d__house_3.png",
+"nw": 260,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/house_3.png#t0": {
+"file": "city3d__house_3_t0.png",
+"nw": 260,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/house_3.png#t1": {
+"file": "city3d__house_3_t1.png",
+"nw": 260,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/house_3.png#t2": {
+"file": "city3d__house_3_t2.png",
+"nw": 260,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/house_3.png#t3": {
+"file": "city3d__house_3_t3.png",
+"nw": 260,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/house_3.png#t4": {
+"file": "city3d__house_3_t4.png",
+"nw": 260,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/house_4.png": {
+"file": "city3d__house_4.png",
+"nw": 220,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/house_4.png#t0": {
+"file": "city3d__house_4_t0.png",
+"nw": 220,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/house_4.png#t1": {
+"file": "city3d__house_4_t1.png",
+"nw": 220,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/house_4.png#t2": {
+"file": "city3d__house_4_t2.png",
+"nw": 220,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/house_4.png#t3": {
+"file": "city3d__house_4_t3.png",
+"nw": 220,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/house_4.png#t4": {
+"file": "city3d__house_4_t4.png",
+"nw": 220,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/house_5.png": {
+"file": "city3d__house_5.png",
+"nw": 275,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/house_5.png#t0": {
+"file": "city3d__house_5_t0.png",
+"nw": 275,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/house_5.png#t1": {
+"file": "city3d__house_5_t1.png",
+"nw": 275,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/house_5.png#t2": {
+"file": "city3d__house_5_t2.png",
+"nw": 275,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/house_5.png#t3": {
+"file": "city3d__house_5_t3.png",
+"nw": 275,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/house_5.png#t4": {
+"file": "city3d__house_5_t4.png",
+"nw": 275,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/house_6.png": {
+"file": "city3d__house_6.png",
+"nw": 169,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/house_6.png#t0": {
+"file": "city3d__house_6_t0.png",
+"nw": 169,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/house_6.png#t1": {
+"file": "city3d__house_6_t1.png",
+"nw": 169,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/house_6.png#t2": {
+"file": "city3d__house_6_t2.png",
+"nw": 169,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/house_6.png#t3": {
+"file": "city3d__house_6_t3.png",
+"nw": 169,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/house_6.png#t4": {
+"file": "city3d__house_6_t4.png",
+"nw": 169,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/house_7.png": {
+"file": "city3d__house_7.png",
+"nw": 252,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/house_7.png#t0": {
+"file": "city3d__house_7_t0.png",
+"nw": 252,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/house_7.png#t1": {
+"file": "city3d__house_7_t1.png",
+"nw": 252,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/house_7.png#t2": {
+"file": "city3d__house_7_t2.png",
+"nw": 252,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/house_7.png#t3": {
+"file": "city3d__house_7_t3.png",
+"nw": 252,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/house_7.png#t4": {
+"file": "city3d__house_7_t4.png",
+"nw": 252,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/house_8.png": {
+"file": "city3d__house_8.png",
+"nw": 205,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/house_8.png#t0": {
+"file": "city3d__house_8_t0.png",
+"nw": 205,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/house_8.png#t1": {
+"file": "city3d__house_8_t1.png",
+"nw": 205,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/house_8.png#t2": {
+"file": "city3d__house_8_t2.png",
+"nw": 205,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/house_8.png#t3": {
+"file": "city3d__house_8_t3.png",
+"nw": 205,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/house_8.png#t4": {
+"file": "city3d__house_8_t4.png",
+"nw": 205,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/farm_gate.png": {
+"file": "city3d__farm_gate.png",
+"nw": 283,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/tree_round.png": {
+"file": "city3d__tree_round.png",
+"nw": 235,
+"pad": [
+7,
+2,
+7,
+13
+]
+},
+"/img/toon/city3d/tree_round_small.png": {
+"file": "city3d__tree_round_small.png",
+"nw": 164,
+"pad": [
+13,
+2,
+13,
+25
+]
+},
+"/img/toon/city3d/tree_pine.png": {
+"file": "city3d__tree_pine.png",
+"nw": 129,
+"pad": [
+16,
+3,
+16,
+30
+]
+},
+"/img/toon/city3d/tree_phuong.png": {
+"file": "city3d__tree_phuong.png",
+"nw": 441,
+"pad": [
+7,
+2,
+7,
+13
+]
+},
+"/img/toon/city3d/tree_banglang.png": {
+"file": "city3d__tree_banglang.png",
+"nw": 418,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/tree_mai.png": {
+"file": "city3d__tree_mai.png",
+"nw": 256,
+"pad": [
+4,
+1,
+4,
+8
+]
+},
+"/img/toon/city3d/tree_dao.png": {
+"file": "city3d__tree_dao.png",
+"nw": 266,
+"pad": [
+4,
+1,
+4,
+8
+]
+},
+"/img/toon/city3d/tree_dua.png": {
+"file": "city3d__tree_dua.png",
+"nw": 403,
+"pad": [
+4,
+1,
+4,
+8
+]
+},
+"/img/toon/city3d/tree_cau.png": {
+"file": "city3d__tree_cau.png",
+"nw": 207,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/bush.png": {
+"file": "city3d__bush.png",
+"nw": 159,
+"pad": [
+8,
+2,
+8,
+15
+]
+},
+"/img/toon/city3d/bush_flower.png": {
+"file": "city3d__bush_flower.png",
+"nw": 138,
+"pad": [
+8,
+2,
+8,
+15
+]
+},
+"/img/toon/city3d/lamp.png": {
+"file": "city3d__lamp.png",
+"nw": 81,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/bench.png": {
+"file": "city3d__bench.png",
+"nw": 128,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/flower_pot.png": {
+"file": "city3d__flower_pot.png",
+"nw": 53,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/fountain.png": {
+"file": "city3d__fountain.png",
+"nw": 207,
+"pad": [
+6,
+2,
+6,
+11
+]
+},
+"/img/toon/city3d/car_red_east.png": {
+"file": "city3d__car_red_east.png",
+"nw": 133,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/car_red_west.png": {
+"file": "city3d__car_red_west.png",
+"nw": 139,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/car_blue_east.png": {
+"file": "city3d__car_blue_east.png",
+"nw": 132,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/car_blue_west.png": {
+"file": "city3d__car_blue_west.png",
+"nw": 134,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/car_yellow_east.png": {
+"file": "city3d__car_yellow_east.png",
+"nw": 134,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/car_yellow_west.png": {
+"file": "city3d__car_yellow_west.png",
+"nw": 138,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/car_green_east.png": {
+"file": "city3d__car_green_east.png",
+"nw": 139,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/car_green_west.png": {
+"file": "city3d__car_green_west.png",
+"nw": 141,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/ambulance_east.png": {
+"file": "city3d__ambulance_east.png",
+"nw": 137,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/ambulance_west.png": {
+"file": "city3d__ambulance_west.png",
+"nw": 159,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/scaffold.png": {
+"file": "city3d__scaffold.png",
+"nw": 221,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/crane.png": {
+"file": "city3d__crane.png",
+"nw": 551,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/house_build.png": {
+"file": "city3d__house_build.png",
+"nw": 344,
+"pad": [
+6,
+2,
+6,
+11
+]
+},
+"/img/toon/city3d/house_build.png#t0": {
+"file": "city3d__house_build_t0.png",
+"nw": 344,
+"pad": [
+6,
+2,
+6,
+11
+]
+},
+"/img/toon/city3d/house_build.png#t1": {
+"file": "city3d__house_build_t1.png",
+"nw": 344,
+"pad": [
+6,
+2,
+6,
+11
+]
+},
+"/img/toon/city3d/house_build.png#t2": {
+"file": "city3d__house_build_t2.png",
+"nw": 344,
+"pad": [
+6,
+2,
+6,
+11
+]
+},
+"/img/toon/city3d/house_build.png#t3": {
+"file": "city3d__house_build_t3.png",
+"nw": 344,
+"pad": [
+6,
+2,
+6,
+11
+]
+},
+"/img/toon/city3d/house_build.png#t4": {
+"file": "city3d__house_build_t4.png",
+"nw": 344,
+"pad": [
+6,
+2,
+6,
+11
+]
+},
+"/img/toon/city3d/brick_pile.png": {
+"file": "city3d__brick_pile.png",
+"nw": 131,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/mixer.png": {
+"file": "city3d__mixer.png",
+"nw": 102,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/barrier.png": {
+"file": "city3d__barrier.png",
+"nw": 130,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/cement_bags.png": {
+"file": "city3d__cement_bags.png",
+"nw": 94,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/cone.png": {
+"file": "city3d__cone.png",
+"nw": 37,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/dock.png": {
+"file": "city3d__dock.png",
+"nw": 228,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/bamboo_bridge.png": {
+"file": "city3d__bamboo_bridge.png",
+"nw": 236,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/hyacinth.png": {
+"file": "city3d__hyacinth.png",
+"nw": 86,
+"pad": [
+7,
+2,
+7,
+13
+]
+},
+"/img/toon/city3d/lotus.png": {
+"file": "city3d__lotus.png",
+"nw": 86,
+"pad": [
+6,
+1,
+6,
+12
+]
+},
+"/img/toon/city3d/tree_willow.png": {
+"file": "city3d__tree_willow.png",
+"nw": 380,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/lantern.png": {
+"file": "city3d__lantern.png",
+"nw": 129,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/bench_wood.png": {
+"file": "city3d__bench_wood.png",
+"nw": 130,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/tree_bang.png": {
+"file": "city3d__tree_bang.png",
+"nw": 512,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/tree_sao.png": {
+"file": "city3d__tree_sao.png",
+"nw": 278,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/site_gate.png": {
+"file": "city3d__site_gate.png",
+"nw": 286,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/fishing_gate.png": {
+"file": "city3d__fishing_gate.png",
+"nw": 286,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/crane_mast.png": {
+"file": "city3d__crane_mast.png",
+"nw": 127,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/sand_pile.png": {
+"file": "city3d__sand_pile.png",
+"nw": 149,
+"pad": [
+6,
+2,
+6,
+11
+]
+},
+"/img/toon/city3d/beacon.png": {
+"file": "city3d__beacon.png",
+"nw": 27,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/lantern_hang.png": {
+"file": "city3d__lantern_hang.png",
+"nw": 38,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/sign_casino.png": {
+"file": "city3d__sign_casino.png",
+"nw": 176,
+"pad": [
+5,
+1,
+5,
+10
+]
+},
+"/img/toon/city3d/tree_tre.png": {
+"file": "city3d__tree_tre.png",
+"nw": 139,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/tree_chuoi.png": {
+"file": "city3d__tree_chuoi.png",
+"nw": 239,
+"pad": [
+4,
+1,
+4,
+8
+]
+},
+"/img/toon/city3d/tree_xoai.png": {
+"file": "city3d__tree_xoai.png",
+"nw": 375,
+"pad": [
+4,
+2,
+4,
+7
+]
+},
+"/img/toon/city3d/tree_da.png": {
+"file": "city3d__tree_da.png",
+"nw": 403,
+"pad": [
+4,
+1,
+4,
+8
+]
+},
+"/img/toon/city3d/flower_clump.png": {
+"file": "city3d__flower_clump.png",
+"nw": 112,
+"pad": [
+5,
+2,
+5,
+9
+]
+},
+"/img/toon/city3d/hay.png": {
+"file": "city3d__hay.png",
+"nw": 107,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/boat_sampan_east_still.png": {
+"file": "city3d__boat_sampan_east_still.png",
+"nw": 186,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/boat_sampan_west_still.png": {
+"file": "city3d__boat_sampan_west_still.png",
+"nw": 194,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/boat_motor_east_still.png": {
+"file": "city3d__boat_motor_east_still.png",
+"nw": 181,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/boat_motor_west_still.png": {
+"file": "city3d__boat_motor_west_still.png",
+"nw": 211,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/boat_ferry_east_still.png": {
+"file": "city3d__boat_ferry_east_still.png",
+"nw": 252,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/boat_ferry_west_still.png": {
+"file": "city3d__boat_ferry_west_still.png",
+"nw": 258,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/boat_barge_east_still.png": {
+"file": "city3d__boat_barge_east_still.png",
+"nw": 261,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/boat_barge_west_still.png": {
+"file": "city3d__boat_barge_west_still.png",
+"nw": 261,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/boat_basket_east_still.png": {
+"file": "city3d__boat_basket_east_still.png",
+"nw": 91,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/boat_basket_west_still.png": {
+"file": "city3d__boat_basket_west_still.png",
+"nw": 91,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/wake_east.png": {
+"file": "city3d__wake_east.png",
+"nw": 240,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/wake_west.png": {
+"file": "city3d__wake_west.png",
+"nw": 240,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/wake_small_east.png": {
+"file": "city3d__wake_small_east.png",
+"nw": 130,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city3d/wake_small_west.png": {
+"file": "city3d__wake_small_west.png",
+"nw": 130,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/lamp.png": {
+"file": "city__lamp.png",
+"nw": 40,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/bench.png": {
+"file": "city__bench.png",
+"nw": 100,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/boat_1.png": {
+"file": "city__boat_1.png",
+"nw": 110,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/boat_2.png": {
+"file": "city__boat_2.png",
+"nw": 80,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/boat_3.png": {
+"file": "city__boat_3.png",
+"nw": 80,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/car_blue_side.png": {
+"file": "city__car_blue_side.png",
+"nw": 120,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/car_red_side.png": {
+"file": "city__car_red_side.png",
+"nw": 120,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/car_yellow_side.png": {
+"file": "city__car_yellow_side.png",
+"nw": 120,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/car_green_side.png": {
+"file": "city__car_green_side.png",
+"nw": 120,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/ambulance_side.png": {
+"file": "city__ambulance_side.png",
+"nw": 120,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/tree_big.png": {
+"file": "city__tree_big.png",
+"nw": 145,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/tree_1.png": {
+"file": "city__tree_1.png",
+"nw": 94,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/tree_2.png": {
+"file": "city__tree_2.png",
+"nw": 20,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/tree_3.png": {
+"file": "city__tree_3.png",
+"nw": 23,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/tree_4.png": {
+"file": "city__tree_4.png",
+"nw": 30,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/tree_5.png": {
+"file": "city__tree_5.png",
+"nw": 200,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/bush_1.png": {
+"file": "city__bush_1.png",
+"nw": 120,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/bush_2.png": {
+"file": "city__bush_2.png",
+"nw": 53,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/bush_3.png": {
+"file": "city__bush_3.png",
+"nw": 59,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/bush_4.png": {
+"file": "city__bush_4.png",
+"nw": 50,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/fountain.png": {
+"file": "city__fountain.png",
+"nw": 180,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/building_casino.png": {
+"file": "city__building_casino.png",
+"nw": 262,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/building_bank.png": {
+"file": "city__building_bank.png",
+"nw": 466,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/building_shop.png": {
+"file": "city__building_shop.png",
+"nw": 211,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/building_hospital.png": {
+"file": "city__building_hospital.png",
+"nw": 242,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/house_1.png": {
+"file": "city__house_1.png",
+"nw": 251,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/house_2.png": {
+"file": "city__house_2.png",
+"nw": 175,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/house_3.png": {
+"file": "city__house_3.png",
+"nw": 160,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/house_4.png": {
+"file": "city__house_4.png",
+"nw": 201,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/house_5.png": {
+"file": "city__house_5.png",
+"nw": 191,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/house_6.png": {
+"file": "city__house_6.png",
+"nw": 170,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/house_7.png": {
+"file": "city__house_7.png",
+"nw": 347,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/house_8.png": {
+"file": "city__house_8.png",
+"nw": 269,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/sign_casino.png": {
+"file": "city__sign_casino.png",
+"nw": 170,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/farm_gate.png": {
+"file": "city__farm_gate.png",
+"nw": 200,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/tree_phuong.png": {
+"file": "city__tree_phuong.png",
+"nw": 350,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/tree_banglang.png": {
+"file": "city__tree_banglang.png",
+"nw": 270,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/tree_bang.png": {
+"file": "city__tree_bang.png",
+"nw": 330,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/tree_sao.png": {
+"file": "city__tree_sao.png",
+"nw": 190,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/site_crane_mast.png": {
+"file": "city__site_crane_mast.png",
+"nw": 90,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/site_crane_jib.png": {
+"file": "city__site_crane_jib.png",
+"nw": 400,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/site_building.png": {
+"file": "city__site_building.png",
+"nw": 300,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/site_barrier.png": {
+"file": "city__site_barrier.png",
+"nw": 120,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/site_bricks.png": {
+"file": "city__site_bricks.png",
+"nw": 100,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/site_sand.png": {
+"file": "city__site_sand.png",
+"nw": 130,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/site_cone.png": {
+"file": "city__site_cone.png",
+"nw": 34,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/site_beacon.png": {
+"file": "city__site_beacon.png",
+"nw": 30,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/site_gate.png": {
+"file": "city__site_gate.png",
+"nw": 200,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/fishing_lake.png": {
+"file": "city__fishing_lake.png",
+"nw": 620,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/fishing_pier.png": {
+"file": "city__fishing_pier.png",
+"nw": 150,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/fishing_lotus.png": {
+"file": "city__fishing_lotus.png",
+"nw": 90,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/fishing_hyacinth.png": {
+"file": "city__fishing_hyacinth.png",
+"nw": 70,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/tree_lieu.png": {
+"file": "city__tree_lieu.png",
+"nw": 260,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/lantern.png": {
+"file": "city__lantern.png",
+"nw": 30,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/fishing_gate.png": {
+"file": "city__fishing_gate.png",
+"nw": 200,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/fx_bird.png": {
+"file": "city__fx_bird.png",
+"nw": 64,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/fx_butterfly.png": {
+"file": "city__fx_butterfly.png",
+"nw": 40,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/fx_smoke.png": {
+"file": "city__fx_smoke.png",
+"nw": 40,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/fx_sparkle.png": {
+"file": "city__fx_sparkle.png",
+"nw": 24,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/fx_spray.png": {
+"file": "city__fx_spray.png",
+"nw": 60,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/fx_bunting.png": {
+"file": "city__fx_bunting.png",
+"nw": 220,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/fx_coin.png": {
+"file": "city__fx_coin.png",
+"nw": 36,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/fx_bulb.png": {
+"file": "city__fx_bulb.png",
+"nw": 14,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/fx_flag.png": {
+"file": "city__fx_flag.png",
+"nw": 50,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/fx_glow.png": {
+"file": "city__fx_glow.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/fx_glow_pink.png": {
+"file": "city__fx_glow_pink.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/fx_glow_red.png": {
+"file": "city__fx_glow_red.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/fx_glow_orange.png": {
+"file": "city__fx_glow_orange.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/emote_wave.png": {
+"file": "city__emote_wave.png",
+"nw": 44,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/emote_heart.png": {
+"file": "city__emote_heart.png",
+"nw": 44,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/emote_laugh.png": {
+"file": "city__emote_laugh.png",
+"nw": 44,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/emote_clap.png": {
+"file": "city__emote_clap.png",
+"nw": 44,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/emote_dance.png": {
+"file": "city__emote_dance.png",
+"nw": 44,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/fame_hall.png": {
+"file": "city__fame_hall.png",
+"nw": 380,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/fame_gate.png": {
+"file": "city__fame_gate.png",
+"nw": 240,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/fame_podium.png": {
+"file": "city__fame_podium.png",
+"nw": 210,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/fame_trophy.png": {
+"file": "city__fame_trophy.png",
+"nw": 90,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/arena_building.png": {
+"file": "city__arena_building.png",
+"nw": 380,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/arena_gate.png": {
+"file": "city__arena_gate.png",
+"nw": 240,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/arena_cannon.png": {
+"file": "city__arena_cannon.png",
+"nw": 150,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/arena_target.png": {
+"file": "city__arena_target.png",
+"nw": 80,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/animal_chicken.png": {
+"file": "farm__animal_chicken.png",
+"nw": 47,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/animal_chicken_white.png": {
+"file": "farm__animal_chicken_white.png",
+"nw": 47,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/animal_cow.png": {
+"file": "farm__animal_cow.png",
+"nw": 151,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/animal_horse.png": {
+"file": "farm__animal_horse.png",
+"nw": 120,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/animal_pig.png": {
+"file": "farm__animal_pig.png",
+"nw": 71,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/animal_sheep.png": {
+"file": "farm__animal_sheep.png",
+"nw": 113,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/barn.png": {
+"file": "farm__barn.png",
+"nw": 184,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/bush_1.png": {
+"file": "farm__bush_1.png",
+"nw": 120,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/bush_2.png": {
+"file": "farm__bush_2.png",
+"nw": 53,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/bush_3.png": {
+"file": "farm__bush_3.png",
+"nw": 59,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/fence_piece.png": {
+"file": "farm__fence_piece.png",
+"nw": 66,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/flowers.png": {
+"file": "farm__flowers.png",
+"nw": 74,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/hay.png": {
+"file": "farm__hay.png",
+"nw": 85,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/pond.png": {
+"file": "farm__pond.png",
+"nw": 360,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/tree_big.png": {
+"file": "farm__tree_big.png",
+"nw": 174,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/tree_chuoi.png": {
+"file": "farm__tree_chuoi.png",
+"nw": 218,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/tree_da.png": {
+"file": "farm__tree_da.png",
+"nw": 412,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/tree_dao.png": {
+"file": "farm__tree_dao.png",
+"nw": 210,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/tree_dua.png": {
+"file": "farm__tree_dua.png",
+"nw": 340,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/tree_mai.png": {
+"file": "farm__tree_mai.png",
+"nw": 210,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/tree_med.png": {
+"file": "farm__tree_med.png",
+"nw": 109,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/tree_round_1.png": {
+"file": "farm__tree_round_1.png",
+"nw": 94,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/tree_round_3.png": {
+"file": "farm__tree_round_3.png",
+"nw": 23,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/tree_tre.png": {
+"file": "farm__tree_tre.png",
+"nw": 170,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/tree_xoai.png": {
+"file": "farm__tree_xoai.png",
+"nw": 320,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/trough_water.png": {
+"file": "farm__trough_water.png",
+"nw": 110,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/wheelbarrow.png": {
+"file": "farm__wheelbarrow.png",
+"nw": 90,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_carrot_1.png": {
+"file": "farm__crop_carrot_1.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_carrot_2.png": {
+"file": "farm__crop_carrot_2.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_carrot_ripe.png": {
+"file": "farm__crop_carrot_ripe.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_corn_1.png": {
+"file": "farm__crop_corn_1.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_corn_2.png": {
+"file": "farm__crop_corn_2.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_corn_ripe.png": {
+"file": "farm__crop_corn_ripe.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_tomato_1.png": {
+"file": "farm__crop_tomato_1.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_tomato_2.png": {
+"file": "farm__crop_tomato_2.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_tomato_ripe.png": {
+"file": "farm__crop_tomato_ripe.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_rice_1.png": {
+"file": "farm__crop_rice_1.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_rice_2.png": {
+"file": "farm__crop_rice_2.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_rice_ripe.png": {
+"file": "farm__crop_rice_ripe.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_strawberry_1.png": {
+"file": "farm__crop_strawberry_1.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_strawberry_2.png": {
+"file": "farm__crop_strawberry_2.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_strawberry_ripe.png": {
+"file": "farm__crop_strawberry_ripe.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_watermelon_1.png": {
+"file": "farm__crop_watermelon_1.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_watermelon_2.png": {
+"file": "farm__crop_watermelon_2.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_watermelon_ripe.png": {
+"file": "farm__crop_watermelon_ripe.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_water_spinach_1.png": {
+"file": "farm__crop_water_spinach_1.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_water_spinach_2.png": {
+"file": "farm__crop_water_spinach_2.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_water_spinach_ripe.png": {
+"file": "farm__crop_water_spinach_ripe.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_sweet_potato_1.png": {
+"file": "farm__crop_sweet_potato_1.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_sweet_potato_2.png": {
+"file": "farm__crop_sweet_potato_2.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_sweet_potato_ripe.png": {
+"file": "farm__crop_sweet_potato_ripe.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_cabbage_1.png": {
+"file": "farm__crop_cabbage_1.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_cabbage_2.png": {
+"file": "farm__crop_cabbage_2.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_cabbage_ripe.png": {
+"file": "farm__crop_cabbage_ripe.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_chili_1.png": {
+"file": "farm__crop_chili_1.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_chili_2.png": {
+"file": "farm__crop_chili_2.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_chili_ripe.png": {
+"file": "farm__crop_chili_ripe.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_eggplant_1.png": {
+"file": "farm__crop_eggplant_1.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_eggplant_2.png": {
+"file": "farm__crop_eggplant_2.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_eggplant_ripe.png": {
+"file": "farm__crop_eggplant_ripe.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_pineapple_1.png": {
+"file": "farm__crop_pineapple_1.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_pineapple_2.png": {
+"file": "farm__crop_pineapple_2.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_pineapple_ripe.png": {
+"file": "farm__crop_pineapple_ripe.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_pumpkin_1.png": {
+"file": "farm__crop_pumpkin_1.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_pumpkin_2.png": {
+"file": "farm__crop_pumpkin_2.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_pumpkin_ripe.png": {
+"file": "farm__crop_pumpkin_ripe.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_dragon_fruit_1.png": {
+"file": "farm__crop_dragon_fruit_1.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_dragon_fruit_2.png": {
+"file": "farm__crop_dragon_fruit_2.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_dragon_fruit_ripe.png": {
+"file": "farm__crop_dragon_fruit_ripe.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_grape_1.png": {
+"file": "farm__crop_grape_1.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_grape_2.png": {
+"file": "farm__crop_grape_2.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_grape_ripe.png": {
+"file": "farm__crop_grape_ripe.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_durian_1.png": {
+"file": "farm__crop_durian_1.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_durian_2.png": {
+"file": "farm__crop_durian_2.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_durian_ripe.png": {
+"file": "farm__crop_durian_ripe.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_cloud_berry_1.png": {
+"file": "farm__crop_cloud_berry_1.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_cloud_berry_2.png": {
+"file": "farm__crop_cloud_berry_2.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_cloud_berry_ripe.png": {
+"file": "farm__crop_cloud_berry_ripe.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_mist_pear_1.png": {
+"file": "farm__crop_mist_pear_1.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_mist_pear_2.png": {
+"file": "farm__crop_mist_pear_2.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_mist_pear_ripe.png": {
+"file": "farm__crop_mist_pear_ripe.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_star_grape_1.png": {
+"file": "farm__crop_star_grape_1.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_star_grape_2.png": {
+"file": "farm__crop_star_grape_2.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_star_grape_ripe.png": {
+"file": "farm__crop_star_grape_ripe.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_fairy_peach_1.png": {
+"file": "farm__crop_fairy_peach_1.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_fairy_peach_2.png": {
+"file": "farm__crop_fairy_peach_2.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/farm/crop_fairy_peach_ripe.png": {
+"file": "farm__crop_fairy_peach_ripe.png",
+"nw": 96,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/fx_bulb.png#on": {
+"file": "city__fx_bulb_on.png",
+"nw": 14,
+"pad": [
+10,
+10,
+10,
+10
+]
+},
+"/img/toon/city3d/sign_casino.png#glow": {
+"file": "city3d__sign_casino_glow.png",
+"nw": 176,
+"pad": [
+21,
+21,
+21,
+21
+]
+}
+}
+}

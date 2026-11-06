@@ -32,6 +32,11 @@
 - Nền lặp (cỏ, nhựa đường, nước, thảm): `background-image` + `background-size` bằng bội số nguyên của tile.
 - Vật thể (xe, cây, con vật, nhân vật): `<img>` hoặc `<image>` đặt vị trí tuyệt đối; hướng / xoay bằng transform.
 - Hoạt ảnh: đổi frame trong sprite sheet hoặc dịch chuyển (CSS / requestAnimationFrame), không vẽ lại bằng SVG.
+  Đổi frame bằng `transform` của dải khung bên trong một khung `overflow: hidden` (chạy trên GPU), không animate
+  `background-position`.
+- Bản đồ thành phố không dùng CSS `filter` cho đồ vật (quá nặng khi có hàng nghìn ảnh): bóng đổ và màu nhà dân được
+  nướng sẵn vào `public/img/toon/cityshadow/` bằng `python3 tools/bake_city_shadows.py` (có `manifest.json`, giữ nguồn
+  và giấy phép ảnh gốc). **Thêm / đổi ảnh đồ vật thành phố thì chạy lại script**; ảnh chưa nướng vẫn dùng filter như cũ.
 
 ## Hiện trạng
 
