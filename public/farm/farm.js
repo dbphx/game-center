@@ -1144,13 +1144,21 @@
       const pr = progress(start, ready);
       const stage = pr < 0.34 ? 1 : pr < 0.67 ? 2 : 3;
       if (pr >= 1 || String(stage) !== el.dataset.stage) changed = true;
-      el.querySelector('[data-left]').textContent = countdown(ready - nowS());
-      el.querySelector('.bar > span').style.width = `${Math.round(pr * 100)}%`;
+      // Chỉ ghi khi chữ / độ dài thanh đổi: ghi lại cùng giá trị vẫn làm trình duyệt tính lại style.
+      const leftEl = el.querySelector('[data-left]');
+      const text = countdown(ready - nowS());
+      if (leftEl && leftEl.textContent !== text) leftEl.textContent = text;
+      const bar = el.querySelector('.bar > span');
+      const width = `${Math.round(pr * 100)}%`;
+      if (bar && bar.style.width !== width) bar.style.width = width;
     });
     document.querySelectorAll('[data-left-at]').forEach((el) => {
       const left = +el.dataset.leftAt - nowS();
       if (left <= 0 && el.textContent !== 'Đã lớn') changed = true;
-      else if (left > 0) el.textContent = countdown(left);
+      else if (left > 0) {
+        const text = countdown(left);
+        if (el.textContent !== text) el.textContent = text;
+      }
     });
     const young = [...((farm.barn && farm.barn.animals) || []), ...((farm.pond && farm.pond.fish) || [])];
     if (young.some((a) => (a.wasGrown = a.wasGrown || false) !== grown(a) && (a.wasGrown = grown(a)))) changed = true;
@@ -2314,23 +2322,47 @@
     obstacles.some((r) => x > r[0] - 12 && x < r[2] + 12 && y > r[1] - 4 && y < r[3] + 6);
 
   // Vật cao (kho, chuồng, cổng, cây, cây trồng) đứng TRƯỚC nhân vật và che hơn 40% thân → làm mờ như game Avatar.
+  // Khung các vật và khung thân nhân vật (so với chân) đo một lần theo toạ độ lớp cảnh, đo lại khi cảnh vẽ lại,
+  // đổi zoom, ảnh vừa tải xong hoặc dáng nhân vật đổi; mỗi bước đi chỉ còn phép tính, không ép trình duyệt tính layout.
   let fadeKey = '';
+  let fadeRects = null;
+  let bodyBox = null;
+  const invalidateFade = () => {
+    fadeRects = null;
+    fadeKey = '';
+  };
+  new MutationObserver(invalidateFade).observe($('objects'), { childList: true });
+  function measureFade() {
+    const lr = $('layer').getBoundingClientRect();
+    const box = (r) => ({ l: (r.left - lr.left) / zoom, t: (r.top - lr.top) / zoom, r: (r.right - lr.left) / zoom, b: (r.bottom - lr.top) / zoom });
+    fadeRects = [...document.querySelectorAll('.obj.building, .obj.gate, .obj.decor, .pen-shed, .plot-top')].map((el) => {
+      const img = el.querySelector('img');
+      if (img && !img.complete) img.addEventListener('load', invalidateFade, { once: true });
+      return { el, z: +el.style.zIndex || 0, hide: el.classList.contains('see-through'), ...box((img || el).getBoundingClientRect()) };
+    });
+    const b = box($('me-body').getBoundingClientRect());
+    bodyBox = { l: b.l - me.x, t: b.t - me.y, r: b.r - me.x, b: b.b - me.y };
+  }
   function updateFade() {
     const key = `${Math.round(me.x)}|${Math.round(me.y)}|${zoom}`;
-    if (key === fadeKey) return;
+    if (key === fadeKey && fadeRects) return;
     fadeKey = key;
-    const body = $('me-body').getBoundingClientRect();
-    const area = Math.max(1, body.width * body.height);
-    document.querySelectorAll('.obj.building, .obj.gate, .obj.decor, .pen-shed, .plot-top').forEach((el) => {
+    if (!fadeRects) measureFade();
+    const body = { l: me.x + bodyBox.l, t: me.y + bodyBox.t, r: me.x + bodyBox.r, b: me.y + bodyBox.b };
+    const area = Math.max(1, (body.r - body.l) * (body.b - body.t));
+    const fz = fieldZ(me.x, me.y);
+    for (const f of fadeRects) {
       let hide = false;
-      if ((+el.style.zIndex || 0) > fieldZ(me.x, me.y)) {
-        const r = (el.querySelector('img') || el).getBoundingClientRect();
-        const w = Math.min(r.right, body.right) - Math.max(r.left, body.left);
-        const h = Math.min(r.bottom, body.bottom) - Math.max(r.top, body.top);
+      if (f.z > fz) {
+        const w = Math.min(f.r, body.r) - Math.max(f.l, body.l);
+        const h = Math.min(f.b, body.b) - Math.max(f.t, body.t);
         hide = w > 0 && h > 0 && (w * h) / area > 0.4;
       }
-      el.classList.toggle('see-through', hide);
-    });
+      if (hide !== f.hide) {
+        f.hide = hide;
+        f.el.classList.toggle('see-through', hide);
+      }
+    }
   }
 
   function drawMe() {
@@ -2338,11 +2370,12 @@
     el.style.left = `${Math.round(me.x)}px`;
     el.style.top = `${Math.round(me.y)}px`;
     el.style.zIndex = fieldZ(me.x, me.y);
-    fadeKey = '';
     requestAnimationFrame(updateFade);
     const key = `${me.dir}|${me.walking}|${me.hurt}|${me.pose}|${JSON.stringify(me.look)}`;
     if (key !== me.drawn) {
       me.drawn = key;
+      bodyBox = null;
+      fadeRects = null; // dáng mới: đo lại khung thân
       $('me-body').innerHTML = C.sprite(me.look, { dir: me.dir, walking: me.walking && !me.pose, size: SPRITE, hurt: !!me.hurt, pose: me.pose || undefined });
     }
   }
@@ -2829,6 +2862,7 @@
   function frame(ts) {
     const dt = Math.min(0.05, (ts - (last || ts)) / 1000);
     last = ts;
+    flushScroll(); // cuộn camera trước khi khung này đổi DOM: lúc đó layout còn sạch nên đặt scrollLeft không tốn
     if (farm) {
       step(dt);
       if (chase) stepChase();
@@ -2945,20 +2979,30 @@
     showTarget();
   }
 
+  let kbEls = [];
+  const hintShown = { x: null, y: null, text: null };
+  function setKbTargets(els) {
+    if (els.length === kbEls.length && els.every((el, i) => el === kbEls[i] && el.classList.contains('kb-target'))) return;
+    kbEls.forEach((el) => el.classList.remove('kb-target'));
+    els.forEach((el) => el.classList.add('kb-target'));
+    kbEls = els;
+  }
   function showTarget() {
     const t = targets[targetIdx];
     nearKey = t && t.key ? t.key : null;
-    document.querySelectorAll('.kb-target').forEach((el) => el.classList.remove('kb-target'));
     const hint = $('hint');
     hint.classList.toggle('hidden', !t);
-    if (!t) return;
+    if (!t) return setKbTargets([]);
     let x;
     let y;
     let verb;
     if (t.pet) {
       const p = pets.get(t.pet);
-      if (!p) return hint.classList.add('hidden');
-      p.el.classList.add('kb-target');
+      if (!p) {
+        setKbTargets([]);
+        return hint.classList.add('hidden');
+      }
+      setKbTargets([p.el]);
       x = p.x;
       y = p.y - sheetOf(p).fh * scaleOf(p) - 18;
       const petName = p.decor ? '' : find(p.fish ? 'fish' : 'animals', p.kind).name;
@@ -2969,11 +3013,14 @@
       y = o.hy;
       const pm = /^plot(\d+)$/.exec(t.key);
       verb = pm && farm.plots[+pm[1]] ? plotVerb(farm.plots[+pm[1]]) : o.verb;
-      document.querySelectorAll(`[data-obj="${t.key}"]`).forEach((el) => el.classList.add('kb-target'));
+      setKbTargets([...document.querySelectorAll(`[data-obj="${t.key}"]`)]);
     }
-    hint.style.left = `${Math.round(x)}px`;
-    hint.style.top = `${Math.round(y)}px`;
-    hint.querySelector('span').textContent = targets.length > 1 ? `${verb}  ·  Tab đổi (${targetIdx + 1}/${targets.length})` : verb;
+    const hx = Math.round(x);
+    const hy = Math.round(y);
+    const text = targets.length > 1 ? `${verb}  ·  Tab đổi (${targetIdx + 1}/${targets.length})` : verb;
+    if (hx !== hintShown.x) hint.style.left = `${(hintShown.x = hx)}px`;
+    if (hy !== hintShown.y) hint.style.top = `${(hintShown.y = hy)}px`;
+    if (text !== hintShown.text || hint.querySelector('span').textContent !== text) hint.querySelector('span').textContent = hintShown.text = text;
   }
 
   function actTarget() {
@@ -2985,15 +3032,39 @@
   }
 
   // Camera: chỉ cuộn ngang để nhân vật nằm trong vùng giữa; chiều dọc vừa khung nên không cuộn.
+  // Bề rộng khung nhớ tới khi đổi cỡ; vị trí cuộn là giá trị camera tự đặt. Sự kiện scroll do chính camera gây ra
+  // thì bỏ qua (đọc scrollLeft lúc đó ép tính layout); cuộn do người chơi kéo / vuốt thì đánh dấu để đọc lại một lần.
+  let sceneW = 0;
+  let sceneLeft = null;
+  let ownScrollAt = 0;
+  addEventListener('resize', () => (sceneW = 0));
+  $('scene').addEventListener('scroll', () => {
+    if (ownScrollAt && performance.now() - ownScrollAt < 120) ownScrollAt = 0;
+    else sceneLeft = null;
+  }, { passive: true });
   function follow(snap) {
     const sc = $('scene');
-    const vw = sc.clientWidth;
+    if (!sceneW) sceneW = sc.clientWidth;
+    if (sceneLeft === null) sceneLeft = sc.scrollLeft;
+    const vw = sceneW;
     const cx = me.x * zoom;
     const mx = snap ? vw / 2 : vw * 0.32;
-    let tx = sc.scrollLeft;
+    let tx = sceneLeft;
     if (cx - tx < mx) tx = cx - mx;
     else if (cx - tx > vw - mx) tx = cx - vw + mx;
-    sc.scrollLeft = tx;
+    tx = Math.round(Math.min(Math.max(0, tx), Math.max(0, W * zoom - vw)));
+    if (tx === Math.round(sceneLeft)) return;
+    sceneLeft = tx;
+    // Đặt scrollLeft ngay sau khi vừa di chuyển nhân vật / con vật ép trình duyệt tính lại layout; dời sang đầu khung sau.
+    pendingScroll = tx;
+    if (snap) flushScroll();
+  }
+  let pendingScroll = null;
+  function flushScroll() {
+    if (pendingScroll === null) return;
+    ownScrollAt = performance.now();
+    $('scene').scrollLeft = pendingScroll;
+    pendingScroll = null;
   }
 
   // Phóng cảnh cho chiều cao thế giới vừa khung nhìn (điện thoại giữ ≤ 1 để thấy rộng hơn; phần dư phía trên là trời).
@@ -3004,6 +3075,7 @@
     // Máy tính: cả cổng, kho, ruộng 6 cột, chuồng, ao phải vừa một khung nhìn (theo cả chiều ngang).
     const fitW = innerWidth < 600 ? Infinity : ((sc.clientWidth || innerWidth) - 2) / CORE_W;
     zoom = Math.max(0.5, Math.min(sh / H, fitW, innerWidth < 600 ? 1 : 1.35));
+    sceneW = 0; // khung có thể vừa đổi cỡ
     if (farm) renderWorld();
   }
 

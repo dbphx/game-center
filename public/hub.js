@@ -922,11 +922,21 @@
   }
 
   // Màn hình hẹp: bản đồ cuộn ngang, giữ nhân vật trong tầm nhìn.
+  // Kích thước bản đồ chỉ đo lại khi đổi cỡ: đọc scrollWidth mỗi bước đi ép trình duyệt tính lại layout cả bản đồ.
+  let mapDims = null;
+  addEventListener('resize', () => (mapDims = null));
   function follow(x) {
     const map = $('map');
-    if (map.scrollWidth <= map.clientWidth) return;
-    const px = (x / 1600) * map.scrollWidth;
-    map.scrollLeft = px - map.clientWidth / 2;
+    if (!mapDims) {
+      const cw = map.clientWidth;
+      if (!cw) return; // bản đồ đang ẩn: đo sau
+      mapDims = { sw: map.scrollWidth, cw, left: null };
+    }
+    if (mapDims.sw <= mapDims.cw) return;
+    const left = Math.round((x / 1600) * mapDims.sw - mapDims.cw / 2);
+    if (left === mapDims.left) return;
+    mapDims.left = left;
+    map.scrollLeft = left;
   }
 
   async function enterCity() {
