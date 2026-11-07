@@ -25,11 +25,11 @@ const (
 )
 
 // ZoneMinHP là lượng máu tối thiểu để vào từng khu trên bản đồ.
-var ZoneMinHP = map[string]int{"plaza": 0, "bank": 0, "hospital": 0, "shop": 10, "casino": 30, "farm": 40, "site": 30, "fishing": 10, "arena": 30}
+var ZoneMinHP = map[string]int{"plaza": 0, "bank": 0, "hospital": 0, "shop": 10, "casino": 30, "farm": 40, "site": 30, "fishing": 10, "arena": 30, "race": 30}
 
 // zoneAction là cụm từ trong thông báo thiếu máu của từng khu.
 var zoneAction = map[string]string{"shop": "vào Shop thời trang", "casino": "vào Casino", "farm": "làm nông",
-	"site": "làm ở công trường", "fishing": "câu cá", "arena": "vào Đấu trường"}
+	"site": "làm ở công trường", "fishing": "câu cá", "arena": "vào Đấu trường", "race": "vào Trường đua"}
 
 var (
 	ErrInHospital = errors.New("bạn đang nằm viện")

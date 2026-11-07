@@ -20,6 +20,7 @@ import (
 	"github.com/dbphx/game-center/games/fishing"
 	"github.com/dbphx/game-center/games/friends"
 	"github.com/dbphx/game-center/games/plaza"
+	"github.com/dbphx/game-center/games/race"
 	"github.com/dbphx/game-center/games/site"
 	"github.com/dbphx/game-center/games/tienlen/online"
 	"github.com/dbphx/game-center/internal/googleauth"
@@ -107,6 +108,22 @@ func games(w *wallet.Wallet) []server.Game {
 	if err != nil {
 		log.Fatalf("công trường: %v", err)
 	}
+	// Trường đua: đường đua đọc từ public/race/tracks (cùng file giao diện dùng).
+	trackFS, err := fs.Sub(publicFiles, "public/race/tracks")
+	if err != nil {
+		trackFS = nil
+	}
+	raceOpts := race.DefaultOptions
+	raceOpts.MinHP = wallet.ZoneMinHP[race.GameID]
+	racing, err := race.New(context.Background(), w, trackFS, raceOpts)
+	if err != nil {
+		log.Fatalf("trường đua: %v", err)
+	}
+	raceAuth := func(ctx context.Context, token string) (race.User, error) {
+		u, err := w.UserByToken(ctx, token)
+		return race.User{ID: u.ID, Name: u.Name, Gender: u.Gender, Outfit: u.Outfit, Hair: u.Hair, Wings: u.Wings, Face: u.Face,
+			Level: u.Level, HP: u.HP, HospitalUntil: u.HospitalUntil}, err
+	}
 	pond, err := fishing.New(context.Background(), w)
 	if err != nil {
 		log.Fatalf("hồ câu cá: %v", err)
@@ -172,6 +189,17 @@ func games(w *wallet.Wallet) []server.Game {
 			WS:          arenaHub.Handler(arenaAuth),
 			Rooms:       arenaHub.RoomsHandler(),
 			API:         armory.Handler(),
+		},
+		{
+			ID:          race.GameID,
+			Name:        "Trường đua",
+			Description: "Đua kart 3D 2–6 xe: drift nạp nitro, 3 vòng, cược xu nhất ăn; mua xe, nâng động cơ / turbo / lốp, lắp cánh gió, đèn neon.",
+			Players:     "2–6 người",
+			Path:        "/race/",
+			Stats:       func() any { return racing.Hub.Stats() },
+			WS:          racing.Hub.Handler(raceAuth),
+			Rooms:       racing.Hub.RoomsHandler(),
+			API:         racing.Garage.Handler(),
 		},
 		{
 			ID:          site.GameID,

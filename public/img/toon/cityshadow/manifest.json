@@ -2081,6 +2081,26 @@
 9
 ]
 },
+"/img/toon/city/race_building.png": {
+"file": "city__race_building.png",
+"nw": 380,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
+"/img/toon/city/race_gate.png": {
+"file": "city__race_gate.png",
+"nw": 240,
+"pad": [
+5,
+1,
+5,
+9
+]
+},
 "/img/toon/farm/animal_chicken.png": {
 "file": "farm__animal_chicken.png",
 "nw": 47,

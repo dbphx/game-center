@@ -1086,6 +1086,43 @@
    "source": [
     "DCity (vẽ / ghép bằng PIL cho dự án)"
    ]
+  },
+  {
+   "file": "race_building.png",
+   "w": 380,
+   "h": 300,
+   "use": "Khu Trường đua: dãy gara pit 3 cửa cuốn, mái che dải ô cờ, biển TRƯỜNG ĐUA, cờ ô vuông",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "race_gate.png",
+   "w": 240,
+   "h": 130,
+   "use": "Cổng xuất phát Trường đua: cột sọc vàng đen, băng ô cờ, biển TRƯỜNG ĐUA, đèn xuất phát",
+   "anchor": "bottom-center",
+   "foot": [
+    120,
+    100
+   ],
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "race_asphalt.png",
+   "w": 64,
+   "h": 64,
+   "use": "Nền sân nhựa Trường đua (lặp)",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ bằng PIL cho dự án)"
+   ]
   }
  ]
 }

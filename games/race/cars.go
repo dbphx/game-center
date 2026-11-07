@@ -1,0 +1,152 @@
+// Package race là Trường đua: phòng đua kart 3D 2–6 xe, cược xu, garage mua xe, nâng cấp và đồ trang trí.
+//
+// Mỗi máy tự mô phỏng xe mình rồi gửi vị trí lên; server kiểm gói (tốc độ, dịch chuyển, điểm kiểm tra, thời gian vòng),
+// tự tính vòng / về đích, chạy máy đua và trả xu.
+package race
+
+import "math"
+
+const (
+	GameID   = "race"
+	MaxLevel = 5 // mỗi món nâng cấp tối đa cấp 5
+
+	// Chỉ số xe khởi đầu cấp 0.
+	BaseSpeed = 30.0 // m/s
+	BaseAccel = 12.0 // m/s²
+	BaseGrip  = 0.70 // 0–1
+
+	NitroBoost = 1.3 // nitro: ×1,3 tốc độ tối đa trong NitroSeconds
+	NitroMs    = 2000
+
+	levelStep = 0.025 // mỗi cấp nâng +2,5% (cấp 5: ×1,125)
+)
+
+// CarModel là một mẫu xe trong cửa hàng; Rank 0 là xe khởi đầu miễn phí.
+type CarModel struct {
+	ID    string
+	Name  string
+	Price int64
+	Rank  int
+}
+
+// Cars là các mẫu xe, xe sau đẹp hơn và chỉ số gốc cao hơn.
+var Cars = []CarModel{
+	{"starter", "Xe Tập Lái", 0, 0},
+	{"comet", "Sao Chổi", 20_000, 1},
+	{"bolt", "Tia Chớp", 80_000, 2},
+	{"viper", "Rắn Lục", 250_000, 3},
+	{"phantom", "Bóng Ma", 800_000, 4},
+	{"nova", "Siêu Tân Tinh", 2_000_000, 5},
+}
+
+func findCar(id string) (CarModel, bool) {
+	for _, c := range Cars {
+		if c.ID == id {
+			return c, true
+		}
+	}
+	return CarModel{}, false
+}
+
+// Levels là cấp của 3 món nâng cấp: động cơ / ống xả (tốc độ), turbo (tăng tốc), lốp / mâm (bám đường).
+type Levels struct {
+	Engine int `json:"engine"`
+	Turbo  int `json:"turbo"`
+	Tires  int `json:"tires"`
+}
+
+// Parts là tên 3 món nâng cấp, dùng trong API.
+var Parts = []string{"engine", "turbo", "tires"}
+
+func (l Levels) get(part string) int {
+	switch part {
+	case "engine":
+		return l.Engine
+	case "turbo":
+		return l.Turbo
+	case "tires":
+		return l.Tires
+	}
+	return -1
+}
+
+// Stats là chỉ số lái; server là nguồn đúng, giao diện dùng để mô phỏng và hiện.
+type Stats struct {
+	MaxSpeed float64 `json:"maxSpeed"`
+	Accel    float64 `json:"accel"`
+	Grip     float64 `json:"grip"`
+}
+
+// rankBonus: xe hạng 5 hơn xe khởi đầu đúng bao nhiêu để cộng cấp 5 (×1,125) thì ≈ ×1,20.
+func rankBonus(rank int) float64 { return 1 + float64(rank)*(1.2/1.125-1)/5 }
+
+func round2(v float64) float64 { return math.Round(v*100) / 100 }
+
+// StatsOf là chỉ số của mẫu xe c ở các cấp lv.
+func StatsOf(c CarModel, lv Levels) Stats {
+	rb := rankBonus(c.Rank)
+	return Stats{
+		MaxSpeed: round2(BaseSpeed * rb * (1 + levelStep*float64(lv.Engine))),
+		Accel:    round2(BaseAccel * rb * (1 + levelStep*float64(lv.Turbo))),
+		Grip:     round2(math.Min(1, BaseGrip*rb*(1+levelStep*float64(lv.Tires)))),
+	}
+}
+
+// upgradePrice là giá nâng một món lên cấp toLevel: giá xe × 10% × cấp (xe khởi đầu tính như 10.000 xu).
+func upgradePrice(c CarModel, toLevel int) int64 {
+	base := c.Price
+	if base == 0 {
+		base = 10_000
+	}
+	return base / 10 * int64(toLevel)
+}
+
+// Item là đồ trang trí (không có chỉ số): cánh gió, đèn neon gầm, sơn (miễn phí), decal.
+type Item struct {
+	ID    string
+	Kind  string // spoiler, neon, paint, decal
+	Name  string
+	Price int64
+}
+
+// Kinds là các loại đồ trang trí lắp lên xe.
+var Kinds = []string{"spoiler", "neon", "paint", "decal"}
+
+// DefaultPaint là màu sơn của xe mới.
+const DefaultPaint = "paint_red"
+
+var Items = []Item{
+	{"spoiler_low", "spoiler", "Cánh gió thấp", 5_000},
+	{"spoiler_mid", "spoiler", "Cánh gió đua", 15_000},
+	{"spoiler_gt", "spoiler", "Cánh gió GT", 40_000},
+
+	{"neon_blue", "neon", "Neon xanh dương", 10_000},
+	{"neon_pink", "neon", "Neon hồng", 10_000},
+	{"neon_green", "neon", "Neon xanh lá", 10_000},
+	{"neon_yellow", "neon", "Neon vàng", 10_000},
+	{"neon_purple", "neon", "Neon tím", 12_000},
+	{"neon_red", "neon", "Neon đỏ", 12_000},
+
+	{"paint_red", "paint", "Sơn đỏ", 0},
+	{"paint_blue", "paint", "Sơn xanh dương", 0},
+	{"paint_yellow", "paint", "Sơn vàng", 0},
+	{"paint_green", "paint", "Sơn xanh lá", 0},
+	{"paint_white", "paint", "Sơn trắng", 0},
+	{"paint_black", "paint", "Sơn đen", 0},
+	{"paint_orange", "paint", "Sơn cam", 0},
+	{"paint_purple", "paint", "Sơn tím", 0},
+
+	{"decal_number", "decal", "Decal số đua", 5_000},
+	{"decal_stripe", "decal", "Decal sọc đôi", 8_000},
+	{"decal_flame", "decal", "Decal lửa", 20_000},
+	{"decal_lightning", "decal", "Decal tia chớp", 50_000},
+}
+
+func findItem(id string) (Item, bool) {
+	for _, it := range Items {
+		if it.ID == id {
+			return it, true
+		}
+	}
+	return Item{}, false
+}

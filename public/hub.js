@@ -7,7 +7,7 @@
   const City = window.City;
   const $ = (id) => document.getElementById(id);
 
-  const ZONE_ICON = { plaza: 'mapPin', casino: 'layers', shop: 'shirt', bank: 'landmark', farm: 'sprout', hospital: 'hospital', site: 'hammer', fishing: 'fish', fame: 'trophy', arena: 'flame', friends: 'users' };
+  const ZONE_ICON = { plaza: 'mapPin', casino: 'layers', shop: 'shirt', bank: 'landmark', farm: 'sprout', hospital: 'hospital', site: 'hammer', fishing: 'fish', fame: 'trophy', arena: 'flame', race: 'gamepad', friends: 'users' };
   const GAME_PATH = { tienlen: '/tienlen/' };
 
   let user = null;
@@ -20,7 +20,7 @@
       { id: 'sport', name: 'Thể thao', level: 1, price: 0, starter: true },
     ],
     // HP tối thiểu để vào từng khu, và quy tắc bệnh viện.
-    zoneMinHP: { plaza: 0, bank: 0, hospital: 0, shop: 10, casino: 30, farm: 40, site: 30, fishing: 10, fame: 0, arena: 30 },
+    zoneMinHP: { plaza: 0, bank: 0, hospital: 0, shop: 10, casino: 30, farm: 40, site: 30, fishing: 10, fame: 0, arena: 30, race: 30 },
     hospital: { dischargePrice: 200, healPerHP: 2, stayMinutes: 5, regenPerMinute: 1, carDamage: 20 },
   };
   const outfitName = (id) => (config.catalog.find((o) => o.id === id) || C.OUTFITS[id] || { name: id }).name;
@@ -593,6 +593,20 @@
             <div class="stat"><div class="muted">Số người</div><b>${I.svg('users')}2–4 người</b></div>
           </div>
           ${enterButton('arena', '/arena/', 'Vào đấu trường')}
+        </div>`;
+    },
+    race() {
+      const g = games.find((x) => x.id === 'race');
+      const online = g && g.online ? `${g.online.players} người đang đua · ${g.online.rooms} phòng` : '';
+      return `${panelHead('race', 'Trường đua', online || 'Khu ngoại ô · đua xe 3D')}
+        <div class="panel-section">
+          <div class="panel-art"><img src="/img/toon/city/race_gate.png" alt="" width="120" height="65" draggable="false"></div>
+          <p class="muted" style="margin:0">Đua xe 3D 2–6 người trên đường đua đêm: drift nạp nitro, về nhất ăn cược. Mua xe, nâng động cơ, turbo, lốp và lắp cánh gió, đèn neon, decal trong garage.</p>
+          <div class="stats">
+            <div class="stat"><div class="muted">Cần máu</div><b>${I.svg('heart')}≥ ${minHP('race')} HP</b></div>
+            <div class="stat"><div class="muted">Số người</div><b>${I.svg('users')}2–6 người</b></div>
+          </div>
+          ${enterButton('race', '/race/', 'Vào trường đua')}
         </div>`;
     },
     hospital() {

@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Trường đua · DCity</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/common.css">
+  <link rel="stylesheet" href="/race/race.css">
+  <script type="importmap">
+    { "imports": { "three": "/vendor/three/three.module.min.js", "three/addons/": "/vendor/three/addons/" } }
+  </script>
+</head>
+<body class="race-page">
+  <header class="topbar">
+    <a class="brand" href="/"><i data-icon="arrowLeft"></i><span id="logo"></span><span class="brand-text">DCity</span></a>
+    <span class="spacer"></span>
+    <div class="user">
+      <span class="level-badge hidden" id="level-badge" title="Kinh nghiệm"></span>
+      <span class="wallet-pill"><i data-icon="coins"></i><span id="balance">—</span></span>
+      <span class="user-chip"><span id="user-avatar"></span><span class="user-chip-name" id="user-name"></span></span>
+    </div>
+  </header>
+
+  <!-- Khung 3D dùng chung cho garage và cuộc đua -->
+  <canvas id="view" class="view hidden"></canvas>
+
+  <!-- Sảnh: phòng đua đang mở, tạo / vào phòng, garage, lái thử -->
+  <section class="screen hall hidden" id="hall">
+    <div class="hall-head">
+      <div>
+        <h1>Trường đua</h1>
+        <p class="muted">Đua kart 3D 2–6 xe, 3 vòng. Drift để nạp nitro. Về nhất ăn cược của cả phòng (trừ thuế 5%).</p>
+      </div>
+      <div class="hall-actions">
+        <span class="input-icon"><i data-icon="hash"></i><input id="code" maxlength="8" placeholder="Mã phòng" autocomplete="off"></span>
+        <button id="btn-join"><i data-icon="logIn"></i>Vào</button>
+        <button id="btn-create" class="primary"><i data-icon="plus"></i>Tạo phòng</button>
+      </div>
+    </div>
+    <div class="hall-cards">
+      <button class="hall-card" id="btn-garage"><span class="hc-title">Garage</span><span class="muted">Mua xe, nâng động cơ / turbo / lốp, lắp cánh gió, neon, sơn, decal</span></button>
+      <button class="hall-card" id="btn-practice"><span class="hc-title">Lái thử</span><span class="muted">Chạy một mình với 3 xe máy, không cược, để quen tay lái</span></button>
+    </div>
+    <h2 class="sub">Phòng đang mở</h2>
+    <div class="rooms" id="rooms"><p class="muted">Đang tải…</p></div>
+  </section>
+
+  <dialog class="modal" id="dlg-create">
+    <form method="dialog">
+      <h2><i data-icon="plus"></i>Tạo phòng đua</h2>
+      <div class="field-label">Đường đua</div>
+      <div class="chip-grid" id="track-grid"></div>
+      <div class="field-label">Mức cược mỗi người (về nhất ăn hết)</div>
+      <div class="chip-grid" id="bet-grid"></div>
+      <div class="actions"><button value="cancel" formnovalidate>Huỷ</button><button class="primary" value="ok"><i data-icon="plus"></i>Tạo phòng</button></div>
+    </form>
+  </dialog>
+
+  <dialog class="modal" id="dlg-practice">
+    <form method="dialog">
+      <h2>Lái thử</h2>
+      <div class="field-label">Đường đua</div>
+      <div class="chip-grid" id="practice-grid"></div>
+      <div class="actions"><button value="cancel" formnovalidate>Huỷ</button><button class="primary" value="ok">Chạy</button></div>
+    </form>
+  </dialog>
+
+  <!-- Garage -->
+  <section class="screen garage hidden" id="garage">
+    <div class="garage-top">
+      <button class="link" id="btn-garage-back"><i data-icon="arrowLeft"></i>Sảnh</button>
+      <h1 id="g-name">Garage</h1>
+      <span class="chip" id="g-state"></span>
+    </div>
+    <div class="garage-cars" id="g-cars"></div>
+    <div class="garage-panel">
+      <div class="g-stats" id="g-stats"></div>
+      <div class="g-action" id="g-action"></div>
+      <div class="g-tabs" id="g-tabs"></div>
+      <div class="g-list" id="g-list"></div>
+    </div>
+  </section>
+
+  <!-- Phòng chờ -->
+  <section class="screen room hidden" id="room">
+    <div class="room-head">
+      <h1>Phòng <span class="code" id="room-code"></span></h1>
+      <span class="chip" id="room-bet"></span>
+      <span class="chip" id="room-track"></span>
+      <span class="spacer"></span>
+      <button id="btn-invite"><i data-icon="link"></i>Mời bạn</button>
+      <button class="link" id="btn-leave"><i data-icon="door"></i>Rời phòng</button>
+    </div>
+    <div class="seats" id="seats"></div>
+    <div class="room-host" id="room-host"></div>
+    <p class="muted" id="room-note"></p>
+  </section>
+
+  <!-- Giao diện khi đua (đè lên khung 3D) -->
+  <div class="hud hidden" id="hud">
+    <div class="hud-top">
+      <div class="hud-box"><span class="hud-k">Vòng</span><b id="hud-lap">1/3</b></div>
+      <div class="hud-box"><span class="hud-k">Hạng</span><b id="hud-pos">1/1</b></div>
+      <div class="hud-box"><span class="hud-k">Thời gian</span><b id="hud-time">0:00.0</b></div>
+      <button class="hud-exit" id="btn-quit" title="Thoát"><i data-icon="door"></i></button>
+    </div>
+    <canvas class="minimap" id="minimap" width="160" height="160"></canvas>
+    <div class="hud-speed"><b id="hud-speed">0</b><span>km/h</span>
+      <div class="nitro"><span id="hud-nitro"></span></div><span class="nitro-k" id="hud-nitro-k">NITRO</span>
+    </div>
+    <div class="countdown hidden" id="countdown"></div>
+    <div class="banner hidden" id="banner"></div>
+    <div class="watch-tag" id="banner-watch"></div>
+    <div class="touch" id="touch">
+      <div class="t-left"><button data-k="left" aria-label="Trái">◀</button><button data-k="right" aria-label="Phải">▶</button></div>
+      <div class="t-right"><button data-k="brake" class="small" aria-label="Phanh">Phanh</button><button data-k="drift" aria-label="Drift">Drift</button><button data-k="nitro" class="nitro-btn" aria-label="Nitro">Nitro</button></div>
+    </div>
+    <p class="keys-hint" id="keys-hint">Mũi tên / WASD lái · Shift drift · Space nitro</p>
+  </div>
+
+  <!-- Kết quả -->
+  <div class="overlay hidden" id="result">
+    <div class="dialog">
+      <h2 id="res-title">Kết quả</h2>
+      <ol class="res-list" id="res-list"></ol>
+      <div class="actions"><button class="primary" id="btn-res-ok">Tiếp tục</button></div>
+    </div>
+  </div>
+
+  <div class="loading hidden" id="loading">Đang tải đường đua…</div>
+
+  <script src="/icons.js"></script>
+  <script src="/character.js"></script>
+  <script src="/account.js"></script>
+  <script type="module" src="/race/race.js"></script>
+</body>
+</html>

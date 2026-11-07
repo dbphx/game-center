@@ -441,6 +441,47 @@ bị đẩy), rage{<id>: nộ sau phát bắn}, chiêu cuối thêm `ult` (id v�
 Mưa lửa là một tin `shot` có `skill:"rain"`, `skillName:"Mưa lửa"`, mỗi người một đường rơi thẳng đứng trong `paths`),
 `loot` (`{drops: {<id người chơi>: [{kind, tier, name, value}]}}`, khi hạ boss), `aim`, `chat`, `error`.
 
+## Trường đua
+
+Đua kart 3D 2–6 xe (người hoặc máy), 3 vòng, cược xu. Cần ít nhất 30 HP để vào.
+
+- **Phòng:** chủ phòng chọn đường (`neon`, `city`) và mức cược 100 / 500 / 1.000 / 5.000 / 10.000 xu mỗi người, thêm máy,
+  rồi bắt đầu; ai thiếu xu thì không bắt đầu được. Đếm ngược 3 giây rồi xuất phát.
+- **Về đích:** server tự tính vòng theo các điểm kiểm tra của đường. Người nhất về thì những người khác có thêm 90 giây;
+  hết giờ, ai chưa về xếp theo số vòng và điểm kiểm tra đã qua. Rời phòng hoặc mất kết nối quá 15 giây giữa cuộc đua thì tính bét.
+- **Tiền:** người nhất nhận cược của mọi người, trừ thuế 5% tiền thắng; XP nhất +30, bét +10, giữa chia đều.
+- **Chống gian lận:** mỗi máy tự mô phỏng xe và gửi vị trí ≈15 lần/giây; server bỏ gói vượt tốc (trần xe × nitro 1,3 × 1,1),
+  gói dịch chuyển xa hơn trần cho phép, vòng nhanh hơn thời gian tối thiểu của đường, và không tính vòng nếu bỏ điểm kiểm tra.
+  Sai 15 lần trong một cuộc đua thì bị loại (tính bét).
+- **Máy đua** chạy ở server theo đường mẫu, tốc độ 85–97% trần xe của nó.
+
+| Xe | Giá |
+|---|---|
+| Xe Tập Lái | miễn phí |
+| Sao Chổi / Tia Chớp / Rắn Lục / Bóng Ma / Siêu Tân Tinh | 20.000 / 80.000 / 250.000 / 800.000 / 2.000.000 |
+
+- **Chỉ số:** xe khởi đầu cấp 0: tốc độ 30 m/s, tăng tốc 12 m/s², bám đường 0,70. Mỗi hạng xe cao hơn một chút; mỗi cấp nâng +2,5%;
+  xe đắt nhất nâng tối đa hơn xe khởi đầu ≈20% mỗi chỉ số.
+- **Nâng cấp** 3 món, mỗi món 5 cấp: động cơ / ống xả (tốc độ), turbo (tăng tốc), lốp / mâm (bám đường). Giá lên cấp n =
+  giá xe × 10% × n (xe khởi đầu tính như 10.000 xu).
+- **Đồ trang trí** (không có chỉ số): cánh gió 5.000–40.000, đèn neon gầm 10.000–12.000, decal 5.000–50.000; sơn 8 màu miễn phí.
+
+| API (`/api/race`, cần đăng nhập) | Body | |
+|---|---|---|
+| `GET /api/race/garage` | | `{cars:[{id,name,price,owned,levels,stats,cosmetics}], current, items, upgradePrice, maxLevel, nitroBoost, nitroMs}` |
+| `POST /api/race/car/buy` · `/car/select` | `{car}` | mua (chọn luôn) / chọn xe |
+| `POST /api/race/upgrade` | `{car, part}` | `part`: `engine` / `turbo` / `tires` |
+| `POST /api/race/item/buy` | `{item}` | mua đồ trang trí |
+| `POST /api/race/equip` | `{car, kind, item}` | `kind`: `spoiler` / `neon` / `paint` / `decal`; `item: ""` để tháo |
+| `GET /api/race/rooms` | | phòng đang mở (không cần đăng nhập) |
+
+Các POST trả `{garage, user}`; thiếu xu 402, chưa có xe / đã có / cấp tối đa 409, sai tham số 400, không có món 404.
+WebSocket `/ws/race`: client gửi `create {token, bet, track}`, `join {token, code}`, `addBot`, `kick {seat}`, `setBet {bet}`,
+`setTrack {track}`, `start`, `leave`, `chat {text}`, `state {x, z, rot, speed, nitro, drift}` khi đua; server gửi `room`
+(phòng, ghế kèm xe và đồ đang lắp, `phase` lobby / countdown / racing / over, `startAt`, `now` theo ms), `cars {ms, list}`
+≈15 lần/giây, `finish {seat, place, timeMs}`, `result {places, money, tax, xp}` (mảng theo ghế), `error`. Đường đua đọc từ
+`public/race/tracks/<id>.json` (cùng file giao diện dùng).
+
 ## Công trường (ngoại ô)
 
 Làm thuê theo ca để kiếm xu. Nhận ca cần ≥ 30 HP; mỗi ca trừ máu ngay, giao diện chơi mini-game trong thời gian ca
@@ -586,6 +627,7 @@ games/cangua/            cờ cá ngựa 2–4 người: luật đi / đá / lê
 games/site/              công trường: ca làm thuê, tiền công theo điểm, giới hạn ngày
 games/fishing/           hồ câu cá: mồi, thả câu (kết quả quay ở server), giỏ cá, kỷ lục
 games/fame/              khu danh vọng: xếp hạng tổng tài sản (xu + đồ thời trang + nông trại)
+games/race/              trường đua: garage (xe, nâng cấp, đồ), phòng đua, kiểm gói vị trí, máy đua
 games/friends/           bạn bè: lời mời, chấp nhận, huỷ; xem và trộm nông trại của bạn (luật trộm, chó ở games/farm/)
 public/                  bản đồ thành phố (index.html, hub.js, city.js), nhân vật (character.js),
                          phần dùng chung (account.js, icons.js, common.css)

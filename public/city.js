@@ -27,7 +27,7 @@
   const SKY = 96; // dải trời + đồi xa phía trên bản đồ (toạ độ y âm), biển tên các toà bờ Bắc nằm ở đây
   const HORIZON = 150; // đường chân đồi: trên đó là trời / đồi, dưới là cỏ
   const MB = 900; // độ sâu dải đồng cỏ phía dưới thành phố (camera không xuống quá)
-  const EXT = 56; // nhân vật đi tiếp ra ngoại ô tối đa EXT ô mỗi bên (trên đường / vỉa hè ngang)
+  const EXT = 74; // nhân vật đi tiếp ra ngoại ô tối đa EXT ô mỗi bên (trên đường / vỉa hè ngang)
   // Lưới đi được: cột GC0 … GC1 − 1, hàng 0 … GR1 − 1 (dưới thành phố theo hai trục dọc xuống đường đất ở đồng cỏ).
   const GC0 = -EXT;
   const GC1 = COLS + EXT;
@@ -57,14 +57,17 @@
     // Các khu ở ngoại ô, bờ Nam: Công trường bên trái, Hồ câu cá bên phải, Khu danh vọng giữa Công trường và thành phố,
     // Đấu trường sau Hồ câu cá (xa nhất bên phải); cửa vào trên vỉa hè hàng 21 trước cổng.
     site: [-42, 22, 16, 10], fishing: [68, 22, 18, 10], fame: [-20, 22, 14, 10], arena: [90, 22, 14, 10],
+    // Trường đua sau Đấu trường (xa nhất bên phải).
+    race: [108, 22, 14, 10],
   };
   const SITE_X = -1088; // tâm cổng Công trường
   const FISH_X = 2464; // tâm cổng Hồ câu cá
   const FAME_X = -416; // tâm cổng Khu danh vọng
   const ARENA_X = 3104; // tâm cổng Đấu trường
+  const RACE_X = 3680; // tâm cổng Trường đua
   const ZONE_FENCE_Y = 772; // hàng rào / cổng của các khu ngoại ô
   // Khoảng x dành riêng cho các khu ngoại ô (không rải lô nhà / ruộng vào đây).
-  const RESERVED = [[-42 * T - 16, -26 * T + 16], [68 * T - 16, 86 * T + 16], [-20 * T - 16, -6 * T + 16], [90 * T - 16, 104 * T + 16]];
+  const RESERVED = [[-42 * T - 16, -26 * T + 16], [68 * T - 16, 86 * T + 16], [-20 * T - 16, -6 * T + 16], [90 * T - 16, 104 * T + 16], [108 * T - 16, 122 * T + 16]];
   // Vật cản trong các khu bờ Nam (cột, hàng, rộng, cao): đài phun nước, toà bệnh viện, bên trong hàng rào nông trại.
   const FOUNTAIN = [23, 27, 6, 3];
   const HOSPITAL = [4, 24, 6, 6]; // toà thu 0.8 (194×192), cửa giữa đáy (x 224, y 966); sân trước hàng 30–31
@@ -86,6 +89,7 @@
     fishing: { name: 'Hồ câu cá', sub: 'Câu cá giải trí', node: 'fishing' },
     fame: { name: 'Khu danh vọng', sub: 'Top 10 đại gia', node: 'fame' },
     arena: { name: 'Đấu trường', sub: 'Bắn pháo theo gió', node: 'arena' },
+    race: { name: 'Trường đua', sub: 'Đua xe 3D', node: 'race' },
   };
 
   // Điểm đứng trước cửa / trong mỗi khu (đơn vị bản đồ).
@@ -93,6 +97,7 @@
     casino: [224, 276], bank: [816, 276], shop: [1452, 276], // cửa Shop lệch phải trong ảnh toà nhà
     plaza: [816, 780], hospital: [224, 994], farm: [FARM_GATE_X, 790],
     site: [SITE_X, 690], fishing: [FISH_X, 690], fame: [FAME_X, 690], arena: [ARENA_X, 690],
+    race: [RACE_X, 690],
   };
   const SPEED = 240; // đơn vị bản đồ / giây
   const SPRITE_SIZE = 96; // chiều cao nhân vật chibi (khung 96×148, neo chân giữa đáy)
@@ -346,7 +351,7 @@
     'grass_tile', 'road_h', 'road_v', 'road_plain', 'road_crosswalk_h', 'road_crosswalk_v', 'sidewalk_tile', 'water_tile',
     'river_bank_top', 'river_bank_bottom', 'bridge_deck', 'bridge_rail_v', 'farm/bg_sky_hills', 'farm/soil_plot',
     'farm/soil_plot_wet', 'farm/dirt_path_tile', 'farm/grass_plot', 'fishing_lake', 'fishing_pier',
-  'fame_carpet', 'arena_sand',
+  'fame_carpet', 'arena_sand', 'race_asphalt',
   ];
 
   // Số ngẫu nhiên cố định theo hạt giống (cùng mảng luôn ra cùng cảnh).
@@ -470,6 +475,18 @@
       at('arena_cannon', L + 66, 1006, 0.62);
       at('arena_target', Rr - 44, 990, 0.62);
       at('arena_target', Rr - 82, 1012, 0.55);
+      at('fx_flag', L + 20, 990, 0.7);
+      at('fx_flag', Rr - 18, 1016, 0.7, true);
+    }
+    if (inChunk(RACE_X)) {
+      const [c, , w] = BLOCKS.race;
+      const L = c * T;
+      const Rr = L + w * T;
+      // Sân nhựa, hàng rào hai bên cổng xuất phát; toà gara pit giữa, cờ hai góc.
+      plan.ground.push(['race_asphalt', L, ZONE_FENCE_Y + 4, Rr - L, H - ZONE_FENCE_Y - 4, 0.75]);
+      for (const x of [L + 34, L + 90, L + 146, Rr - 146, Rr - 90, Rr - 34]) at('farm/fence_piece', x, ZONE_FENCE_Y, 0.85);
+      at('race_gate', RACE_X, ZONE_FENCE_Y + 1, 0.85);
+      at('race_building', RACE_X, 1000, 0.8);
       at('fx_flag', L + 20, 990, 0.7);
       at('fx_flag', Rr - 18, 1016, 0.7, true);
     }
@@ -1152,7 +1169,7 @@
     // Biển tên: bờ Bắc treo trên trời phía trên toà nhà; bờ Nam đặt ở đầu lô (dải cỏ / sân giữa vỉa hè và toà nhà).
     const labelAt = { casino: [224, -84], bank: [816, -84], shop: [1392, -84], plaza: [816, 712], hospital: [224, 706], farm: [1262, 712],
       site: [SITE_X - 174, 712], fishing: [FISH_X - 174, 712], fame: [FAME_X - 174, 712],
-      arena: [ARENA_X - 174, 712] };
+      arena: [ARENA_X - 174, 712], race: [RACE_X - 174, 712] };
     return Object.entries(ZONES)
       .map(([id, z]) => {
         const [c, r, w, h] = BLOCKS[id];

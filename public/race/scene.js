@@ -1,0 +1,634 @@
+// Trường đua: dựng cảnh 3D (three.js) — đường đua đêm, rào mũi tên, neon, xe Kenney CC0 kèm đồ nâng cấp, hiệu ứng.
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const M = '/race/models/';
+const IMG = '/race/img/';
+const CAR_WIDTH = 2.0; // mọi xe thu phóng về cùng bề ngang (m)
+
+// Mẫu xe server (games/race/cars.go) → mô hình Kenney. open: mui trần, cần thêm người lái.
+export const CAR_MODELS = {
+  starter: { file: 'car/kart-oozi.glb', open: true, seat: [0, 0.2, -0.15], hideChar: true },
+  comet: { file: 'car/hatchback-sports.glb', open: false },
+  bolt: { file: 'car/sedan-sports.glb', open: false },
+  viper: { file: 'kit/raceCarRed.glb', open: true, seat: [0, 0.62, -0.25], paintMat: 'red' },
+  phantom: { file: 'car/race.glb', open: true, seat: [0, 0.6, -0.35] },
+  nova: { file: 'car/race-future.glb', open: true, seat: [0, 0.66, -0.3] },
+};
+const ORDER = ['starter', 'comet', 'bolt', 'viper', 'phantom', 'nova'];
+export const modelOf = (id) => CAR_MODELS[id] || CAR_MODELS[ORDER[Math.abs(hash(id)) % ORDER.length]];
+
+export const PAINT = { red: 0xe8333c, blue: 0x2f7cf6, yellow: 0xffc928, green: 0x2fcf6a, white: 0xf4f6fb, black: 0x23252e, orange: 0xff7a1f, purple: 0x9b4dff, pink: 0xff5fb4, cyan: 0x2fe6ff };
+const colorOf = (id, fallback) => {
+  const k = Object.keys(PAINT).find((c) => String(id || '').includes(c));
+  return k ? PAINT[k] : fallback;
+};
+function hash(s) {
+  let h = 0;
+  for (const ch of String(s || '')) h = (h * 31 + ch.charCodeAt(0)) | 0;
+  return h;
+}
+
+// ---------- Tải mô hình (có bộ nhớ đệm) ----------
+const loader = new GLTFLoader();
+const cache = new Map();
+export function loadModel(file) {
+  if (!cache.has(file)) cache.set(file, loader.loadAsync(M + file).then((g) => g.scene));
+  return cache.get(file);
+}
+const texLoader = new THREE.TextureLoader();
+const texCache = new Map();
+function tex(name, repeat) {
+  const key = name + (repeat ? 'r' : '');
+  if (!texCache.has(key)) {
+    const t = texLoader.load(IMG + name);
+    t.colorSpace = THREE.SRGBColorSpace;
+    if (repeat) t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = 4;
+    texCache.set(key, t);
+  }
+  return texCache.get(key);
+}
+
+// recenter đặt mô hình nằm giữa theo x/z, đáy chạm y = 0; trả kích thước gốc.
+function recenter(obj) {
+  const box = new THREE.Box3().setFromObject(obj);
+  const size = box.getSize(new THREE.Vector3());
+  const c = box.getCenter(new THREE.Vector3());
+  obj.position.x -= c.x;
+  obj.position.z -= c.z;
+  obj.position.y -= box.min.y;
+  return size;
+}
+
+// ---------- Renderer ----------
+export function createRenderer(canvas, low) {
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: !low, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(low ? Math.min(window.devicePixelRatio, 1) * 0.75 : Math.min(window.devicePixelRatio, 1.5));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+  let scene = new THREE.Scene();
+  let camera = new THREE.PerspectiveCamera(72, 1, 0.3, 1500);
+  let composer = null;
+  let bloom = null;
+  let pass = null;
+  if (!low) {
+    composer = new EffectComposer(renderer);
+    pass = new RenderPass(scene, camera);
+    composer.addPass(pass);
+    bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.85, 0.45, 0.82);
+    composer.addPass(bloom);
+    composer.addPass(new OutputPass());
+  }
+  const resize = () => {
+    const w = canvas.clientWidth || window.innerWidth;
+    const h = canvas.clientHeight || window.innerHeight;
+    renderer.setSize(w, h, false);
+    if (composer) composer.setSize(w, h);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  };
+  resize();
+  return {
+    renderer, resize,
+    get scene() { return scene; },
+    get camera() { return camera; },
+    // use đổi cảnh đang vẽ (garage / đường đua) mà giữ nguyên renderer và bloom.
+    use(s, c) {
+      scene = s;
+      camera = c;
+      if (pass) { pass.scene = s; pass.camera = c; }
+      resize();
+    },
+    render: () => (composer ? composer.render() : renderer.render(scene, camera)),
+    dispose: () => { renderer.dispose(); if (composer) composer.dispose(); },
+  };
+}
+
+// ---------- Đường đua ----------
+
+// ribbon dựng dải dọc đường tâm, từ độ lệch l0 tới l1 (m, dương = bên phải), ở độ cao y; uv: u ngang, v dọc theo vRep m.
+function ribbon(path, cum, l0, l1, y, vRep, y1 = y) {
+  const n = path.length;
+  const pos = [];
+  const uv = [];
+  const idx = [];
+  for (let i = 0; i <= n; i++) {
+    const p = path[i % n];
+    const a = path[(i - 1 + n) % n];
+    const b = path[(i + 1) % n];
+    let dx = b.x - a.x;
+    let dz = b.z - a.z;
+    const len = Math.hypot(dx, dz) || 1;
+    dx /= len;
+    dz /= len;
+    const rx = dz;
+    const rz = -dx;
+    pos.push(p.x + rx * l0, y, p.z + rz * l0, p.x + rx * l1, y1, p.z + rz * l1);
+    const v = cum[i] / vRep;
+    uv.push(0, v, 1, v);
+    if (i < n) {
+      const k = i * 2;
+      idx.push(k, k + 2, k + 1, k + 1, k + 2, k + 3);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
+// wall dựng tường đứng ở độ lệch l, cao h; mặt hướng vào trong đường. Đoạn cua phía ngoài dùng vật liệu mũi tên (nhóm 1).
+function wall(path, cum, curv, l, h, side) {
+  const n = path.length;
+  const pos = [];
+  const uv = [];
+  const g = new THREE.BufferGeometry();
+  let vtx = 0;
+  let runStart = 0;
+  let runMat = -1;
+  const groups = [];
+  for (let i = 0; i < n; i++) {
+    const a = path[i];
+    const b = path[(i + 1) % n];
+    const p0 = path[(i - 1 + n) % n];
+    const p2 = path[(i + 2) % n];
+    const off = (p, q, r) => {
+      let dx = r.x - q.x;
+      let dz = r.z - q.z;
+      const len = Math.hypot(dx, dz) || 1;
+      return [p.x + (dz / len) * l, p.z + (-dx / len) * l];
+    };
+    const [ax, az] = off(a, p0, b);
+    const [bx, bz] = off(b, a, p2);
+    // Cua mà tường nằm ở phía ngoài thì là rào mũi tên.
+    const outer = curv[i] * side < -0.004;
+    const mat = outer ? 1 : 0;
+    const u0 = cum[i] / 3.2;
+    const u1 = cum[i + 1] / 3.2;
+    // Mặt hướng vào tâm đường: thứ tự đỉnh theo phía.
+    const quad = side > 0
+      ? [ax, 0, az, bx, 0, bz, ax, h, az, bx, h, bz]
+      : [bx, 0, bz, ax, 0, az, bx, h, bz, ax, h, az];
+    const quv = side > 0 ? [u0, 0, u1, 0, u0, 1, u1, 1] : [u1, 0, u0, 0, u1, 1, u0, 1];
+    pos.push(...quad.slice(0, 9), ...quad.slice(3, 6), ...quad.slice(9, 12), ...quad.slice(6, 9));
+    uv.push(...quv.slice(0, 6), ...quv.slice(2, 4), ...quv.slice(6, 8), ...quv.slice(4, 6));
+    if (mat !== runMat) {
+      if (runMat >= 0) groups.push([runStart, vtx - runStart, runMat]);
+      runStart = vtx;
+      runMat = mat;
+    }
+    vtx += 6;
+  }
+  groups.push([runStart, vtx - runStart, runMat]);
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  for (const [s, c, m] of groups) g.addGroup(s, c, m);
+  g.computeVertexNormals();
+  return g;
+}
+
+export async function buildWorld(scene, track, low) {
+  const { path, cum } = track;
+  const n = path.length;
+  const night = track.data.id === 'city' ? 0x0d1430 : 0x0b0f2a;
+  scene.background = new THREE.Color(night);
+  scene.fog = new THREE.Fog(night, 90, low ? 260 : 420);
+
+  scene.add(new THREE.HemisphereLight(0x5a74c8, 0x101418, 1.1));
+  const moon = new THREE.DirectionalLight(0xbcd2ff, 1.4);
+  moon.position.set(-60, 120, -40);
+  scene.add(moon);
+  scene.add(new THREE.AmbientLight(0x30365a, 0.6));
+
+  // Độ cong tại từng điểm (dấu: rẽ phải âm/dương theo pháp tuyến) để biết phía ngoài khúc cua.
+  const curv = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const a = path[(i - 2 + n) % n];
+    const b = path[i];
+    const c = path[(i + 2) % n];
+    const h1 = Math.atan2(b.x - a.x, b.z - a.z);
+    const h2 = Math.atan2(c.x - b.x, c.z - b.z);
+    let d = h2 - h1;
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    curv[i] = d / (Math.hypot(c.x - a.x, c.z - a.z) || 1);
+  }
+
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(1400, 1400),
+    new THREE.MeshStandardMaterial({ map: (() => { const t = tex('ground.png', true); t.repeat.set(140, 140); return t; })(), roughness: 1 }),
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -0.02;
+  scene.add(ground);
+
+  const half = track.half;
+  const road = new THREE.Mesh(ribbon(path, cum, -half, half, 0.02, 14), new THREE.MeshStandardMaterial({ map: tex('asphalt.png', true), roughness: 0.62, metalness: 0.05 }));
+  scene.add(road);
+  const curbMat = new THREE.MeshStandardMaterial({ map: tex('curb.png', true), roughness: 0.8 });
+  scene.add(new THREE.Mesh(ribbon(path, cum, half, half + 1.3, 0.05, 4), curbMat));
+  scene.add(new THREE.Mesh(ribbon(path, cum, -half - 1.3, -half, 0.05, 4), curbMat));
+
+  // Tường: phần thường màu tối có viền neon trên đỉnh, phần ngoài khúc cua là rào mũi tên vàng đen.
+  const chevron = tex('chevron.png', true);
+  const wallMats = [
+    new THREE.MeshStandardMaterial({ color: 0x1b1f33, roughness: 0.7 }),
+    new THREE.MeshStandardMaterial({ map: chevron, emissive: 0x3a2a00, emissiveMap: chevron, roughness: 0.5 }),
+  ];
+  const W = track.wall + 0.4;
+  scene.add(new THREE.Mesh(wall(path, cum, curv, W, 1.3, 1), wallMats));
+  scene.add(new THREE.Mesh(wall(path, cum, curv, -W, 1.3, -1), wallMats));
+  const neonR = new THREE.MeshBasicMaterial({ color: track.data.id === 'city' ? 0xff3fd0 : 0x2fe6ff, toneMapped: false });
+  const neonL = new THREE.MeshBasicMaterial({ color: track.data.id === 'city' ? 0x3fa0ff : 0xff3fd0, toneMapped: false });
+  scene.add(new THREE.Mesh(ribbon(path, cum, W - 0.12, W + 0.12, 1.34, 4), neonR));
+  scene.add(new THREE.Mesh(ribbon(path, cum, -W - 0.12, -W + 0.12, 1.34, 4), neonL));
+
+  // Vạch xuất phát ô cờ.
+  const ck = document.createElement('canvas');
+  ck.width = 64;
+  ck.height = 16;
+  const cx = ck.getContext('2d');
+  for (let i = 0; i < 16; i++) for (let j = 0; j < 4; j++) { cx.fillStyle = (i + j) % 2 ? '#111' : '#f4f4f4'; cx.fillRect(i * 4, j * 4, 4, 4); }
+  const ckTex = new THREE.CanvasTexture(ck);
+  ckTex.magFilter = THREE.NearestFilter;
+  ckTex.colorSpace = THREE.SRGBColorSpace;
+  const start = new THREE.Mesh(new THREE.PlaneGeometry(track.width, 2.4), new THREE.MeshStandardMaterial({ map: ckTex, roughness: 0.7 }));
+  start.rotation.x = -Math.PI / 2;
+  start.rotation.z = -Math.atan2(path[1].x - path[0].x, path[1].z - path[0].z);
+  start.position.set(path[0].x, 0.04, path[0].z);
+  scene.add(start);
+
+  // Sao trên trời.
+  const sp = [];
+  for (let i = 0; i < (low ? 300 : 900); i++) {
+    const th = Math.random() * Math.PI * 2;
+    const ph = Math.random() * 0.45 + 0.08;
+    const r = 900;
+    sp.push(Math.cos(th) * Math.cos(ph) * r, Math.sin(ph) * r, Math.sin(th) * Math.cos(ph) * r);
+  }
+  const sg = new THREE.BufferGeometry();
+  sg.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3));
+  const stars = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xcfe0ff, size: 2, sizeAttenuation: false, fog: false }));
+  scene.add(stars);
+
+  // Đồ trang trí Racing Kit (khán đài, đèn, biển...). Đầu đèn thêm quầng sáng để bloom.
+  const glowTex = tex('spark.png');
+  const glowMat = new THREE.SpriteMaterial({ map: glowTex, color: 0xfff1c8, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
+  const pieces = track.data.pieces || [];
+  const files = [...new Set(pieces.map((p) => p.model))];
+  const proto = {};
+  await Promise.all(files.map(async (m) => {
+    try {
+      const s = (await loadModel(`kit/${m}.glb`)).clone(true);
+      const wrap = new THREE.Group();
+      wrap.add(s);
+      recenter(s);
+      proto[m] = wrap;
+    } catch (e) { /* thiếu mô hình thì bỏ qua đồ trang trí đó */ }
+  }));
+  for (const p of pieces) {
+    const base = proto[p.model];
+    if (!base) continue;
+    const o = base.clone(true);
+    o.scale.setScalar(p.scale || 10);
+    o.position.set(p.x, 0, p.z);
+    o.rotation.y = p.rot || 0;
+    scene.add(o);
+    if (/light/i.test(p.model) && !low) {
+      const g = new THREE.Sprite(glowMat);
+      g.scale.setScalar(p.model === 'overheadLights' ? 10 : 5);
+      g.position.set(p.x, (p.scale || 10) * (p.model === 'overheadLights' ? 0.62 : 0.74), p.z);
+      scene.add(g);
+    }
+  }
+  return { curv };
+}
+
+// ---------- Xe ----------
+
+function metal(color) { return new THREE.MeshStandardMaterial({ color, metalness: 0.85, roughness: 0.3 }); }
+function glow(color) { return new THREE.MeshBasicMaterial({ color, toneMapped: false }); }
+
+// buildCar dựng xe theo mẫu và đồ đang lắp: spec {car, levels:{engine,turbo,tires}, cosmetics:{spoiler,neon,paint,decal}, number}.
+export async function buildCar(spec, low = false) {
+  const info = modelOf(spec.car);
+  const src = await loadModel(info.file);
+  const body = src.clone(true);
+  const root = new THREE.Group(); // gốc xe: tâm giữa hai trục, đáy y = 0, mũi xe hướng +z
+  const holder = new THREE.Group();
+  holder.add(body);
+  root.add(holder);
+  const size = recenter(body);
+  const s = CAR_WIDTH / Math.max(size.x, 0.01);
+  holder.scale.setScalar(s);
+  const L = size.z * s;
+  const H = size.y * s;
+  const lv = spec.levels || {};
+  const cos = spec.cosmetics || {};
+  const paint = colorOf(cos.paint, PAINT.red);
+
+  // Sơn: vật liệu tên màu (Racing Kit) đổi hẳn màu; mô hình dùng bảng màu chung thì nhuộm phần thân.
+  body.traverse((o) => {
+    if (!o.isMesh) return;
+    const isWheel = /wheel/i.test(o.name) || /wheel/i.test(o.parent && o.parent.name);
+    if (isWheel || /character/i.test(o.name) || /character/i.test(o.parent && o.parent.name)) return;
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    const next = mats.map((m) => {
+      const c = m.clone();
+      if (info.paintMat) {
+        if (m.name === info.paintMat) c.color.setHex(paint);
+      } else {
+        c.color.setHex(0xffffff).lerp(new THREE.Color(paint), 0.72);
+      }
+      c.metalness = 0.35;
+      c.roughness = 0.32;
+      return c;
+    });
+    o.material = Array.isArray(o.material) ? next : next[0];
+  });
+  // Bánh xe chỉ giữ các nút bánh (không lặp con).
+  const wheelNodes = [];
+  body.traverse((o) => { if (/wheel/i.test(o.name) && !/wheel/i.test(o.parent && o.parent.name)) wheelNodes.push(o); });
+  for (const w of wheelNodes) w.rotation.order = 'YXZ';
+
+  // Lốp / mâm: cấp 2–3 đổi mâm tối, cấp 4–5 mâm đua có viền phát sáng.
+  const tires = lv.tires || 0;
+  if (tires >= 2) {
+    const wfile = tires >= 4 ? 'car/wheel-racing.glb' : 'car/wheel-dark.glb';
+    const wsrc = await loadModel(wfile);
+    root.updateMatrixWorld(true);
+    for (const w of wheelNodes) {
+      const wb = new THREE.Box3().setFromObject(w);
+      const wsz = wb.getSize(new THREE.Vector3());
+      w.children.forEach((c) => (c.visible = false));
+      if (w.isMesh) w.material = new THREE.MeshBasicMaterial({ visible: false });
+      const nw = wsrc.clone(true);
+      const nb = new THREE.Box3().setFromObject(nw).getSize(new THREE.Vector3());
+      const k = (wsz.y / s / (nb.y || 1)) * s;
+      // wsz đang ở hệ thế giới của mô hình đã thu phóng: quy về hệ nút bánh.
+      nw.scale.setScalar(k / s);
+      const side = w.position.x >= 0 ? 1 : -1;
+      nw.rotation.y = side > 0 ? 0 : Math.PI;
+      w.add(nw);
+      if (tires >= 4) {
+        const wr = (wsz.y / s) * 0.36; // bán kính viền sáng theo cỡ bánh (hệ nút bánh)
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(wr, wr * 0.1, 6, 20), glow(colorOf(cos.neon, 0x2fe6ff)));
+        ring.rotation.y = Math.PI / 2;
+        ring.position.x = side * (wsz.x / s) * 0.5;
+        w.add(ring);
+      }
+    }
+  }
+
+  const extras = new THREE.Group(); // đồ gắn thêm theo hệ mét của xe
+  root.add(extras);
+  const rear = -L / 2;
+
+  // Người lái: mũ bảo hiểm và kính phát sáng (xe mui trần).
+  if (info.open) {
+    const [sx, sy, sz] = info.seat;
+    // Mô hình kart có sẵn nhân vật đầu to: ẩn đi, dùng người lái chung cho cân đối.
+    if (info.hideChar) body.traverse((o) => { if (/character/i.test(o.name)) o.visible = false; });
+    const d = new THREE.Group();
+    const suit = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.3, 0.26), new THREE.MeshStandardMaterial({ color: 0x1d2235, roughness: 0.6 }));
+    suit.position.y = 0.15;
+    // Mũ bảo hiểm màu tương phản với sơn, có sọc và kính phát sáng ôm phía trước.
+    const shell = paint === PAINT.white || paint === PAINT.yellow ? 0x2f7cf6 : 0xf2f4f8;
+    const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.17, 16, 12), new THREE.MeshStandardMaterial({ color: shell, metalness: 0.2, roughness: 0.45 }));
+    helmet.position.y = 0.42;
+    helmet.scale.set(1, 0.95, 1.08);
+    const stripe = new THREE.Mesh(new THREE.TorusGeometry(0.168, 0.018, 6, 24, Math.PI), new THREE.MeshStandardMaterial({ color: paint, roughness: 0.4 }));
+    stripe.rotation.set(0, Math.PI / 2, Math.PI / 2);
+    stripe.position.y = 0.42;
+    const visor = new THREE.Mesh(new THREE.SphereGeometry(0.172, 16, 8, Math.PI * 0.18, Math.PI * 0.64, Math.PI * 0.36, Math.PI * 0.2), glow(0x58f0ff));
+    visor.position.y = 0.42;
+    d.add(suit, helmet, stripe, visor);
+    d.position.set(sx * s, sy * H, sz * L * 0.5);
+    extras.add(d);
+  }
+
+  // Động cơ / ống xả: ống to dần theo cấp, cấp 4+ có 4 ống. Lửa xanh khi nitro.
+  const engine = lv.engine || 0;
+  const pipes = engine >= 4 ? 4 : 2;
+  const r = 0.05 + engine * 0.012;
+  const flames = [];
+  for (let i = 0; i < pipes; i++) {
+    const x = (i - (pipes - 1) / 2) * 0.22;
+    const pipe = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.15, 0.3 + engine * 0.03, 10), metal(0xb8bcc8));
+    pipe.rotation.x = Math.PI / 2;
+    pipe.position.set(x, H * 0.28, rear + 0.05);
+    extras.add(pipe);
+    const flame = new THREE.Mesh(new THREE.ConeGeometry(r * 1.6, 1.1, 10, 1, true), new THREE.MeshBasicMaterial({ color: 0x46b8ff, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+    flame.rotation.x = -Math.PI / 2;
+    flame.position.set(x, H * 0.28, rear - 0.6);
+    flame.visible = false;
+    extras.add(flame);
+    flames.push(flame);
+  }
+
+  // Turbo: bình nằm ngang sau lưng, cấp 3+ có hai bình, cấp 5 có vòng sáng.
+  const turbo = lv.turbo || 0;
+  if (turbo >= 1) {
+    const n = turbo >= 3 ? 2 : 1;
+    for (let i = 0; i < n; i++) {
+      const can = new THREE.Mesh(new THREE.CylinderGeometry(0.1 + turbo * 0.012, 0.1 + turbo * 0.012, 0.3 + turbo * 0.05, 14), metal(0x9aa3b8));
+      can.rotation.z = Math.PI / 2;
+      can.position.set((i - (n - 1) / 2) * 0.4, H * (info.open ? 0.62 : 0.72), rear + 0.5);
+      extras.add(can);
+      if (turbo >= 5) {
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.02, 6, 18), glow(0xff5a2a));
+        ring.rotation.y = Math.PI / 2;
+        ring.position.copy(can.position);
+        extras.add(ring);
+      }
+    }
+  }
+
+  // Cánh gió (đồ trang trí). Xe có cánh sẵn thì ẩn cánh gốc khi lắp cánh mới.
+  if (cos.spoiler) {
+    body.traverse((o) => { if (/spoiler/i.test(o.name)) o.visible = false; });
+    let wing;
+    if (cos.spoiler === 'spoiler_gt') {
+      wing = new THREE.Group();
+      const m = new THREE.MeshStandardMaterial({ color: 0x15171f, metalness: 0.5, roughness: 0.35 });
+      const blade = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.06, 0.5), m);
+      blade.position.y = 0.55;
+      const s1 = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.55, 0.2), m);
+      s1.position.set(-0.6, 0.27, 0);
+      const s2 = s1.clone();
+      s2.position.x = 0.6;
+      const e1 = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.3, 0.55), new THREE.MeshStandardMaterial({ color: paint, metalness: 0.4, roughness: 0.3 }));
+      e1.position.set(-1.05, 0.62, 0);
+      const e2 = e1.clone();
+      e2.position.x = 1.05;
+      wing.add(blade, s1, s2, e1, e2);
+    } else {
+      wing = (await loadModel(cos.spoiler === 'spoiler_mid' ? 'car/debris-spoiler-b.glb' : 'car/debris-spoiler-a.glb')).clone(true);
+      recenter(wing);
+      const g = new THREE.Group();
+      g.add(wing);
+      g.scale.setScalar(1.7);
+      wing = g;
+    }
+    wing.position.set(0, H * (info.open ? 0.62 : 0.78), rear + 0.35);
+    extras.add(wing);
+  }
+
+  // Đèn neon gầm: quầng sáng màu trên mặt đường.
+  let underglow = null;
+  if (cos.neon) {
+    const c = colorOf(cos.neon, 0x2fe6ff);
+    underglow = new THREE.Mesh(new THREE.PlaneGeometry(CAR_WIDTH * 1.5, L * 1.25), new THREE.MeshBasicMaterial({ map: tex('spark.png'), color: c, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+    underglow.rotation.x = -Math.PI / 2;
+    underglow.position.y = 0.06;
+    root.add(underglow);
+    const strip = new THREE.Mesh(new THREE.BoxGeometry(CAR_WIDTH * 0.92, 0.04, L * 0.8), glow(c));
+    strip.position.y = 0.12;
+    root.add(strip);
+  }
+
+  // Decal: số đua (chữ vẽ trên canvas) hoặc hình PNG dán trên nắp xe.
+  if (cos.decal) {
+    let map;
+    if (cos.decal === 'decal_number') {
+      const cv = document.createElement('canvas');
+      cv.width = cv.height = 128;
+      const x = cv.getContext('2d');
+      x.fillStyle = '#ffffff';
+      x.beginPath();
+      x.arc(64, 64, 58, 0, Math.PI * 2);
+      x.fill();
+      x.fillStyle = '#111';
+      x.font = 'bold 76px sans-serif';
+      x.textAlign = 'center';
+      x.textBaseline = 'middle';
+      x.fillText(String(spec.number || 7), 64, 70);
+      map = new THREE.CanvasTexture(cv);
+      map.colorSpace = THREE.SRGBColorSpace;
+    } else {
+      map = tex(`${cos.decal}.png`);
+    }
+    const plate = new THREE.Mesh(new THREE.PlaneGeometry(cos.decal === 'decal_number' ? 0.7 : 1.1, cos.decal === 'decal_number' ? 0.7 : L * 0.45), new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 }));
+    plate.rotation.x = -Math.PI / 2;
+    plate.position.set(0, H * (info.open ? 0.45 : 0.55), L * 0.22);
+    extras.add(plate);
+  }
+
+  // Đèn pha phát sáng phía trước, đèn hậu đỏ.
+  for (const x of [-0.6, 0.6]) {
+    const hl = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.1, 0.05), glow(0xeaf6ff));
+    hl.position.set(x, H * 0.32, L / 2 + 0.02);
+    extras.add(hl);
+    const tl = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.08, 0.05), glow(0xff2a3a));
+    tl.position.set(x, H * 0.4, rear - 0.02);
+    extras.add(tl);
+  }
+
+  // Bóng mềm dưới xe.
+  const shadow = new THREE.Mesh(new THREE.PlaneGeometry(CAR_WIDTH * 1.4, L * 1.15), new THREE.MeshBasicMaterial({ map: tex('spark.png'), color: 0x000000, transparent: true, opacity: 0.55, depthWrite: false }));
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.position.y = 0.035;
+  root.add(shadow);
+
+  let spin = 0;
+  let t = 0;
+  return {
+    root, length: L, height: H, flames,
+    // update xoay bánh theo tốc độ, bẻ bánh trước, lắc thân khi drift, bật lửa khi nitro.
+    update(speed, steer, drift, boost, dt) {
+      t += dt;
+      spin += (speed / 0.42) * dt;
+      for (const w of wheelNodes) {
+        w.rotation.x = spin;
+        w.rotation.y = /front/i.test(w.name) ? steer * 0.45 : 0;
+      }
+      holder.rotation.z = THREE.MathUtils.lerp(holder.rotation.z, (drift ? 0.06 : 0.02) * steer, Math.min(1, dt * 6));
+      for (const f of flames) {
+        f.visible = boost;
+        if (boost) f.scale.set(1, 0.8 + Math.sin(t * 60 + f.id) * 0.25, 1);
+      }
+      if (underglow) underglow.material.opacity = 0.45 + Math.sin(t * 3) * 0.1;
+    },
+  };
+}
+
+// ---------- Hiệu ứng: tia lửa, vệt tốc độ ----------
+
+export function createSparks(scene, max = 240) {
+  const pos = new Float32Array(max * 3);
+  const vel = new Float32Array(max * 3);
+  const life = new Float32Array(max);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.PointsMaterial({ map: tex('spark.png'), color: 0xffb547, size: 0.5, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
+  const pts = new THREE.Points(g, mat);
+  pts.frustumCulled = false;
+  scene.add(pts);
+  let head = 0;
+  return {
+    emit(x, y, z, n, spread = 6, color) {
+      if (color) mat.color.setHex(color);
+      for (let i = 0; i < n; i++) {
+        const k = head++ % max;
+        pos[k * 3] = x; pos[k * 3 + 1] = y; pos[k * 3 + 2] = z;
+        vel[k * 3] = (Math.random() - 0.5) * spread;
+        vel[k * 3 + 1] = Math.random() * spread * 0.7;
+        vel[k * 3 + 2] = (Math.random() - 0.5) * spread;
+        life[k] = 0.35 + Math.random() * 0.3;
+      }
+    },
+    update(dt) {
+      for (let k = 0; k < max; k++) {
+        if (life[k] <= 0) { pos[k * 3 + 1] = -100; continue; }
+        life[k] -= dt;
+        vel[k * 3 + 1] -= 18 * dt;
+        pos[k * 3] += vel[k * 3] * dt;
+        pos[k * 3 + 1] = Math.max(0.05, pos[k * 3 + 1] + vel[k * 3 + 1] * dt);
+        pos[k * 3 + 2] += vel[k * 3 + 2] * dt;
+      }
+      g.attributes.position.needsUpdate = true;
+    },
+  };
+}
+
+// Vệt tốc độ: các đoạn thẳng trôi về phía camera khi chạy nhanh / nitro (gắn vào camera).
+export function createSpeedLines(camera, count = 60) {
+  const pos = new Float32Array(count * 6);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.LineBasicMaterial({ color: 0xbfe8ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
+  const lines = new THREE.LineSegments(g, mat);
+  lines.frustumCulled = false;
+  camera.add(lines);
+  const seed = (i, far) => {
+    const a = Math.random() * Math.PI * 2;
+    const r = 1.6 + Math.random() * 2.4;
+    const z = far ? -24 - Math.random() * 12 : -Math.random() * 36;
+    pos[i * 6] = Math.cos(a) * r; pos[i * 6 + 1] = Math.sin(a) * r * 0.6; pos[i * 6 + 2] = z;
+    pos[i * 6 + 3] = pos[i * 6]; pos[i * 6 + 4] = pos[i * 6 + 1]; pos[i * 6 + 5] = z - 3;
+  };
+  for (let i = 0; i < count; i++) seed(i, false);
+  return {
+    update(dt, amount, speed) {
+      mat.opacity += (amount * 0.55 - mat.opacity) * Math.min(1, dt * 5);
+      lines.visible = mat.opacity > 0.02;
+      if (!lines.visible) return;
+      for (let i = 0; i < count; i++) {
+        pos[i * 6 + 2] += speed * 1.6 * dt;
+        pos[i * 6 + 5] = pos[i * 6 + 2] - 1.2 - amount * 1.6;
+        if (pos[i * 6 + 2] > -1) seed(i, true);
+      }
+      g.attributes.position.needsUpdate = true;
+    },
+  };
+}
+
+export { THREE };
