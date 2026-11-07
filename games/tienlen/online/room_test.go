@@ -3,6 +3,7 @@ package online
 import (
 	"context"
 	"errors"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -82,10 +83,13 @@ func (b *fakeBank) Balance(_ context.Context, id int64) (int64, error) {
 	return bal, nil
 }
 
-func (b *fakeBank) Settle(_ context.Context, _, _ string, deltas map[int64]int64) (map[int64]int64, error) {
+func (b *fakeBank) Settle(_ context.Context, _, note string, deltas map[int64]int64) (map[int64]int64, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	b.settled++
+	// Khoản thuế 5% tiền thắng là một lượt ghi riêng sau khi chốt ván, không tính là chốt ván lần nữa.
+	if !strings.HasPrefix(note, "Thuế ") {
+		b.settled++
+	}
 	out := map[int64]int64{}
 	for id, d := range deltas {
 		b.balances[id] = max(0, b.balances[id]+d)
