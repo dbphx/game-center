@@ -141,7 +141,7 @@ func newEnv(t *testing.T) *env {
 func (e *env) create(u User, bet int) (*Session, *fakeConn) {
 	e.t.Helper()
 	c := &fakeConn{}
-	s, err := e.hub.Create(u, c, ptr(bet), "square")
+	s, err := e.hub.Create(u, c, ptr(bet), "square", "")
 	if err != nil {
 		e.t.Fatal(err)
 	}
@@ -291,7 +291,7 @@ func TestRoomBetsAndStartChecks(t *testing.T) {
 func TestRoomCapacityAndMinHP(t *testing.T) {
 	e := newEnv(t)
 	e.hub.opts.MinHP = 30
-	if _, err := e.hub.Create(User{ID: 9, Name: "Yếu", HP: 20}, &fakeConn{}, nil, ""); err == nil {
+	if _, err := e.hub.Create(User{ID: 9, Name: "Yếu", HP: 20}, &fakeConn{}, nil, "", ""); err == nil {
 		t.Fatal("dưới 30 HP không vào được")
 	}
 	a, _ := e.create(an, 100)

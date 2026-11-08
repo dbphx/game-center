@@ -88,6 +88,7 @@ func (c *Cosmetics) set(kind, item string) {
 type CarView struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
+	Kind      string    `json:"kind"` // "car" hoặc "moto"
 	Price     int64     `json:"price"`
 	Owned     bool      `json:"owned"`
 	Levels    Levels    `json:"levels"`
@@ -114,6 +115,7 @@ type GarageView struct {
 	MaxLevel     int                         `json:"maxLevel"`
 	NitroBoost   float64                     `json:"nitroBoost"`
 	NitroMs      int                         `json:"nitroMs"`
+	NitroCharge  float64                     `json:"nitroCharge"` // hệ số tốc độ tích nitro
 }
 
 // Garage lưu xe và đồ của người chơi trong ví SQLite.
@@ -190,13 +192,13 @@ func carView(m CarModel, c ownedCar, owned bool) CarView {
 	if !owned {
 		c = ownedCar{cosmetics: Cosmetics{Paint: DefaultPaint}}
 	}
-	return CarView{ID: m.ID, Name: m.Name, Price: m.Price, Owned: owned, Levels: c.levels,
+	return CarView{ID: m.ID, Name: m.Name, Kind: m.Kind, Price: m.Price, Owned: owned, Levels: c.levels,
 		Stats: StatsOf(m, c.levels), Cosmetics: c.cosmetics}
 }
 
 func (d garageData) view() GarageView {
 	v := GarageView{Current: d.current, UpgradePrice: map[string]map[string]int64{}, MaxLevel: MaxLevel,
-		NitroBoost: NitroBoost, NitroMs: NitroMs}
+		NitroBoost: NitroBoost, NitroMs: NitroMs, NitroCharge: NitroCharge}
 	for _, m := range Cars {
 		c, owned := d.cars[m.ID]
 		v.Cars = append(v.Cars, carView(m, c, owned))
@@ -349,11 +351,15 @@ func (g *Garage) Equip(ctx context.Context, uid int64, car, kind, item string) (
 		if !slices.Contains(Kinds, kind) {
 			return bad("loại đồ không hợp lệ")
 		}
-		if _, ok := findCar(car); !ok {
+		m, ok := findCar(car)
+		if !ok {
 			return notFound("không có mẫu xe này")
 		}
 		if _, owned := d.cars[car]; !owned {
 			return conflict("bạn chưa có xe này")
+		}
+		if kind == "spoiler" && item != "" && m.Kind == KindMoto {
+			return conflict("Moto không lắp được cánh gió")
 		}
 		if item == "" {
 			if kind == "paint" {

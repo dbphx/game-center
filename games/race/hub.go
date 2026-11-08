@@ -60,8 +60,9 @@ type Session struct {
 	Player *Player
 }
 
-// Create mở phòng mới. bet không hợp lệ (hoặc thiếu) thì dùng DefaultBet; track lạ thì dùng đường mặc định.
-func (h *Hub) Create(u User, conn Conn, bet *int, track string) (*Session, error) {
+// Create mở phòng mới. bet không hợp lệ (hoặc thiếu) thì dùng DefaultBet; track lạ thì dùng đường mặc định;
+// mode lạ hoặc trống thì đua tốc độ.
+func (h *Hub) Create(u User, conn Conn, bet *int, track, mode string) (*Session, error) {
 	if len(h.tracks) == 0 {
 		return nil, errors.New("Trường đua chưa có đường đua")
 	}
@@ -72,7 +73,10 @@ func (h *Hub) Create(u User, conn Conn, bet *int, track string) (*Session, error
 	if err := h.opts.gate(u); err != nil {
 		return nil, err
 	}
-	r := &Room{hub: h, opts: h.opts, phase: PhaseLobby, bet: b, track: h.defaultTrack(track),
+	if !validMode(mode) {
+		mode = ModeSpeed
+	}
+	r := &Room{hub: h, opts: h.opts, phase: PhaseLobby, bet: b, track: h.defaultTrack(track), mode: mode,
 		rng: mrand.New(mrand.NewPCG(mrand.Uint64(), mrand.Uint64()))}
 	h.mu.Lock()
 	for {

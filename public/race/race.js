@@ -1,7 +1,7 @@
 // Trường đua: sảnh, garage, phòng chờ, cuộc đua 3D. Server (games/race) giữ phòng, kiểm gói vị trí, xếp hạng và trả xu;
 // máy người chơi tự mô phỏng xe mình (physics.js) và gửi vị trí ≈15 lần/giây.
-import { Track, newCar, step, raceDistance } from './physics.js';
-import { THREE, createRenderer, buildWorld, buildCar, createSparks, createSpeedLines, PAINT } from './scene.js';
+import { Track, newCar, step, raceDistance, hitCar, ITEM_BOOST_MS, SHIELD_MS, NITRO_CHARGE } from './physics.js';
+import { THREE, createRenderer, buildWorld, buildCar, createSparks, createSpeedLines, createItemFx, makeShield, isMoto, PAINT } from './scene.js';
 
 const A = window.Account;
 const I = window.Icons;
@@ -11,7 +11,11 @@ const xu = A.xu;
 const esc = A.escapeHtml;
 
 const BETS = [100, 500, 1000, 5000, 10000];
-const TRACKS = [{ id: 'neon', name: 'Đường Neon' }, { id: 'city', name: 'Phố Đêm' }];
+const TRACKS = [{ id: 'neon', name: 'Đường Neon' }, { id: 'city', name: 'Phố Đêm' }, { id: 'serpent', name: 'Đèo Rắn' }, { id: 'canyon', name: 'Hẻm Núi' }];
+const MODES = [{ id: 'speed', name: 'Tốc độ' }, { id: 'items', name: 'Đạo cụ' }];
+const ITEM_NAMES = { missile: 'Tên lửa', homing: 'Tên lửa đuổi', oil: 'Vũng dầu', shield: 'Khiên', boost: 'Tăng tốc' };
+const ITEM_ICON = { missile: '🚀', homing: '🎯', oil: '🛢️', shield: '🛡️', boost: '⚡' };
+const PICKUP_RANGE = 5.5; // m: chạy qua hộp gần chừng này thì báo nhặt (server cho tới 6 m)
 const SEND_MS = 66; // ≈15 gói mỗi giây
 const LERP_MS = 110; // xe người khác vẽ trễ một chút để mượt
 const ROOM_KEY = 'race.room';
@@ -27,6 +31,7 @@ let user = null;
 let garage = null;
 let gSel = null; // xe đang xem trong garage
 let gKind = 'spoiler';
+let gFilter = 'car'; // garage: lọc Ô tô / Moto
 let ws = null;
 let room = null; // trạng thái phòng từ server
 let mySeat = -1;
@@ -101,12 +106,14 @@ function chips(el, items, sel, onPick) {
 function openCreate() {
   let track = 'neon';
   let bet = 100;
+  let mode = 'speed';
   chips($('track-grid'), TRACKS.map((t) => ({ v: t.id, label: t.name })), track, (v) => (track = v));
+  chips($('mode-grid'), MODES.map((m) => ({ v: m.id, label: m.name })), mode, (v) => (mode = v));
   chips($('bet-grid'), BETS.map((b) => ({ v: b, label: `${xu(b)} xu` })), bet, (v) => (bet = Number(v)));
   const dlg = $('dlg-create');
   dlg.onclose = () => {
     if (dlg.returnValue !== 'ok') return;
-    connect(() => send({ t: 'create', token: A.token(), bet, track }));
+    connect(() => send({ t: 'create', token: A.token(), bet, track, mode }));
   };
   dlg.returnValue = '';
   dlg.showModal();
@@ -114,9 +121,11 @@ function openCreate() {
 
 function openPractice() {
   let track = 'neon';
+  let mode = 'items';
   chips($('practice-grid'), TRACKS.map((t) => ({ v: t.id, label: t.name })), track, (v) => (track = v));
+  chips($('practice-mode'), MODES.map((m) => ({ v: m.id, label: m.name })), mode, (v) => (mode = v));
   const dlg = $('dlg-practice');
-  dlg.onclose = () => { if (dlg.returnValue === 'ok') startPractice(track); };
+  dlg.onclose = () => { if (dlg.returnValue === 'ok') startPractice(track, mode); };
   dlg.returnValue = '';
   dlg.showModal();
 }
@@ -127,7 +136,11 @@ const specOf = (car, number) => ({ car: car.id, levels: car.levels || {}, cosmet
 
 async function loadGarage() {
   garage = await A.api('/api/race/garage');
-  if (!gSel || !garage.cars.some((c) => c.id === gSel)) gSel = garage.current || (garage.cars[0] && garage.cars[0].id);
+  if (!gSel || !garage.cars.some((c) => c.id === gSel)) {
+    gSel = garage.current || (garage.cars[0] && garage.cars[0].id);
+    const c = garage.cars.find((x) => x.id === gSel);
+    if (c) gFilter = kindOf(c);
+  }
 }
 
 let gScene = null;
@@ -210,9 +223,13 @@ async function openGarage() {
   gLoop = requestAnimationFrame(loop);
 }
 
+const kindOf = (c) => c.kind || (isMoto(c.id) ? 'moto' : 'car');
 function renderGarage() {
   const car = garage.cars.find((c) => c.id === gSel);
-  $('g-cars').innerHTML = garage.cars.map((c) => `<button class="car-tab ${c.id === gSel ? 'on' : ''}" data-car="${esc(c.id)}">
+  const moto = kindOf(car) === 'moto';
+  if (moto && gKind === 'spoiler') gKind = 'neon';
+  $('g-filter').innerHTML = [['car', 'Ô tô'], ['moto', 'Moto']].map(([k, n]) => `<button data-filter="${k}" class="${k === gFilter ? 'on' : ''}">${n} <small>${garage.cars.filter((c) => kindOf(c) === k).length}</small></button>`).join('');
+  $('g-cars').innerHTML = garage.cars.filter((c) => kindOf(c) === gFilter).map((c) => `<button class="car-tab ${c.id === gSel ? 'on' : ''}" data-car="${esc(c.id)}">
       <b>${esc(c.name)}</b><small>${c.owned ? (c.id === garage.current ? 'Đang dùng' : 'Đã có') : c.price ? `${xu(c.price)} xu` : 'Miễn phí'}</small></button>`).join('');
   $('g-name').textContent = car.name;
   $('g-state').textContent = car.owned ? (car.id === garage.current ? 'Đang dùng' : 'Đã có') : 'Chưa mua';
@@ -237,7 +254,7 @@ function renderGarage() {
       <small>Cấp ${lv}/${max} · tăng ${PART_NAMES[p][1].toLowerCase()} · hình trên xe đổi theo cấp</small></div>`;
   }).join('');
   $('g-action').insertAdjacentHTML('beforeend', parts);
-  $('g-tabs').innerHTML = Object.entries(KIND_NAMES).map(([k, n]) => `<button data-kind="${k}" class="${k === gKind ? 'on' : ''}">${n}</button>`).join('');
+  $('g-tabs').innerHTML = Object.entries(KIND_NAMES).filter(([k]) => !(moto && k === 'spoiler')).map(([k, n]) => `<button data-kind="${k}" class="${k === gKind ? 'on' : ''}">${n}</button>`).join('');
   const on = (car.cosmetics || {})[gKind] || '';
   const items = (garage.items || []).filter((it) => it.kind === gKind);
   $('g-list').innerHTML = (gKind !== 'paint' ? [`<button class="item ${on ? '' : 'on'}" data-item="" data-kind="${gKind}"><b>Không lắp</b><span class="muted">—</span></button>`] : [])
@@ -268,6 +285,15 @@ async function garageAct(path, body, msg) {
 function onGarageClick(e) {
   const tab = e.target.closest('[data-car]');
   if (tab) { gSel = tab.dataset.car; renderGarage(); showGarageCar(); return; }
+  const fl = e.target.closest('[data-filter]');
+  if (fl) {
+    gFilter = fl.dataset.filter;
+    const first = garage.cars.find((c) => kindOf(c) === gFilter && c.id === garage.current) || garage.cars.find((c) => kindOf(c) === gFilter);
+    if (first) gSel = first.id;
+    renderGarage();
+    showGarageCar();
+    return;
+  }
   const kind = e.target.closest('[data-kind]:not([data-item])');
   if (kind) { gKind = kind.dataset.kind; renderGarage(); return; }
   const car = garage && garage.cars.find((c) => c.id === gSel);
@@ -334,13 +360,20 @@ function onMessage(m) {
     case 'result':
       if (race && race.net) { if (race.resultShown) return null; race.resultShown = true; }
       return onResult(m);
-    case 'error': return A.toast(m.msg || m.error || 'Lỗi');
+    case 'error':
+      // Nhặt hộp trượt (server thấy xe còn xa / hộp vừa bị người khác nhặt) thì im lặng, không làm phiền khi đang đua.
+      if (race && race.net && /hộp|đạo cụ/i.test(m.msg || '')) return null;
+      return A.toast(m.msg || m.error || 'Lỗi');
     case 'session': if (m.code) store(ROOM_KEY, m.code); return null;
     case 'left':
       store(ROOM_KEY, null);
       room = null;
       if (!race) { show('hall'); loadRooms(); }
       return null;
+    case 'items': if (race && race.net) { if ((m.list || []).length > race.items.length) race.stats.got++; race.items = m.list || []; renderItems(); } return null;
+    case 'box': if (race && race.net && race.ifx) race.ifx.setBox(m.id, !!m.active); return null;
+    case 'fx': if (race && race.net && race.ifx) race.ifx.onFx(m); return null;
+    case 'hit': if (race && race.net) onHit(m); return null;
     case 'chat': return null;
     default: return null;
   }
@@ -363,7 +396,10 @@ function onRoom(r) {
   }
   // Đếm ngược / đang đua: dựng cuộc đua nếu chưa có.
   if (!race || !race.net || race.code !== r.code) startNetRace(r);
-  else race.room = r;
+  else {
+    race.room = r;
+    if (race.ifx && r.boxes && r.boxes.length) race.ifx.setBoxes(r.boxes);
+  }
 }
 
 function renderRoom() {
@@ -371,6 +407,7 @@ function renderRoom() {
   $('room-code').textContent = r.code || '';
   $('room-bet').textContent = `Cược ${xu(r.bet || 0)} xu`;
   $('room-track').textContent = trackName(r.track);
+  $('room-mode').textContent = `Chế độ ${r.mode === 'items' ? 'Đạo cụ' : 'Tốc độ'}`;
   const seats = seatsOf(r);
   const host = r.host === mySeat || (seats[mySeat] && seats[mySeat].host);
   const max = r.max || 6;
@@ -388,6 +425,7 @@ function renderRoom() {
   $('room-host').innerHTML = host
     ? `<button data-h="addBot"><i data-icon="plus"></i>Thêm máy</button>
        <select id="sel-track">${(r.tracks && r.tracks.length ? r.tracks : TRACKS).map((t) => `<option value="${esc(t.id)}" ${t.id === r.track ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select>
+       <select id="sel-mode">${MODES.map((m) => `<option value="${m.id}" ${m.id === (r.mode || 'speed') ? 'selected' : ''}>${m.name}</option>`).join('')}</select>
        <select id="sel-bet">${(r.betOptions && r.betOptions.length ? r.betOptions : BETS).map((b) => `<option value="${b}" ${b === r.bet ? 'selected' : ''}>${b ? `${xu(b)} xu` : 'Chơi vui'}</option>`).join('')}</select>
        <button class="primary" data-h="start">Bắt đầu</button>`
     : '';
@@ -417,9 +455,17 @@ function input() {
     nitro: keys.has('Space') || touchKeys.has('nitro'),
   };
 }
+// Dùng đạo cụ: Ctrl / E hoặc nút cảm ứng, chỉ tính lúc vừa bấm.
+// Lần bấm được giữ lại tới khung kế tiếp, nên chạm rất nhanh (bấm rồi nhả trong cùng một khung) vẫn được tính.
+let itemQueued = false;
+function wantItem() {
+  const fire = itemQueued;
+  itemQueued = false;
+  return fire;
+}
 
 // newRace dựng cảnh, xe và vòng lặp. entries: [{seat, name, spec, stats, me, bot}].
-async function newRace({ trackId, entries, net, code, startAt }) {
+async function newRace({ trackId, entries, net, code, startAt, mode = 'speed', nitroCharge = NITRO_CHARGE, boxes = null }) {
   $('loading').classList.remove('hidden');
   show('race');
   const v = ensureView();
@@ -436,8 +482,16 @@ async function newRace({ trackId, entries, net, code, startAt }) {
     const sp = track.data.spawn[e.seat % track.data.spawn.length];
     const obj = await buildCar(e.spec, low);
     scene.add(obj.root);
-    const st = newCar(sp, e.stats || BASE_STATS);
-    cars.push({ ...e, obj, st, snaps: [], dist: 0, place: 0, done: false });
+    const st = newCar(sp, e.stats || BASE_STATS, nitroCharge);
+    const shield = makeShield(obj.length);
+    obj.root.add(shield);
+    cars.push({ ...e, obj, st, shield, snaps: [], dist: 0, place: 0, done: false, items: [], spinVis: 0 });
+  }
+  const items = mode === 'items';
+  let ifx = null;
+  if (items) {
+    ifx = createItemFx(scene, sparks);
+    ifx.setBoxes(boxes && boxes.length ? boxes : (track.data.itemBoxes || []).map((b, id) => ({ id, x: b.x, z: b.z, active: true })));
   }
   // Đèn pha cho xe mình (máy tính).
   const me = cars.find((c) => c.me);
@@ -448,12 +502,14 @@ async function newRace({ trackId, entries, net, code, startAt }) {
     me.obj.root.add(spot, spot.target);
   }
   race = {
-    net, code, track, scene, camera, cars, me, sparks, lines,
+    net, code, track, scene, camera, cars, me, sparks, lines, mode, ifx, items: [], pending: new Map(), fxSeq: 0, localFx: [], stats: { got: 0, used: 0, given: 0, taken: 0, blocked: 0 },
     startAt: startAt || Date.now() + 3500,
     lastSend: 0, finishMs: 0, ended: false, room: null,
     cam: { x: 0, y: 6, z: 0 },
   };
   drawMinimapBase(track);
+  $('hud').classList.toggle('items-mode', items);
+  renderItems();
   $('loading').classList.add('hidden');
   $('hud-lap').textContent = `1/${track.laps}`;
   let last = performance.now();
@@ -495,20 +551,24 @@ function tick(dt) {
         if (e === 'finish' && !r.net) localFinish(c);
         if (e === 'finish' && r.net) banner('Về đích!', 2000);
       }
-      if (r.net && go && now - r.lastSend >= SEND_MS) {
-        r.lastSend = now;
-        send({ t: 'state', ms: now - r.startAt, x: round(c.st.x), z: round(c.st.z), rot: round(c.st.rot, 3), speed: round(c.st.speed), lap: c.st.lap, cp: c.st.cp, nitro: c.st.boostMs > 0, drift: c.st.drift });
-      }
+      if (r.ifx && go && !c.st.finished) itemTick(c, now);
+      if (r.net && go && now - r.lastSend >= SEND_MS) sendState(c, now);
     } else if (r.net) {
       lerpRemote(c, now);
     } else if (go) {
       const inp = autoSteer(r.track, c.st, c.skill);
       const ev = fixedSteps(c, inp, r.track, dt);
       if (ev.includes('finish')) localFinish(c);
+      if (r.ifx && !c.st.finished) botItems(c, now);
     }
-    const boost = c.me ? c.st.boostMs > 0 : !!c.st.boost;
+    const boost = c.me || !r.net ? c.st.boostMs > 0 || c.st.itemBoostMs > 0 : !!c.st.boost;
+    // Bị trúng: xe quay tròn tại chỗ (chỉ để vẽ), khiên phát sáng quanh xe.
+    const spinning = c.me || !r.net ? c.st.spinMs > 0 : !!c.st.spin;
+    c.spinVis = spinning ? c.spinVis + dt * 13 : c.spinVis % (Math.PI * 2) > 0.05 ? c.spinVis + Math.min(dt * 13, Math.PI * 2 - (c.spinVis % (Math.PI * 2))) : 0;
+    c.shield.visible = c.me || !r.net ? c.st.shieldMs > 0 : !!c.st.shield;
+    if (c.shield.visible) c.shield.rotation.y += dt * 1.5;
     c.obj.root.position.set(c.st.x, 0, c.st.z);
-    c.obj.root.rotation.y = c.st.rot;
+    c.obj.root.rotation.y = c.st.rot + c.spinVis;
     c.obj.update(c.st.speed, c.me ? c.st.steerVis : 0, c.st.drift, boost, dt);
     if (c.st.drift && Math.abs(c.st.speed) > 12 && Math.random() < 0.5) {
       const bx = c.st.x - Math.sin(c.st.rot) * c.obj.length * 0.45;
@@ -518,6 +578,10 @@ function tick(dt) {
     c.dist = c.done ? Infinity : raceDistance(r.track, c.st.lap, c.st.cp, c.st.x, c.st.z, c.st.seg);
   }
   r.sparks.update(dt);
+  if (r.ifx) {
+    r.ifx.update(dt);
+    if (!r.net) localFxTick(dt, now);
+  }
   // Thứ hạng: ai về đích xếp theo thứ tự về, còn lại theo quãng đường.
   const order = [...r.cars].sort((a, b) => (a.place && b.place ? a.place - b.place : a.place ? -1 : b.place ? 1 : b.dist - a.dist));
   // Người xem (không có ghế): HUD và camera theo xe dẫn đầu, ẩn nút lái.
@@ -529,6 +593,7 @@ function tick(dt) {
     $('hud-lap').textContent = `${Math.min(me.st.lap + 1, r.track.laps)}/${r.track.laps}`;
     $('hud-speed').textContent = Math.round(Math.abs(me.st.speed) * 3.6);
     $('hud-nitro').style.width = `${Math.round((me.st.boostMs > 0 ? me.st.boostMs / 2000 : me.st.nitro) * 100)}%`;
+    $('hud').classList.toggle('spun', !!r.me && me.st.spinMs > 0);
     $('hud-nitro-k').classList.toggle('ready', me.st.nitro >= 1);
     const t = go ? (r.me && me.st.finished && r.finishMs ? r.finishMs : now - r.startAt) : 0;
     $('hud-time').textContent = fmtTime(t);
@@ -536,6 +601,11 @@ function tick(dt) {
     r.lines.update(dt, me.st.boostMs > 0 ? 1 : 0, Math.max(10, me.st.speed));
   }
   drawMinimap(order);
+}
+
+function sendState(c, now) {
+  race.lastSend = now;
+  send({ t: 'state', ms: now - race.startAt, x: round(c.st.x), z: round(c.st.z), rot: round(c.st.rot, 3), speed: round(c.st.speed), lap: c.st.lap, cp: c.st.cp, nitro: c.st.boostMs > 0, drift: c.st.drift });
 }
 
 // fixedSteps chạy vật lý theo bước cố định 1/60 s (tối đa 0,25 s mỗi khung) để tốc độ xe không phụ thuộc FPS.
@@ -602,7 +672,7 @@ function lerpRemote(c, now) {
   let dr = b.rot - a.rot;
   while (dr > Math.PI) dr -= Math.PI * 2;
   while (dr < -Math.PI) dr += Math.PI * 2;
-  Object.assign(c.st, { x: a.x + (b.x - a.x) * k, z: a.z + (b.z - a.z) * k, rot: a.rot + dr * k, speed: b.speed || 0, lap: b.lap || 0, cp: b.cp || 0, drift: !!b.drift, boost: !!b.nitro });
+  Object.assign(c.st, { x: a.x + (b.x - a.x) * k, z: a.z + (b.z - a.z) * k, rot: a.rot + dr * k, speed: b.speed || 0, lap: b.lap || 0, cp: b.cp || 0, drift: !!b.drift, boost: !!b.nitro || !!b.boost, spin: !!b.spin, shield: !!b.shield });
 }
 
 function onFinish(m) {
@@ -664,26 +734,29 @@ function showResult(title, list) {
 function endRace() {
   if (!race) return;
   cancelAnimationFrame(race.raf);
+  if (race.ifx) race.ifx.clearFx();
+  $('hud').classList.remove('items-mode', 'spun');
+  $('hud-items').innerHTML = '';
   race.scene.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
   race = null;
   $('countdown').classList.add('hidden');
   $('banner').classList.add('hidden');
 }
 
-async function startPractice(trackId) {
+async function startPractice(trackId, mode = 'items') {
   if (race) endRace();
   let car = null;
   if (user) {
     try { await loadGarage(); car = curCar(); } catch (e) { car = null; }
   }
   const mine = car ? specOf(car, 7) : { car: 'starter', levels: {}, cosmetics: { paint: 'paint_red' }, number: 7 };
-  const bots = ['viper', 'phantom', 'comet'].map((id, i) => ({
+  const bots = ['viper', 'moto_storm', 'raptor'].map((id, i) => ({
     seat: i + 1, name: `Máy ${i + 1}`, bot: true, skill: 0.82 + i * 0.05,
     spec: { car: id, levels: { engine: i, turbo: i, tires: i * 2 }, cosmetics: { paint: ['paint_blue', 'paint_yellow', 'paint_green'][i], neon: ['neon_pink', 'neon_blue', 'neon_green'][i], spoiler: i === 1 ? 'spoiler_gt' : '' }, number: i + 2 },
     stats: { maxSpeed: 29 + i, accel: 11.5 + i * 0.4, grip: 0.7 },
   }));
   try {
-    await newRace({ trackId, net: false, entries: [{ seat: 0, name: user ? user.name : 'Bạn', me: true, spec: mine, stats: (car && car.stats) || BASE_STATS }, ...bots] });
+    await newRace({ trackId, net: false, mode, entries: [{ seat: 0, name: user ? user.name : 'Bạn', me: true, spec: mine, stats: (car && car.stats) || BASE_STATS }, ...bots] });
   } catch (e) {
     A.toast(e.message);
     $('loading').classList.add('hidden');
@@ -707,12 +780,176 @@ async function startNetRace(r) {
     });
   });
   try {
-    await newRace({ trackId: r.track || 'neon', entries, net: true, code: r.code, startAt: r.startAt ? Date.now() + (r.startAt - (r.now || Date.now())) : 0 });
+    await newRace({ trackId: r.track || 'neon', entries, net: true, code: r.code, startAt: r.startAt ? Date.now() + (r.startAt - (r.now || Date.now())) : 0,
+      mode: r.mode || 'speed', boxes: r.boxes, nitroCharge: r.nitroCharge || NITRO_CHARGE });
     race.room = r;
   } catch (e) {
     A.toast(e.message);
     $('loading').classList.add('hidden');
   }
+}
+
+// ---------- Đạo cụ ----------
+// Mạng: server quyết định hộp, món, đạn và trúng / trượt; client báo "pickup" khi chạy qua hộp và "use" khi bấm.
+// Lái thử: mô phỏng gọn ngay trên máy (cùng tốc độ đạn, tầm trúng như server) để quen tay.
+const LOCAL = { missileSpeed: 70, missileMs: 3000, homingSpeed: 55, homingMs: 6000, oilMs: 20000, oilSafeMs: 1500, hit: 3, boxOffMs: 3000 };
+
+const nameOfSeat = (seat) => {
+  const c = race && race.cars.find((x) => x.seat === seat);
+  return c ? (c.me ? 'bạn' : c.name) : 'ai đó';
+};
+
+function renderItems() {
+  const el = $('hud-items');
+  if (!race || !race.ifx || !race.me) { el.innerHTML = ''; return; }
+  const list = race.net ? race.items : race.me.items;
+  el.innerHTML = [0, 1].map((i) => {
+    const k = list[i];
+    return `<span class="item-slot ${k ? 'full' : ''} ${i === 0 ? 'next' : ''}" title="${k ? ITEM_NAMES[k] : 'Trống'}">${k ? `<b>${ITEM_ICON[k] || '?'}</b><small>${ITEM_NAMES[k]}</small>` : ''}</span>`;
+  }).join('');
+}
+
+// itemTick: xe mình chạy qua hộp thì nhặt; bấm dùng thì dùng món đầu.
+function itemTick(c, now) {
+  const r = race;
+  for (const [id, b] of r.ifx.boxes) {
+    if (!b.active) continue;
+    if ((c.st.x - b.x) ** 2 + (c.st.z - b.z) ** 2 > PICKUP_RANGE * PICKUP_RANGE) continue;
+    if (r.net) {
+      const at = r.pending.get(id) || 0;
+      if (now - at < 1200) continue;
+      r.pending.set(id, now);
+      // Gửi vị trí mới nhất ngay trước khi báo nhặt để server thấy xe đã tới hộp.
+      sendState(c, now);
+      send({ t: 'pickup', box: id });
+    } else {
+      localPickup(c, id, b, now);
+    }
+  }
+  if (!wantItem()) return;
+  if (r.net) {
+    const k = r.items[0];
+    if (!k) return;
+    send({ t: 'use' });
+    r.stats.used++;
+    // Khiên và tăng tốc có tác dụng ngay trên máy mình; đạn và dầu chờ server.
+    if (k === 'shield') c.st.shieldMs = SHIELD_MS;
+    if (k === 'boost') { c.st.itemBoostMs = ITEM_BOOST_MS; banner('TĂNG TỐC!', 700); }
+  } else {
+    localUse(c, now);
+  }
+}
+
+function rollLocal(c) {
+  const order = [...race.cars].sort((a, b) => b.dist - a.dist);
+  const rank = order.indexOf(c) + 1;
+  const w = rank <= 1 ? { oil: 45, shield: 35, missile: 15, boost: 5 } : rank >= order.length ? { homing: 35, boost: 35, missile: 20, shield: 10 } : { missile: 35, oil: 20, boost: 20, shield: 15, homing: 10 };
+  let x = Math.random() * Object.values(w).reduce((a, b) => a + b, 0);
+  for (const [k, v] of Object.entries(w)) { if (x < v) return k; x -= v; }
+  return 'missile';
+}
+
+function localPickup(c, id, b, now) {
+  race.ifx.setBox(id, false);
+  setTimeout(() => race && race.ifx && race.ifx.setBox(id, true), LOCAL.boxOffMs);
+  if (c.items.length >= 2) return;
+  c.items.push(rollLocal(c));
+  if (c.me) race.stats.got++;
+  c.useAt = now + 1500 + Math.random() * 3000;
+  if (c.me) renderItems();
+}
+
+function localUse(c, now) {
+  const k = c.items.shift();
+  if (!k) return;
+  if (c.me) renderItems();
+  if (k === 'shield') { c.st.shieldMs = SHIELD_MS; return; }
+  if (k === 'boost') { c.st.itemBoostMs = ITEM_BOOST_MS; if (c.me) banner('TĂNG TỐC!', 700); return; }
+  const t = race.track;
+  const near = t.nearest(c.st.x, c.st.z, c.st.seg);
+  const s = t.progress(near.i, near.t);
+  const f = { id: ++race.fxSeq, kind: k, owner: c, s, born: now, until: now + (k === 'oil' ? LOCAL.oilMs : k === 'homing' ? LOCAL.homingMs : LOCAL.missileMs) };
+  if (k === 'oil') {
+    const p = t.pointAt(s - 4);
+    Object.assign(f, { x: p.x, z: p.z, rot: p.dir });
+  } else {
+    const p = t.pointAt(s + 3);
+    Object.assign(f, { x: p.x, z: p.z, rot: p.dir });
+    if (k === 'homing') {
+      const order = [...race.cars].filter((x) => !x.done).sort((a, b) => b.dist - a.dist);
+      const i = order.indexOf(c);
+      f.target = i > 0 ? order[i - 1] : null;
+    }
+  }
+  race.localFx.push(f);
+  race.ifx.onFx({ id: f.id, kind: k, x: f.x, z: f.z, rot: f.rot });
+}
+
+function localFxTick(dt, now) {
+  const r = race;
+  for (const f of r.localFx) {
+    if (f.dead) continue;
+    if (now > f.until) { f.dead = true; continue; }
+    if (f.kind === 'missile' || (f.kind === 'homing' && !f.target)) {
+      f.s += LOCAL.missileSpeed * dt;
+      const p = r.track.pointAt(f.s);
+      Object.assign(f, { x: p.x, z: p.z, rot: p.dir });
+    } else if (f.kind === 'homing') {
+      const tg = f.target.st;
+      const dx = tg.x - f.x;
+      const dz = tg.z - f.z;
+      const d = Math.hypot(dx, dz) || 1;
+      const step = Math.min(d, LOCAL.homingSpeed * dt);
+      f.x += (dx / d) * step;
+      f.z += (dz / d) * step;
+      f.rot = Math.atan2(dx, dz);
+    }
+    for (const c of r.cars) {
+      if (c.done) continue;
+      if (c === f.owner && (f.kind !== 'oil' || now - f.born < LOCAL.oilSafeMs)) continue;
+      if ((c.st.x - f.x) ** 2 + (c.st.z - f.z) ** 2 > LOCAL.hit * LOCAL.hit) continue;
+      f.dead = true;
+      onHit({ seat: c.seat, by: f.owner.seat, kind: f.kind, blocked: c.st.shieldMs > 0 });
+      break;
+    }
+    if (!f.dead && f.kind !== 'oil') r.ifx.onFx({ id: f.id, kind: f.kind, x: f.x, z: f.z, rot: f.rot });
+  }
+  for (const f of r.localFx) if (f.dead && !f.gone) { f.gone = true; r.ifx.onFx({ id: f.id, dead: true }); }
+  r.localFx = r.localFx.filter((f) => !f.gone);
+}
+
+// botItems (lái thử): máy nhặt hộp và dùng món sau vài giây.
+function botItems(c, now) {
+  for (const [id, b] of race.ifx.boxes) {
+    if (b.active && (c.st.x - b.x) ** 2 + (c.st.z - b.z) ** 2 <= PICKUP_RANGE * PICKUP_RANGE) localPickup(c, id, b, now);
+  }
+  if (c.items.length && now >= (c.useAt || 0)) {
+    localUse(c, now);
+    c.useAt = now + 2500 + Math.random() * 3000;
+  }
+}
+
+// onHit: xe ở ghế seat bị món kind của ghế by trúng (blocked: khiên chặn).
+function onHit(m) {
+  const r = race;
+  const c = r.cars.find((x) => x.seat === m.seat);
+  if (!c) return;
+  const x = c.st.x;
+  const z = c.st.z;
+  const byMe = r.me && m.by === r.me.seat;
+  if (c.me) m.blocked ? r.stats.blocked++ : r.stats.taken++;
+  if (byMe && !m.blocked && !c.me) r.stats.given++;
+  if (m.blocked) {
+    r.sparks.emit(x, 1, z, 26, 8, 0x58f0ff);
+    c.st.shieldMs = 0;
+    if (c.me) banner(`Khiên chặn ${ITEM_NAMES[m.kind] || 'đòn'} của ${nameOfSeat(m.by)}`, 1600);
+    else if (byMe) banner(`${c.name} có khiên chặn`, 1200);
+    return;
+  }
+  r.sparks.emit(x, 0.9, z, 36, 10, 0xff8a2a);
+  if (c.me || !r.net) hitCar(c.st);
+  if (c.me) banner(`Bị trúng ${(ITEM_NAMES[m.kind] || 'đạo cụ').toLowerCase()} của ${nameOfSeat(m.by)}!`, 1800);
+  else if (byMe) banner(`Trúng ${c.name}!`, 1200);
 }
 
 // ---------- Tiện ích HUD ----------
@@ -769,13 +1006,14 @@ function drawMinimap(order) {
 addEventListener('keydown', (e) => {
   if (!race) return;
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
+  if (!e.repeat && ['KeyE', 'ControlLeft', 'ControlRight'].includes(e.code)) itemQueued = true;
   keys.add(e.code);
 });
 addEventListener('keyup', (e) => keys.delete(e.code));
 addEventListener('blur', () => { keys.clear(); touchKeys.clear(); });
 for (const b of document.querySelectorAll('#touch button')) {
   const k = b.dataset.k;
-  const on = (e) => { e.preventDefault(); touchKeys.add(k); b.classList.add('down'); };
+  const on = (e) => { e.preventDefault(); touchKeys.add(k); b.classList.add('down'); if (k === 'item') itemQueued = true; };
   const off = (e) => { e.preventDefault(); touchKeys.delete(k); b.classList.remove('down'); };
   b.addEventListener('pointerdown', on);
   b.addEventListener('pointerup', off);
@@ -809,6 +1047,7 @@ $('room-host').addEventListener('click', (e) => {
 $('room-host').addEventListener('change', (e) => {
   if (e.target.id === 'sel-track') send({ t: 'setTrack', track: e.target.value });
   if (e.target.id === 'sel-bet') send({ t: 'setBet', bet: Number(e.target.value) });
+  if (e.target.id === 'sel-mode') send({ t: 'setMode', mode: e.target.value });
 });
 $('seats').addEventListener('click', (e) => {
   const b = e.target.closest('[data-kick]');
@@ -854,4 +1093,5 @@ A.me().then(
   () => loadRooms(),
 );
 // Cho script thử nghiệm đọc trạng thái.
-window.__race = () => race && { me: race.me && { ...race.me.st, place: race.me.place }, cars: race.cars.length, startAt: race.startAt };
+window.__race = () => race && { me: race.me && { ...race.me.st, place: race.me.place }, cars: race.cars.length, startAt: race.startAt, mode: race.mode,
+  items: race.net ? race.items : race.me ? race.me.items : [], stats: race.stats, fx: race.ifx ? race.ifx.fx.size : 0, boxes: race.ifx ? [...race.ifx.boxes.values()].filter((b) => b.active).length : 0 };

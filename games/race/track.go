@@ -38,6 +38,7 @@ type Track struct {
 	Spawn       []Spawn      `json:"spawn"`
 	Checkpoints []Checkpoint `json:"checkpoints"` // theo thứ tự, cái cuối là vạch đích
 	Path        []Point      `json:"path"`        // đường mẫu cho máy đua, khép kín
+	ItemBoxes   []Point      `json:"itemBoxes"`   // hộp đạo cụ (chế độ items); thiếu = không có hộp
 
 	cum    []float64 // độ dài cộng dồn tới từng điểm của Path
 	length float64   // chu vi đường mẫu

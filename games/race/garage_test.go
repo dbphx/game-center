@@ -89,34 +89,88 @@ func itemOf(v GarageView, id string) ItemView {
 }
 
 func TestCarCatalogAndStats(t *testing.T) {
-	if len(Cars) != 6 || Cars[0].Price != 0 {
-		t.Fatalf("cần 1 xe miễn phí + 5 xe mua: %+v", Cars)
+	// 12 ô tô + 3 moto, thứ tự hạng theo giá.
+	want := []struct {
+		id    string
+		price int64
+		kind  string
+	}{
+		{"starter", 0, KindCar}, {"comet", 20_000, KindCar}, {"moto_dash", 30_000, KindMoto}, {"sprint", 50_000, KindCar},
+		{"bolt", 80_000, KindCar}, {"raptor", 150_000, KindCar}, {"viper", 250_000, KindCar},
+		{"moto_storm", 300_000, KindMoto}, {"zenith", 400_000, KindCar}, {"phantom", 800_000, KindCar},
+		{"moto_neon", 1_000_000, KindMoto}, {"vortex", 1_200_000, KindCar}, {"apex", 1_600_000, KindCar},
+		{"blaze", 1_800_000, KindCar}, {"nova", 2_000_000, KindCar},
 	}
-	want := []int64{0, 20_000, 80_000, 250_000, 800_000, 2_000_000}
+	if len(Cars) != len(want) {
+		t.Fatalf("có %d mẫu, muốn %d", len(Cars), len(want))
+	}
 	for i, c := range Cars {
-		if c.Price != want[i] {
-			t.Fatalf("giá %s = %d, muốn %d", c.ID, c.Price, want[i])
+		if c.ID != want[i].id || c.Price != want[i].price || c.Kind != want[i].kind || c.Rank != i {
+			t.Fatalf("mẫu %d: %+v, muốn %+v", i, c, want[i])
 		}
 	}
 	s0 := StatsOf(Cars[0], Levels{})
 	if s0.MaxSpeed != 30 || s0.Accel != 12 || math.Abs(s0.Grip-0.70) > 1e-9 {
 		t.Fatalf("xe khởi đầu cấp 0: %+v", s0)
 	}
-	top := StatsOf(Cars[len(Cars)-1], Levels{MaxLevel, MaxLevel, MaxLevel})
+	nova, _ := findCar("nova")
+	top := StatsOf(nova, Levels{MaxLevel, MaxLevel, MaxLevel})
 	for name, r := range map[string]float64{"tốc độ": top.MaxSpeed / s0.MaxSpeed, "tăng tốc": top.Accel / s0.Accel, "bám đường": top.Grip / s0.Grip} {
 		if r < 1.19 || r > 1.21 {
 			t.Fatalf("%s xe đắt nhất cấp 5 hơn xe khởi đầu %.3f lần, muốn ≈1,20", name, r)
 		}
 	}
-	if top.Grip > 1 {
-		t.Fatalf("bám đường vượt 1: %v", top.Grip)
+	// Không mẫu nào (kể cả moto) vượt trần +20% ở bất kỳ chỉ số nào; hạng cao hơn thì tốc độ không thấp hơn.
+	prev := 0.0
+	for _, c := range Cars {
+		st := StatsOf(c, Levels{MaxLevel, MaxLevel, MaxLevel})
+		if st.MaxSpeed > s0.MaxSpeed*1.2+0.01 || st.Accel > s0.Accel*1.2+0.01 || st.Grip > math.Min(1, s0.Grip*1.2)+0.01 {
+			t.Fatalf("%s vượt trần: %+v", c.ID, st)
+		}
+		if st.MaxSpeed < prev {
+			t.Fatalf("%s chậm hơn xe hạng dưới", c.ID)
+		}
+		prev = st.MaxSpeed
 	}
 	// Giá nâng cấp lên cấp n = giá xe × 10% × n; xe khởi đầu tính như 10.000.
 	if p := upgradePrice(Cars[0], 3); p != 3_000 {
 		t.Fatalf("xe khởi đầu lên cấp 3: %d", p)
 	}
-	if p := upgradePrice(Cars[5], 5); p != 1_000_000 {
+	if p := upgradePrice(nova, 5); p != 1_000_000 {
 		t.Fatalf("xe đắt nhất lên cấp 5: %d", p)
+	}
+}
+
+// Moto: tăng tốc +5%, bám đường −5% so với ô tô cùng hạng (khi chưa chạm trần); không lắp được cánh gió.
+func TestMotoStatsAndSpoiler(t *testing.T) {
+	m, _ := findCar("moto_storm")
+	asCar := m
+	asCar.Kind = KindCar
+	ms, cs := StatsOf(m, Levels{}), StatsOf(asCar, Levels{}) // chỉ số làm tròn 2 chữ số nên so sai số 1,5%
+	if ms.MaxSpeed != cs.MaxSpeed || math.Abs(ms.Accel/cs.Accel-1.05) > 0.015 || math.Abs(ms.Grip/cs.Grip-0.95) > 0.015 {
+		t.Fatalf("moto %+v so với ô tô cùng hạng %+v", ms, cs)
+	}
+	e := newGarageEnv(t, 1_000_000)
+	if _, err := e.g.BuyCar(ctx, e.uid, "moto_dash"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := e.g.BuyItem(ctx, e.uid, "spoiler_low"); err != nil {
+		t.Fatal(err)
+	}
+	_, err := e.g.Equip(ctx, e.uid, "moto_dash", "spoiler", "spoiler_low")
+	wantStatus(t, err, http.StatusConflict)
+	v, err := e.g.Equip(ctx, e.uid, "moto_dash", "neon", "")
+	if err != nil {
+		t.Fatalf("moto vẫn lắp / tháo đồ khác được: %v", err)
+	}
+	if c := carOf(v, "moto_dash"); c.Kind != KindMoto || c.Cosmetics.Spoiler != "" {
+		t.Fatalf("moto trong garage: %+v", c)
+	}
+	if v.NitroCharge != NitroCharge || NitroCharge != 2 {
+		t.Fatalf("hệ số tích nitro: %v", v.NitroCharge)
+	}
+	if carOf(v, "starter").Kind != KindCar {
+		t.Fatal("ô tô phải có kind car")
 	}
 }
 

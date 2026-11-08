@@ -2,7 +2,8 @@ Mô hình 3D của Trường đua (DCity) — đều CC0 (Creative Commons Zero)
 
 car/  Kenney Car Kit 3.1 (https://kenney.nl/assets/car-kit): kart-oozi, hatchback-sports, sedan-sports, race, race-future,
       wheel-default, wheel-dark, wheel-racing, debris-spoiler-a, debris-spoiler-b, cone, Textures/colormap.png
-kit/  Kenney Racing Kit 2.0 (https://kenney.nl/assets/racing-kit): raceCarRed, khán đài, đèn, biển, cờ, tháp, gara, lều, cây
+kit/  Kenney Racing Kit 2.0 (https://kenney.nl/assets/racing-kit): raceCarRed, raceCarGreen, khán đài, đèn, biển, cờ, tháp, gara, lều, cây
 
 Ảnh public/race/img/*.png (mặt đường, viền, rào mũi tên, nền, tia sáng, decal) do DCity vẽ bằng PIL, CC0.
 Không dùng hình, tên, logo hay xe của ZingSpeed; chỉ học phong cách (đua đêm, neon, rào mũi tên, tia lửa).
+cc0/  Quaternius và scaranto qua Poly Pizza, CC0 1.0 (xem cc0/CREDITS.txt): 4 xe thể thao, 1 xe công thức

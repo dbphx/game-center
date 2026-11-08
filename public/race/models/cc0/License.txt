@@ -1,0 +1,3 @@
+Các mô hình trong thư mục này phát hành theo Creative Commons Zero (CC0 1.0 Universal, Public Domain Dedication).
+https://creativecommons.org/publicdomain/zero/1.0/
+Nguồn và tác giả: xem CREDITS.txt.

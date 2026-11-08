@@ -34,12 +34,16 @@
 .garage > * { pointer-events: auto; }
 .garage-top { display: flex; align-items: center; gap: 12px; }
 .garage-top .link { color: #cfe0ff; }
-.garage-cars { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0; scrollbar-width: thin; }
+.garage-filter { display: flex; gap: 6px; margin-top: 10px; }
+.garage-filter button.on { background: var(--gold-2); border-color: var(--gold); color: #3a2100; }
+.garage-filter small { opacity: .7; margin-left: 2px; }
+/* Hàng xe: trên máy tính chừa chỗ cho bảng bên phải và xuống dòng thay vì tràn ra sau bảng. */
+.garage-cars { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 0; max-width: calc(100% - 390px); }
 .car-tab { flex: none; min-width: 120px; padding: 8px 12px; border-radius: 12px; background: rgba(20, 26, 66, .85); border: 2px solid #343e8a; color: #eaf0ff; text-align: left; cursor: pointer; }
 .car-tab.on { border-color: var(--gold-2); box-shadow: 0 0 0 2px rgba(255, 178, 30, .35); }
 .car-tab b { display: block; font-family: var(--font-title); }
 .car-tab small { color: #a9b4dc; }
-.garage-panel { position: absolute; right: 16px; top: 120px; width: min(360px, calc(100% - 32px)); max-height: calc(100vh - 150px); overflow-y: auto;
+.garage-panel { position: absolute; right: 16px; top: 74px; width: min(360px, calc(100% - 32px)); max-height: calc(100vh - 104px); overflow-y: auto;
   padding: 14px; border-radius: 16px; background: rgba(14, 18, 48, .88); border: 2px solid #343e8a; backdrop-filter: blur(4px); }
 .g-stats .stat-row { display: grid; grid-template-columns: 92px 1fr 54px; align-items: center; gap: 8px; margin: 6px 0; font-size: 14px; }
 .bar { height: 8px; border-radius: 6px; background: #2a3166; overflow: hidden; }
@@ -113,6 +117,8 @@
 .loading { position: fixed; inset: 0; z-index: 25; display: grid; place-items: center; color: #fff; font-family: var(--font-title); font-size: 22px; background: rgba(5, 8, 25, .7); }
 
 @media (max-width: 640px) {
+  .garage-cars { flex-wrap: nowrap; overflow-x: auto; max-width: none; scrollbar-width: thin; }
+  .car-tab { min-width: 104px; padding: 6px 10px; }
   .garage-panel { position: fixed; left: 8px; right: 8px; top: auto; bottom: 8px; width: auto; max-height: 46vh; }
   .garage-top h1 { font-size: 22px; }
   .garage-top { flex-wrap: wrap; gap: 6px 10px; }
@@ -137,3 +143,30 @@
   background: rgba(10, 14, 40, .7); border: 1px solid rgba(47, 230, 255, .5); color: #fff; font-weight: 700; font-size: 14px; white-space: nowrap; }
 .hud.watching .watch-tag { display: block; }
 .hud.watching .touch, .hud.watching .keys-hint { display: none !important; }
+
+/* Đạo cụ: 2 ô món giữa trên, nút cảm ứng, rung khi bị trúng. */
+.hud-items { display: none; position: absolute; top: 72px; left: 50%; transform: translateX(-50%); gap: 8px; }
+.hud.items-mode .hud-items { display: flex; }
+.item-slot { width: 64px; height: 64px; border-radius: 14px; background: rgba(8, 10, 30, .62); border: 2px solid rgba(120, 160, 255, .45);
+  display: grid; place-items: center; align-content: center; text-align: center; }
+.item-slot.next { width: 76px; height: 76px; border-color: rgba(255, 178, 30, .8); }
+.item-slot.full { background: rgba(40, 30, 90, .8); }
+.item-slot b { font-size: 30px; line-height: 1; }
+.item-slot.next b { font-size: 36px; }
+.item-slot small { font-family: var(--font); font-size: 10px; opacity: .85; }
+.touch .item-btn { display: none; background: rgba(255, 140, 40, .55); font-size: 13px; }
+.hud.items-mode .touch .item-btn { display: inline-block; }
+.items-hint { display: none; }
+.hud.items-mode .items-hint { display: inline; }
+.hud.spun::after { content: ''; position: absolute; inset: 0; box-shadow: inset 0 0 90px rgba(255, 90, 40, .55); animation: spun .3s ease-in-out infinite alternate; }
+@keyframes spun { from { opacity: .5; } to { opacity: 1; } }
+.mode-note { font-size: 13px; margin: -6px 0 12px; color: var(--muted); }
+@media (max-width: 640px) {
+  .hud-items { top: 118px; left: 8px; transform: none; }
+  .item-slot { width: 48px; height: 48px; }
+  .item-slot.next { width: 56px; height: 56px; }
+  .item-slot b { font-size: 22px; }
+  .item-slot.next b { font-size: 26px; }
+  .item-slot small { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .hud.spun::after { animation: none; } }

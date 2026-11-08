@@ -450,7 +450,7 @@ Mưa lửa là một tin `shot` có `skill:"rain"`, `skillName:"Mưa lửa"`, m�
 
 Đua kart 3D 2–6 xe (người hoặc máy), 3 vòng, cược xu. Cần ít nhất 30 HP để vào.
 
-- **Phòng:** chủ phòng chọn đường (`neon`, `city`) và mức cược 100 / 500 / 1.000 / 5.000 / 10.000 xu mỗi người, thêm máy,
+- **Phòng:** chủ phòng chọn chế độ (**Tốc độ** hoặc **Đạo cụ**), đường (mọi file trong `public/race/tracks/`) và mức cược 100 / 500 / 1.000 / 5.000 / 10.000 xu mỗi người, thêm máy,
   rồi bắt đầu; ai thiếu xu thì không bắt đầu được. Đếm ngược 3 giây rồi xuất phát.
 - **Về đích:** server tự tính vòng theo các điểm kiểm tra của đường. Người nhất về thì những người khác có thêm 90 giây;
   hết giờ, ai chưa về xếp theo số vòng và điểm kiểm tra đã qua. Rời phòng hoặc mất kết nối quá 15 giây giữa cuộc đua thì tính bét.
@@ -458,22 +458,38 @@ Mưa lửa là một tin `shot` có `skill:"rain"`, `skillName:"Mưa lửa"`, m�
 - **Chống gian lận:** mỗi máy tự mô phỏng xe và gửi vị trí ≈15 lần/giây; server bỏ gói vượt tốc (trần xe × nitro 1,3 × 1,1),
   gói dịch chuyển xa hơn trần cho phép, vòng nhanh hơn thời gian tối thiểu của đường, và không tính vòng nếu bỏ điểm kiểm tra.
   Sai 15 lần trong một cuộc đua thì bị loại (tính bét).
-- **Máy đua** chạy ở server theo đường mẫu, tốc độ 85–97% trần xe của nó.
+- **Máy đua** chạy ở server theo đường mẫu, tốc độ 85–97% trần xe của nó; ở chế độ Đạo cụ máy cũng nhặt hộp và dùng món.
+- **Nitro:** drift nạp nitro, tốc độ nạp ×2 (`nitroCharge`); dùng thì ×1,3 tốc độ tối đa trong 2 giây.
+- **Chế độ Đạo cụ:** hộp "?" trên đường (`itemBoxes` trong file đường), chạy qua (cách hộp ≤ 6 m) nhận ngẫu nhiên 1 món, giữ tối đa
+  2 món; hộp tắt 3 giây sau khi bị nhặt. Món theo hạng: dẫn đầu chủ yếu dầu / khiên, xếp cuối dễ ra tên lửa đuổi / tăng tốc.
+  Server mô phỏng đạn và dầu 20 lần/giây và quyết định trúng (≤ 3 m); bị trúng thì xoay 1,2 giây, tốc độ còn 30%.
 
-| Xe | Giá |
+  | Món | Tác dụng |
+  |---|---|
+  | Tên lửa (`missile`) | bay dọc đường về trước 70 m/s, tối đa 3 giây |
+  | Tên lửa đuổi (`homing`) | đuổi xe đứng ngay trên mình một hạng, 55 m/s, tối đa 6 giây |
+  | Vũng dầu (`oil`) | thả sau xe 4 m, có trong 20 giây (người thả không dính trong 1,5 giây đầu) |
+  | Khiên (`shield`) | 5 giây, chặn 1 đòn |
+  | Tăng tốc (`boost`) | ×1,25 tốc độ tối đa trong 1,5 giây |
+
+| Xe (theo hạng) | Giá |
 |---|---|
 | Xe Tập Lái | miễn phí |
-| Sao Chổi / Tia Chớp / Rắn Lục / Bóng Ma / Siêu Tân Tinh | 20.000 / 80.000 / 250.000 / 800.000 / 2.000.000 |
+| Sao Chổi · **Gió Lốc** (moto) · Tốc Hành · Tia Chớp · Chim Ưng · Rắn Lục | 20.000 · 30.000 · 50.000 · 80.000 · 150.000 · 250.000 |
+| **Bão Tố** (moto) · Thiên Đỉnh · Bóng Ma · **Neon Rider** (moto) | 300.000 · 400.000 · 800.000 · 1.000.000 |
+| Lốc Xoáy · Đỉnh Cao · Hoả Tiễn · Siêu Tân Tinh | 1.200.000 · 1.600.000 · 1.800.000 · 2.000.000 |
+
+- **Moto** (`kind: "moto"`, ô tô là `"car"`): tăng tốc +5%, bám đường −5% so với ô tô cùng hạng, không lắp được cánh gió (409).
 
 - **Chỉ số:** xe khởi đầu cấp 0: tốc độ 30 m/s, tăng tốc 12 m/s², bám đường 0,70. Mỗi hạng xe cao hơn một chút; mỗi cấp nâng +2,5%;
-  xe đắt nhất nâng tối đa hơn xe khởi đầu ≈20% mỗi chỉ số.
+  xe đắt nhất nâng tối đa hơn xe khởi đầu ≈20% mỗi chỉ số; không mẫu nào (kể cả moto) vượt trần đó.
 - **Nâng cấp** 3 món, mỗi món 5 cấp: động cơ / ống xả (tốc độ), turbo (tăng tốc), lốp / mâm (bám đường). Giá lên cấp n =
   giá xe × 10% × n (xe khởi đầu tính như 10.000 xu).
 - **Đồ trang trí** (không có chỉ số): cánh gió 5.000–40.000, đèn neon gầm 10.000–12.000, decal 5.000–50.000; sơn 8 màu miễn phí.
 
 | API (`/api/race`, cần đăng nhập) | Body | |
 |---|---|---|
-| `GET /api/race/garage` | | `{cars:[{id,name,price,owned,levels,stats,cosmetics}], current, items, upgradePrice, maxLevel, nitroBoost, nitroMs}` |
+| `GET /api/race/garage` | | `{cars:[{id,name,kind,price,owned,levels,stats,cosmetics}], current, items, upgradePrice, maxLevel, nitroBoost, nitroMs, nitroCharge}` |
 | `POST /api/race/car/buy` · `/car/select` | `{car}` | mua (chọn luôn) / chọn xe |
 | `POST /api/race/upgrade` | `{car, part}` | `part`: `engine` / `turbo` / `tires` |
 | `POST /api/race/item/buy` | `{item}` | mua đồ trang trí |
@@ -481,10 +497,12 @@ Mưa lửa là một tin `shot` có `skill:"rain"`, `skillName:"Mưa lửa"`, m�
 | `GET /api/race/rooms` | | phòng đang mở (không cần đăng nhập) |
 
 Các POST trả `{garage, user}`; thiếu xu 402, chưa có xe / đã có / cấp tối đa 409, sai tham số 400, không có món 404.
-WebSocket `/ws/race`: client gửi `create {token, bet, track}`, `join {token, code}`, `addBot`, `kick {seat}`, `setBet {bet}`,
-`setTrack {track}`, `start`, `leave`, `chat {text}`, `state {x, z, rot, speed, nitro, drift}` khi đua; server gửi `room`
-(phòng, ghế kèm xe và đồ đang lắp, `phase` lobby / countdown / racing / over, `startAt`, `now` theo ms), `cars {ms, list}`
-≈15 lần/giây, `finish {seat, place, timeMs}`, `result {places, money, tax, xp}` (mảng theo ghế), `error`. Đường đua đọc từ
+WebSocket `/ws/race`: client gửi `create {token, bet, track, mode}`, `join {token, code}`, `addBot`, `kick {seat}`, `setBet {bet}`,
+`setTrack {track}`, `setMode {mode}`, `start`, `leave`, `chat {text}`, `state {x, z, rot, speed, nitro, drift}` khi đua,
+`pickup {box}` và `use` (chế độ Đạo cụ); server gửi `room` (phòng, ghế kèm xe và đồ đang lắp, `phase` lobby / countdown /
+racing / over, `mode`, `boxes [{id,x,z,active}]`, `nitroCharge`, `startAt`, `now` theo ms), `cars {ms, list}` ≈15 lần/giây
+(mỗi xe thêm `shield`, `boost`, `spin`), `finish {seat, place, timeMs}`, `result {places, money, tax, xp}` (mảng theo ghế),
+`items {list}` (riêng người giữ), `box {id, active}`, `fx {id, kind, x, z, rot, owner, dead}`, `hit {seat, by, kind, blocked?}`, `error`. Đường đua đọc từ
 `public/race/tracks/<id>.json` (cùng file giao diện dùng).
 
 ## Công trường (ngoại ô)

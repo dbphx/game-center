@@ -15,28 +15,63 @@ const (
 	BaseAccel = 12.0 // m/s²
 	BaseGrip  = 0.70 // 0–1
 
-	NitroBoost = 1.3 // nitro: ×1,3 tốc độ tối đa trong NitroSeconds
-	NitroMs    = 2000
+	NitroBoost  = 1.3 // nitro: ×1,3 tốc độ tối đa trong NitroSeconds
+	NitroMs     = 2000
+	NitroCharge = 2.0 // hệ số tốc độ tích nitro (giao diện nhân vào mức tích gốc): tích nhanh gấp đôi bản đầu
+
+	// Trần: xe mạnh nhất cấp tối đa hơn xe khởi đầu cấp 0 tối đa 20% ở mỗi chỉ số.
+	topBonus = 1.2
+
+	// Moto so với ô tô cùng hạng: tăng tốc nhanh hơn, bám đường kém hơn.
+	motoAccel = 1.05
+	motoGrip  = 0.95
 
 	levelStep = 0.025 // mỗi cấp nâng +2,5% (cấp 5: ×1,125)
 )
 
-// CarModel là một mẫu xe trong cửa hàng; Rank 0 là xe khởi đầu miễn phí.
+// Loại xe.
+const (
+	KindCar  = "car"
+	KindMoto = "moto"
+)
+
+// CarModel là một mẫu xe trong cửa hàng; Rank 0 là xe khởi đầu miễn phí, hạng tăng theo giá.
 type CarModel struct {
 	ID    string
 	Name  string
 	Price int64
 	Rank  int
+	Kind  string // KindCar hoặc KindMoto
 }
 
-// Cars là các mẫu xe, xe sau đẹp hơn và chỉ số gốc cao hơn.
-var Cars = []CarModel{
-	{"starter", "Xe Tập Lái", 0, 0},
-	{"comet", "Sao Chổi", 20_000, 1},
-	{"bolt", "Tia Chớp", 80_000, 2},
-	{"viper", "Rắn Lục", 250_000, 3},
-	{"phantom", "Bóng Ma", 800_000, 4},
-	{"nova", "Siêu Tân Tinh", 2_000_000, 5},
+// Cars là các mẫu xe theo thứ tự giá (cũng là thứ tự hạng): xe sau đẹp hơn và chỉ số gốc cao hơn.
+var Cars = rankCars([]CarModel{
+	{ID: "starter", Name: "Xe Tập Lái", Price: 0},
+	{ID: "comet", Name: "Sao Chổi", Price: 20_000},
+	{ID: "moto_dash", Name: "Gió Lốc", Price: 30_000, Kind: KindMoto},
+	{ID: "sprint", Name: "Tốc Hành", Price: 50_000},
+	{ID: "bolt", Name: "Tia Chớp", Price: 80_000},
+	{ID: "raptor", Name: "Chim Ưng", Price: 150_000},
+	{ID: "viper", Name: "Rắn Lục", Price: 250_000},
+	{ID: "moto_storm", Name: "Bão Tố", Price: 300_000, Kind: KindMoto},
+	{ID: "zenith", Name: "Thiên Đỉnh", Price: 400_000},
+	{ID: "phantom", Name: "Bóng Ma", Price: 800_000},
+	{ID: "moto_neon", Name: "Neon Rider", Price: 1_000_000, Kind: KindMoto},
+	{ID: "vortex", Name: "Lốc Xoáy", Price: 1_200_000},
+	{ID: "apex", Name: "Đỉnh Cao", Price: 1_600_000},
+	{ID: "blaze", Name: "Hoả Tiễn", Price: 1_800_000},
+	{ID: "nova", Name: "Siêu Tân Tinh", Price: 2_000_000},
+})
+
+// rankCars đánh hạng theo thứ tự trong danh sách và điền loại mặc định là ô tô.
+func rankCars(list []CarModel) []CarModel {
+	for i := range list {
+		list[i].Rank = i
+		if list[i].Kind == "" {
+			list[i].Kind = KindCar
+		}
+	}
+	return list
 }
 
 func findCar(id string) (CarModel, bool) {
@@ -77,18 +112,26 @@ type Stats struct {
 	Grip     float64 `json:"grip"`
 }
 
-// rankBonus: xe hạng 5 hơn xe khởi đầu đúng bao nhiêu để cộng cấp 5 (×1,125) thì ≈ ×1,20.
-func rankBonus(rank int) float64 { return 1 + float64(rank)*(1.2/1.125-1)/5 }
+// rankBonus: xe hạng cao nhất hơn xe khởi đầu đúng bao nhiêu để cộng cấp 5 (×1,125) thì ≈ ×1,20.
+func rankBonus(rank int) float64 {
+	top := float64(len(Cars) - 1)
+	return 1 + float64(rank)*(topBonus/(1+levelStep*MaxLevel)-1)/top
+}
 
 func round2(v float64) float64 { return math.Round(v*100) / 100 }
 
 // StatsOf là chỉ số của mẫu xe c ở các cấp lv.
+// Moto tăng tốc +5%, bám đường −5% so với ô tô cùng hạng; mọi chỉ số vẫn không vượt trần +20%.
 func StatsOf(c CarModel, lv Levels) Stats {
 	rb := rankBonus(c.Rank)
+	accel, grip := BaseAccel*rb*(1+levelStep*float64(lv.Turbo)), BaseGrip*rb*(1+levelStep*float64(lv.Tires))
+	if c.Kind == KindMoto {
+		accel, grip = accel*motoAccel, grip*motoGrip
+	}
 	return Stats{
 		MaxSpeed: round2(BaseSpeed * rb * (1 + levelStep*float64(lv.Engine))),
-		Accel:    round2(BaseAccel * rb * (1 + levelStep*float64(lv.Turbo))),
-		Grip:     round2(math.Min(1, BaseGrip*rb*(1+levelStep*float64(lv.Tires)))),
+		Accel:    round2(math.Min(accel, BaseAccel*topBonus)),
+		Grip:     round2(math.Min(1, math.Min(grip, BaseGrip*topBonus))),
 	}
 }
 

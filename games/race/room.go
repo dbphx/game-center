@@ -140,6 +140,8 @@ type Message struct {
 	Code  string   `json:"code,omitempty"`
 	Bet   *int     `json:"bet,omitempty"`
 	Track string   `json:"track,omitempty"`
+	Mode  string   `json:"mode,omitempty"`
+	Box   int      `json:"box"`
 	Seat  int      `json:"seat"`
 	Text  string   `json:"text,omitempty"`
 	X     float64  `json:"x"`
@@ -182,6 +184,15 @@ type Player struct {
 	botSpeed   float64
 	botS       float64 // máy: quãng đường đã đi trên đường mẫu
 	botV       float64 // máy: vận tốc hiện tại
+
+	// Đạo cụ (chế độ "items").
+	items       []string
+	shieldUntil int64 // ms
+	boostUntil  int64 // ms
+	spinUntil   int64 // ms: đang xoay vì bị trúng
+	hitAtMs     int64 // lần bị trúng gần nhất
+	botUseAt    int64 // máy: lúc dùng món kế tiếp
+	used        int   // số món đã dùng trong cuộc đua (để thống kê / test)
 }
 
 // CarState là vị trí một xe trong tin "cars".
@@ -195,6 +206,10 @@ type CarState struct {
 	CP    int     `json:"cp"`
 	Nitro bool    `json:"nitro"`
 	Drift bool    `json:"drift"`
+	// Chế độ đạo cụ.
+	Shield bool `json:"shield,omitempty"`
+	Boost  bool `json:"boost,omitempty"`
+	Spin   bool `json:"spin,omitempty"`
 }
 
 // Place là một người trong bảng kết quả.
@@ -226,6 +241,11 @@ type Room struct {
 	bet        int
 	gameBet    int
 	track      *Track
+	mode       string // ModeSpeed hoặc ModeItems
+	boxes      []*box
+	fx         []*fx
+	fxSeq      int
+	fxAtMs     int64     // đạn / dầu đã mô phỏng tới lúc này
 	startAt    time.Time // lúc xuất phát (hết đếm ngược)
 	firstAt    time.Time // lúc người nhất về đích
 	finishes   int
@@ -446,9 +466,14 @@ func (r *Room) Handle(p *Player, m Message) error {
 	if !seated {
 		return nil // người xem chỉ được chat / rời
 	}
-	if m.T == "state" {
+	switch m.T {
+	case "state":
 		r.carState(p, m)
 		return nil
+	case "pickup":
+		return r.pickup(p, m.Box)
+	case "use":
+		return r.use(p)
 	}
 	if p.ID != r.hostID {
 		return errors.New("chỉ chủ phòng được làm việc này")
@@ -480,6 +505,12 @@ func (r *Room) Handle(p *Player, m Message) error {
 			return errors.New("không có đường đua này")
 		}
 		r.track = t
+		r.broadcast()
+	case "setMode":
+		if !validMode(m.Mode) {
+			return errors.New("chế độ không hợp lệ")
+		}
+		r.mode = m.Mode
 		r.broadcast()
 	case "start":
 		return r.start()
@@ -561,6 +592,7 @@ func (r *Room) start() error {
 			p.botSpeed = p.Car.Stats.MaxSpeed * (0.85 + 0.12*r.rng.Float64())
 		}
 	}
+	r.resetItems()
 	r.phase = PhaseCountdown
 	r.startTicker()
 	r.broadcast()
@@ -577,11 +609,15 @@ func (r *Room) carState(p *Player, m Message) {
 		return // chưa xuất phát: bỏ qua, không tính vi phạm
 	}
 	r.phase = PhaseRacing
-	maxV := p.Car.Stats.MaxSpeed * NitroBoost
+	maxV := p.Car.Stats.MaxSpeed * p.itemSpeedCap(now)
 	gap := max(now-p.prog.atMs, minPacketGapMs)
 	dist := math.Hypot(m.X-p.prog.pos.X, m.Z-p.prog.pos.Z)
+	slack := moveSlack
+	if p.hitAtMs > 0 && now-p.hitAtMs < hitGraceMs {
+		slack += hitSlack // vừa bị trúng: xe xoay, vị trí client và server dễ lệch
+	}
 	bad := math.IsNaN(m.X) || math.IsNaN(m.Z) || math.IsInf(m.X, 0) || math.IsInf(m.Z, 0) ||
-		m.Speed > maxV*speedTolerance || dist > maxV*float64(gap)/1000*moveTolerance+moveSlack
+		m.Speed > maxV*speedTolerance || dist > maxV*float64(gap)/1000*moveTolerance+slack
 	if bad {
 		r.violation(p)
 		return
@@ -837,7 +873,13 @@ func (r *Room) step() {
 		for _, p := range r.players {
 			if p.Bot && !p.prog.finished {
 				r.botStep(p, nowMs)
+				if r.racing() {
+					r.botItems(p, nowMs)
+				}
 			}
+		}
+		if r.racing() && r.mode == ModeItems {
+			r.stepFx(nowMs)
 		}
 	}
 	if !r.racing() {
@@ -846,7 +888,8 @@ func (r *Room) step() {
 	list := make([]CarState, 0, len(r.players))
 	for i, p := range r.players {
 		list = append(list, CarState{Seat: i, X: p.prog.pos.X, Z: p.prog.pos.Z, Rot: p.rot, Speed: p.speed,
-			Lap: p.prog.lap, CP: p.prog.cp, Nitro: p.nitro, Drift: p.drift})
+			Lap: p.prog.lap, CP: p.prog.cp, Nitro: p.nitro, Drift: p.drift,
+			Shield: nowMs < p.shieldUntil, Boost: nowMs < p.boostUntil, Spin: nowMs < p.spinUntil})
 	}
 	r.sendAll(map[string]any{"t": "cars", "ms": nowMs, "list": list})
 	r.checkEnd()
@@ -864,7 +907,18 @@ func (r *Room) botStep(p *Player, nowMs int64) {
 	for dt > 0 {
 		h := math.Min(dt, 0.1)
 		dt -= h
-		p.botV = math.Min(p.botSpeed, p.botV+p.Car.Stats.Accel*h)
+		top := p.botSpeed
+		switch now := from + int64(h*1000); {
+		case now < p.spinUntil:
+			top = p.botSpeed * spinSpeed // bị trúng: xoay, chạy chậm
+		case now < p.boostUntil:
+			top = p.botSpeed * boostMul
+		}
+		if p.botV > top {
+			p.botV = top
+		} else {
+			p.botV = math.Min(top, p.botV+p.Car.Stats.Accel*h)
+		}
 		p.botS += p.botV * h
 		pt, rot := r.track.at(p.botS)
 		from += int64(h * 1000)
@@ -937,29 +991,33 @@ type SeatView struct {
 
 // State là tin "room": phòng, ghế, xe của mỗi ghế, giai đoạn.
 type State struct {
-	T          string      `json:"t"`
-	Code       string      `json:"code"`
-	Phase      string      `json:"phase"`
-	You        string      `json:"you,omitempty"`
-	Seat       int         `json:"seat"` // ghế của người xem tin này, -1 nếu đang xem
-	Seats      []SeatView  `json:"seats"`
-	Bet        int         `json:"bet"`
-	GameBet    int         `json:"gameBet"`
-	BetOptions []int       `json:"betOptions"`
-	Track      string      `json:"track"`
-	Tracks     []TrackInfo `json:"tracks"`
-	Laps       int         `json:"laps"`
-	StartAt    int64       `json:"startAt"` // ms
-	Now        int64       `json:"now"`     // ms, để giao diện bù lệch đồng hồ
-	Spectators int         `json:"spectators"`
-	Result     *Result     `json:"result,omitempty"`
-	Chat       []chat.Line `json:"chat"`
+	T           string      `json:"t"`
+	Code        string      `json:"code"`
+	Phase       string      `json:"phase"`
+	You         string      `json:"you,omitempty"`
+	Seat        int         `json:"seat"` // ghế của người xem tin này, -1 nếu đang xem
+	Seats       []SeatView  `json:"seats"`
+	Bet         int         `json:"bet"`
+	GameBet     int         `json:"gameBet"`
+	BetOptions  []int       `json:"betOptions"`
+	Track       string      `json:"track"`
+	Tracks      []TrackInfo `json:"tracks"`
+	Laps        int         `json:"laps"`
+	Mode        string      `json:"mode"`        // "speed" hoặc "items"
+	Boxes       []BoxView   `json:"boxes"`       // hộp đạo cụ (chế độ items, trong cuộc đua)
+	NitroCharge float64     `json:"nitroCharge"` // hệ số tốc độ tích nitro
+	StartAt     int64       `json:"startAt"`     // ms
+	Now         int64       `json:"now"`         // ms, để giao diện bù lệch đồng hồ
+	Spectators  int         `json:"spectators"`
+	Result      *Result     `json:"result,omitempty"`
+	Chat        []chat.Line `json:"chat"`
 }
 
 func (r *Room) stateFor(viewer *Player) State {
 	s := State{T: "room", Code: r.Code, Phase: r.phase, Seat: r.seatOf(viewer), Seats: []SeatView{}, Bet: r.bet,
 		GameBet: r.gameBet, BetOptions: BetOptions, Tracks: r.hub.trackList(), Now: r.nowMs(),
-		Spectators: len(r.spectators), Result: r.result, Chat: r.chatLog.List()}
+		Spectators: len(r.spectators), Result: r.result, Chat: r.chatLog.List(),
+		Mode: r.mode, Boxes: r.boxViews(), NitroCharge: NitroCharge}
 	if s.Seat >= 0 {
 		s.You = viewer.ID
 	}

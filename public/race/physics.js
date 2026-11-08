@@ -5,7 +5,13 @@ export const NITRO_BOOST = 1.3; // ×1,3 tốc độ tối đa
 export const NITRO_MS = 2000; // nitro kéo dài 2 giây
 const WALL_EXTRA = 2.2; // tường cách mép đường (m): phần giữa là viền / cỏ làm xe chậm lại
 const OFFROAD_SLOW = 0.6; // ra ngoài mép đường thì tốc độ tối đa ×0,6
-const DRIFT_CHARGE = 0.24; // thanh nitro nạp mỗi giây khi drift
+const DRIFT_CHARGE = 0.24; // thanh nitro nạp mỗi giây khi drift (nhân với hệ số nitroCharge của server, mặc định ×2)
+export const NITRO_CHARGE = 2; // tích nitro nhanh gấp đôi bản đầu
+export const SPIN_MS = 1200; // bị trúng đạo cụ: xoay 1,2 s
+export const SPIN_SPEED = 0.3; // tốc độ còn 30% khi bị trúng
+export const ITEM_BOOST = 1.25; // đạo cụ tăng tốc: ×1,25 tốc độ tối đa
+export const ITEM_BOOST_MS = 1500;
+export const SHIELD_MS = 5000;
 const DRIFT_MIN_SPEED = 11;
 
 // Track bọc dữ liệu JSON đường đua với các phép tìm điểm gần nhất trên đường tâm.
@@ -83,7 +89,7 @@ export class Track {
 }
 
 // newCar tạo trạng thái xe ở vị trí xuất phát.
-export function newCar(spawn, stats) {
+export function newCar(spawn, stats, nitroCharge = NITRO_CHARGE) {
   return {
     x: spawn.x, z: spawn.z, rot: spawn.rot,
     vx: 0, vz: 0, speed: 0,
@@ -99,6 +105,10 @@ export function newCar(spawn, stats) {
     hitWall: 0, // lực va tường lần gần nhất (để hiện tia lửa), tự giảm
     finished: false,
     steerVis: 0,
+    nitroCharge, // hệ số tốc độ tích nitro
+    spinMs: 0, // còn bao lâu đang xoay vì trúng đạo cụ
+    itemBoostMs: 0, // còn bao lâu đạo cụ tăng tốc
+    shieldMs: 0, // còn bao lâu có khiên (chỉ để vẽ; server mới quyết định chặn)
   };
 }
 
@@ -109,6 +119,12 @@ export function step(car, input, track, dt) {
   const st = car.stats;
   const boosting = car.boostMs > 0;
   if (boosting) car.boostMs = Math.max(0, car.boostMs - dt * 1000);
+  const ms = dt * 1000;
+  if (car.spinMs > 0) car.spinMs = Math.max(0, car.spinMs - ms);
+  if (car.itemBoostMs > 0) car.itemBoostMs = Math.max(0, car.itemBoostMs - ms);
+  if (car.shieldMs > 0) car.shieldMs = Math.max(0, car.shieldMs - ms);
+  const spinning = car.spinMs > 0;
+  if (spinning) input = { throttle: 0, steer: 0, drift: false, nitro: false };
 
   // Nitro: dùng khi thanh đầy.
   if (input.nitro && car.nitro >= 1 && !boosting) {
@@ -117,9 +133,10 @@ export function step(car, input, track, dt) {
     ev.push('nitro');
   }
 
-  let max = st.maxSpeed * (car.boostMs > 0 ? NITRO_BOOST : 1);
+  let max = st.maxSpeed * (car.boostMs > 0 ? NITRO_BOOST : 1) * (car.itemBoostMs > 0 ? ITEM_BOOST : 1);
   if (car.offroad) max *= OFFROAD_SLOW;
-  const accel = st.accel * (car.boostMs > 0 ? 1.6 : 1);
+  if (spinning) max = Math.min(max, st.maxSpeed * SPIN_SPEED);
+  const accel = st.accel * (car.boostMs > 0 || car.itemBoostMs > 0 ? 1.6 : 1);
   const th = input.throttle || 0;
   if (th > 0) {
     car.speed += accel * th * dt * (1 - Math.max(0, car.speed) / (max * 1.05));
@@ -147,7 +164,7 @@ export function step(car, input, track, dt) {
   car.vx += (fx * car.speed - car.vx) * a;
   car.vz += (fz * car.speed - car.vz) * a;
   if (car.drift) {
-    car.nitro = Math.min(1, car.nitro + DRIFT_CHARGE * dt);
+    car.nitro = Math.min(1, car.nitro + DRIFT_CHARGE * (car.nitroCharge || NITRO_CHARGE) * dt);
     car.speed *= 1 - 0.08 * dt; // drift mất chút tốc độ
   }
   car.x += car.vx * dt;
@@ -203,4 +220,14 @@ export function raceDistance(track, lap, cp, x, z, seg = -1) {
   // Trước khi qua điểm kiểm tra đầu tiên, xe đứng sau vạch đích: tiến độ gần cuối vòng → coi là âm.
   if (cp === 0 && d > track.length * 0.5) d -= track.length;
   return lap * track.length + d;
+}
+
+// hitCar cho xe bị trúng đạo cụ: xoay SPIN_MS, tốc độ còn 30%.
+export function hitCar(car) {
+  car.spinMs = SPIN_MS;
+  car.speed *= SPIN_SPEED;
+  car.vx *= SPIN_SPEED;
+  car.vz *= SPIN_SPEED;
+  car.boostMs = 0;
+  car.itemBoostMs = 0;
 }

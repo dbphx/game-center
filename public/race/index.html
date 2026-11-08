@@ -30,7 +30,7 @@
     <div class="hall-head">
       <div>
         <h1>Trường đua</h1>
-        <p class="muted">Đua kart 3D 2–6 xe, 3 vòng. Drift để nạp nitro. Về nhất ăn cược của cả phòng (trừ thuế 5%).</p>
+        <p class="muted">Đua 3D 2–6 xe (ô tô và moto), 3 vòng, 4 đường. Drift để nạp nitro. Chế độ Đạo cụ có tên lửa, dầu, khiên. Về nhất ăn cược của cả phòng (trừ thuế 5%).</p>
       </div>
       <div class="hall-actions">
         <span class="input-icon"><i data-icon="hash"></i><input id="code" maxlength="8" placeholder="Mã phòng" autocomplete="off"></span>
@@ -51,6 +51,9 @@
       <h2><i data-icon="plus"></i>Tạo phòng đua</h2>
       <div class="field-label">Đường đua</div>
       <div class="chip-grid" id="track-grid"></div>
+      <div class="field-label">Chế độ</div>
+      <div class="chip-grid" id="mode-grid"></div>
+      <p class="muted mode-note">Đạo cụ: chạy qua hộp "?" nhặt tên lửa, tên lửa đuổi, vũng dầu, khiên, tăng tốc (giữ tối đa 2 món). Ctrl / E để dùng.</p>
       <div class="field-label">Mức cược mỗi người (về nhất ăn hết)</div>
       <div class="chip-grid" id="bet-grid"></div>
       <div class="actions"><button value="cancel" formnovalidate>Huỷ</button><button class="primary" value="ok"><i data-icon="plus"></i>Tạo phòng</button></div>
@@ -62,6 +65,8 @@
       <h2>Lái thử</h2>
       <div class="field-label">Đường đua</div>
       <div class="chip-grid" id="practice-grid"></div>
+      <div class="field-label">Chế độ</div>
+      <div class="chip-grid" id="practice-mode"></div>
       <div class="actions"><button value="cancel" formnovalidate>Huỷ</button><button class="primary" value="ok">Chạy</button></div>
     </form>
   </dialog>
@@ -73,6 +78,7 @@
       <h1 id="g-name">Garage</h1>
       <span class="chip" id="g-state"></span>
     </div>
+    <div class="garage-filter" id="g-filter"></div>
     <div class="garage-cars" id="g-cars"></div>
     <div class="garage-panel">
       <div class="g-stats" id="g-stats"></div>
@@ -88,6 +94,7 @@
       <h1>Phòng <span class="code" id="room-code"></span></h1>
       <span class="chip" id="room-bet"></span>
       <span class="chip" id="room-track"></span>
+      <span class="chip" id="room-mode"></span>
       <span class="spacer"></span>
       <button id="btn-invite"><i data-icon="link"></i>Mời bạn</button>
       <button class="link" id="btn-leave"><i data-icon="door"></i>Rời phòng</button>
@@ -109,14 +116,15 @@
     <div class="hud-speed"><b id="hud-speed">0</b><span>km/h</span>
       <div class="nitro"><span id="hud-nitro"></span></div><span class="nitro-k" id="hud-nitro-k">NITRO</span>
     </div>
+    <div class="hud-items" id="hud-items"></div>
     <div class="countdown hidden" id="countdown"></div>
     <div class="banner hidden" id="banner"></div>
     <div class="watch-tag" id="banner-watch"></div>
     <div class="touch" id="touch">
       <div class="t-left"><button data-k="left" aria-label="Trái">◀</button><button data-k="right" aria-label="Phải">▶</button></div>
-      <div class="t-right"><button data-k="brake" class="small" aria-label="Phanh">Phanh</button><button data-k="drift" aria-label="Drift">Drift</button><button data-k="nitro" class="nitro-btn" aria-label="Nitro">Nitro</button></div>
+      <div class="t-right"><button data-k="brake" class="small" aria-label="Phanh">Phanh</button><button data-k="drift" aria-label="Drift">Drift</button><button data-k="item" class="item-btn" aria-label="Dùng đạo cụ">Đạo cụ</button><button data-k="nitro" class="nitro-btn" aria-label="Nitro">Nitro</button></div>
     </div>
-    <p class="keys-hint" id="keys-hint">Mũi tên / WASD lái · Shift drift · Space nitro</p>
+    <p class="keys-hint" id="keys-hint">Mũi tên / WASD lái · Shift drift · Space nitro<span class="items-hint"> · Ctrl / E dùng đạo cụ</span></p>
   </div>
 
   <!-- Kết quả -->
