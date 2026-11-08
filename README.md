@@ -50,6 +50,8 @@ Mở http://localhost:8080. Server in ra cả địa chỉ LAN để bạn bè c
 Bộ nhớ đệm của trình duyệt (và Cloudflare): js / css trong trang có `?v=<phiên bản>` được giữ 1 năm (đổi nội dung thì
 URL đổi theo); ảnh, font giữ 1 ngày rồi hỏi lại bằng ETag; HTML, json luôn hỏi lại. Vì vậy **đổi nội dung một ảnh mà
 giữ nguyên tên file thì người chơi có thể còn thấy ảnh cũ tối đa 1 ngày** — muốn thấy ngay thì đặt tên file mới.
+Module JS: server tự gắn `?v=<phiên bản>` vào import tương đối (`./x.js`, `/race/x.js`) lúc khởi động, phiên bản file cha tính theo
+nội dung đã viết lại, nên Cloudflare (ghi đè js không có `?v` thành giữ 12 giờ) không ghép được module cũ với module mới.
 Ảnh lớn nên nén lại bằng bảng 256 màu giữ bóng mờ (sprite `pet3d_*` đã nén như vậy, nhẹ hơn khoảng 3 lần).
 
 ## Tài khoản và xu

@@ -27,7 +27,7 @@ type staticFiles struct {
 	files   http.Handler
 	etags   map[string]string // đường dẫn (không có "/" đầu) → ETag
 	gz      map[string][]byte // bản nén gzip của file chữ
-	pages   map[string][]byte // trang HTML đã gắn phiên bản vào link js / css
+	pages   map[string][]byte // trang HTML và module JS đã gắn phiên bản vào link / import
 	version string            // băm của toàn bộ file, đổi mỗi khi giao diện đổi
 	started time.Time
 }
@@ -50,6 +50,14 @@ func newStaticFiles(static fs.FS) *staticFiles {
 		names = append(names, p)
 		return nil
 	})
+	// Module JS: gắn ?v=<phiên bản> vào import tương đối (đệ quy theo đồ thị import) trước, vì phiên bản
+	// của file cha phải tính trên nội dung đã viết lại — file con đổi thì URL của file cha cũng đổi.
+	state := map[string]int{}
+	for _, p := range names {
+		if path.Ext(p) == ".js" {
+			s.resolveJS(p, datas, state)
+		}
+	}
 	// Trang HTML: đã biết ETag của mọi js / css thì mới gắn phiên bản được.
 	for _, p := range names {
 		if path.Ext(p) == ".html" {
@@ -89,15 +97,89 @@ func etagOf(data []byte) string {
 var assetRef = regexp.MustCompile(`((?:src|href)=")(/[^"?#]+\.(?:js|css))"`)
 
 // versioned gắn ?v=<ETag rút gọn> vào link js / css có trong bộ file; file đổi nội dung thì URL đổi theo.
+// Đường dẫn js trong <script type="importmap"> cũng được gắn phiên bản.
 func (s *staticFiles) versioned(page []byte) []byte {
-	return assetRef.ReplaceAllFunc(page, func(m []byte) []byte {
+	page = assetRef.ReplaceAllFunc(page, func(m []byte) []byte {
 		sub := assetRef.FindSubmatch(m)
 		etag, ok := s.etags[strings.TrimPrefix(string(sub[2]), "/")]
 		if !ok {
 			return m
 		}
-		return []byte(fmt.Sprintf(`%s%s?v=%s"`, sub[1], sub[2], strings.Trim(etag, `"`)[:10]))
+		return []byte(fmt.Sprintf(`%s%s?v=%s"`, sub[1], sub[2], shortVer(etag)))
 	})
+	return importMap.ReplaceAllFunc(page, func(block []byte) []byte {
+		return mapRef.ReplaceAllFunc(block, func(m []byte) []byte {
+			p := string(m[2 : len(m)-1])
+			etag, ok := s.etags[p]
+			if !ok {
+				return m
+			}
+			return []byte(fmt.Sprintf(`"/%s?v=%s"`, p, shortVer(etag)))
+		})
+	})
+}
+
+func shortVer(etag string) string { return strings.Trim(etag, `"`)[:10] }
+
+var (
+	importMap = regexp.MustCompile(`(?s)<script type="importmap">.*?</script>`)
+	mapRef    = regexp.MustCompile(`"/[^"?#]+\.js"`)
+	// jsRef: chỗ nạp module tĩnh trong JS — from '…', import '…', import('…') (cả nháy đơn và kép).
+	jsRef = regexp.MustCompile(`(\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)(['"])([^'"\n]+)(['"])`)
+)
+
+// localModule đổi đường dẫn import trong file from thành đường dẫn file trong bộ (không có "/" đầu).
+// Chỉ nhận đường dẫn tương đối (./, ../) và tuyệt đối trong site (/…); bare specifier ("three") và URL ngoài thì bỏ qua.
+func localModule(from, spec string) (string, bool) {
+	base := spec
+	if i := strings.IndexAny(base, "?#"); i >= 0 {
+		base = base[:i]
+	}
+	var p string
+	switch {
+	case strings.HasPrefix(base, "./") || strings.HasPrefix(base, "../"):
+		p = path.Join(path.Dir(from), base)
+	case strings.HasPrefix(base, "/") && !strings.HasPrefix(base, "//"):
+		p = strings.TrimPrefix(path.Clean(base), "/")
+	default:
+		return "", false
+	}
+	if path.Ext(p) != ".js" || strings.HasPrefix(p, "..") {
+		return "", false
+	}
+	return p, true
+}
+
+// resolveJS viết lại import tương đối của file p thành ./x.js?v=<phiên bản>, viết file con trước (đệ quy).
+// state: 1 đang xử lý, 2 xong. Gặp vòng import thì file đang xử lý dùng ETag theo nội dung gốc (vẫn ổn định, không treo).
+func (s *staticFiles) resolveJS(p string, datas map[string][]byte, state map[string]int) {
+	if state[p] != 0 {
+		return
+	}
+	state[p] = 1
+	src := datas[p]
+	out := jsRef.ReplaceAllFunc(src, func(m []byte) []byte {
+		sub := jsRef.FindSubmatch(m)
+		spec := string(sub[3])
+		target, ok := localModule(p, spec)
+		if !ok {
+			return m
+		}
+		if _, ok := datas[target]; !ok {
+			return m
+		}
+		s.resolveJS(target, datas, state)
+		if i := strings.IndexAny(spec, "?#"); i >= 0 {
+			spec = spec[:i]
+		}
+		return []byte(fmt.Sprintf("%s%s%s?v=%s%s", sub[1], sub[2], spec, shortVer(s.etags[target]), sub[4]))
+	})
+	if !bytes.Equal(out, src) {
+		datas[p] = out
+		s.pages[p] = out
+		s.etags[p] = etagOf(out)
+	}
+	state[p] = 2
 }
 
 func compressible(p string) bool {

@@ -141,3 +141,83 @@ func TestStaticVersionedAssets(t *testing.T) {
 		t.Fatal("đổi js thì link trong trang phải đổi")
 	}
 }
+
+// Module JS: import tương đối được gắn ?v=<phiên bản của file con>; đổi file con thì ?v của file cha
+// và của thẻ <script> trong trang đều đổi (Cloudflare giữ js không có ?v tới 12 giờ).
+func TestStaticModuleImportsVersioned(t *testing.T) {
+	build := func(physics string) *staticFiles {
+		return newStaticFiles(fstest.MapFS{
+			"race/index.html": {Data: []byte(`<script type="importmap">{"imports":{"three":"/vendor/three.js"}}</script>` +
+				`<script type="module" src="/race/race.js"></script>`)},
+			"race/race.js": {Data: []byte("import { step } from './physics.js';\n" +
+				"import \"./scene.js?v=old\";\n" +
+				"export { a } from '../lib/util.js';\n" +
+				"const m = import( './lazy.js' );\n" +
+				"import * as THREE from 'three';\n" +
+				"import x from '/race/abs.js';\n" +
+				"import y from 'https://cdn.example.com/z.js';\n" + strings.Repeat("// đệm cho đủ dài để nén gzip\n", 40))},
+			"race/physics.js": {Data: []byte(physics)},
+			"race/scene.js":   {Data: []byte("import './race.js';\nexport const s = 1;\n")}, // vòng import
+			"race/lazy.js":    {Data: []byte("export default 1;\n")},
+			"race/abs.js":     {Data: []byte("export default 2;\n")},
+			"lib/util.js":     {Data: []byte("export const a = 1;\n")},
+			"vendor/three.js": {Data: []byte("export const V = 1;\n")},
+		})
+	}
+	st := build("export const step = 1;\n")
+	ver := func(p string) string { return shortVer(st.etags[p]) }
+	race := string(st.pages["race/race.js"])
+	for _, want := range []string{
+		"from './physics.js?v=" + ver("race/physics.js") + "'",
+		`import "./scene.js?v=` + ver("race/scene.js") + `"`,
+		"from '../lib/util.js?v=" + ver("lib/util.js") + "'",
+		"import( './lazy.js?v=" + ver("race/lazy.js") + "' )",
+		"from '/race/abs.js?v=" + ver("race/abs.js") + "'",
+		"from 'three'",
+		"from 'https://cdn.example.com/z.js'",
+	} {
+		if !strings.Contains(race, want) {
+			t.Fatalf("race.js thiếu %q:\n%s", want, race)
+		}
+	}
+	if st.etags["race/race.js"] != etagOf(st.pages["race/race.js"]) {
+		t.Fatal("ETag phải tính trên nội dung đã viết lại")
+	}
+	page := string(st.pages["race/index.html"])
+	if !strings.Contains(page, `src="/race/race.js?v=`+ver("race/race.js")+`"`) || !strings.Contains(page, `"/vendor/three.js?v=`+ver("vendor/three.js")+`"`) {
+		t.Fatalf("trang chưa gắn phiên bản đúng: %s", page)
+	}
+
+	// Đổi file con → phiên bản file cha và thẻ trong trang đổi theo.
+	st2 := build("export const step = 2;\n")
+	if st2.etags["race/race.js"] == st.etags["race/race.js"] || string(st2.pages["race/index.html"]) == page {
+		t.Fatal("đổi physics.js phải đổi phiên bản race.js và trang")
+	}
+
+	// Phục vụ đúng nội dung đã viết lại, cả bản gzip (Content-Length khớp).
+	srv := newHTTPTest(t, st)
+	cl := &http.Client{Transport: &http.Transport{DisableCompression: true}}
+	for _, enc := range []string{"", "gzip"} {
+		req, _ := http.NewRequest("GET", srv+"/race/race.js?v="+ver("race/race.js"), nil)
+		if enc != "" {
+			req.Header.Set("Accept-Encoding", enc)
+		}
+		res, err := cl.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var r io.Reader = res.Body
+		if res.Header.Get("Content-Encoding") == "gzip" {
+			zr, err := gzip.NewReader(res.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			r = zr
+		}
+		body, _ := io.ReadAll(r)
+		res.Body.Close()
+		if string(body) != race || res.Header.Get("Cache-Control") != "public, max-age=31536000, immutable" || res.Header.Get("ETag") != st.etags["race/race.js"] {
+			t.Fatalf("enc=%q: nội dung/headers sai: cc=%q etag=%q\n%s", enc, res.Header.Get("Cache-Control"), res.Header.Get("ETag"), body)
+		}
+	}
+}
