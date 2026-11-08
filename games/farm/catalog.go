@@ -198,5 +198,6 @@ func Catalog() map[string]any {
 		"cropTax":     CropTaxPercent,
 		"stockTax":    StockTaxPercent,
 		"cloudFloors": CloudFloors,
+		"potSkins":    PotSkins,
 	}
 }

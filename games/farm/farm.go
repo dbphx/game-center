@@ -120,6 +120,9 @@ func New(ctx context.Context, w *wallet.Wallet) (*Farm, error) {
 	if err := migrateThefts(ctx, w); err != nil {
 		return nil, fmt.Errorf("nâng cấp nhật ký trộm: %w", err)
 	}
+	if err := migratePotSkins(ctx, w); err != nil {
+		return nil, fmt.Errorf("nâng cấp chậu tầng mây: %w", err)
+	}
 	return &Farm{w: w, now: time.Now}, nil
 }
 

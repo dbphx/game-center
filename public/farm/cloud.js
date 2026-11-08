@@ -10,6 +10,7 @@
   let busy = false; // đang hỏi hoặc đang gọi API, chống bấm trùng
   let timer = 0;
   let sig = '';
+  let picking = null; // {floor, slot} khi đang mở bảng chọn kiểu chậu
 
   const I = () => window.Icons;
   const isOpen = () => !!root && !root.classList.contains('hidden');
@@ -18,6 +19,13 @@
   const potOf = (n, slot) => farm.cloud.pots.find((p) => p.floor === n && p.slot === slot);
   const potCount = (n) => farm.cloud.pots.filter((p) => p.floor === n).length;
   const pad = (n) => String(n).padStart(2, '0');
+  // Kiểu dáng chậu: "default" là chậu riêng của tầng (pot_1..4), còn lại là pot_skin_<id>.png. Chỉ để đẹp.
+  const skins = () => (cat && cat.potSkins) || [];
+  const owned = (id) => {
+    const s = skins().find((x) => x.id === id);
+    return !!s && (s.price === 0 || ((farm.cloud && farm.cloud.skins) || []).includes(id));
+  };
+  const skinSrc = (n, id) => (!id || id === 'default' ? `${IMG}pot_${n}.png` : `${IMG}pot_skin_${id}.png`);
 
   function clock(sec) {
     const s = Math.max(0, Math.ceil(sec));
@@ -39,25 +47,29 @@
   }
 
   // Mỗi chỗ đặt chậu: chậu (và cây) đứng trên mặt dải mây, nhãn trạng thái nằm trên thân mây ngay dưới chậu.
-  function pot(st, act, n, slot, art, label) {
-    return `<button class="cloud-slot ${st}" data-act="${act}" data-floor="${n}" data-slot="${slot}" ${st === 'locked' ? 'disabled' : ''}>
-      <span class="cloud-art">${art}</span><span class="slot-label">${label}</span></button>`;
+  // Chậu đã mua có thêm nút "Đổi kiểu" ngay dưới nhãn (nút riêng, không lồng trong nút chậu).
+  function pot(st, act, n, slot, art, label, skinBtn) {
+    const btn = skinBtn && skins().length
+      ? `<button class="skin-btn" data-act="skin" data-floor="${n}" data-slot="${slot}" title="Đổi kiểu chậu">${I().svg('sparkles') || ''}Đổi kiểu</button>`
+      : '';
+    return `<div class="cloud-cell"><button class="cloud-slot ${st}" data-act="${act}" data-floor="${n}" data-slot="${slot}" ${st === 'locked' ? 'disabled' : ''}>
+      <span class="cloud-art">${art}</span><span class="slot-label">${label}</span></button>${btn}</div>`;
   }
 
   function slotHTML(n, slot) {
     const f = info(n);
     const st = slotState(n, slot);
     const p = potOf(n, slot);
-    const potImg = `<img class="cloud-pot" src="${IMG}pot_${n}.png" alt="Chậu" draggable="false">`;
+    const potImg = `<img class="cloud-pot" src="${skinSrc(n, p && p.skin)}" alt="Chậu" draggable="false">`;
     const name = f.crop.name;
     const coins = (v) => `<em>${I().svg('coins')}${cfg.xu(v)} xu</em>`;
     if (st === 'buy') return pot(st, 'buy', n, slot, potImg, `<b>Mua chậu</b>${coins(f.potPrice)}`);
     if (st === 'locked') return pot(st, 'buy', n, slot, potImg, `<b>Chưa có chậu</b>${coins(f.potPrice)}`);
-    if (st === 'empty') return pot(st, 'plant', n, slot, potImg, `<b>Trồng</b>${coins(f.crop.seedPrice)}`);
+    if (st === 'empty') return pot(st, 'plant', n, slot, potImg, `<b>Trồng</b>${coins(f.crop.seedPrice)}`, true);
     if (st === 'grow') {
-      return pot(st, 'wait', n, slot, plantPic(f.crop.id, p) + potImg, `<b>${name}</b><em data-ready="${p.readyAt}">${clock(p.readyAt - cfg.now())}</em>`);
+      return pot(st, 'wait', n, slot, plantPic(f.crop.id, p) + potImg, `<b>${name}</b><em data-ready="${p.readyAt}">${clock(p.readyAt - cfg.now())}</em>`, true);
     }
-    return pot(st, 'harvest', n, slot, plantPic(f.crop.id, p) + potImg, `<b>Thu hoạch</b><em>${name}</em>`);
+    return pot(st, 'harvest', n, slot, plantPic(f.crop.id, p) + potImg, `<b>Thu hoạch</b><em>${name}</em>`, true);
   }
 
   // Chậu chia thành hai dải mây, mỗi dải 3 chậu: máy tính đặt hai dải cạnh nhau, điện thoại xếp chồng.
@@ -78,7 +90,7 @@
         ? `Trồng hạt đậu thần ở ô 49 (${cfg.xu(f.beanPrice)} xu) để mở`
         : `Mở tầng ${n - 1} trước đã`;
     const pots = Array.from({ length: f.slots }, () =>
-      `<span class="cloud-slot locked"><span class="cloud-art"><img class="cloud-pot" src="${IMG}pot_${n}.png" alt="" draggable="false"></span><span class="slot-label"><b>Chưa mở</b></span></span>`);
+      `<div class="cloud-cell"><span class="cloud-slot locked"><span class="cloud-art"><img class="cloud-pot" src="${IMG}pot_${n}.png" alt="" draggable="false"></span><span class="slot-label"><b>Chưa mở</b></span></span></div>`);
     return `<div class="cloud-bands shut">${bands(pots, true)}<p class="shut-sign">${I().svg('lock')}<span>${msg}</span></p></div>`;
   }
 
@@ -91,6 +103,27 @@
     return `<section class="cloud-floor${open ? '' : ' shut'}" data-floor-sec="${n}">
       <h3 class="floor-sign"><span class="floor-no">Tầng ${n}</span><span class="floor-crop">${f.crop.name}</span><span class="floor-facts">${facts}</span></h3>
       ${band}</section>`;
+  }
+
+  // Bảng chọn kiểu chậu cho chậu đang chọn: kiểu đã có thì lắp ngay, chưa có thì hỏi rồi mua.
+  function pickHTML() {
+    if (!picking) return '';
+    const { floor, slot } = picking;
+    const p = potOf(floor, slot);
+    if (!p) return '';
+    const cur = p.skin || 'default';
+    const cards = skins().map((s) => {
+      const mine = owned(s.id);
+      const using = s.id === cur;
+      const tag = using ? '<em class="using">Đang dùng</em>' : mine ? '<em class="owned">Đã có</em>'
+        : `<em>${I().svg('coins')}${cfg.xu(s.price)} xu</em>`;
+      return `<button class="skin-card${using ? ' using' : ''}${mine ? '' : ' locked'}" data-act="pick" data-skin="${s.id}" ${using ? 'disabled' : ''}>
+        <img src="${skinSrc(floor, s.id)}" alt="" draggable="false"><b>${s.name}</b>${tag}</button>`;
+    }).join('');
+    return `<div class="skin-pick" data-act="pick-close"><div class="skin-panel" role="dialog" aria-label="Chọn kiểu chậu">
+      <div class="skin-head"><h3>Kiểu chậu · tầng ${floor}, chậu ${slot + 1}</h3><button class="skin-x" data-act="pick-close" aria-label="Đóng">${I().svg('x')}</button></div>
+      <p class="skin-note">Chỉ để đẹp, không đổi cây, giá hay thời gian chín. Mua một lần dùng cho mọi chậu.</p>
+      <div class="skin-grid">${cards}</div></div></div>`;
   }
 
   // Hiện báo zombie ở dưới đất để người chơi đang trên mây không bỏ lỡ.
@@ -107,7 +140,8 @@
       </div>
       ${zombieDown() ? '<p class="cloud-zombie">Zombie đang tấn công nông trại dưới đất!</p>' : ''}
       <div class="cloud-sky"><div class="cloud-stalk" aria-hidden="true"></div>
-        <div class="cloud-floors">${list.map(floorHTML).join('')}</div></div>`;
+        <div class="cloud-floors">${list.map(floorHTML).join('')}</div></div>
+      ${pickHTML()}`;
   }
 
   // Tầng nên cuộn tới khi mở màn: tầng thấp nhất có cây chín, rồi có chậu trống, rồi còn chỗ mua chậu.
@@ -122,10 +156,11 @@
 
   // Dấu trạng thái: chỉ vẽ lại khi có gì đổi, để lần tải định kỳ không làm mất focus của nút.
   function signature() {
-    const pots = farm.cloud.pots.map((p) => `${p.floor}.${p.slot}.${p.plantedAt}.${slotState(p.floor, p.slot)}`).join();
+    const pots = farm.cloud.pots.map((p) => `${p.floor}.${p.slot}.${p.plantedAt}.${p.skin}.${slotState(p.floor, p.slot)}`).join();
     const stages = farm.cloud.pots.filter((p) => p.plantedAt).map((p) => (cfg.now() - p.plantedAt) / Math.max(1, p.readyAt - p.plantedAt) < 0.5).join();
     const u = cfg.user();
-    return [farm.cloud.floors, farm.cloud.beanReadyAt, pots, stages, u && u.balance, zombieDown()].join('|');
+    const pick = picking ? `${picking.floor}.${picking.slot}` : '';
+    return [farm.cloud.floors, farm.cloud.beanReadyAt, pots, stages, u && u.balance, zombieDown(), (farm.cloud.skins || []).join(), pick].join('|');
   }
   function draw(force) {
     if (!isOpen()) return;
@@ -166,9 +201,23 @@
   };
 
   async function onClick(e) {
+    // Bấm nền tối quanh bảng chọn kiểu thì đóng bảng.
+    if (e.target.classList && e.target.classList.contains('skin-pick')) {
+      picking = null;
+      return draw(true);
+    }
     const t = e.target.closest('button');
     if (!t || t.disabled) return;
     const a = t.dataset.act;
+    if (a === 'pick-close') {
+      picking = null;
+      return draw(true);
+    }
+    if (a === 'skin') {
+      picking = { floor: +t.dataset.floor, slot: +t.dataset.slot };
+      return draw(true);
+    }
+    if (a === 'pick') return pickSkin(t.dataset.skin);
     const floor = +t.dataset.floor;
     const slot = +t.dataset.slot;
     const f = info(floor);
@@ -200,6 +249,28 @@
     }
   }
 
+  // Lắp kiểu đã có; kiểu chưa có thì hỏi xác nhận, mua rồi lắp luôn cho chậu đang chọn.
+  function pickSkin(id) {
+    if (!picking) return;
+    const { floor, slot } = picking;
+    const s = skins().find((x) => x.id === id);
+    if (!s) return;
+    return act(async () => {
+      if (!owned(id)) {
+        if (!enough(s.price)) return;
+        if (!(await cfg.ask(`Mua kiểu chậu "${s.name}" với giá ${cfg.xu(s.price)} xu? Mua một lần dùng cho mọi chậu.`, { title: 'Mua kiểu chậu', ok: 'Mua' }))) return;
+        const bought = await cfg.api('/api/farm/pot/skin/buy', { skin: id });
+        if (!bought) return;
+      }
+      const res = await cfg.api('/api/farm/pot/skin/set', { floor, slot, skin: id });
+      if (res) {
+        picking = null;
+        cfg.toast(`Đã đổi sang chậu ${s.name}`);
+        draw(true);
+      }
+    });
+  }
+
   function open(f, catalog) {
     farm = f;
     cat = catalog;
@@ -221,6 +292,7 @@
 
   function close() {
     if (!root) return;
+    picking = null;
     root.classList.add('hidden');
     document.body.classList.remove('in-cloud');
     clearInterval(timer);

@@ -3,6 +3,7 @@ package farm
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/dbphx/game-center/internal/wallet"
 )
@@ -25,9 +26,66 @@ CREATE TABLE IF NOT EXISTS farm_pots (
 	slot       INTEGER NOT NULL,              -- 0–5
 	planted_at INTEGER NOT NULL DEFAULT 0,    -- 0 = chậu trống
 	ready_at   INTEGER NOT NULL DEFAULT 0,
+	skin       TEXT NOT NULL DEFAULT '',     -- kiểu dáng chậu ('' = chậu mặc định của tầng)
 	PRIMARY KEY (user_id, floor, slot)
 );
+-- Kiểu dáng chậu đã mua; dùng cho mọi chậu ở mọi tầng. Kiểu miễn phí không cần dòng.
+CREATE TABLE IF NOT EXISTS farm_pot_skins (
+	user_id INTEGER NOT NULL REFERENCES users(id),
+	skin    TEXT NOT NULL,
+	PRIMARY KEY (user_id, skin)
+);
 `
+
+// PotSkin là một kiểu dáng chậu: chỉ để đẹp, không đổi cây, giá hay thời gian chín.
+type PotSkin struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Price int64  `json:"price"`
+}
+
+// potSkinDefault là chậu mặc định của tầng (pot_1..4); cùng với các kiểu giá 0 thì ai cũng có sẵn.
+const potSkinDefault = "default"
+
+var PotSkins = []PotSkin{
+	{potSkinDefault, "Chậu của tầng", 0},
+	{"white", "Gốm trắng", 0},
+	{"flower", "Gốm hoa", 20_000},
+	{"wood", "Gỗ mộc", 20_000},
+	{"bluewhite", "Sứ thanh hoa", 50_000},
+	{"jade", "Ngọc lục bảo", 100_000},
+	{"cloud", "Mây trắng", 200_000},
+	{"crystal", "Pha lê", 300_000},
+	{"gold", "Vàng khảm đá", 500_000},
+}
+
+func findPotSkin(id string) (PotSkin, bool) {
+	for _, s := range PotSkins {
+		if s.ID == id {
+			return s, true
+		}
+	}
+	return PotSkin{}, false
+}
+
+// migratePotSkins thêm cột skin cho farm_pots của database từ bản cũ.
+func migratePotSkins(ctx context.Context, w *wallet.Wallet) error {
+	tx, err := w.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	var has bool
+	if err := tx.QueryRowContext(ctx, `SELECT count(*) > 0 FROM pragma_table_info('farm_pots') WHERE name = 'skin'`).Scan(&has); err != nil {
+		return err
+	}
+	if !has {
+		if _, err := tx.ExecContext(ctx, `ALTER TABLE farm_pots ADD COLUMN skin TEXT NOT NULL DEFAULT ''`); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
 
 const (
 	cloudSlots       = 6
@@ -64,10 +122,11 @@ func findCloudCrop(id string) (Crop, bool) {
 
 // Pot là một chậu đã mua trên mây; PlantedAt = 0 nghĩa là chậu trống.
 type Pot struct {
-	Floor     int   `json:"floor"`
-	Slot      int   `json:"slot"`
-	PlantedAt int64 `json:"plantedAt"`
-	ReadyAt   int64 `json:"readyAt"`
+	Floor     int    `json:"floor"`
+	Slot      int    `json:"slot"`
+	PlantedAt int64  `json:"plantedAt"`
+	ReadyAt   int64  `json:"readyAt"`
+	Skin      string `json:"skin"` // kiểu dáng chậu, "default" = chậu mặc định của tầng
 }
 
 // Cloud là phần trên mây của nông trại. Available: đã đủ 48 ô, được thấy ô 49.
@@ -77,6 +136,8 @@ type Cloud struct {
 	BeanPlantedAt int64 `json:"beanPlantedAt"`
 	BeanReadyAt   int64 `json:"beanReadyAt"`
 	Pots          []Pot `json:"pots"`
+	// Skins: các kiểu dáng chậu người chơi đã có (luôn gồm các kiểu miễn phí).
+	Skins []string `json:"skins"`
 }
 
 func (c Cloud) pot(floor, slot int) (Pot, bool) {
@@ -107,7 +168,7 @@ func (f *Farm) settleBean(ctx context.Context, tx *wallet.Tx, uid, now int64) er
 
 // loadCloud đọc phần trên mây; plots là số ô đất đang có.
 func loadCloud(ctx context.Context, q querier, uid int64, plots int) (Cloud, error) {
-	c := Cloud{Available: plots >= MaxPlots, Pots: []Pot{}}
+	c := Cloud{Available: plots >= MaxPlots, Pots: []Pot{}, Skins: []string{}}
 	rows, err := q.QueryContext(ctx, `SELECT floors, bean_planted, bean_ready_at FROM farm_cloud WHERE user_id = ?`, uid)
 	if err != nil {
 		return c, err
@@ -122,17 +183,42 @@ func loadCloud(ctx context.Context, q querier, uid int64, plots int) (Cloud, err
 	if err := rows.Err(); err != nil {
 		return c, err
 	}
-	rows, err = q.QueryContext(ctx, `SELECT floor, slot, planted_at, ready_at FROM farm_pots WHERE user_id = ? ORDER BY floor, slot`, uid)
+	rows, err = q.QueryContext(ctx, `SELECT floor, slot, planted_at, ready_at, skin FROM farm_pots WHERE user_id = ? ORDER BY floor, slot`, uid)
+	if err != nil {
+		return c, err
+	}
+	for rows.Next() {
+		var p Pot
+		if err := rows.Scan(&p.Floor, &p.Slot, &p.PlantedAt, &p.ReadyAt, &p.Skin); err != nil {
+			rows.Close()
+			return c, err
+		}
+		if p.Skin == "" {
+			p.Skin = potSkinDefault
+		}
+		c.Pots = append(c.Pots, p)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return c, err
+	}
+	owned := map[string]bool{}
+	rows, err = q.QueryContext(ctx, `SELECT skin FROM farm_pot_skins WHERE user_id = ?`, uid)
 	if err != nil {
 		return c, err
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var p Pot
-		if err := rows.Scan(&p.Floor, &p.Slot, &p.PlantedAt, &p.ReadyAt); err != nil {
+		var id string
+		if err := rows.Scan(&id); err != nil {
 			return c, err
 		}
-		c.Pots = append(c.Pots, p)
+		owned[id] = true
+	}
+	for _, s := range PotSkins { // theo thứ tự catalog
+		if s.Price == 0 || owned[s.ID] {
+			c.Skins = append(c.Skins, s.ID)
+		}
 	}
 	return c, rows.Err()
 }
@@ -261,6 +347,46 @@ func (f *Farm) HarvestPot(ctx context.Context, uid int64, floor, slot int) (Stat
 	return s, g, err
 }
 
+// BuyPotSkin mua một kiểu dáng chậu; mua một lần dùng cho mọi chậu ở mọi tầng.
+func (f *Farm) BuyPotSkin(ctx context.Context, uid int64, skin string) (State, error) {
+	ps, ok := findPotSkin(skin)
+	if !ok {
+		return State{}, notFound("không có kiểu chậu này")
+	}
+	return f.do(ctx, uid, func(tx *wallet.Tx, s State) error {
+		if slices.Contains(s.Cloud.Skins, ps.ID) {
+			return conflict("bạn đã có kiểu chậu " + ps.Name)
+		}
+		if err := tx.Charge(uid, ps.Price, GameID, "Mua kiểu chậu "+ps.Name); err != nil {
+			return err
+		}
+		_, err := tx.ExecContext(ctx, `INSERT INTO farm_pot_skins (user_id, skin) VALUES (?, ?)`, uid, ps.ID)
+		return err
+	})
+}
+
+// SetPotSkin lắp kiểu dáng cho một chậu; không đổi cây đang trồng hay giờ chín.
+func (f *Farm) SetPotSkin(ctx context.Context, uid int64, floor, slot int, skin string) (State, error) {
+	if _, err := cloudSpot(floor, slot); err != nil {
+		return State{}, err
+	}
+	return f.do(ctx, uid, func(tx *wallet.Tx, s State) error {
+		if _, ok := s.Cloud.pot(floor, slot); !ok {
+			return conflict("chỗ này chưa có chậu")
+		}
+		ps, ok := findPotSkin(skin)
+		if !ok || !slices.Contains(s.Cloud.Skins, ps.ID) {
+			return conflict("bạn chưa có kiểu chậu này")
+		}
+		stored := ps.ID
+		if stored == potSkinDefault {
+			stored = ""
+		}
+		_, err := tx.ExecContext(ctx, `UPDATE farm_pots SET skin = ? WHERE user_id = ? AND floor = ? AND slot = ?`, stored, uid, floor, slot)
+		return err
+	})
+}
+
 // addCloudWorth cộng phần trên mây vào giá trị nông trại: hạt đậu của tầng đã mở và hạt đang lớn, giá chậu, tiền hạt của cây trong chậu.
 func addCloudWorth(ctx context.Context, q querier, worth map[int64]int64) error {
 	rows, err := q.QueryContext(ctx, `SELECT user_id, floors, bean_planted FROM farm_cloud`)
@@ -279,6 +405,26 @@ func addCloudWorth(ctx context.Context, q querier, worth map[int64]int64) error 
 		}
 		for i := 0; i < floors && i < len(CloudFloors); i++ {
 			worth[uid] += CloudFloors[i].BeanPrice
+		}
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	// Kiểu dáng chậu đã mua.
+	rows, err = q.QueryContext(ctx, `SELECT user_id, skin FROM farm_pot_skins`)
+	if err != nil {
+		return err
+	}
+	for rows.Next() {
+		var uid int64
+		var id string
+		if err := rows.Scan(&uid, &id); err != nil {
+			rows.Close()
+			return err
+		}
+		if ps, ok := findPotSkin(id); ok {
+			worth[uid] += ps.Price
 		}
 	}
 	rows.Close()

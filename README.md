@@ -239,6 +239,11 @@ Mã lỗi: 400 dữ liệu sai, 402 không đủ xu, 403 thiếu level / HP, 404
 
 - Zombie không tấn công ô 49 và cây mây. Bạn bè không trộm được, cũng không thấy ô 49 và tầng mây khi ghé thăm. Đất tốt không áp dụng cho chậu.
 - Tiền hạt đậu, chậu và cây đang trồng trong chậu tính vào giá trị nông trại ở Khu danh vọng.
+- **Kiểu dáng chậu** (chỉ để đẹp, không đổi cây, giá hay thời gian chín): Chậu của tầng và Gốm trắng miễn phí; Gốm hoa, Gỗ mộc
+  20.000; Sứ thanh hoa 50.000; Ngọc lục bảo 100.000; Mây trắng 200.000; Pha lê 300.000; Vàng khảm đá 500.000 xu. Mua một lần
+  dùng cho mọi chậu (`POST /api/farm/pot/skin/buy {skin}`), lắp cho từng chậu (`POST /api/farm/pot/skin/set {floor, slot, skin}`),
+  không đổi cây đang trồng. Catalog có `potSkins`; mỗi chậu có `skin`, `cloud.skins` là các kiểu đã có. Tiền mua kiểu chậu tính
+  vào giá trị nông trại.
 
 ## Bầu Cua Tôm Cá
 
