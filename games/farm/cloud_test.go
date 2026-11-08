@@ -457,7 +457,8 @@ func TestVisitorSeesNoCloud(t *testing.T) {
 		t.Fatal(err)
 	}
 	raw, _ := json.Marshal(v)
-	for _, leak := range []string{"cloud", "bean", `"pots"`} {
+	// Khách thấy cây đậu ở ô 49 (bean) nhưng không thấy tầng mây, chậu hay cây trong chậu.
+	for _, leak := range []string{"cloud", `"pots"`, "cloud_berry"} {
 		if strings.Contains(string(raw), leak) {
 			t.Fatalf("lộ %q khi ghé thăm: %s", leak, raw)
 		}

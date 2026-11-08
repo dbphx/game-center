@@ -315,7 +315,7 @@
       ...HEDGES.map(([x1, x2, y]) => [x1, y - 12, x2, y]), // hàng rào hoa
       ...hedgeSides(X).map(([x, y1, y2]) => [x - 14, y1, x + 14, y2]),
     ];
-    if (!VISIT && farm.gun && farm.gun.owned) obstacles.push([GUN.x - 30, GUN.y - 12, GUN.x + 30, GUN.y + 2]);
+    if (farm.gun && farm.gun.owned) obstacles.push([GUN.x - 30, GUN.y - 12, GUN.x + 30, GUN.y + 2]);
     if (beanShown()) obstacles.push([BEAN.x - 30, BEAN.y - 12, BEAN.x + 30, BEAN.y + 2]);
   }
 
@@ -474,7 +474,7 @@
 
   // Súng đậu: chưa có thì biển mua trên mảng cỏ, có rồi thì súng quay nòng về phía ruộng kèm nhãn số đạn.
   // ---------- Ô 49: đậu thần ----------
-  const beanShown = () => !VISIT && !!(farm && farm.cloud && farm.cloud.available);
+  const beanShown = () => !!(farm && farm.cloud && farm.cloud.available);
   const beanFloors = () => (cat && cat.cloudFloors) || [];
   // Giai đoạn hình của ô 49: 0 đất trống, 1–2 hạt đang lớn, 3 cây đậu đã có tầng mây.
   function beanStage() {
@@ -487,7 +487,7 @@
   function beanLabel() {
     const c = farm.cloud;
     if (c.beanPlantedAt) return countdown(c.beanReadyAt - nowS());
-    if (c.floors > 0) return `Lên mây · tầng ${c.floors}`;
+    if (c.floors > 0) return VISIT ? `Đậu thần · tầng ${c.floors}` : `Lên mây · tầng ${c.floors}`;
     const next = beanFloors()[0];
     return next ? `Đậu thần · ${xu(next.beanPrice)} xu` : 'Đậu thần';
   }
@@ -552,7 +552,7 @@
     }
     return `<div class="obj gun-obj" data-obj="gun" style="${pos(GUN.x, GUN.y)}">
       <img class="gun-img" src="/img/toon/farm/pea_gun.png" alt="Súng đậu" draggable="false">
-      <span class="gun-label${g.ammo ? '' : ' empty'}">${g.ammo ? `${xu(g.ammo)} viên` : 'Hết đạn'}</span></div>`;
+      ${VISIT ? '' : `<span class="gun-label${g.ammo ? '' : ' empty'}">${g.ammo ? `${xu(g.ammo)} viên` : 'Hết đạn'}</span>`}</div>`;
   }
 
   function yardHTML() {
@@ -781,7 +781,8 @@
       const c = farm.cloud;
       objs.bean = { x: BEAN.x, y: 600, face: 'down', hx: BEAN.x, hy: BEAN.y - BEAN_H[beanStage()] - 40, verb: c.floors > 0 && !c.beanPlantedAt ? 'Đậu thần: lên mây' : 'Đậu thần', run: () => openPen('bean') };
     }
-    if (!VISIT) {
+    // Nhà bạn: chỉ hiện súng khi chủ đã mua (không có biển mua, không lộ số đạn).
+    if (!VISIT || (farm.gun && farm.gun.owned)) {
       const owned = !!(farm.gun && farm.gun.owned);
       parts.push(gunHTML());
       objs.gun = { x: GUN.x + 62, y: GUN.y + 6, face: 'left', hx: GUN.x, hy: GUN.y - (owned ? 160 : 88), verb: owned ? 'Súng đậu' : 'Mua súng đậu', run: () => openPen('gun') };
@@ -1904,6 +1905,19 @@
       if (key === 'gate') {
         o.verb = 'Về nhà mình';
         o.run = () => (location.href = '/farm/');
+        continue;
+      }
+      const owner = visit ? visit.owner.name : 'bạn';
+      if (key === 'bean') {
+        const c = farm.cloud || {};
+        o.verb = 'Đậu thần nhà bạn';
+        o.run = () => A.toast(c.beanPlantedAt ? `Đậu thần nhà ${owner} đang vươn tới tầng ${c.floors + 1}`
+          : c.floors > 0 ? `Đậu thần nhà ${owner} đã vươn tới tầng ${c.floors}` : `Ô đậu thần nhà ${owner} còn trống`);
+        continue;
+      }
+      if (key === 'gun') {
+        o.verb = 'Súng đậu nhà bạn';
+        o.run = () => A.toast(`Súng đậu nhà ${owner} — tự bắn zombie mỗi đầu giờ`);
         continue;
       }
       const name = { barn: 'Chuồng', pond: 'Ao cá', seeds: 'Kho giống', products: 'Kho thóc', nest: 'Ổ trứng', buyplot: 'Đất' }[key];

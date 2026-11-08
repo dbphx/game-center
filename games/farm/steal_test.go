@@ -937,3 +937,32 @@ func TestMigrateAddsStockIDColumn(t *testing.T) {
 		t.Fatalf("dấu ô đất cũ mất: %+v", v.Plots[0])
 	}
 }
+
+// Khách ghé thăm thấy cây đậu thần ở ô 49 và khẩu súng đậu của chủ, không thấy số đạn hay chậu trên mây.
+func TestVisitShowsBeanAndGun(t *testing.T) {
+	e, thief := thiefEnv(t, 100_000)
+	v, err := e.f.Visit(ctx, e.uid, thief)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v.Bean.Available || v.Bean.Floors != 0 || v.Gun {
+		t.Fatalf("nhà chưa có gì: %+v gun=%v", v.Bean, v.Gun)
+	}
+	e.set(100_000_000, 0)
+	e.openFloors(2)
+	e.ok(e.f.PlantBean(ctx, e.uid))
+	e.ok(e.f.BuyGun(ctx, e.uid))
+	e.ok(e.f.BuyAmmo(ctx, e.uid, 7))
+	if v, err = e.f.Visit(ctx, e.uid, thief); err != nil {
+		t.Fatal(err)
+	}
+	if !v.Bean.Available || v.Bean.Floors != 2 || v.Bean.PlantedAt == 0 || v.Bean.ReadyAt <= v.Bean.PlantedAt || !v.Gun {
+		t.Fatalf("phải thấy đậu tầng 2 đang lớn và súng: %+v gun=%v", v.Bean, v.Gun)
+	}
+	raw, _ := json.Marshal(v)
+	for _, leak := range []string{"ammo", "pots", "cloud"} {
+		if strings.Contains(string(raw), leak) {
+			t.Fatalf("lộ %q khi ghé thăm: %s", leak, raw)
+		}
+	}
+}

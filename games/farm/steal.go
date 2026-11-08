@@ -107,6 +107,16 @@ type Visit struct {
 	Stock      []VisitStock `json:"stock"`
 	Dog        Dog          `json:"dog"`
 	StealsLeft int          `json:"stealsLeft"`
+	Bean       VisitBean    `json:"bean"` // cây đậu thần ở ô 49, chỉ để khách nhìn thấy
+	Gun        bool         `json:"gun"`  // chủ đã có súng đậu (không lộ số đạn)
+}
+
+// VisitBean là cây đậu thần ở ô 49 khi xem nông trại bạn: đủ để vẽ đúng giai đoạn, không có thông tin chậu hay tầng mây.
+type VisitBean struct {
+	Available bool  `json:"available"` // chủ đã đủ 48 ô đất
+	Floors    int   `json:"floors"`
+	PlantedAt int64 `json:"plantedAt"`
+	ReadyAt   int64 `json:"readyAt"`
 }
 
 // Summary là tóm tắt nông trại cho danh sách bạn bè.
@@ -272,6 +282,16 @@ func (f *Farm) visit(ctx context.Context, q querier, owner, viewer int64, now ti
 	if v.Dog, err = loadDog(ctx, q, owner, sec); err != nil {
 		return Visit{}, err
 	}
+	c, err := loadCloud(ctx, q, owner, len(plots))
+	if err != nil {
+		return Visit{}, err
+	}
+	v.Bean = VisitBean{Available: c.Available, Floors: c.Floors, PlantedAt: c.BeanPlantedAt, ReadyAt: c.BeanReadyAt}
+	g, _, err := loadGun(ctx, q, owner)
+	if err != nil {
+		return Visit{}, err
+	}
+	v.Gun = g.Owned
 	v.StealsLeft, err = f.stealsLeft(ctx, q, viewer, owner, sec)
 	return v, err
 }
