@@ -5,33 +5,100 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const M = '/race/models/';
 const IMG = '/race/img/';
 const CAR_WIDTH = 2.0; // mọi xe thu phóng về cùng bề ngang (m)
 
-// Mẫu xe server (games/race/cars.go) → mô hình Kenney. open: mui trần, cần thêm người lái.
+// Mẫu xe server (games/race/cars.go) → mô hình 3D. open: mui trần, cần thêm người lái. turn: quay mô hình cho mũi xe hướng +z.
+// paintMat: tên vật liệu thân xe được đổi màu sơn. fixedWheels: bánh liền khối (không xoay). credit: ghi công (CC-BY phải hiện).
+// Nguồn và giấy phép từng mô hình: public/race/models/CREDITS.txt.
+const CC0 = 'CC0';
+const BY3 = 'CC-BY 3.0';
 export const CAR_MODELS = {
-  starter: { file: 'car/kart-oozi.glb', open: true, seat: [0, 0.2, -0.15], hideChar: true },
-  comet: { file: 'car/hatchback-sports.glb', open: false },
-  bolt: { file: 'car/sedan-sports.glb', open: false },
-  viper: { file: 'kit/raceCarRed.glb', open: true, seat: [0, 0.62, -0.25], paintMat: 'red' },
-  phantom: { file: 'car/race.glb', open: true, seat: [0, 0.6, -0.35] },
-  nova: { file: 'car/race-future.glb', open: true, seat: [0, 0.66, -0.3] },
-  // Xe thể thao CC0 (Quaternius, scaranto qua Poly Pizza). Bánh liền khối nên không xoay / không thay mâm.
-  sprint: { file: 'cc0/sports-car-white.glb', open: false, paintMat: ['White'], fixedWheels: true },
-  raptor: { file: 'cc0/sports-car-orange.glb', open: false, paintMat: ['Orange', 'DarkOrange'], fixedWheels: true },
-  zenith: { file: 'cc0/sports-car-striped.glb', open: false, tint: 0.55, fixedWheels: true },
-  vortex: { file: 'cc0/sports-car-armored.glb', open: false, tint: 0.5, fixedWheels: true },
-  apex: { file: 'kit/raceCarGreen.glb', open: true, seat: [0, 0.62, -0.25], paintMat: ['grass'] },
-  blaze: { file: 'cc0/formula-car.glb', open: true, seat: [0, 0.5, -0.05], paintMat: ['Material.005'], fixedWheels: true, turn: Math.PI / 2 },
+  starter: { file: 'ccby/starter.glb', open: true, turn: -Math.PI / 2, seat: [0, 0.22, -0.05], paintMat: ['Material.014', 'Material.016', 'Material.001'], fixedWheels: true, credit: ['scaranto', CC0] },
+  comet: { file: 'ccby/comet.glb', open: false, paintMat: ['Blue'], fixedWheels: true, credit: ['Quaternius', CC0] },
+  sprint: { file: 'cc0/sports-car-white.glb', open: false, paintMat: ['White'], fixedWheels: true, credit: ['Quaternius', CC0] },
+  bolt: { file: 'ccby/bolt.glb', open: true, seat: [0, 0.42, -0.05], paintMat: ['paint', 'paint-2'], fixedWheels: true, credit: ['Ray Alez', BY3] },
+  raptor: { file: 'cc0/sports-car-orange.glb', open: false, paintMat: ['Orange', 'DarkOrange'], fixedWheels: true, credit: ['Quaternius', CC0] },
+  viper: { file: 'cc0/sports-car-striped.glb', open: false, tint: 0.55, fixedWheels: true, credit: ['Quaternius', CC0] },
+  zenith: { file: 'ccby/zenith.glb', open: false, turn: -Math.PI / 2, paintMat: ['mat21'], fixedWheels: true, credit: ['Chris Tarello', BY3] },
+  phantom: { file: 'ccby/phantom.glb', open: false, turn: Math.PI, paintMat: ['mat2', 'mat1'], fixedWheels: true, credit: ['Nick Ladd', BY3] },
+  vortex: { file: 'ccby/vortex.glb', open: false, turn: Math.PI, paintMat: ['mat8'], fixedWheels: true, hover: true, credit: ['Aaron Clifford', BY3] },
+  apex: { file: 'kit/raceCarRed.glb', open: true, seat: [0, 0.62, -0.25], paintMat: ['red'], credit: ['Kenney', CC0] },
+  blaze: { file: 'cc0/formula-car.glb', open: true, seat: [0, 0.5, -0.05], paintMat: ['Material.005'], fixedWheels: true, turn: Math.PI / 2, credit: ['scaranto', CC0] },
+  nova: { file: 'car/race-future.glb', open: true, seat: [0, 0.66, -0.3], tint: 0.72, credit: ['Kenney', CC0] },
 };
-// Moto dựng bằng khối trong three.js (không có mô hình moto CC0 hợp phong cách): style chọn kiểu thân.
+// Moto: mô hình 3D có sẵn (file) cộng người lái, đồ nâng cấp dựng thêm. style chỉ dùng khi không tải được mô hình.
 export const MOTO_MODELS = {
-  moto_dash: { style: 'street' },
-  moto_storm: { style: 'sport' },
-  moto_neon: { style: 'neon' },
+  moto_dash: { style: 'street', file: 'ccby/moto_dash.glb', turn: -Math.PI / 2, paintMat: ['039BE5', '455A64'], credit: ['jeremy', BY3] },
+  moto_storm: { style: 'sport', file: 'ccby/moto_storm.glb', turn: Math.PI, tint: 0.35, credit: ['Poly by Google', BY3] },
+  moto_neon: { style: 'neon', file: 'ccby/moto_neon.glb', turn: Math.PI, paintMat: ['LightPurple'], neonStrips: true, credit: ['AliceCassie', CC0] },
 };
+// creditOf trả dòng ghi công của mẫu xe cho garage, vd "Mô hình: Nick Ladd (CC-BY 3.0)".
+export function creditOf(id) {
+  const m = MOTO_MODELS[id] || CAR_MODELS[id];
+  return m && m.credit ? `Mô hình: ${m.credit[0]} (${m.credit[1]})` : '';
+}
+
+// Môi trường phản chiếu cho sơn bóng, kính, kim loại của xe (chỉ gắn vào vật liệu xe, không làm sáng đường đua đêm).
+let ENV = null;
+function carEnv(renderer, low) {
+  if (ENV || !renderer) return ENV;
+  const pm = new THREE.PMREMGenerator(renderer);
+  ENV = pm.fromScene(new RoomEnvironment(), low ? 0.08 : 0.04).texture;
+  pm.dispose();
+  return ENV;
+}
+
+// carMaterials đổi vật liệu mô hình sang sơn bóng có lớp phủ (thân), kính tối, đèn phát sáng, nhựa / lốp mờ.
+// Trả số vật liệu đèn của mô hình (có đèn sẵn thì không gắn thêm khối đèn giả).
+function carMaterials(obj, info, paint, low) {
+  const pm = info.paintMat && [].concat(info.paintMat);
+  let lights = 0;
+  obj.traverse((o) => {
+    if (!o.isMesh) return;
+    if (/character/i.test(o.name) || /character/i.test(o.parent && o.parent.name)) return;
+    const isWheel = /wheel|rubber|tire|tyre|rim/i.test(o.name) || /wheel/i.test(o.parent && o.parent.name);
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    const next = mats.map((m) => {
+      const name = m.name || '';
+      const base = m.color ? m.color.clone() : new THREE.Color(0xffffff);
+      const hsl = base.getHSL({});
+      const isPaint = !isWheel && (pm ? pm.includes(name) : !m.map && info.tint == null && hsl.l > 0.12 && hsl.l < 0.92 && hsl.s > 0.2);
+      // Đèn: chỉ vật liệu tên đúng là đèn (không bắt nhầm "LightPurple"); phát sáng vừa phải để bloom không loá.
+      if (/^lights?([ ._-]?\d+)?$|head ?lights?|tail ?lights?|brake|lamp/i.test(name)) {
+        const red = /tail|rear|brake/i.test(name) || (base.r > 0.5 && base.g < 0.3);
+        const c = red ? 0xff2a3a : 0xdfeeff;
+        lights++;
+        return new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: red ? 1.1 : 0.7, roughness: 0.3 });
+      }
+      if (/window|glass|wind/i.test(name)) {
+        // Kính tối, nhám nhẹ: phản chiếu môi trường nhưng điểm sáng của đèn không loá thành đốm trắng.
+        return new THREE.MeshStandardMaterial({ color: 0x0c1220, metalness: 0.3, roughness: 0.3, envMap: ENV, envMapIntensity: 0.7 });
+      }
+      if (isPaint || (!isWheel && !pm && info.tint != null && !m.map)) {
+        const c = isPaint ? new THREE.Color(paint) : base.clone().lerp(new THREE.Color(paint), info.tint);
+        if (low) return new THREE.MeshStandardMaterial({ color: c, metalness: 0.35, roughness: 0.4, envMap: ENV, envMapIntensity: 0.5 });
+        // Lớp phủ vừa phải: bóng như sơn xe nhưng điểm loá không vượt ngưỡng bloom thành đốm trắng.
+        return new THREE.MeshPhysicalMaterial({ color: c, metalness: 0.3, roughness: 0.42, clearcoat: 0.55, clearcoatRoughness: 0.28, envMap: ENV, envMapIntensity: 0.45 });
+      }
+      const c = m.clone();
+      if (m.map && info.tint && !isWheel) c.color = new THREE.Color(0xffffff).lerp(new THREE.Color(paint), info.tint);
+      // Chặn kim loại / độ bóng: mô hình gốc có vật liệu metalness 1 phản chiếu đèn phòng thành khối trắng loá.
+      const dark = hsl.l < 0.1;
+      c.metalness = dark ? 0.15 : Math.min(0.4, Math.max(c.metalness || 0, 0.25));
+      c.roughness = dark ? 0.7 : Math.max(0.45, c.roughness ?? 0.5);
+      if (c.emissive) c.emissive.setHex(0x000000);
+      c.envMap = ENV;
+      c.envMapIntensity = dark ? 0.25 : 0.4;
+      return c;
+    });
+    o.material = Array.isArray(o.material) ? next : next[0];
+  });
+  return lights;
+}
 export const isMoto = (id) => !!MOTO_MODELS[id] || /^moto/.test(String(id || ''));
 const ORDER = ['starter', 'comet', 'bolt', 'viper', 'phantom', 'nova'];
 export const modelOf = (id) => CAR_MODELS[id] || CAR_MODELS[ORDER[Math.abs(hash(id)) % ORDER.length]];
@@ -86,6 +153,7 @@ export function createRenderer(canvas, low) {
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
+  carEnv(renderer, low);
   let scene = new THREE.Scene();
   let camera = new THREE.PerspectiveCamera(72, 1, 0.3, 1500);
   let composer = null;
@@ -351,26 +419,17 @@ export async function buildCar(spec, low = false) {
   const cos = spec.cosmetics || {};
   const paint = colorOf(cos.paint, PAINT.red);
 
-  // Sơn: vật liệu tên màu (Racing Kit) đổi hẳn màu; mô hình dùng bảng màu chung thì nhuộm phần thân.
-  body.traverse((o) => {
-    if (!o.isMesh) return;
-    const isWheel = /wheel/i.test(o.name) || /wheel/i.test(o.parent && o.parent.name);
-    if (isWheel || /character/i.test(o.name) || /character/i.test(o.parent && o.parent.name)) return;
-    const mats = Array.isArray(o.material) ? o.material : [o.material];
-    const next = mats.map((m) => {
-      const c = m.clone();
-      const pm = info.paintMat && [].concat(info.paintMat);
-      if (pm) {
-        if (pm.includes(m.name)) c.color.setHex(paint);
-      } else {
-        c.color.setHex(0xffffff).lerp(new THREE.Color(paint), info.tint ?? 0.72);
-      }
-      c.metalness = 0.35;
-      c.roughness = 0.32;
-      return c;
-    });
-    o.material = Array.isArray(o.material) ? next : next[0];
-  });
+  // Sơn bóng có lớp phủ cho thân, kính tối, đèn phát sáng, phản chiếu môi trường (xem carMaterials).
+  const ownLights = carMaterials(body, info, paint, low);
+  // Xe bay (vortex): nâng thân khỏi mặt đường, có quầng đẩy phía dưới.
+  let hoverGlow = null;
+  if (info.hover) {
+    holder.position.y = 0.35;
+    hoverGlow = new THREE.Mesh(new THREE.PlaneGeometry(CAR_WIDTH * 1.2, L * 0.9), new THREE.MeshBasicMaterial({ map: tex('spark.png'), color: colorOf(cos.neon, 0xff5a2a), transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+    hoverGlow.rotation.x = -Math.PI / 2;
+    hoverGlow.position.y = 0.07;
+    root.add(hoverGlow);
+  }
   // Bánh xe chỉ giữ các nút bánh (không lặp con).
   const wheelNodes = [];
   if (!info.fixedWheels) body.traverse((o) => { if (/wheel/i.test(o.name) && !/wheel/i.test(o.parent && o.parent.name)) wheelNodes.push(o); });
@@ -409,7 +468,7 @@ export async function buildCar(spec, low = false) {
   root.add(extras);
   const rear = -L / 2;
   // Bánh liền khối (mô hình CC0 ngoài Kenney): lốp cấp 4–5 là vòng sáng ở vị trí bánh ước lượng.
-  if (info.fixedWheels && tires >= 4) {
+  if (info.fixedWheels && !info.hover && tires >= 4) {
     const wr = H * 0.17;
     for (const zf of [0.32, -0.32]) for (const side of [-1, 1]) {
       const ring = new THREE.Mesh(new THREE.TorusGeometry(wr, wr * 0.12, 6, 20), glow(colorOf(cos.neon, 0x2fe6ff)));
@@ -549,8 +608,8 @@ export async function buildCar(spec, low = false) {
     extras.add(plate);
   }
 
-  // Đèn pha phát sáng phía trước, đèn hậu đỏ.
-  for (const x of [-0.6, 0.6]) {
+  // Đèn pha phát sáng phía trước, đèn hậu đỏ (chỉ khi mô hình không có đèn riêng); sáng vừa để bloom không loá.
+  if (!ownLights) for (const x of [-0.6, 0.6]) {
     const hl = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.1, 0.05), glow(0xeaf6ff));
     hl.position.set(x, H * 0.32, L / 2 + 0.02);
     extras.add(hl);
@@ -578,6 +637,10 @@ export async function buildCar(spec, low = false) {
         w.rotation.y = /front/i.test(w.name) ? steer * 0.45 : 0;
       }
       holder.rotation.z = THREE.MathUtils.lerp(holder.rotation.z, (drift ? 0.06 : 0.02) * steer, Math.min(1, dt * 6));
+      if (hoverGlow) {
+        holder.position.y = 0.35 + Math.sin(t * 3.2) * 0.05;
+        hoverGlow.material.opacity = 0.45 + Math.sin(t * 9) * 0.1 + (boost ? 0.25 : 0);
+      }
       for (const f of flames) {
         f.visible = boost;
         if (boost) f.scale.set(1, 0.8 + Math.sin(t * 60 + f.id) * 0.25, 1);
@@ -591,8 +654,9 @@ export async function buildCar(spec, low = false) {
 
 // buildMoto dựng moto theo kiểu (street / sport / neon) với người lái cúi người, đồ nâng cấp như xe hơi
 // (ống xả, bình turbo, mâm), neon gầm, sơn, decal. Không lắp cánh gió. Nghiêng vào cua khi lái.
-export function buildMoto(spec) {
-  const style = (MOTO_MODELS[spec.car] || { style: 'street' }).style;
+export async function buildMoto(spec, low = false) {
+  const minfo = MOTO_MODELS[spec.car] || { style: 'street' };
+  const style = minfo.style;
   const lv = spec.levels || {};
   const cos = spec.cosmetics || {};
   const paint = colorOf(cos.paint, style === 'neon' ? PAINT.black : PAINT.red);
@@ -609,11 +673,41 @@ export function buildMoto(spec) {
   const WB = 1.42; // khoảng cách hai trục
   const L = 2.25 * MOTO_SCALE;
   const H = 1.45 * MOTO_SCALE;
+  const add = (geo, mat, x, y, z, rx = 0, ry = 0, rz = 0) => {
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(x, y, z);
+    m.rotation.set(rx, ry, rz);
+    lean.add(m);
+    return m;
+  };
+  // Mô hình 3D có sẵn: thu phóng cho dài bằng khung moto (2,1 m trước khi phóng MOTO_SCALE), đặt bánh chạm đất.
+  let glb = null;
+  let seatY = R + 0.62;
+  if (minfo.file) {
+    try {
+      const body = (await loadModel(minfo.file)).clone(true);
+      const hold = new THREE.Group();
+      if (minfo.turn) body.rotation.y = minfo.turn;
+      hold.add(body);
+      const sz = recenter(body);
+      const k = 2.1 / Math.max(sz.z, sz.x, 0.01);
+      hold.scale.setScalar(k);
+      carMaterials(body, minfo, paint, low);
+      lean.add(hold);
+      glb = { h: sz.y * k };
+      seatY = glb.h * 0.6;
+      if (minfo.neonStrips) for (const x of [-0.13, 0.13]) add(new THREE.BoxGeometry(0.02, 0.03, 1.2), glow(accent), x, glb.h * 0.42, 0.05);
+    } catch (e) {
+      glb = null;
+    }
+  }
 
   // Bánh: lốp xuyến + mâm. Lốp cấp 2–3 mâm tối, 4–5 mâm đua có viền sáng; neon: bánh không trục phát sáng.
   const tires = lv.tires || 0;
   const wheels = [];
-  for (const z of [WB / 2, -WB / 2]) {
+  // Mô hình có sẵn bánh liền khối: lốp cấp 4–5 là vòng sáng ở hai bánh.
+  if (glb && tires >= 4) for (const z of [WB / 2 + 0.05, -WB / 2 - 0.05]) add(new THREE.TorusGeometry(R * 0.7, R * 0.06, 6, 24), glow(accent), 0, R, z, 0, Math.PI / 2);
+  if (!glb) for (const z of [WB / 2, -WB / 2]) {
     const w = new THREE.Group();
     w.position.set(0, R, z);
     const tyre = new THREE.Mesh(new THREE.TorusGeometry(R * 0.78, R * 0.24, 10, 24), new THREE.MeshStandardMaterial({ color: 0x15161b, roughness: 0.85 }));
@@ -643,54 +737,49 @@ export function buildMoto(spec) {
     lean.add(w);
     wheels.push(spin);
   }
-  // Càng trước và gắp sau.
-  const fork = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.75, 8), chrome);
-  fork.position.set(0, R + 0.32, WB / 2 - 0.12);
-  fork.rotation.x = -0.4;
-  lean.add(fork);
-  const arm = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.07, 0.75), darkMat);
-  arm.position.set(0, R + 0.08, -WB / 2 + 0.36);
-  arm.rotation.x = 0.18;
-  lean.add(arm);
-  // Khối động cơ.
-  const eng = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.34, 0.5), darkMat);
-  eng.position.set(0, R + 0.18, 0.02);
-  lean.add(eng);
+  if (!glb) {
+    // Càng trước và gắp sau.
+    const fork = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.75, 8), chrome);
+    fork.position.set(0, R + 0.32, WB / 2 - 0.12);
+    fork.rotation.x = -0.4;
+    lean.add(fork);
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.07, 0.75), darkMat);
+    arm.position.set(0, R + 0.08, -WB / 2 + 0.36);
+    arm.rotation.x = 0.18;
+    lean.add(arm);
+    // Khối động cơ.
+    const eng = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.34, 0.5), darkMat);
+    eng.position.set(0, R + 0.18, 0.02);
+    lean.add(eng);
 
-  // Thân theo kiểu.
-  const add = (geo, mat, x, y, z, rx = 0, ry = 0, rz = 0) => {
-    const m = new THREE.Mesh(geo, mat);
-    m.position.set(x, y, z);
-    m.rotation.set(rx, ry, rz);
-    lean.add(m);
-    return m;
-  };
-  if (style === 'street') {
-    add(new THREE.SphereGeometry(0.24, 14, 10), bodyMat, 0, R + 0.62, 0.22).scale.set(1, 0.72, 1.45); // bình xăng
-    add(new THREE.BoxGeometry(0.28, 0.08, 0.62), darkMat, 0, R + 0.6, -0.3, 0.1); // yên
-    add(new THREE.BoxGeometry(0.22, 0.1, 0.42), bodyMat, 0, R + 0.66, -0.66, -0.35); // đuôi
-    add(new THREE.CylinderGeometry(0.11, 0.11, 0.06, 14), glow(0xeaf6ff), 0, R + 0.74, WB / 2 + 0.02, Math.PI / 2); // đèn tròn
-  } else if (style === 'sport') {
-    // Yếm ôm trước, kính chắn gió, đuôi nhọn.
-    add(new THREE.BoxGeometry(0.42, 0.52, 0.8), bodyMat, 0, R + 0.5, 0.42, -0.35);
-    add(new THREE.BoxGeometry(0.44, 0.24, 0.6), bodyMat, 0, R + 0.24, 0.3);
-    const glass = add(new THREE.BoxGeometry(0.34, 0.02, 0.32), new THREE.MeshStandardMaterial({ color: 0x9fd4ff, transparent: true, opacity: 0.55, metalness: 0.1, roughness: 0.05 }), 0, R + 0.86, 0.6, -0.95);
-    glass.renderOrder = 2;
-    add(new THREE.SphereGeometry(0.22, 14, 10), bodyMat, 0, R + 0.64, 0.05).scale.set(1, 0.7, 1.3);
-    add(new THREE.BoxGeometry(0.26, 0.08, 0.5), darkMat, 0, R + 0.62, -0.38, 0.15);
-    add(new THREE.ConeGeometry(0.18, 0.62, 4), bodyMat, 0, R + 0.7, -0.78, -Math.PI / 2 - 0.22, Math.PI / 4);
-    for (const x of [-0.09, 0.09]) add(new THREE.BoxGeometry(0.1, 0.05, 0.03), glow(0xeaf6ff), x, R + 0.62, 0.86);
-  } else {
-    // Neon: thân dài vuốt nhọn, dải đèn chạy dọc hai bên.
-    add(new THREE.BoxGeometry(0.4, 0.3, 1.5), bodyMat, 0, R + 0.5, 0.05, -0.06);
-    add(new THREE.ConeGeometry(0.22, 0.6, 4), bodyMat, 0, R + 0.56, 0.98, Math.PI / 2 - 0.1, Math.PI / 4);
-    add(new THREE.ConeGeometry(0.2, 0.5, 4), bodyMat, 0, R + 0.62, -0.92, -Math.PI / 2 - 0.15, Math.PI / 4);
-    for (const x of [-0.205, 0.205]) add(new THREE.BoxGeometry(0.02, 0.04, 1.6), glow(accent), x, R + 0.48, 0.05, -0.06);
-    add(new THREE.BoxGeometry(0.3, 0.04, 0.05), glow(accent), 0, R + 0.6, 1.12);
-    add(new THREE.BoxGeometry(0.26, 0.07, 0.55), darkMat, 0, R + 0.7, -0.32, 0.1);
+    // Thân theo kiểu.
+    if (style === 'street') {
+      add(new THREE.SphereGeometry(0.24, 14, 10), bodyMat, 0, R + 0.62, 0.22).scale.set(1, 0.72, 1.45); // bình xăng
+      add(new THREE.BoxGeometry(0.28, 0.08, 0.62), darkMat, 0, R + 0.6, -0.3, 0.1); // yên
+      add(new THREE.BoxGeometry(0.22, 0.1, 0.42), bodyMat, 0, R + 0.66, -0.66, -0.35); // đuôi
+      add(new THREE.CylinderGeometry(0.11, 0.11, 0.06, 14), glow(0xeaf6ff), 0, R + 0.74, WB / 2 + 0.02, Math.PI / 2); // đèn tròn
+    } else if (style === 'sport') {
+      // Yếm ôm trước, kính chắn gió, đuôi nhọn.
+      add(new THREE.BoxGeometry(0.42, 0.52, 0.8), bodyMat, 0, R + 0.5, 0.42, -0.35);
+      add(new THREE.BoxGeometry(0.44, 0.24, 0.6), bodyMat, 0, R + 0.24, 0.3);
+      const glass = add(new THREE.BoxGeometry(0.34, 0.02, 0.32), new THREE.MeshStandardMaterial({ color: 0x9fd4ff, transparent: true, opacity: 0.55, metalness: 0.1, roughness: 0.05 }), 0, R + 0.86, 0.6, -0.95);
+      glass.renderOrder = 2;
+      add(new THREE.SphereGeometry(0.22, 14, 10), bodyMat, 0, R + 0.64, 0.05).scale.set(1, 0.7, 1.3);
+      add(new THREE.BoxGeometry(0.26, 0.08, 0.5), darkMat, 0, R + 0.62, -0.38, 0.15);
+      add(new THREE.ConeGeometry(0.18, 0.62, 4), bodyMat, 0, R + 0.7, -0.78, -Math.PI / 2 - 0.22, Math.PI / 4);
+      for (const x of [-0.09, 0.09]) add(new THREE.BoxGeometry(0.1, 0.05, 0.03), glow(0xeaf6ff), x, R + 0.62, 0.86);
+    } else {
+      // Neon: thân dài vuốt nhọn, dải đèn chạy dọc hai bên.
+      add(new THREE.BoxGeometry(0.4, 0.3, 1.5), bodyMat, 0, R + 0.5, 0.05, -0.06);
+      add(new THREE.ConeGeometry(0.22, 0.6, 4), bodyMat, 0, R + 0.56, 0.98, Math.PI / 2 - 0.1, Math.PI / 4);
+      add(new THREE.ConeGeometry(0.2, 0.5, 4), bodyMat, 0, R + 0.62, -0.92, -Math.PI / 2 - 0.15, Math.PI / 4);
+      for (const x of [-0.205, 0.205]) add(new THREE.BoxGeometry(0.02, 0.04, 1.6), glow(accent), x, R + 0.48, 0.05, -0.06);
+      add(new THREE.BoxGeometry(0.3, 0.04, 0.05), glow(accent), 0, R + 0.6, 1.12);
+      add(new THREE.BoxGeometry(0.26, 0.07, 0.55), darkMat, 0, R + 0.7, -0.32, 0.1);
+    }
+    // Ghi đông.
+    add(new THREE.BoxGeometry(0.62, 0.035, 0.035), darkMat, 0, R + 0.86, WB / 2 - 0.28);
   }
-  // Ghi đông.
-  add(new THREE.BoxGeometry(0.62, 0.035, 0.035), darkMat, 0, R + 0.86, WB / 2 - 0.28);
 
   // Người lái cúi người, đội mũ có kính phát sáng.
   const rider = new THREE.Group();
@@ -710,7 +799,7 @@ export function buildMoto(spec) {
   const a1 = armL.clone(); a1.position.set(-0.22, 0.34, 0.36); a1.rotation.x = 0.5;
   const a2 = armL.clone(); a2.position.set(0.22, 0.34, 0.36); a2.rotation.x = 0.5;
   rider.add(torso, helmet, visor, t1, t2, a1, a2);
-  rider.position.set(0, R + 0.62, -0.32);
+  rider.position.set(0, seatY, glb ? -0.18 : -0.32);
   lean.add(rider);
 
   // Ống xả (Động cơ): to dần theo cấp, cấp 4+ hai ống; lửa xanh khi nitro.

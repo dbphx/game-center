@@ -174,3 +174,6 @@
   .item-slot small { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .hud.spun::after { animation: none; } }
+
+/* Ghi công mô hình 3D (CC-BY bắt buộc ghi tên tác giả). */
+.g-credit { color: rgba(220, 230, 255, .62); font-size: 12px; align-self: center; }

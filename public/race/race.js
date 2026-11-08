@@ -1,7 +1,7 @@
 // Trường đua: sảnh, garage, phòng chờ, cuộc đua 3D. Server (games/race) giữ phòng, kiểm gói vị trí, xếp hạng và trả xu;
 // máy người chơi tự mô phỏng xe mình (physics.js) và gửi vị trí ≈15 lần/giây.
 import { Track, newCar, step, raceDistance, hitCar, ITEM_BOOST_MS, SHIELD_MS, NITRO_CHARGE } from './physics.js';
-import { THREE, createRenderer, buildWorld, buildCar, createSparks, createSpeedLines, createItemFx, makeShield, isMoto, PAINT } from './scene.js';
+import { THREE, createRenderer, buildWorld, buildCar, createSparks, createSpeedLines, createItemFx, makeShield, isMoto, PAINT, creditOf } from './scene.js';
 
 const A = window.Account;
 const I = window.Icons;
@@ -159,11 +159,12 @@ function setupGarageScene() {
   gScene.background = new THREE.Color(0x0b0f2a);
   gScene.fog = new THREE.Fog(0x0b0f2a, 18, 40);
   gCam = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
-  gScene.add(new THREE.HemisphereLight(0x8aa2ff, 0x101418, 1.4));
-  const key = new THREE.DirectionalLight(0xffffff, 2.2);
+  // Đèn garage vừa phải: mặt xe sáng không vượt ngưỡng bloom (chỉ neon / đèn xe mới toả sáng).
+  gScene.add(new THREE.HemisphereLight(0x8aa2ff, 0x101418, 0.9));
+  const key = new THREE.DirectionalLight(0xffffff, 1.25);
   key.position.set(4, 8, 6);
   gScene.add(key);
-  const rim = new THREE.DirectionalLight(0x58f0ff, 1.6);
+  const rim = new THREE.DirectionalLight(0x58f0ff, 1.1);
   rim.position.set(-6, 3, -6);
   gScene.add(rim);
   const floor = new THREE.Mesh(new THREE.CircleGeometry(4.2, 48), new THREE.MeshStandardMaterial({ color: 0x161b40, metalness: 0.1, roughness: 0.85 })); // sàn mờ: không loá ánh neon xe
@@ -235,6 +236,7 @@ function renderGarage() {
   $('g-cars').innerHTML = garage.cars.filter((c) => kindOf(c) === gFilter).map((c) => `<button class="car-tab ${c.id === gSel ? 'on' : ''}" data-car="${esc(c.id)}">
       <b>${esc(c.name)}</b><small>${c.owned ? (c.id === garage.current ? 'Đang dùng' : 'Đã có') : c.price ? `${xu(c.price)} xu` : 'Miễn phí'}</small></button>`).join('');
   $('g-name').textContent = car.name;
+  $('g-credit').textContent = creditOf(car.id);
   $('g-state').textContent = car.owned ? (car.id === garage.current ? 'Đang dùng' : 'Đã có') : 'Chưa mua';
   const st = car.stats || BASE_STATS;
   const bar = (v, lo, hi) => `<span class="bar"><span style="width:${Math.round(Math.max(0.08, Math.min(1, (v - lo) / (hi - lo))) * 100)}%"></span></span>`;

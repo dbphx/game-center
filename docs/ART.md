@@ -51,6 +51,7 @@ Toàn game theo phong cách hoạt hình Avatar (bộ pixel cũ đã xoá, còn 
 | Bệnh viện | `public/img/toon/hospital/`, xe cứu thương ở `toon/city/` |
 | `/credits.html` | tổng hợp ghi công từ manifest / CREDITS.csv / LICENSE.txt |
 | `public/icons.js` | icon giao diện SVG nhỏ trong nút — ngoại lệ, giữ |
+| `public/race/` | Trường đua 3D (three.js): mô hình GLB CC0 hoặc CC-BY **có ghi công** (người dùng đồng ý) — tên tác giả hiện trong garage và ghi ở `public/race/models/CREDITS.txt`; không dùng mô hình trích từ game thương mại |
 
 Bản đồ (`public/city.js`) đọc mọi ảnh qua bảng ánh xạ tên → file + điểm chân lấy từ manifest. Một bộ ảnh thay thế
 (vd 3D ở `public/img/toon/city3d/`) chỉ cần manifest có `"replaces": "tên cũ"` cho từng ảnh (hoặc bảng `"map"`), neo chân

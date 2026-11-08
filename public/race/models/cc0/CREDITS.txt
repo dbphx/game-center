@@ -2,6 +2,5 @@ Mô hình xe CC0 (Public Domain, CC0 1.0) tải từ Poly Pizza (poly.pizza):
 - sports-car-white.glb   — "Sports Car" của Quaternius (https://poly.pizza/m/1mkmFkAz5v), CC0 1.0
 - sports-car-orange.glb  — "Sports Car" của Quaternius (https://poly.pizza/m/OyqKvX9xNh), CC0 1.0
 - sports-car-striped.glb — "Sports Car" của Quaternius (https://poly.pizza/m/Gzj704DXdr), CC0 1.0
-- sports-car-armored.glb — "Sports Car Armored" của Quaternius (https://poly.pizza/m/bG0hEKshdv), CC0 1.0
 - formula-car.glb        — "Racing car" của scaranto (https://poly.pizza/m/EMcTJiXibv), CC0 1.0
-Moto trong game được dựng bằng khối trong three.js (public/race/scene.js), không dùng mô hình ngoài.
+Moto dùng mô hình trong ccby/ (xem ../CREDITS.txt); kiểu dựng bằng khối trong scene.js chỉ còn để dự phòng.

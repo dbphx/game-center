@@ -12,6 +12,7 @@ chuồng, con vật, ao, cá), nhân vật — phải dùng **ảnh raster vẽ 
 - Không viết thêm hình minh hoạ bằng `<svg>` path/rect/circle hay CSS gradient. Code SVG minh hoạ cũ
   (`public/city.js`, `public/character.js`, phần vẽ trong `public/tienlen/`, `public/farm/`) là **nợ cần thay** dần bằng ảnh.
 - Ngoại lệ còn giữ: icon giao diện nhỏ trong nút/menu (`public/icons.js`) và logo — chưa có yêu cầu thay.
+- Ngoại lệ Trường đua (`public/race/`, người dùng đồng ý): mô hình 3D (GLB) CC0 hoặc **CC-BY có ghi công tác giả** (garage + `public/race/models/CREDITS.txt`).
 - Chi tiết nguồn ảnh, cách đặt file, manifest, phóng to pixel art: xem [docs/ART.md](docs/ART.md).
 
 ## Làm việc
