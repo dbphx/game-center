@@ -4,6 +4,6 @@ car/  Kenney Car Kit 3.1 (https://kenney.nl/assets/car-kit): kart-oozi, hatchbac
       wheel-default, wheel-dark, wheel-racing, debris-spoiler-a, debris-spoiler-b, cone, Textures/colormap.png
 kit/  Kenney Racing Kit 2.0 (https://kenney.nl/assets/racing-kit): raceCarRed, raceCarGreen, khán đài, đèn, biển, cờ, tháp, gara, lều, cây
 
-Ảnh public/race/img/*.png (mặt đường, viền, rào mũi tên, nền, tia sáng, decal) do DCity vẽ bằng PIL, CC0.
+Ảnh public/race/img/*.png (mặt đường, viền, rào mũi tên, nền, tia sáng, decal, biểu tượng đạo cụ item_*.png) do DCity vẽ bằng PIL, CC0.
 Không dùng hình, tên, logo hay xe của ZingSpeed; chỉ học phong cách (đua đêm, neon, rào mũi tên, tia lửa).
 cc0/  Quaternius và scaranto qua Poly Pizza, CC0 1.0 (xem cc0/CREDITS.txt): 4 xe thể thao, 1 xe công thức

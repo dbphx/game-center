@@ -14,7 +14,10 @@ const BETS = [100, 500, 1000, 5000, 10000];
 const TRACKS = [{ id: 'neon', name: 'Đường Neon' }, { id: 'city', name: 'Phố Đêm' }, { id: 'serpent', name: 'Đèo Rắn' }, { id: 'canyon', name: 'Hẻm Núi' }];
 const MODES = [{ id: 'speed', name: 'Tốc độ' }, { id: 'items', name: 'Đạo cụ' }];
 const ITEM_NAMES = { missile: 'Tên lửa', homing: 'Tên lửa đuổi', oil: 'Vũng dầu', shield: 'Khiên', boost: 'Tăng tốc' };
-const ITEM_ICON = { missile: '🚀', homing: '🎯', oil: '🛢️', shield: '🛡️', boost: '⚡' };
+// Biểu tượng đạo cụ là ảnh PNG tự vẽ (public/race/img/item_*.png), không dùng emoji.
+const ITEM_ICON = { missile: 'img/item_missile.png', homing: 'img/item_homing.png', oil: 'img/item_oil.png', shield: 'img/item_shield.png', boost: 'img/item_boost.png' };
+const ITEM_BOX = 'img/item_box.png';
+const itemImg = (k) => `<img src="${ITEM_ICON[k] || ITEM_BOX}" alt="" draggable="false">`;
 const PICKUP_RANGE = 5.5; // m: chạy qua hộp gần chừng này thì báo nhặt (server cho tới 6 m)
 const SEND_MS = 66; // ≈15 gói mỗi giây
 const LERP_MS = 110; // xe người khác vẽ trễ một chút để mượt
@@ -163,7 +166,7 @@ function setupGarageScene() {
   const rim = new THREE.DirectionalLight(0x58f0ff, 1.6);
   rim.position.set(-6, 3, -6);
   gScene.add(rim);
-  const floor = new THREE.Mesh(new THREE.CircleGeometry(4.2, 48), new THREE.MeshStandardMaterial({ color: 0x161b40, metalness: 0.6, roughness: 0.35 }));
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(4.2, 48), new THREE.MeshStandardMaterial({ color: 0x161b40, metalness: 0.1, roughness: 0.85 })); // sàn mờ: không loá ánh neon xe
   floor.rotation.x = -Math.PI / 2;
   gScene.add(floor);
   const ring = new THREE.Mesh(new THREE.RingGeometry(4.15, 4.35, 64), new THREE.MeshBasicMaterial({ color: 0x2fe6ff, toneMapped: false }));
@@ -362,7 +365,10 @@ function onMessage(m) {
       return onResult(m);
     case 'error':
       // Nhặt hộp trượt (server thấy xe còn xa / hộp vừa bị người khác nhặt) thì im lặng, không làm phiền khi đang đua.
-      if (race && race.net && /hộp|đạo cụ/i.test(m.msg || '')) return null;
+      if (race && race.net && /hộp|đạo cụ|món/i.test(m.msg || '')) {
+        if (/đủ/.test(m.msg || '')) flashItems();
+        return null;
+      }
       return A.toast(m.msg || m.error || 'Lỗi');
     case 'session': if (m.code) store(ROOM_KEY, m.code); return null;
     case 'left':
@@ -799,14 +805,30 @@ const nameOfSeat = (seat) => {
   return c ? (c.me ? 'bạn' : c.name) : 'ai đó';
 };
 
+// Đã giữ đủ 2 món: ô đạo cụ nhấp nháy nhẹ thay cho thông báo.
+function flashItems() {
+  const el = $('hud-items');
+  if (!el) return;
+  el.classList.remove('flash');
+  void el.offsetWidth;
+  el.classList.add('flash');
+}
+
 function renderItems() {
   const el = $('hud-items');
   if (!race || !race.ifx || !race.me) { el.innerHTML = ''; return; }
   const list = race.net ? race.items : race.me.items;
   el.innerHTML = [0, 1].map((i) => {
     const k = list[i];
-    return `<span class="item-slot ${k ? 'full' : ''} ${i === 0 ? 'next' : ''}" title="${k ? ITEM_NAMES[k] : 'Trống'}">${k ? `<b>${ITEM_ICON[k] || '?'}</b><small>${ITEM_NAMES[k]}</small>` : ''}</span>`;
+    return `<span class="item-slot ${k ? 'full' : 'empty'} ${i === 0 ? 'next' : ''}" title="${k ? ITEM_NAMES[k] : 'Trống'}">${k ? `${itemImg(k)}<small>${ITEM_NAMES[k]}</small>` : `<img class="ghost" src="${ITEM_BOX}" alt="" draggable="false">`}</span>`;
   }).join('');
+  // Nút đạo cụ trên điện thoại hiện món sẽ dùng.
+  const btn = document.querySelector('.touch .item-btn');
+  if (btn) {
+    const k = list[0];
+    const html = k ? itemImg(k) : `<img class="ghost" src="${ITEM_BOX}" alt="" draggable="false">`;
+    if (btn.dataset.k0 !== (k || '')) { btn.dataset.k0 = k || ''; btn.innerHTML = html; }
+  }
 }
 
 // itemTick: xe mình chạy qua hộp thì nhặt; bấm dùng thì dùng món đầu.

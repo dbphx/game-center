@@ -151,8 +151,12 @@
   display: grid; place-items: center; align-content: center; text-align: center; }
 .item-slot.next { width: 76px; height: 76px; border-color: rgba(255, 178, 30, .8); }
 .item-slot.full { background: rgba(40, 30, 90, .8); }
-.item-slot b { font-size: 30px; line-height: 1; }
-.item-slot.next b { font-size: 36px; }
+.item-slot img { width: 40px; height: 40px; pointer-events: none; user-select: none; }
+.item-slot.next img { width: 50px; height: 50px; }
+.item-slot img.ghost, .touch .item-btn img.ghost { opacity: .28; filter: grayscale(1); }
+.hud-items.flash .item-slot { animation: item-flash .5s ease 2; }
+@keyframes item-flash { 50% { border-color: #ff5a6e; box-shadow: 0 0 14px rgba(255, 90, 110, .7); } }
+.touch .item-btn img { width: 34px; height: 34px; pointer-events: none; display: block; margin: 0 auto; }
 .item-slot small { font-family: var(--font); font-size: 10px; opacity: .85; }
 .touch .item-btn { display: none; background: rgba(255, 140, 40, .55); font-size: 13px; }
 .hud.items-mode .touch .item-btn { display: inline-block; }
