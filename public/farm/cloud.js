@@ -140,7 +140,10 @@
       </div>
       ${zombieDown() ? '<p class="cloud-zombie">Zombie đang tấn công nông trại dưới đất!</p>' : ''}
       <div class="cloud-sky"><div class="cloud-stalk" aria-hidden="true"></div>
-        <div class="cloud-floors">${list.map(floorHTML).join('')}</div></div>
+        <div class="cloud-floors">${list.map(floorHTML).join('')}</div>
+        <div class="cloud-stalk front" aria-hidden="true"></div>
+        <img class="stalk-crown" src="/img/toon/farm/beanstalk_crown.png" alt="" aria-hidden="true">
+        <img class="stalk-root" src="/img/toon/farm/beanstalk_root.png" alt="" aria-hidden="true"></div>
       ${pickHTML()}`;
   }
 

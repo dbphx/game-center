@@ -1,8 +1,8 @@
 /* Màn mây kiểu khu vườn trên mây: thân đậu thần lặp dọc ở mép trái, mỗi tầng một dải mây ngang có chậu đứng trên mặt mây.
-   Mọi hình là ảnh PNG (beanstalk_tile, cloud_band, vine_trim, pot_*, crop_*); CSS chỉ xếp chỗ. */
+   Mọi hình là ảnh PNG (beanstalk_*, cloud_band, vine_trim, pot_*, crop_*); CSS chỉ xếp chỗ. */
 #cloud-scene {
   --s: .9;          /* tỉ lệ chậu / cây */
-  --stalk: 150px;   /* bề rộng cột thân đậu */
+  --stalk: 260px;   /* bề rộng cột thân đậu khổng lồ */
   --band: 220px;    /* chiều cao dải mây */
   position: fixed; inset: 0; z-index: 6500; overflow-x: hidden; overflow-y: auto;
   background: #bfe6f7 url(/img/toon/farm/bg_sky_hills.png) center bottom / cover no-repeat fixed;
@@ -26,13 +26,20 @@ body.in-cloud .toast { z-index: 9000; }
 .cloud-down .icon, .cloud-coins .icon { width: 15px; height: 15px; }
 .cloud-zombie { position: sticky; top: 58px; z-index: 5; margin: 0; padding: 5px 12px; background: #b91c1c; color: #fff; font: 800 13px var(--font-title); text-align: center; }
 
-/* Bầu trời: cột thân đậu ở trái vẽ đè lên mép trái các dải mây, các tầng xếp chồng. */
-.cloud-sky { position: relative; min-height: calc(100% - 60px); padding: 8px 0 40px; }
+/* Bầu trời: thân đậu khổng lồ chạy suốt mép trái, mọc lên từ bờ mây ở đáy và chui vào cụm mây ở đỉnh.
+   Dải mây bắt đầu từ giữa cột thân (.36 cột) nên mép dải nằm khuất sau thân: thân + lá trái (z 2) và lá phải (z 3) vẽ đè lên
+   mép đó, như dải mây mọc ra từ thân; lá phải dừng trước chậu đầu tiên (chậu chừa .72 cột). Biển tên tầng (z 4) trên cùng.
+   Hai lớp thân dùng cùng kích thước và gốc lặp nên khớp nhau. */
+.cloud-sky { position: relative; min-height: calc(100% - 60px); padding: calc(var(--stalk) * .5) 0 calc(var(--stalk) * .62); }
 .cloud-stalk {
-  position: absolute; left: 0; top: 0; bottom: 0; width: var(--stalk); z-index: 1; pointer-events: none;
-  background: url(/img/toon/farm/beanstalk_tile.png) center top / 100% auto repeat-y;
+  position: absolute; left: 0; top: 0; bottom: 0; width: var(--stalk); z-index: 2; pointer-events: none;
+  background: url(/img/toon/farm/beanstalk_back.png) left top / var(--stalk) auto repeat-y;
 }
-/* Không tạo lớp riêng: thân đậu (z 1) đè lên dải mây và chậu, còn biển tên tầng (z 4) nằm trên thân đậu. */
+.cloud-stalk.front { z-index: 3; background-image: url(/img/toon/farm/beanstalk_front.png); }
+.stalk-crown, .stalk-root { position: absolute; left: 0; z-index: 3; height: auto; pointer-events: none; }
+.stalk-crown { top: 0; width: calc(var(--stalk) * 1.13); }
+.stalk-root { bottom: 0; width: calc(var(--stalk) * 1.2); }
+/* Các tầng không tạo lớp riêng, để biển tên tầng (z 4) nằm trên lá thân đậu (z 3). */
 .cloud-floors { position: relative; display: flex; flex-direction: column; gap: 6px; }
 
 .cloud-floor { position: relative; }
@@ -52,7 +59,7 @@ body.in-cloud .toast { z-index: 9000; }
     url(/img/toon/farm/cloud_band.png) left bottom / auto var(--band) repeat-x;
 }
 /* Máy tính: hai dải nằm cạnh nhau dùng chung một nền mây chạy liền từ mép trái (dưới thân đậu) sang phải. */
-.cloud-bands { position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 0 8px 0 calc(var(--stalk) * .6); background: var(--bg); }
+.cloud-bands { position: relative; display: grid; grid-template-columns: 1fr 1fr; margin-left: calc(var(--stalk) * .36); padding: 0 8px 0 calc(var(--stalk) * .36); background: var(--bg); }
 .cloud-band { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; }
 /* Ô chậu: nút chậu + nút "Đổi kiểu" xếp dọc; khoảng đệm dưới để nhãn nằm trên thân mây. */
 .cloud-cell { position: relative; display: flex; flex-direction: column; align-items: center; min-width: 0; padding-bottom: calc(var(--band) * .3); }
@@ -107,15 +114,15 @@ body.in-cloud .toast { z-index: 9000; }
 .shut-sign b { font-variant-numeric: tabular-nums; }
 
 @media (max-width: 600px) {
-  #cloud-scene { --s: .6; --stalk: 84px; --band: 150px; }
+  #cloud-scene { --s: .6; --stalk: 104px; --band: 150px; }
   .cloud-head { padding: 8px 12px; gap: 6px; }
   .cloud-head h2 { font-size: 16px; }
   .cloud-down, .cloud-coins { padding: 6px 9px; font-size: 12px; }
   .cloud-zombie { top: 48px; }
   /* Điện thoại: mỗi tầng hai dải mây, mỗi dải 3 chậu. */
   /* Điện thoại: hai dải xếp chồng, mỗi dải có nền mây riêng chạy từ mép trái. */
-  .cloud-bands { grid-template-columns: 1fr; padding: 0; background: none; }
-  .cloud-band { padding: 0 6px 0 calc(var(--stalk) * .62); background: var(--bg); }
+  .cloud-bands { grid-template-columns: 1fr; margin-left: 0; padding: 0; background: none; }
+  .cloud-band { margin-left: calc(var(--stalk) * .36); padding: 0 6px 0 calc(var(--stalk) * .36); background: var(--bg); }
   .floor-sign { margin-left: calc(var(--stalk) * .82); padding: 3px 10px; }
   .floor-no { font-size: 14px; }
   .floor-crop { font-size: 13px; }

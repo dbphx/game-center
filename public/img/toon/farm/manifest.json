@@ -3229,14 +3229,47 @@
    ]
   },
   {
-   "file": "beanstalk_tile.png",
-   "w": 220,
-   "h": 480,
-   "use": "Thân đậu thần lặp dọc liền mạch ở mép trái màn tầng mây",
-   "anchor": "top-center",
+   "file": "beanstalk_back.png",
+   "w": 300,
+   "h": 600,
+   "use": "Thân đậu thần khổng lồ (thân, dây xoắn, lá trái) lặp dọc ở mép trái màn tầng mây, nằm sau dải mây",
+   "anchor": "top-left",
    "tile": true,
    "source": [
     "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "beanstalk_front.png",
+   "w": 300,
+   "h": 600,
+   "use": "Lá phải của thân đậu thần, cùng chu kỳ với beanstalk_back, nằm trước mép trái dải mây",
+   "anchor": "top-left",
+   "tile": true,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "beanstalk_crown.png",
+   "w": 340,
+   "h": 250,
+   "use": "Cụm mây lớn nuốt ngọn thân đậu ở đỉnh màn tầng mây",
+   "anchor": "top-left",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án; mây ghép từ cloud_1..3 Kenney CC0)"
+   ]
+  },
+  {
+   "file": "beanstalk_root.png",
+   "w": 360,
+   "h": 230,
+   "use": "Bờ mây ở đáy màn tầng mây, thân đậu mọc lên từ đó",
+   "anchor": "bottom-left",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án; mây ghép từ cloud_1..3 Kenney CC0)"
    ]
   },
   {
