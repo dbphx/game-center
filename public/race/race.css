@@ -71,6 +71,19 @@ button.need-level { display: inline-flex; align-items: center; justify-content: 
 .car-tab.exclusive.on, .item.exclusive.on { border-color: var(--gold-2); }
 .excl-badge { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px; font-size: 12px; vertical-align: middle; color: #0b0f2a; background: #9fe9ff; font-family: var(--font-body, inherit); }
 button.exclusive-btn { width: 100%; opacity: .75; cursor: not-allowed; border: 2px dashed #8f6bff; background: rgba(60, 40, 130, .5); color: #dfe8ff; }
+/* Mảnh ghép từ nhiệm vụ nông trại: số mảnh có / cần, nút Ghép (sáng lên khi đủ mảnh). */
+.shard-tag { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 800; color: #c9d3f5; font-variant-numeric: tabular-nums; }
+.shard-tag img { width: 16px; height: 16px; }
+.car-tab .shard-tag { display: flex; margin-top: 2px; }
+.shard-tag.full { color: #ffd54a; }
+button.exclusive-btn, button.assemble-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+button.assemble-btn { flex: 1 1 100%; border: 2px dashed #4b5aa8; background: rgba(30, 40, 100, .6); color: #dfe8ff; }
+button.assemble-btn:disabled { opacity: .75; cursor: not-allowed; }
+button.exclusive-btn.ready, button.assemble-btn.ready { opacity: 1; cursor: pointer; border-style: solid; border-color: #ffd54a; color: #3a2100;
+  background: linear-gradient(180deg, #ffe27a, #ffb21e); box-shadow: 0 0 14px rgba(255, 200, 60, .55); }
+button.exclusive-btn.ready .shard-tag, button.assemble-btn.ready .shard-tag { color: #3a2100; }
+.shard-hint { flex: 1 1 100%; color: #a9b4dc; font-size: 12px; }
+.item .muted .shard-tag { margin-left: 4px; vertical-align: -3px; }
 
 /* Phòng chờ */
 .room-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

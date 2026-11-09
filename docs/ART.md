@@ -66,5 +66,8 @@ Mùa Noel nông trại (`public/img/toon/farm/noel/`, CC0): bản phủ tuyết 
 chấm "!" và NPC (Ông già Noel / Bác nông dân, 3 khung đứng – vẫy tay) dựng 3D bằng `tools/render_noel/` (render.mjs → finish.py →
 manifest.py, xem README.txt ở đó); `noel.json` ghi kích thước hiển thị và điểm chân.
 
+Nhiệm vụ (`public/img/quests/`, CC0 tự dựng): rương ngày / tuần (đóng, mở), mảnh ghép 4 bậc, ảnh xe và đồ độc quyền chụp
+từ mô hình trong game (nền trong suốt) — dựng bằng `tools/render_quests/` (xem README.txt ở đó).
+
 Nguồn hiện tại đều CC0 (Kenney, OpenGameArt; phần tự ghép bằng PIL phát hành CC0).
 Hạn chế: xe chỉ có ảnh nghiêng (chỉ chạy đường ngang); nhân vật hướng lên/xuống nhún thay vì bước; nằm = xoay 90°.

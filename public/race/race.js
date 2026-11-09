@@ -137,8 +137,23 @@ function openPractice() {
 const curCar = () => (garage ? garage.cars.find((c) => c.id === garage.current) || garage.cars[0] : null);
 const specOf = (car, number) => ({ car: car.id, levels: car.levels || {}, cosmetics: car.cosmetics || {}, number });
 
+// Mảnh ghép từ nhiệm vụ nông trại (/api/quests): item → {qty, need, tier}. Lỗi thì bỏ qua (garage vẫn dùng được).
+let shards = {};
+async function loadShards() {
+  try {
+    const q = await A.api('/api/quests');
+    shards = Object.fromEntries((q.shards || []).map((s) => [s.item, s]));
+  } catch (e) {
+    shards = {};
+  }
+}
+const shardOf = (id) => shards[id] || null;
+const shardFull = (s) => !!s && s.qty >= s.need;
+// shardTag: biểu tượng mảnh + số mảnh đang có / cần (món chưa có).
+const shardTag = (s) => (s ? `<span class="shard-tag tier-${s.tier}${shardFull(s) ? ' full' : ''}"><img src="/img/quests/shard_${s.tier}.png" alt="">${s.qty}/${s.need}</span>` : '');
+
 async function loadGarage() {
-  garage = await A.api('/api/race/garage');
+  [garage] = await Promise.all([A.api('/api/race/garage'), loadShards()]);
   if (!gSel || !garage.cars.some((c) => c.id === gSel)) {
     gSel = garage.current || (garage.cars[0] && garage.cars[0].id);
     const c = garage.cars.find((x) => x.id === gSel);
@@ -226,7 +241,7 @@ function renderGarage() {
   if (moto && gKind === 'spoiler') gKind = 'neon';
   $('g-filter').innerHTML = [['car', 'Ô tô'], ['moto', 'Moto']].map(([k, n]) => `<button data-filter="${k}" class="${k === gFilter ? 'on' : ''}">${n} <small>${garage.cars.filter((c) => kindOf(c) === k).length}</small></button>`).join('');
   $('g-cars').innerHTML = garage.cars.filter((c) => kindOf(c) === gFilter).map((c) => `<button class="car-tab ${c.id === gSel ? 'on' : ''} ${c.exclusive ? 'exclusive' : ''}" data-car="${esc(c.id)}">
-      <b>${esc(c.name)}</b><small>${c.owned ? (c.id === garage.current ? 'Đang dùng' : 'Đã có') : c.exclusive ? 'Độc quyền' : needLevel(c) ? `${I.svg('lock')}Cấp ${c.level}` : c.price ? `${xu(c.price)} xu` : 'Miễn phí'}</small></button>`).join('');
+      <b>${esc(c.name)}</b><small>${c.owned ? (c.id === garage.current ? 'Đang dùng' : 'Đã có') : c.exclusive ? 'Độc quyền' : needLevel(c) ? `${I.svg('lock')}Cấp ${c.level}` : c.price ? `${xu(c.price)} xu` : 'Miễn phí'}</small>${c.owned ? '' : shardTag(shardOf(c.id))}</button>`).join('');
   $('g-name').innerHTML = esc(car.name) + (car.exclusive ? ' <span class="excl-badge">Độc quyền</span>' : '');
   $('g-credit').textContent = creditOf(car.id);
   $('g-state').textContent = car.owned ? (car.id === garage.current ? 'Đang dùng' : 'Đã có') : car.exclusive ? 'Chưa có' : 'Chưa mua';
@@ -236,14 +251,20 @@ function renderGarage() {
     <div class="stat-row"><span>Tốc độ</span>${bar(st.maxSpeed, 24, 37)}<b>${Math.round(st.maxSpeed * 3.6)}</b></div>
     <div class="stat-row"><span>Tăng tốc</span>${bar(st.accel, 9, 15)}<b>${st.accel.toFixed(1)}</b></div>
     <div class="stat-row"><span>Bám đường</span>${bar(st.grip, 0.55, 1)}<b>${Math.round(st.grip * 100)}</b></div>`;
-  // Xe độc quyền không bán bằng xu: chỉ ghép từ mảnh nhiệm vụ (nút gắn sau qua data-exclusive).
+  // Xe chưa có: mua bằng xu (xe thường) hoặc ghép từ mảnh nhiệm vụ nông trại (mọi xe có mảnh; xe độc quyền chỉ ghép).
+  // Ghép không cần đủ cấp nhân vật.
+  const sh = car.owned ? null : shardOf(car.id);
+  const assemble = sh
+    ? `<button class="${car.exclusive ? 'exclusive-btn' : 'assemble-btn'}${shardFull(sh) ? ' ready' : ''}" data-assemble="${esc(car.id)}"${car.exclusive ? ` data-exclusive="car" data-id="${esc(car.id)}"` : ''} ${shardFull(sh) ? '' : 'disabled'} title="Mảnh ghép nhận từ nhiệm vụ ở nông trại">${shardFull(sh) ? 'Ghép xe' : 'Ghép từ mảnh'} ${shardTag(sh)}</button>`
+    : car.exclusive && !car.owned ? `<button class="exclusive-btn" data-exclusive="car" data-id="${esc(car.id)}" disabled>Ghép từ mảnh</button>` : '';
   $('g-action').innerHTML = !car.owned && car.exclusive
-    ? `<button class="exclusive-btn" data-exclusive="car" data-id="${esc(car.id)}" disabled>Ghép từ mảnh</button>`
+    ? assemble
     : !car.owned
-    ? needLevel(car)
+    ? (needLevel(car)
       ? `<button class="need-level" disabled title="Chưa đủ cấp nhân vật">${I.svg('lock')}Cần cấp ${car.level} — ${xu(car.price)} xu</button>`
-      : `<button class="primary" data-act="buy">Mua xe — ${xu(car.price)} xu</button>`
+      : `<button class="primary" data-act="buy">Mua xe — ${xu(car.price)} xu</button>`) + assemble
     : car.id !== garage.current ? '<button class="primary" data-act="select">Dùng xe này</button>' : '';
+  if (sh && !shardFull(sh)) $('g-action').insertAdjacentHTML('beforeend', '<small class="shard-hint">Nhận mảnh từ nhiệm vụ của Ông già Noel ở nông trại</small>');
   // 3 món nâng cấp có chỉ số.
   const max = garage.maxLevel || 5;
   const prices = (garage.upgradePrice || {})[car.id] || {};
@@ -264,7 +285,8 @@ function renderGarage() {
       const special = it.id === 'paint_x_chroma' ? 'chroma' : it.id === 'neon_x_rainbow' ? 'rainbow' : '';
       const sw = gKind === 'paint' || gKind === 'neon' ? `<span class="swatch ${special}" style="${special ? '' : `background:#${(PAINT[Object.keys(PAINT).find((c) => it.id.includes(c))] || 0x888888).toString(16).padStart(6, '0')}`}"></span>` : '';
       const locked = it.exclusive && !it.owned;
-      const state = it.id === on ? 'Đang lắp' : locked ? 'Ghép từ mảnh' : it.owned || !it.price ? 'Lắp' : `${xu(it.price)} xu`;
+      const ish = locked ? shardOf(it.id) : null;
+      const state = it.id === on ? 'Đang lắp' : locked ? (shardFull(ish) ? 'Ghép ngay' : 'Ghép từ mảnh') + ' ' + shardTag(ish) : it.owned || !it.price ? 'Lắp' : `${xu(it.price)} xu`;
       return `<button class="item ${it.id === on ? 'on' : ''} ${it.exclusive ? 'exclusive' : ''}" data-item="${esc(it.id)}" data-kind="${it.kind}"${locked ? ' data-exclusive="item"' : ''}><b>${sw}${esc(it.name)}</b><span class="muted">${state}</span></button>`;
     })).join('');
 }
@@ -286,7 +308,31 @@ async function garageAct(path, body, msg) {
   }
 }
 
+// assembleFromShards ghép xe / đồ từ mảnh (POST /api/quests/assemble) rồi tải lại garage.
+async function assembleFromShards(id) {
+  const s = shardOf(id);
+  const it = (garage.cars || []).find((c) => c.id === id) || (garage.items || []).find((x) => x.id === id);
+  const name = it ? it.name : id;
+  if (!shardFull(s)) return A.toast(`${name}: có ${s ? s.qty : 0}/${s ? s.need : '?'} mảnh — làm nhiệm vụ ở nông trại để nhận thêm`);
+  const ok = await A.confirm(`Dùng ${s.need} mảnh để ghép ${name}?`, { title: 'Ghép từ mảnh', ok: 'Ghép' });
+  if (!ok || busy) return;
+  busy = true;
+  try {
+    await A.api('/api/quests/assemble', { method: 'POST', body: { item: id } });
+    await loadGarage();
+    A.toast(`Đã ghép ${name}!`);
+    renderGarage();
+    await showGarageCar();
+  } catch (e) {
+    A.toast(e.message);
+  } finally {
+    busy = false;
+  }
+}
+
 function onGarageClick(e) {
+  const asm = e.target.closest('[data-assemble]');
+  if (asm) return assembleFromShards(asm.dataset.assemble);
   const tab = e.target.closest('[data-car]');
   if (tab) { gSel = tab.dataset.car; renderGarage(); showGarageCar(); return; }
   const fl = e.target.closest('[data-filter]');
@@ -316,10 +362,10 @@ function onGarageClick(e) {
   }
   const item = e.target.closest('[data-item]');
   if (item) {
-    if (!car.owned) return A.toast('Mua xe trước rồi mới lắp đồ');
     const id = item.dataset.item;
+    if (item.dataset.exclusive) return assembleFromShards(id); // đồ độc quyền chưa có: ghép từ mảnh (không cần có xe)
+    if (!car.owned) return A.toast('Mua xe trước rồi mới lắp đồ');
     const it = (garage.items || []).find((x) => x.id === id);
-    if (item.dataset.exclusive) return A.toast(`${it ? it.name : 'Món này'} là đồ độc quyền — ghép từ mảnh nhiệm vụ`);
     if (it && !it.owned && it.price) {
       A.confirm(`Mua ${it.name} giá ${xu(it.price)} xu rồi lắp lên ${car.name}?`, { title: 'Mua đồ', ok: 'Mua' }).then(async (ok) => {
         if (!ok) return;

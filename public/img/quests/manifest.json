@@ -1,0 +1,122 @@
+{
+ "scale": 2,
+ "source": "tools/render_quests (tự dựng, CC0)",
+ "images": {
+  "chest_daily": {
+   "w": 96,
+   "h": 85
+  },
+  "chest_daily_open": {
+   "w": 96,
+   "h": 101
+  },
+  "chest_weekly": {
+   "w": 96,
+   "h": 85
+  },
+  "chest_weekly_open": {
+   "w": 96,
+   "h": 101
+  },
+  "shard_common": {
+   "w": 48,
+   "h": 48
+  },
+  "shard_rare": {
+   "w": 48,
+   "h": 48
+  },
+  "shard_epic": {
+   "w": 48,
+   "h": 48
+  },
+  "shard_exclusive": {
+   "w": 48,
+   "h": 48
+  },
+  "cars/starter": {
+   "w": 160,
+   "h": 100
+  },
+  "cars/comet": {
+   "w": 160,
+   "h": 100
+  },
+  "cars/moto_dash": {
+   "w": 160,
+   "h": 100
+  },
+  "cars/sprint": {
+   "w": 160,
+   "h": 100
+  },
+  "cars/bolt": {
+   "w": 160,
+   "h": 100
+  },
+  "cars/raptor": {
+   "w": 160,
+   "h": 100
+  },
+  "cars/viper": {
+   "w": 160,
+   "h": 100
+  },
+  "cars/moto_storm": {
+   "w": 160,
+   "h": 100
+  },
+  "cars/zenith": {
+   "w": 160,
+   "h": 100
+  },
+  "cars/phantom": {
+   "w": 160,
+   "h": 100
+  },
+  "cars/moto_neon": {
+   "w": 160,
+   "h": 100
+  },
+  "cars/vortex": {
+   "w": 160,
+   "h": 100
+  },
+  "cars/apex": {
+   "w": 160,
+   "h": 100
+  },
+  "cars/blaze": {
+   "w": 160,
+   "h": 100
+  },
+  "cars/nova": {
+   "w": 160,
+   "h": 100
+  },
+  "cars/x_aurora": {
+   "w": 160,
+   "h": 100
+  },
+  "cars/x_frost": {
+   "w": 160,
+   "h": 100
+  },
+  "cars/paint_x_chroma": {
+   "w": 160,
+   "h": 100
+  },
+  "cars/decal_x_snow": {
+   "w": 160,
+   "h": 100
+  },
+  "cars/neon_x_rainbow": {
+   "w": 160,
+   "h": 100
+  },
+  "cars/spoiler_x_glow": {
+   "w": 160,
+   "h": 100
+  }
+ }
+}

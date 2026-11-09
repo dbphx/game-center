@@ -1,0 +1,2 @@
+Ảnh trong thư mục này do DCity tự dựng (tools/render_quests), phát hành CC0 1.0.
+Xe dựng từ mô hình Trường đua — nguồn / giấy phép mô hình gốc: public/race/models/CREDITS.txt.
