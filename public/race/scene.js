@@ -1086,7 +1086,8 @@ export async function buildMoto(spec, low = false) {
       rot += (speed / R) * dt;
       for (const w of wheels) w.rotation.x = rot;
       // Nghiêng vào trong cua (steer > 0 là rẽ trái), càng nhanh nghiêng càng nhiều.
-      const want = steer * (drift ? 0.62 : 0.46) * Math.min(1, Math.abs(speed) / 18);
+      // Moto nghiêng VÀO trong cua (ngược chiều thân ô tô văng ra ngoài ở dòng holder.rotation.z).
+      const want = -steer * (drift ? 0.62 : 0.46) * Math.min(1, Math.abs(speed) / 18);
       lean.rotation.z = THREE.MathUtils.lerp(lean.rotation.z, want, Math.min(1, dt * 7));
       for (const f of flames) {
         f.visible = boost;
