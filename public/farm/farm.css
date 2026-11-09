@@ -386,8 +386,13 @@ button.wide { width: 100%; justify-content: center; }
 @media (max-width: 600px) {
   /* Topbar gọn để không tràn ngang: bỏ thanh máu / XP và tên, chỉ giữ số. */
   .topbar .hp-bar, .topbar .level-badge .xp-bar, .topbar .user-chip-name, .topbar .brand-text { display: none; }
-  .topbar .user { gap: 6px; }
+  .topbar .user { gap: 6px; min-width: 0; }
   .hp-pill { padding: 3px 8px 3px 5px; }
+  /* Số xu 9–10 chữ số làm topbar rộng hơn 390px → cả trang tràn ngang, chạm lệch: bỏ logo (đã có nút quay lại),
+     topbar không bao giờ rộng hơn màn hình. */
+  .topbar { overflow: hidden; }
+  .topbar .brand { gap: 0; flex-shrink: 0; }
+  .topbar .brand #logo { display: none; }
   .farm-hud { flex-direction: column; left: 8px; right: 8px; top: 8px; gap: 6px; }
   .farm-title { padding: 4px 10px 4px 4px; }
   .farm-title h1 { font-size: 16px; }
