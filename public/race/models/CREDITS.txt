@@ -2,24 +2,25 @@ Mô hình 3D của Trường đua (DCity). Người dùng đồng ý dùng cả 
 garage hiện dòng "Mô hình: <tác giả> (<giấy phép>)" dưới tên xe. Các mô hình được tối ưu (gộp mesh, lượng tử hoá) bằng
 gltf-transform, đổi vật liệu khi hiển thị; hình dáng giữ nguyên.
 
-car/  Kenney Car Kit 3.1 (https://kenney.nl/assets/car-kit), CC0: race-future (Siêu Tân Tinh), wheel-dark, wheel-racing,
+car/  Kenney Car Kit 3.1 (https://kenney.nl/assets/car-kit), CC0: wheel-dark, wheel-racing,
       debris-spoiler-a, debris-spoiler-b, Textures/colormap.png
-kit/  Kenney Racing Kit 2.0 (https://kenney.nl/assets/racing-kit), CC0: raceCarRed (Đỉnh Cao), khán đài, đèn, biển, cờ, tháp,
+kit/  Kenney Racing Kit 2.0 (https://kenney.nl/assets/racing-kit), CC0: khán đài, đèn, biển, cờ, tháp,
       gara, lều, cây
 cc0/  Poly Pizza, CC0 1.0 (xem cc0/CREDITS.txt): sports-car-white (Tốc Hành), sports-car-orange (Chim Ưng),
-      sports-car-striped (Rắn Lục) của Quaternius; formula-car (Hoả Tiễn) của scaranto
+      sports-car-striped (Rắn Lục) của Quaternius
 ccby/ Poly Pizza (https://poly.pizza), mỗi file một tác giả:
   starter.glb    Xe Tập Lái   "Kart" — scaranto, CC0 1.0 — https://poly.pizza/m/fLovOv3TAH
   comet.glb      Sao Chổi     "Car" — Quaternius, CC0 1.0 — https://poly.pizza/m/Cz6yDaUcM9
   bolt.glb       Tia Chớp     "Car" — Ray Alez, CC-BY 3.0 — https://poly.pizza/m/e9mZ3KfkO6l
   zenith.glb     Thiên Đỉnh   "Sportster" — Chris Tarello, CC-BY 3.0 — https://poly.pizza/m/0CZY9yGxi6Y
-  phantom.glb    Bóng Ma      "80s Car" — Nick Ladd, CC-BY 3.0 — https://poly.pizza/m/7tPSW5UYD20
-  vortex.glb     Lốc Xoáy     "Hover Fighter: Beetle" — Aaron Clifford, CC-BY 3.0 — https://poly.pizza/m/9teac58P9uv
   moto_dash.glb  Gió Lốc      "Motorcycle" — jeremy, CC-BY 3.0 — https://poly.pizza/m/0lBe-ApqJs4
   moto_storm.glb Bão Tố       "Motorcycle" — Poly by Google, CC-BY 3.0 — https://poly.pizza/m/dse64pqMKAR
-  moto_neon.glb  Neon Rider   "Cartoony Purple Motorcycle" — AliceCassie, CC0 1.0 — https://poly.pizza/m/j20srJUjpB
   CC-BY 3.0: https://creativecommons.org/licenses/by/3.0/   CC0 1.0: https://creativecommons.org/publicdomain/zero/1.0/
 
-Ảnh public/race/img/*.png (mặt đường, viền, rào mũi tên, nền, tia sáng, decal, biểu tượng đạo cụ item_*.png) do DCity vẽ bằng PIL, CC0.
+Siêu xe DCity (CC0, dựng bằng code trong public/race/hyper.js, không dùng mô hình ngoài): Bóng Ma, Lốc Xoáy, Đỉnh Cao,
+Hoả Tiễn, Siêu Tân Tinh, Cực Quang (độc quyền), moto Neon Rider, Băng Phong (độc quyền); bộ đồ viễn tưởng (dải neon,
+vây lưỡi dao, cánh kính phát sáng) gắn thêm lên Tia Chớp, Chim Ưng, Rắn Lục, Thiên Đỉnh, Bão Tố.
+
+Ảnh public/race/img/*.png (mặt đường, viền, rào mũi tên, nền, tia sáng, decal kể cả decal_x_snow, biểu tượng đạo cụ item_*.png) do DCity vẽ bằng PIL, CC0.
 three.js addon environments/RoomEnvironment.js (MIT, cùng giấy phép three.js trong public/vendor/three/LICENSE).
 Không dùng hình, tên, logo hay xe của ZingSpeed; chỉ học phong cách (đua đêm, neon, rào mũi tên, tia lửa, sơn bóng).

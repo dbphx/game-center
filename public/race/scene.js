@@ -6,6 +6,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { buildHyper, buildHyperBike, addKit, addBikeKit, paintMat, glowMat } from './hyper.js';
 
 const M = '/race/models/';
 const IMG = '/race/img/';
@@ -20,26 +21,32 @@ export const CAR_MODELS = {
   starter: { file: 'ccby/starter.glb', open: true, turn: -Math.PI / 2, seat: [0, 0.22, -0.05], paintMat: ['Material.014', 'Material.016', 'Material.001'], fixedWheels: true, credit: ['scaranto', CC0] },
   comet: { file: 'ccby/comet.glb', open: false, paintMat: ['Blue'], fixedWheels: true, credit: ['Quaternius', CC0] },
   sprint: { file: 'cc0/sports-car-white.glb', open: false, paintMat: ['White'], fixedWheels: true, credit: ['Quaternius', CC0] },
-  bolt: { file: 'ccby/bolt.glb', open: true, seat: [0, 0.42, -0.05], paintMat: ['paint', 'paint-2'], fixedWheels: true, credit: ['Ray Alez', BY3] },
-  raptor: { file: 'cc0/sports-car-orange.glb', open: false, paintMat: ['Orange', 'DarkOrange'], fixedWheels: true, credit: ['Quaternius', CC0] },
-  viper: { file: 'cc0/sports-car-striped.glb', open: false, tint: 0.55, fixedWheels: true, credit: ['Quaternius', CC0] },
-  zenith: { file: 'ccby/zenith.glb', open: false, turn: -Math.PI / 2, paintMat: ['mat21'], fixedWheels: true, credit: ['Chris Tarello', BY3] },
-  phantom: { file: 'ccby/phantom.glb', open: false, turn: Math.PI, paintMat: ['mat2', 'mat1'], fixedWheels: true, credit: ['Nick Ladd', BY3] },
-  vortex: { file: 'ccby/vortex.glb', open: false, turn: Math.PI, paintMat: ['mat8'], fixedWheels: true, hover: true, credit: ['Aaron Clifford', BY3] },
-  apex: { file: 'kit/raceCarRed.glb', open: true, seat: [0, 0.62, -0.25], paintMat: ['red'], credit: ['Kenney', CC0] },
-  blaze: { file: 'cc0/formula-car.glb', open: true, seat: [0, 0.5, -0.05], paintMat: ['Material.005'], fixedWheels: true, turn: Math.PI / 2, credit: ['scaranto', CC0] },
-  nova: { file: 'car/race-future.glb', open: true, seat: [0, 0.66, -0.3], tint: 0.72, credit: ['Kenney', CC0] },
+  // kit: bộ đồ viễn tưởng gắn thêm (1: neon sườn + lưỡi chia gió; 2: thêm vây lưỡi dao + cánh kính), accent: tông neon riêng.
+  bolt: { file: 'ccby/bolt.glb', open: true, seat: [0, 0.42, -0.05], paintMat: ['paint', 'paint-2'], fixedWheels: true, kit: 1, accent: [0x2fe6ff, 0x7a5cff], credit: ['Ray Alez', BY3] },
+  raptor: { file: 'cc0/sports-car-orange.glb', open: false, paintMat: ['Orange', 'DarkOrange'], fixedWheels: true, kit: 1, accent: [0xffb23f, 0xff3f6a], credit: ['Quaternius', CC0] },
+  viper: { file: 'cc0/sports-car-striped.glb', open: false, tint: 0.55, fixedWheels: true, kit: 1, accent: [0x6dff5f, 0x2fe6ff], credit: ['Quaternius', CC0] },
+  zenith: { file: 'ccby/zenith.glb', open: false, turn: -Math.PI / 2, paintMat: ['mat21'], fixedWheels: true, kit: 2, accent: [0x46f0ff, 0xff3fd0], credit: ['Chris Tarello', BY3] },
+  // proc: siêu xe DCity dựng bằng code (public/race/hyper.js), không dùng mô hình ngoài.
+  phantom: { proc: 'phantom', open: false, credit: ['DCity', CC0] },
+  vortex: { proc: 'vortex', open: false, hover: true, credit: ['DCity', CC0] },
+  apex: { proc: 'apex', open: false, credit: ['DCity', CC0] },
+  blaze: { proc: 'blaze', open: true, seat: [0, 0.5, -0.02], credit: ['DCity', CC0] },
+  nova: { proc: 'nova', open: false, credit: ['DCity', CC0] },
+  x_aurora: { proc: 'x_aurora', open: false, credit: ['DCity', CC0] },
 };
-// Moto: mô hình 3D có sẵn (file) cộng người lái, đồ nâng cấp dựng thêm. style chỉ dùng khi không tải được mô hình.
+// Moto: mô hình 3D có sẵn (file) cộng người lái, đồ nâng cấp dựng thêm; proc: siêu moto DCity dựng bằng code.
+// style chỉ dùng khi không tải được mô hình.
 export const MOTO_MODELS = {
   moto_dash: { style: 'street', file: 'ccby/moto_dash.glb', turn: -Math.PI / 2, paintMat: ['039BE5', '455A64'], credit: ['jeremy', BY3] },
-  moto_storm: { style: 'sport', file: 'ccby/moto_storm.glb', turn: Math.PI, tint: 0.35, credit: ['Poly by Google', BY3] },
-  moto_neon: { style: 'neon', file: 'ccby/moto_neon.glb', turn: Math.PI, paintMat: ['LightPurple'], neonStrips: true, credit: ['AliceCassie', CC0] },
+  moto_storm: { style: 'sport', file: 'ccby/moto_storm.glb', turn: Math.PI, tint: 0.35, kit: true, accent: [0x46f0ff, 0x7a5cff], credit: ['Poly by Google', BY3] },
+  moto_neon: { style: 'neon', proc: 'moto_neon', credit: ['DCity', CC0] },
+  x_frost: { style: 'neon', proc: 'x_frost', credit: ['DCity', CC0] },
 };
 // creditOf trả dòng ghi công của mẫu xe cho garage, vd "Mô hình: Nick Ladd (CC-BY 3.0)".
 export function creditOf(id) {
   const m = MOTO_MODELS[id] || CAR_MODELS[id];
-  return m && m.credit ? `Mô hình: ${m.credit[0]} (${m.credit[1]})` : '';
+  if (!m || !m.credit) return '';
+  return m.credit[0] === 'DCity' ? 'Thiết kế: DCity' : `Mô hình: ${m.credit[0]} (${m.credit[1]})`;
 }
 
 // Môi trường phản chiếu cho sơn bóng, kính, kim loại của xe (chỉ gắn vào vật liệu xe, không làm sáng đường đua đêm).
@@ -54,7 +61,7 @@ function carEnv(renderer, low) {
 
 // carMaterials đổi vật liệu mô hình sang sơn bóng có lớp phủ (thân), kính tối, đèn phát sáng, nhựa / lốp mờ.
 // Trả số vật liệu đèn của mô hình (có đèn sẵn thì không gắn thêm khối đèn giả).
-function carMaterials(obj, info, paint, low) {
+function carMaterials(obj, info, paint, low, chroma = false) {
   const pm = info.paintMat && [].concat(info.paintMat);
   let lights = 0;
   obj.traverse((o) => {
@@ -72,17 +79,28 @@ function carMaterials(obj, info, paint, low) {
         const red = /tail|rear|brake/i.test(name) || (base.r > 0.5 && base.g < 0.3);
         const c = red ? 0xff2a3a : 0xdfeeff;
         lights++;
-        return new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: red ? 1.1 : 0.7, roughness: 0.3 });
+        return new THREE.MeshStandardMaterial({ color: red ? c : 0x9fb4cc, emissive: c, emissiveIntensity: red ? 1.1 : 0.42, roughness: 0.3 });
       }
       if (/window|glass|wind/i.test(name)) {
         // Kính tối, nhám nhẹ: phản chiếu môi trường nhưng điểm sáng của đèn không loá thành đốm trắng.
-        return new THREE.MeshStandardMaterial({ color: 0x0c1220, metalness: 0.3, roughness: 0.3, envMap: ENV, envMapIntensity: 0.7 });
+        return new THREE.MeshPhysicalMaterial({ color: 0x0c1220, metalness: 0.2, roughness: 0.42, specularIntensity: 0.4, envMap: ENV, envMapIntensity: 0.6 });
       }
       if (isPaint || (!isWheel && !pm && info.tint != null && !m.map)) {
         const c = isPaint ? new THREE.Color(paint) : base.clone().lerp(new THREE.Color(paint), info.tint);
+        if (chroma) return paintMat(c, ENV, low, { chroma: true });
         if (low) return new THREE.MeshStandardMaterial({ color: c, metalness: 0.35, roughness: 0.4, envMap: ENV, envMapIntensity: 0.5 });
-        // Lớp phủ vừa phải: bóng như sơn xe nhưng điểm loá không vượt ngưỡng bloom thành đốm trắng.
-        return new THREE.MeshPhysicalMaterial({ color: c, metalness: 0.3, roughness: 0.42, clearcoat: 0.55, clearcoatRoughness: 0.28, envMap: ENV, envMapIntensity: 0.45 });
+        // Mô hình cũ có mặt phẳng lớn (nắp capo) phẳng tuyệt đối: lớp phủ mỏng, độ phản xạ gương thấp để đèn chiếu
+        // từ trên không loá trắng cả mặt (bóng vừa đủ thấy, không vượt ngưỡng bloom).
+        return new THREE.MeshPhysicalMaterial({ color: c, metalness: 0.15, roughness: 0.5, specularIntensity: 0.45, clearcoat: 0.15, clearcoatRoughness: 0.5, envMap: ENV, envMapIntensity: 0.38 });
+      }
+      // Mô hình dùng texture (vd Bão Tố) lắp sơn ánh kim: giữ texture, phủ lớp ngũ sắc đổi màu theo góc nhìn.
+      if (chroma && m.map && info.tint && !isWheel) {
+        const pc = paintMat(new THREE.Color(0xffffff).lerp(new THREE.Color(paint), Math.max(info.tint, 0.45)), ENV, low, { chroma: true });
+        pc.map = m.map;
+        // Mô hình không có pháp tuyến: GLTFLoader bật flatShading, phải giữ lại kẻo mất bóng đổ.
+        pc.flatShading = m.flatShading;
+        pc.vertexColors = m.vertexColors;
+        return pc;
       }
       const c = m.clone();
       if (m.map && info.tint && !isWheel) c.color = new THREE.Color(0xffffff).lerp(new THREE.Color(paint), info.tint);
@@ -104,10 +122,22 @@ const ORDER = ['starter', 'comet', 'bolt', 'viper', 'phantom', 'nova'];
 export const modelOf = (id) => CAR_MODELS[id] || CAR_MODELS[ORDER[Math.abs(hash(id)) % ORDER.length]];
 
 export const PAINT = { red: 0xe8333c, blue: 0x2f7cf6, yellow: 0xffc928, green: 0x2fcf6a, white: 0xf4f6fb, black: 0x23252e, orange: 0xff7a1f, purple: 0x9b4dff, pink: 0xff5fb4, cyan: 0x2fe6ff };
+// Đồ độc quyền: sơn ánh kim đổi màu (paint_x_chroma), neon cầu vồng (neon_x_rainbow) — màu gốc khi dựng, hiệu ứng riêng.
+const SPECIAL = { paint_x_chroma: 0x6a5cff, neon_x_rainbow: 0xff3f6a };
 const colorOf = (id, fallback) => {
+  if (SPECIAL[id]) return SPECIAL[id];
   const k = Object.keys(PAINT).find((c) => String(id || '').includes(c));
   return k ? PAINT[k] : fallback;
 };
+const isChroma = (cos) => cos.paint === 'paint_x_chroma';
+const isRainbow = (cos) => cos.neon === 'neon_x_rainbow';
+// rainbow đổi sắc các vật liệu neon theo thời gian (neon cầu vồng); giữ độ sáng gốc của từng vật liệu.
+function rainbow(mats, t) {
+  mats.forEach((m, i) => {
+    if (!m.userData.k) m.userData.k = Math.max(m.color.r, m.color.g, m.color.b) || 1;
+    m.color.setHSL((t * 0.18 + i * 0.07) % 1, 1, 0.55).multiplyScalar(m.userData.k * (m.toneMapped === false ? 1.3 : 1));
+  });
+}
 function hash(s) {
   let h = 0;
   for (const ch of String(s || '')) h = (h * 31 + ch.charCodeAt(0)) | 0;
@@ -188,7 +218,93 @@ export function createRenderer(canvas, low) {
       resize();
     },
     render: () => (composer ? composer.render() : renderer.render(scene, camera)),
+    // setBloom chỉnh độ toả sáng (garage dịu hơn đường đua đêm); gọi không tham số để về mặc định.
+    setBloom(strength = 0.85, radius = 0.45, threshold = 0.82) {
+      if (!bloom) return;
+      bloom.strength = strength;
+      bloom.radius = radius;
+      bloom.threshold = threshold;
+    },
     dispose: () => { renderer.dispose(); if (composer) composer.dispose(); },
+  };
+}
+
+// ---------- Showroom (garage) ----------
+
+// createShowroom dựng phòng trưng bày xe: nền tím than, sàn bóng, bàn xoay viền neon, cột đèn neon xung quanh,
+// chùm sáng từ trần, đèn viền xanh / hồng. Trả {scene, update(t)}.
+export function createShowroom(low) {
+  const scene = new THREE.Scene();
+  const cv = document.createElement('canvas');
+  cv.width = 4;
+  cv.height = 256;
+  const x = cv.getContext('2d');
+  const g = x.createLinearGradient(0, 0, 0, 256);
+  g.addColorStop(0, '#1a0f3d');
+  g.addColorStop(0.5, '#0c1236');
+  g.addColorStop(1, '#04050d');
+  x.fillStyle = g;
+  x.fillRect(0, 0, 4, 256);
+  const bg = new THREE.CanvasTexture(cv);
+  bg.colorSpace = THREE.SRGBColorSpace;
+  scene.background = bg;
+  scene.fog = new THREE.Fog(0x0a0d26, 14, 34);
+  scene.add(new THREE.HemisphereLight(0xb8c0ff, 0x0c0e18, 0.45));
+  // Đèn chính chiếu từ trên cao hơi lệch sau: điểm loá trên nắp xe ít dội thẳng vào camera.
+  const key = new THREE.DirectionalLight(0xffffff, 1.05);
+  key.position.set(3, 10, -3);
+  scene.add(key);
+  const fill = new THREE.DirectionalLight(0xc8d2ff, 0.45);
+  fill.position.set(-4, 3, 7);
+  scene.add(fill);
+  const rimA = new THREE.DirectionalLight(0x46f0ff, 1.3);
+  rimA.position.set(-7, 3, -5);
+  scene.add(rimA);
+  const rimB = new THREE.DirectionalLight(0xff4fd8, 1.0);
+  rimB.position.set(7, 2.5, -6);
+  scene.add(rimB);
+  // Sàn bóng tối (phản chiếu môi trường nhẹ) và bàn xoay.
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(30, 64), new THREE.MeshStandardMaterial({ color: 0x0b0e24, metalness: 0.2, roughness: 0.75 }));
+  floor.rotation.x = -Math.PI / 2;
+  scene.add(floor);
+  const table = new THREE.Mesh(new THREE.CylinderGeometry(3.7, 3.85, 0.1, 64), new THREE.MeshStandardMaterial({ color: 0x151a3c, metalness: 0.35, roughness: 0.55, envMap: ENV, envMapIntensity: 0.3 }));
+  table.position.y = -0.045;
+  scene.add(table);
+  const rings = [];
+  for (const [r, w, c, k] of [[3.78, 0.06, 0x46f0ff, 1.15], [3.3, 0.02, 0xb04dff, 1.0], [5.4, 0.03, 0x46f0ff, 0.55], [8.5, 0.04, 0xff4fd8, 0.5]]) {
+    const ring = new THREE.Mesh(new THREE.RingGeometry(r - w, r + w, 96), new THREE.MeshBasicMaterial({ color: new THREE.Color(c).multiplyScalar(k), toneMapped: false, transparent: true, opacity: 1 }));
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = 0.012;
+    scene.add(ring);
+    rings.push(ring);
+  }
+  // Quầng sáng trên sàn quanh bàn xoay.
+  const pool = new THREE.Mesh(new THREE.PlaneGeometry(13, 13), new THREE.MeshBasicMaterial({ map: tex('spark.png'), color: 0x3a4cff, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+  pool.rotation.x = -Math.PI / 2;
+  pool.position.y = 0.006;
+  scene.add(pool);
+  // Cột neon quanh phòng.
+  const n = low ? 8 : 12;
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    const c = i % 2 ? 0xff4fd8 : 0x46f0ff;
+    const col = new THREE.Mesh(new THREE.BoxGeometry(0.12, 7, 0.12), new THREE.MeshBasicMaterial({ color: new THREE.Color(c).multiplyScalar(0.9), toneMapped: false }));
+    col.position.set(Math.cos(a) * 13, 3.5, Math.sin(a) * 13);
+    scene.add(col);
+  }
+  // Chùm sáng từ trần xuống bàn xoay.
+  if (!low) {
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 3.6, 9, 32, 1, true), new THREE.MeshBasicMaterial({ color: 0x5866ff, transparent: true, opacity: 0.025, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }));
+    beam.position.y = 4.5;
+    scene.add(beam);
+  }
+  return {
+    scene,
+    update(t) {
+      rings[0].material.opacity = 0.8 + Math.sin(t * 2) * 0.2;
+      rings[1].material.opacity = 0.6 + Math.sin(t * 2 + 1.5) * 0.3;
+      pool.material.opacity = 0.3 + Math.sin(t * 1.3) * 0.06;
+    },
   };
 }
 
@@ -403,24 +519,37 @@ function glow(color) { return new THREE.MeshBasicMaterial({ color, toneMapped: f
 export async function buildCar(spec, low = false) {
   if (isMoto(spec.car)) return buildMoto(spec, low);
   const info = modelOf(spec.car);
-  const src = await loadModel(info.file);
-  const body = src.clone(true);
-  const root = new THREE.Group(); // gốc xe: tâm giữa hai trục, đáy y = 0, mũi xe hướng +z
-  const holder = new THREE.Group();
-  if (info.turn) body.rotation.y = info.turn; // mô hình nhìn ngược hướng thì quay lại cho mũi xe hướng +z
-  holder.add(body);
-  root.add(holder);
-  const size = recenter(body);
-  const s = CAR_WIDTH / Math.max(size.x, 0.01);
-  holder.scale.setScalar(s);
-  const L = size.z * s;
-  const H = size.y * s;
   const lv = spec.levels || {};
   const cos = spec.cosmetics || {};
   const paint = colorOf(cos.paint, PAINT.red);
-
-  // Sơn bóng có lớp phủ cho thân, kính tối, đèn phát sáng, phản chiếu môi trường (xem carMaterials).
-  const ownLights = carMaterials(body, info, paint, low);
+  const neonC = cos.neon ? colorOf(cos.neon, 0x2fe6ff) : null;
+  const root = new THREE.Group(); // gốc xe: tâm giữa hai trục, đáy y = 0, mũi xe hướng +z
+  const holder = new THREE.Group();
+  root.add(holder);
+  let body, s, L, H, ownLights;
+  let hyper = null; // siêu xe dựng bằng code (hyper.js)
+  const fx = []; // vật liệu neon đổi sắc khi lắp neon cầu vồng
+  if (info.proc) {
+    hyper = buildHyper(info.proc, { paint, paintKind: isChroma(cos) ? 'chroma' : '', accent: neonC, env: ENV, low, tires: lv.tires || 0 });
+    body = hyper.group;
+    holder.add(body);
+    s = 1;
+    L = hyper.length;
+    H = hyper.height;
+    ownLights = 1;
+    fx.push(...hyper.glows);
+  } else {
+    body = (await loadModel(info.file)).clone(true);
+    if (info.turn) body.rotation.y = info.turn; // mô hình nhìn ngược hướng thì quay lại cho mũi xe hướng +z
+    holder.add(body);
+    const size = recenter(body);
+    s = CAR_WIDTH / Math.max(size.x, 0.01);
+    holder.scale.setScalar(s);
+    L = size.z * s;
+    H = size.y * s;
+    // Sơn bóng có lớp phủ cho thân, kính tối, đèn phát sáng, phản chiếu môi trường (xem carMaterials).
+    ownLights = carMaterials(body, info, paint, low, isChroma(cos));
+  }
   // Xe bay (vortex): nâng thân khỏi mặt đường, có quầng đẩy phía dưới.
   let hoverGlow = null;
   if (info.hover) {
@@ -437,7 +566,7 @@ export async function buildCar(spec, low = false) {
 
   // Lốp / mâm: cấp 2–3 đổi mâm tối, cấp 4–5 mâm đua có viền phát sáng.
   const tires = lv.tires || 0;
-  if (tires >= 2) {
+  if (tires >= 2 && !hyper) {
     const wfile = tires >= 4 ? 'car/wheel-racing.glb' : 'car/wheel-dark.glb';
     const wsrc = await loadModel(wfile);
     root.updateMatrixWorld(true);
@@ -466,7 +595,19 @@ export async function buildCar(spec, low = false) {
 
   const extras = new THREE.Group(); // đồ gắn thêm theo hệ mét của xe
   root.add(extras);
+  if (info.hover) extras.position.y = 0.35; // xe bay: đồ gắn thêm nâng theo thân
   const rear = -L / 2;
+  // Xe hạng trung: gắn bộ đồ viễn tưởng (dải neon, lưỡi chia gió, vây lưỡi dao, cánh kính).
+  if (info.kit) fx.push(...addKit(extras, info.kit, L, H, neonC != null ? neonC : info.accent[0], info.accent[1]).glows);
+  // Siêu xe: quầng sáng mềm màu neon riêng dưới gầm (luôn có, lắp neon gầm thì sáng thêm).
+  let aura = null;
+  if (hyper) {
+    aura = new THREE.Mesh(new THREE.PlaneGeometry(CAR_WIDTH * 2.1, L * 1.25), new THREE.MeshBasicMaterial({ map: tex('spark.png'), color: hyper.accent, transparent: true, opacity: 0.32, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+    aura.rotation.x = -Math.PI / 2;
+    aura.position.y = info.hover ? 0.05 : 0.045;
+    root.add(aura);
+    fx.push(aura.material);
+  }
   // Bánh liền khối (mô hình CC0 ngoài Kenney): lốp cấp 4–5 là vòng sáng ở vị trí bánh ước lượng.
   if (info.fixedWheels && !info.hover && tires >= 4) {
     const wr = H * 0.17;
@@ -542,7 +683,9 @@ export async function buildCar(spec, low = false) {
   if (cos.spoiler) {
     body.traverse((o) => { if (/spoiler/i.test(o.name)) o.visible = false; });
     let wing;
-    if (cos.spoiler === 'spoiler_gt') {
+    if (cos.spoiler === 'spoiler_x_glow') {
+      wing = glowSpoiler(neonC != null ? neonC : hyper ? hyper.accent : 0x5ff4ff, fx);
+    } else if (cos.spoiler === 'spoiler_gt') {
       wing = new THREE.Group();
       const m = new THREE.MeshStandardMaterial({ color: 0x15171f, metalness: 0.5, roughness: 0.35 });
       const blade = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.06, 0.5), m);
@@ -579,6 +722,7 @@ export async function buildCar(spec, low = false) {
     const strip = new THREE.Mesh(new THREE.BoxGeometry(CAR_WIDTH * 0.92, 0.04, L * 0.8), glow(c));
     strip.position.y = 0.12;
     root.add(strip);
+    fx.push(underglow.material, strip.material);
   }
 
   // Decal: số đua (chữ vẽ trên canvas) hoặc hình PNG dán trên nắp xe.
@@ -604,7 +748,8 @@ export async function buildCar(spec, low = false) {
     }
     const plate = new THREE.Mesh(new THREE.PlaneGeometry(cos.decal === 'decal_number' ? 0.7 : 1.1, cos.decal === 'decal_number' ? 0.7 : L * 0.45), new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 }));
     plate.rotation.x = -Math.PI / 2;
-    plate.position.set(0, H * (info.open ? 0.45 : 0.55), L * 0.22);
+    plate.position.set(0, hyper ? 0.6 : H * (info.open ? 0.45 : 0.55), hyper ? 1.0 : L * 0.22);
+    if (hyper) plate.rotation.x = -Math.PI / 2 - 0.12; // nắp siêu xe dốc xuống mũi
     extras.add(plate);
   }
 
@@ -626,6 +771,7 @@ export async function buildCar(spec, low = false) {
 
   let spin = 0;
   let t = 0;
+  const rainbowOn = isRainbow(cos);
   return {
     root, length: L, height: H, flames,
     // update xoay bánh theo tốc độ, bẻ bánh trước, lắc thân khi drift, bật lửa khi nitro.
@@ -646,8 +792,58 @@ export async function buildCar(spec, low = false) {
         if (boost) f.scale.set(1, 0.8 + Math.sin(t * 60 + f.id) * 0.25, 1);
       }
       if (underglow) underglow.material.opacity = 0.45 + Math.sin(t * 3) * 0.1;
+      if (aura) aura.material.opacity = 0.28 + Math.sin(t * 2.2) * 0.06 + (boost ? 0.2 : 0);
+      if (hyper) shimmer(hyper, t);
+      if (rainbowOn) rainbow(fx, t);
     },
   };
+}
+
+// shimmer: cánh kính phát sáng nhấp nháy nhẹ; xe Cực Quang / Băng Phong đổi sắc cyan ↔ tím như cực quang.
+const AUR_A = new THREE.Color(0x5ff4ff);
+const AUR_B = new THREE.Color(0xc18cff);
+function shimmer(h, t) {
+  for (const m of h.glows.concat(h.glows2)) {
+    if (!m.transparent) continue;
+    if (!m.userData.o) m.userData.o = m.opacity;
+    m.opacity = m.userData.o * (0.82 + Math.sin(t * 2.4 + m.id) * 0.18);
+  }
+  if (h.aurora) {
+    const f = (Math.sin(t * 0.9) + 1) / 2;
+    for (const [i, m] of h.glows.concat(h.glows2).entries()) {
+      if (!m.userData.k) m.userData.k = Math.max(m.color.r, m.color.g, m.color.b) || 1;
+      m.color.copy(AUR_A).lerp(AUR_B, (f + i * 0.25) % 1).multiplyScalar(m.transparent ? 1 : m.userData.k);
+    }
+  }
+}
+
+// glowSpoiler: cánh gió phát sáng (đồ độc quyền) — lưỡi kính trong suốt viền neon trên hai cột tối.
+function glowSpoiler(color, fx) {
+  const g = new THREE.Group();
+  const dark = new THREE.MeshStandardMaterial({ color: 0x15171f, metalness: 0.5, roughness: 0.35 });
+  const blade = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.04, 0.5), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.45, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+  blade.position.y = 0.55;
+  blade.rotation.x = -0.12;
+  const edge = glowMat(color, 1.15);
+  const e1 = new THREE.Mesh(new THREE.BoxGeometry(2.14, 0.03, 0.03), edge);
+  e1.position.set(0, 0.585, -0.25);
+  const e2 = e1.clone();
+  e2.position.z = 0.24;
+  e2.position.y = 0.53;
+  for (const x of [-1.07, 1.07]) {
+    const end = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.3, 0.56), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+    fx.push(end.material);
+    end.position.set(x, 0.6, 0);
+    g.add(end);
+  }
+  for (const x of [-0.55, 0.55]) {
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.55, 0.18), dark);
+    post.position.set(x, 0.27, 0);
+    g.add(post);
+  }
+  g.add(blade, e1, e2);
+  fx.push(blade.material, edge);
+  return g;
 }
 
 // ---------- Moto (dựng bằng khối) ----------
@@ -683,7 +879,17 @@ export async function buildMoto(spec, low = false) {
   // Mô hình 3D có sẵn: thu phóng cho dài bằng khung moto (2,1 m trước khi phóng MOTO_SCALE), đặt bánh chạm đất.
   let glb = null;
   let seatY = R + 0.62;
-  if (minfo.file) {
+  let hyper = null; // siêu moto dựng bằng code (hyper.js)
+  const fx = []; // vật liệu neon đổi sắc khi lắp neon cầu vồng
+  const wheels = [];
+  if (minfo.proc) {
+    hyper = buildHyperBike(minfo.proc, { paint, paintKind: isChroma(cos) ? 'chroma' : '', accent: cos.neon ? accent : null, env: ENV, low }, R, WB);
+    lean.add(hyper.group);
+    wheels.push(...hyper.wheels);
+    seatY = hyper.seatY;
+    glb = { h: 1.1 };
+    fx.push(...hyper.glows);
+  } else if (minfo.file) {
     try {
       const body = (await loadModel(minfo.file)).clone(true);
       const hold = new THREE.Group();
@@ -692,11 +898,12 @@ export async function buildMoto(spec, low = false) {
       const sz = recenter(body);
       const k = 2.1 / Math.max(sz.z, sz.x, 0.01);
       hold.scale.setScalar(k);
-      carMaterials(body, minfo, paint, low);
+      carMaterials(body, minfo, paint, low, isChroma(cos));
       lean.add(hold);
       glb = { h: sz.y * k };
       seatY = glb.h * 0.6;
       if (minfo.neonStrips) for (const x of [-0.13, 0.13]) add(new THREE.BoxGeometry(0.02, 0.03, 1.2), glow(accent), x, glb.h * 0.42, 0.05);
+      if (minfo.kit) fx.push(...addBikeKit(lean, glb.h, cos.neon ? accent : minfo.accent[0], minfo.accent[1]).glows);
     } catch (e) {
       glb = null;
     }
@@ -704,9 +911,8 @@ export async function buildMoto(spec, low = false) {
 
   // Bánh: lốp xuyến + mâm. Lốp cấp 2–3 mâm tối, 4–5 mâm đua có viền sáng; neon: bánh không trục phát sáng.
   const tires = lv.tires || 0;
-  const wheels = [];
   // Mô hình có sẵn bánh liền khối: lốp cấp 4–5 là vòng sáng ở hai bánh.
-  if (glb && tires >= 4) for (const z of [WB / 2 + 0.05, -WB / 2 - 0.05]) add(new THREE.TorusGeometry(R * 0.7, R * 0.06, 6, 24), glow(accent), 0, R, z, 0, Math.PI / 2);
+  if (glb && !hyper && tires >= 4) for (const z of [WB / 2 + 0.05, -WB / 2 - 0.05]) add(new THREE.TorusGeometry(R * 0.7, R * 0.06, 6, 24), glow(accent), 0, R, z, 0, Math.PI / 2);
   if (!glb) for (const z of [WB / 2, -WB / 2]) {
     const w = new THREE.Group();
     w.position.set(0, R, z);
@@ -852,9 +1058,19 @@ export async function buildMoto(spec, low = false) {
     underglow.rotation.x = -Math.PI / 2;
     underglow.position.y = 0.06;
     root.add(underglow);
+    fx.push(underglow.material);
+  }
+  // Siêu moto: quầng sáng mềm màu neon riêng dưới gầm.
+  let aura = null;
+  if (hyper) {
+    aura = new THREE.Mesh(new THREE.PlaneGeometry(1.6, L * 1.3), new THREE.MeshBasicMaterial({ map: tex('spark.png'), color: hyper.accent, transparent: true, opacity: 0.32, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+    aura.rotation.x = -Math.PI / 2;
+    aura.position.y = 0.045;
+    root.add(aura);
+    fx.push(aura.material);
   }
   // Đèn hậu và bóng mềm.
-  add(new THREE.BoxGeometry(0.16, 0.05, 0.04), glow(0xff2a3a), 0, R + 0.66, -1.02);
+  if (!hyper) add(new THREE.BoxGeometry(0.16, 0.05, 0.04), glow(0xff2a3a), 0, R + 0.66, -1.02);
   const shadow = new THREE.Mesh(new THREE.PlaneGeometry(0.9, L * 1.1), new THREE.MeshBasicMaterial({ map: tex('spark.png'), color: 0x000000, transparent: true, opacity: 0.55, depthWrite: false }));
   shadow.rotation.x = -Math.PI / 2;
   shadow.position.y = 0.035;
@@ -862,6 +1078,7 @@ export async function buildMoto(spec, low = false) {
 
   let rot = 0;
   let t = 0;
+  const rainbowOn = isRainbow(cos);
   return {
     root, length: L, height: H, flames, moto: true,
     update(speed, steer, drift, boost, dt) {
@@ -876,6 +1093,9 @@ export async function buildMoto(spec, low = false) {
         if (boost) f.scale.set(1, 0.8 + Math.sin(t * 60) * 0.25, 1);
       }
       if (underglow) underglow.material.opacity = 0.45 + Math.sin(t * 3) * 0.1;
+      if (aura) aura.material.opacity = 0.28 + Math.sin(t * 2.2) * 0.06 + (boost ? 0.2 : 0);
+      if (hyper) shimmer(hyper, t);
+      if (rainbowOn) rainbow(fx, t);
     },
   };
 }

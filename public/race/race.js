@@ -1,7 +1,7 @@
 // Trường đua: sảnh, garage, phòng chờ, cuộc đua 3D. Server (games/race) giữ phòng, kiểm gói vị trí, xếp hạng và trả xu;
 // máy người chơi tự mô phỏng xe mình (physics.js) và gửi vị trí ≈15 lần/giây.
 import { Track, newCar, step, raceDistance, hitCar, ITEM_BOOST_MS, SHIELD_MS, NITRO_CHARGE } from './physics.js';
-import { THREE, createRenderer, buildWorld, buildCar, createSparks, createSpeedLines, createItemFx, makeShield, isMoto, PAINT, creditOf } from './scene.js';
+import { THREE, createRenderer, buildWorld, buildCar, createSparks, createSpeedLines, createItemFx, makeShield, isMoto, PAINT, creditOf, createShowroom } from './scene.js';
 
 const A = window.Account;
 const I = window.Icons;
@@ -20,7 +20,7 @@ const ITEM_BOX = 'img/item_box.png';
 const itemImg = (k) => `<img src="${ITEM_ICON[k] || ITEM_BOX}" alt="" draggable="false">`;
 const PICKUP_RANGE = 5.5; // m: chạy qua hộp gần chừng này thì báo nhặt (server cho tới 6 m)
 const SEND_MS = 66; // ≈15 gói mỗi giây
-const LERP_MS = 110; // xe người khác vẽ trễ một chút để mượt
+const LERP_MS = 160; // xe người khác vẽ trễ một chút (≈2,5 gói) để mượt dù mạng chập chờn
 const ROOM_KEY = 'race.room';
 const BASE_STATS = { maxSpeed: 30, accel: 12, grip: 0.7 };
 const PART_NAMES = { engine: ['Động cơ / ống xả', 'Tốc độ'], turbo: ['Turbo', 'Tăng tốc'], tires: ['Lốp / mâm', 'Bám đường'] };
@@ -152,28 +152,15 @@ let gCarObj = null;
 let gAngle = 0.6;
 let gDrag = null;
 let gToken = 0;
+let gT = 0;
 
+let gRoom = null;
+// setupGarageScene dựng phòng trưng bày (scene.js createShowroom) một lần; kéo ngang để xoay xe.
 function setupGarageScene() {
   if (gScene) return;
-  gScene = new THREE.Scene();
-  gScene.background = new THREE.Color(0x0b0f2a);
-  gScene.fog = new THREE.Fog(0x0b0f2a, 18, 40);
-  gCam = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
-  // Đèn garage vừa phải: mặt xe sáng không vượt ngưỡng bloom (chỉ neon / đèn xe mới toả sáng).
-  gScene.add(new THREE.HemisphereLight(0x8aa2ff, 0x101418, 0.9));
-  const key = new THREE.DirectionalLight(0xffffff, 1.25);
-  key.position.set(4, 8, 6);
-  gScene.add(key);
-  const rim = new THREE.DirectionalLight(0x58f0ff, 1.1);
-  rim.position.set(-6, 3, -6);
-  gScene.add(rim);
-  const floor = new THREE.Mesh(new THREE.CircleGeometry(4.2, 48), new THREE.MeshStandardMaterial({ color: 0x161b40, metalness: 0.1, roughness: 0.85 })); // sàn mờ: không loá ánh neon xe
-  floor.rotation.x = -Math.PI / 2;
-  gScene.add(floor);
-  const ring = new THREE.Mesh(new THREE.RingGeometry(4.15, 4.35, 64), new THREE.MeshBasicMaterial({ color: 0x2fe6ff, toneMapped: false }));
-  ring.rotation.x = -Math.PI / 2;
-  ring.position.y = 0.01;
-  gScene.add(ring);
+  gRoom = createShowroom(low);
+  gScene = gRoom.scene;
+  gCam = new THREE.PerspectiveCamera(36, 1, 0.1, 100);
   const cv = $('view');
   cv.addEventListener('pointerdown', (e) => { if (!$('garage').classList.contains('hidden')) gDrag = e.clientX; });
   addEventListener('pointermove', (e) => { if (gDrag != null) { gAngle -= (e.clientX - gDrag) * 0.01; gDrag = e.clientX; } });
@@ -206,20 +193,23 @@ async function openGarage() {
   const v = ensureView();
   setupGarageScene();
   v.use(gScene, gCam);
+  v.setBloom(0.55, 0.35, 0.92); // garage: toả sáng dịu, chỉ neon / cánh kính phát sáng
   renderGarage();
   await showGarageCar();
   let last = performance.now();
   const loop = (now) => {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
-    if (gDrag == null) gAngle += dt * 0.35;
+    if (gDrag == null) gAngle += dt * 0.3;
+    gT += dt;
     const wide = innerWidth > 640;
-    const r = wide ? 12 : 18;
+    const r = wide ? 11.5 : 21; // điện thoại dọc: góc nhìn ngang hẹp nên lùi xa để thấy trọn xe
     // Máy tính: bảng bên phải nên đẩy xe sang trái; điện thoại: bảng ở dưới nên đẩy xe lên trên.
-    const look = wide ? new THREE.Vector3(Math.cos(gAngle) * 2.6, 0.7, -Math.sin(gAngle) * 2.6) : new THREE.Vector3(0, -0.6, 0);
-    gCam.position.set(Math.sin(gAngle) * r + look.x, 3.6, Math.cos(gAngle) * r + look.z);
+    const look = wide ? new THREE.Vector3(Math.cos(gAngle) * 2.2, 0.6, -Math.sin(gAngle) * 2.2) : new THREE.Vector3(0, -0.9, 0);
+    gCam.position.set(Math.sin(gAngle) * r + look.x, wide ? 3.0 : 3.6, Math.cos(gAngle) * r + look.z);
     gCam.lookAt(look);
     if (gCarObj) gCarObj.update(0, 0, false, false, dt);
+    gRoom.update(gT);
     v.render();
     gLoop = requestAnimationFrame(loop);
   };
@@ -235,18 +225,21 @@ function renderGarage() {
   const moto = kindOf(car) === 'moto';
   if (moto && gKind === 'spoiler') gKind = 'neon';
   $('g-filter').innerHTML = [['car', 'Ô tô'], ['moto', 'Moto']].map(([k, n]) => `<button data-filter="${k}" class="${k === gFilter ? 'on' : ''}">${n} <small>${garage.cars.filter((c) => kindOf(c) === k).length}</small></button>`).join('');
-  $('g-cars').innerHTML = garage.cars.filter((c) => kindOf(c) === gFilter).map((c) => `<button class="car-tab ${c.id === gSel ? 'on' : ''}" data-car="${esc(c.id)}">
-      <b>${esc(c.name)}</b><small>${c.owned ? (c.id === garage.current ? 'Đang dùng' : 'Đã có') : needLevel(c) ? `${I.svg('lock')}Cấp ${c.level}` : c.price ? `${xu(c.price)} xu` : 'Miễn phí'}</small></button>`).join('');
-  $('g-name').textContent = car.name;
+  $('g-cars').innerHTML = garage.cars.filter((c) => kindOf(c) === gFilter).map((c) => `<button class="car-tab ${c.id === gSel ? 'on' : ''} ${c.exclusive ? 'exclusive' : ''}" data-car="${esc(c.id)}">
+      <b>${esc(c.name)}</b><small>${c.owned ? (c.id === garage.current ? 'Đang dùng' : 'Đã có') : c.exclusive ? 'Độc quyền' : needLevel(c) ? `${I.svg('lock')}Cấp ${c.level}` : c.price ? `${xu(c.price)} xu` : 'Miễn phí'}</small></button>`).join('');
+  $('g-name').innerHTML = esc(car.name) + (car.exclusive ? ' <span class="excl-badge">Độc quyền</span>' : '');
   $('g-credit').textContent = creditOf(car.id);
-  $('g-state').textContent = car.owned ? (car.id === garage.current ? 'Đang dùng' : 'Đã có') : 'Chưa mua';
+  $('g-state').textContent = car.owned ? (car.id === garage.current ? 'Đang dùng' : 'Đã có') : car.exclusive ? 'Chưa có' : 'Chưa mua';
   const st = car.stats || BASE_STATS;
   const bar = (v, lo, hi) => `<span class="bar"><span style="width:${Math.round(Math.max(0.08, Math.min(1, (v - lo) / (hi - lo))) * 100)}%"></span></span>`;
   $('g-stats').innerHTML = `
     <div class="stat-row"><span>Tốc độ</span>${bar(st.maxSpeed, 24, 37)}<b>${Math.round(st.maxSpeed * 3.6)}</b></div>
     <div class="stat-row"><span>Tăng tốc</span>${bar(st.accel, 9, 15)}<b>${st.accel.toFixed(1)}</b></div>
     <div class="stat-row"><span>Bám đường</span>${bar(st.grip, 0.55, 1)}<b>${Math.round(st.grip * 100)}</b></div>`;
-  $('g-action').innerHTML = !car.owned
+  // Xe độc quyền không bán bằng xu: chỉ ghép từ mảnh nhiệm vụ (nút gắn sau qua data-exclusive).
+  $('g-action').innerHTML = !car.owned && car.exclusive
+    ? `<button class="exclusive-btn" data-exclusive="car" data-id="${esc(car.id)}" disabled>Ghép từ mảnh</button>`
+    : !car.owned
     ? needLevel(car)
       ? `<button class="need-level" disabled title="Chưa đủ cấp nhân vật">${I.svg('lock')}Cần cấp ${car.level} — ${xu(car.price)} xu</button>`
       : `<button class="primary" data-act="buy">Mua xe — ${xu(car.price)} xu</button>`
@@ -268,9 +261,11 @@ function renderGarage() {
   const items = (garage.items || []).filter((it) => it.kind === gKind);
   $('g-list').innerHTML = (gKind !== 'paint' ? [`<button class="item ${on ? '' : 'on'}" data-item="" data-kind="${gKind}"><b>Không lắp</b><span class="muted">—</span></button>`] : [])
     .concat(items.map((it) => {
-      const sw = gKind === 'paint' || gKind === 'neon' ? `<span class="swatch" style="background:#${(PAINT[Object.keys(PAINT).find((c) => it.id.includes(c))] || 0x888888).toString(16).padStart(6, '0')}"></span>` : '';
-      const state = it.id === on ? 'Đang lắp' : it.owned || !it.price ? 'Lắp' : `${xu(it.price)} xu`;
-      return `<button class="item ${it.id === on ? 'on' : ''}" data-item="${esc(it.id)}" data-kind="${it.kind}"><b>${sw}${esc(it.name)}</b><span class="muted">${state}</span></button>`;
+      const special = it.id === 'paint_x_chroma' ? 'chroma' : it.id === 'neon_x_rainbow' ? 'rainbow' : '';
+      const sw = gKind === 'paint' || gKind === 'neon' ? `<span class="swatch ${special}" style="${special ? '' : `background:#${(PAINT[Object.keys(PAINT).find((c) => it.id.includes(c))] || 0x888888).toString(16).padStart(6, '0')}`}"></span>` : '';
+      const locked = it.exclusive && !it.owned;
+      const state = it.id === on ? 'Đang lắp' : locked ? 'Ghép từ mảnh' : it.owned || !it.price ? 'Lắp' : `${xu(it.price)} xu`;
+      return `<button class="item ${it.id === on ? 'on' : ''} ${it.exclusive ? 'exclusive' : ''}" data-item="${esc(it.id)}" data-kind="${it.kind}"${locked ? ' data-exclusive="item"' : ''}><b>${sw}${esc(it.name)}</b><span class="muted">${state}</span></button>`;
     })).join('');
 }
 
@@ -324,6 +319,7 @@ function onGarageClick(e) {
     if (!car.owned) return A.toast('Mua xe trước rồi mới lắp đồ');
     const id = item.dataset.item;
     const it = (garage.items || []).find((x) => x.id === id);
+    if (item.dataset.exclusive) return A.toast(`${it ? it.name : 'Món này'} là đồ độc quyền — ghép từ mảnh nhiệm vụ`);
     if (it && !it.owned && it.price) {
       A.confirm(`Mua ${it.name} giá ${xu(it.price)} xu rồi lắp lên ${car.name}?`, { title: 'Mua đồ', ok: 'Mua' }).then(async (ok) => {
         if (!ok) return;
@@ -486,6 +482,7 @@ async function newRace({ trackId, entries, net, code, startAt, mode = 'speed', n
   const camera = new THREE.PerspectiveCamera(72, 1, 0.3, 1500);
   scene.add(camera);
   v.use(scene, camera);
+  v.setBloom(); // đường đua đêm: toả sáng mặc định
   await buildWorld(scene, track, low);
   const sparks = createSparks(scene);
   const lines = createSpeedLines(camera);
@@ -663,28 +660,59 @@ function followCam(c, dt) {
   r.camera.updateProjectionMatrix();
 }
 
-// Xe người khác: nội suy giữa hai gói gần nhất, vẽ trễ LERP_MS.
+// Xe người khác: nội suy theo mốc thời gian server (`at` của từng xe), vẽ trễ LERP_MS.
+// Mốc lấy từ server chứ không phải lúc gói tới, nên mạng dồn / trễ gói không làm xe giật; gói trùng (server phát lại
+// vị trí cũ khi chưa có gói mới) bị bỏ; hết dữ liệu thì đoán tiếp theo vận tốc tối đa EXTRAP_MS rồi mới đứng.
+const EXTRAP_MS = 150;
 function onCars(m) {
-  const at = Date.now();
+  // Độ lệch đồng hồ máy − server: lấy mức nhỏ nhất (gói tới nhanh nhất), nới dần để theo kịp khi đồng hồ trôi.
+  if (m.ms) {
+    const off = Date.now() - m.ms;
+    race.clockOff = race.clockOff == null || off < race.clockOff ? off : race.clockOff + 0.02;
+  }
   for (const s of m.list || []) {
     const c = race.cars.find((x) => x.seat === s.seat);
     if (!c || c.me) continue;
-    c.snaps.push({ at, ...s });
-    if (c.snaps.length > 6) c.snaps.shift();
+    const at = s.at || m.ms || Date.now() - (race.clockOff || 0);
+    const last = c.snaps[c.snaps.length - 1];
+    if (last && at <= last.at) {
+      Object.assign(last, { lap: s.lap, cp: s.cp, shield: s.shield, boost: s.boost, spin: s.spin, nitro: s.nitro });
+      continue; // vị trí cũ phát lại
+    }
+    c.snaps.push({ ...s, at });
+    if (c.snaps.length > 12) c.snaps.shift();
   }
 }
 function lerpRemote(c, now) {
-  const t = now - LERP_MS;
   const sn = c.snaps;
   if (!sn.length) return;
+  const t = now - (race.clockOff || 0) - LERP_MS; // thời điểm cần vẽ, theo đồng hồ server
   let a = sn[0];
-  let b = sn[sn.length - 1];
-  for (let i = 0; i < sn.length - 1; i++) if (sn[i].at <= t && sn[i + 1].at >= t) { a = sn[i]; b = sn[i + 1]; break; }
-  const k = b.at === a.at ? 1 : Math.max(0, Math.min(1, (t - a.at) / (b.at - a.at)));
+  let b = sn[0];
+  let k = 0;
+  if (t >= sn[sn.length - 1].at) {
+    // Hết dữ liệu: đoán tiếp theo hai gói cuối (giới hạn EXTRAP_MS).
+    b = sn[sn.length - 1];
+    a = sn.length > 1 ? sn[sn.length - 2] : b;
+    k = b.at === a.at ? 1 : 1 + Math.min(t - b.at, EXTRAP_MS) / (b.at - a.at);
+  } else if (t > sn[0].at) {
+    for (let i = 0; i < sn.length - 1; i++) if (sn[i + 1].at >= t) { a = sn[i]; b = sn[i + 1]; break; }
+    k = (t - a.at) / (b.at - a.at);
+  }
   let dr = b.rot - a.rot;
   while (dr > Math.PI) dr -= Math.PI * 2;
   while (dr < -Math.PI) dr += Math.PI * 2;
-  Object.assign(c.st, { x: a.x + (b.x - a.x) * k, z: a.z + (b.z - a.z) * k, rot: a.rot + dr * k, speed: b.speed || 0, lap: b.lap || 0, cp: b.cp || 0, drift: !!b.drift, boost: !!b.nitro || !!b.boost, spin: !!b.spin, shield: !!b.shield });
+  const x = a.x + (b.x - a.x) * k;
+  const z = a.z + (b.z - a.z) * k;
+  const rot = a.rot + dr * k;
+  // Gói lệch xa (bị trúng, quay đầu, hồi vị trí) thì nhảy luôn; còn lại kéo mềm để không giật khi đoán sai.
+  const far = c.lerpInit !== true || Math.hypot(x - c.st.x, z - c.st.z) > 8;
+  const f = far ? 1 : 0.6;
+  let dRot = rot - c.st.rot;
+  while (dRot > Math.PI) dRot -= Math.PI * 2;
+  while (dRot < -Math.PI) dRot += Math.PI * 2;
+  c.lerpInit = true;
+  Object.assign(c.st, { x: c.st.x + (x - c.st.x) * f, z: c.st.z + (z - c.st.z) * f, rot: c.st.rot + dRot * f, speed: b.speed || 0, lap: b.lap || 0, cp: b.cp || 0, drift: !!b.drift, boost: !!b.nitro || !!b.boost, spin: !!b.spin, shield: !!b.shield });
 }
 
 function onFinish(m) {
@@ -762,10 +790,12 @@ async function startPractice(trackId, mode = 'items') {
     try { await loadGarage(); car = curCar(); } catch (e) { car = null; }
   }
   const mine = car ? specOf(car, 7) : { car: 'starter', levels: {}, cosmetics: { paint: 'paint_red' }, number: 7 };
-  const bots = ['viper', 'moto_storm', 'raptor'].map((id, i) => ({
-    seat: i + 1, name: `Máy ${i + 1}`, bot: true, skill: 0.82 + i * 0.05,
-    spec: { car: id, levels: { engine: i, turbo: i, tires: i * 2 }, cosmetics: { paint: ['paint_blue', 'paint_yellow', 'paint_green'][i], neon: ['neon_pink', 'neon_blue', 'neon_green'][i], spoiler: i === 1 ? 'spoiler_gt' : '' }, number: i + 2 },
-    stats: { maxSpeed: 29 + i, accel: 11.5 + i * 0.4, grip: 0.7 },
+  // ?bots=a,b,c (tối đa 5) đổi xe máy đua khi lái thử — tiện xem các mẫu xe trên đường.
+  const botIds = (new URLSearchParams(location.search).get('bots') || 'viper,moto_storm,raptor').split(',').slice(0, 5);
+  const bots = botIds.map((id, i) => ({
+    seat: i + 1, name: `Máy ${i + 1}`, bot: true, skill: 0.82 + (i % 3) * 0.05,
+    spec: { car: id, levels: { engine: i % 3, turbo: i % 3, tires: (i % 3) * 2 }, cosmetics: { paint: ['paint_blue', 'paint_yellow', 'paint_green', 'paint_purple', 'paint_white'][i], neon: ['neon_pink', 'neon_blue', 'neon_green', '', ''][i], spoiler: i === 1 ? 'spoiler_gt' : '' }, number: i + 2 },
+    stats: { maxSpeed: 29 + (i % 3), accel: 11.5 + (i % 3) * 0.4, grip: 0.7 },
   }));
   try {
     await newRace({ trackId, net: false, mode, entries: [{ seat: 0, name: user ? user.name : 'Bạn', me: true, spec: mine, stats: (car && car.stats) || BASE_STATS }, ...bots] });
