@@ -38,7 +38,11 @@
 .garage-filter button.on { background: var(--gold-2); border-color: var(--gold); color: #3a2100; }
 .garage-filter small { opacity: .7; margin-left: 2px; }
 /* Hàng xe: trên máy tính chừa chỗ cho bảng bên phải và xuống dòng thay vì tràn ra sau bảng. */
-.garage-cars { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 0; max-width: calc(100% - 390px); }
+/* Máy tính: cột cuộn bên trái để tên xe không đè lên mô hình (xe được dời vào giữa vùng trống, xem gCenter). */
+.garage-cars { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; padding: 0 6px 0 0; width: 250px;
+  max-height: calc(100vh - 230px); overflow-y: auto; scrollbar-width: thin; }
+.garage-cars .car-tab { width: 100%; display: flex; align-items: center; justify-content: flex-start; flex-wrap: wrap; gap: 2px 8px; text-align: left; }
+.garage-cars .car-tab b { white-space: nowrap; }
 .car-tab { flex: none; min-width: 120px; padding: 8px 12px; border-radius: 12px; background: rgba(20, 26, 66, .85); border: 2px solid #343e8a; color: #eaf0ff; text-align: left; cursor: pointer; }
 .car-tab.on { border-color: var(--gold-2); box-shadow: 0 0 0 2px rgba(255, 178, 30, .35); }
 .car-tab b { display: block; font-family: var(--font-title); }
@@ -140,7 +144,8 @@ button.exclusive-btn.ready .shard-tag, button.assemble-btn.ready .shard-tag { co
 .loading { position: fixed; inset: 0; z-index: 25; display: grid; place-items: center; color: #fff; font-family: var(--font-title); font-size: 22px; background: rgba(5, 8, 25, .7); }
 
 @media (max-width: 640px) {
-  .garage-cars { flex-wrap: nowrap; overflow-x: auto; max-width: none; scrollbar-width: thin; }
+  .garage-cars { flex-direction: row; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; width: auto; max-height: none; margin-top: 0; padding: 10px 0; }
+  .garage-cars .car-tab { width: auto; }
   .car-tab { min-width: 104px; padding: 6px 10px; }
   .garage-panel { position: fixed; left: 8px; right: 8px; top: auto; bottom: 8px; width: auto; max-height: 46vh; }
   .garage-top h1 { font-size: 22px; }

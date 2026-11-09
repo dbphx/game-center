@@ -219,8 +219,10 @@ async function openGarage() {
     gT += dt;
     const wide = innerWidth > 640;
     const r = wide ? 11.5 : 21; // điện thoại dọc: góc nhìn ngang hẹp nên lùi xa để thấy trọn xe
-    // Máy tính: bảng bên phải nên đẩy xe sang trái; điện thoại: bảng ở dưới nên đẩy xe lên trên.
-    const look = wide ? new THREE.Vector3(Math.cos(gAngle) * 2.2, 0.6, -Math.sin(gAngle) * 2.2) : new THREE.Vector3(0, -0.9, 0);
+    // Máy tính: xe đứng giữa khoảng trống giữa cột danh sách xe (trái) và bảng nâng cấp (phải) — dời khung hình bằng
+    // setViewOffset để xe không bị tên xe / bảng che; điện thoại: bảng ở dưới nên đẩy xe lên trên.
+    gCenter(wide);
+    const look = wide ? new THREE.Vector3(0, 0.6, 0) : new THREE.Vector3(0, -0.9, 0);
     gCam.position.set(Math.sin(gAngle) * r + look.x, wide ? 3.0 : 3.6, Math.cos(gAngle) * r + look.z);
     gCam.lookAt(look);
     if (gCarObj) gCarObj.update(0, 0, false, false, dt);
@@ -230,6 +232,17 @@ async function openGarage() {
   };
   stopGarage();
   gLoop = requestAnimationFrame(loop);
+}
+
+// gCenter dời tâm khung hình garage tới giữa vùng trống (máy tính); điện thoại bỏ dời.
+function gCenter(wide) {
+  const W = innerWidth, H = innerHeight;
+  if (!wide) return gCam.view && gCam.clearViewOffset();
+  const list = $('g-cars').getBoundingClientRect(), panel = document.querySelector('.garage-panel').getBoundingClientRect();
+  const left = list.width ? list.right : 0, right = panel.width ? panel.left : W;
+  const d = Math.round((left + right) / 2 - W / 2);
+  if (gCam.view && gCam.view.offsetX === -d && gCam.view.fullWidth === W && gCam.view.fullHeight === H) return;
+  gCam.setViewOffset(W, H, -d, 0, W, H);
 }
 
 const kindOf = (c) => c.kind || (isMoto(c.id) ? 'moto' : 'car');
