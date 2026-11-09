@@ -253,7 +253,7 @@ func (f *Farm) settleZombies(ctx context.Context, tx *wallet.Tx, uid, now int64)
 	if err != nil {
 		return err
 	}
-	if err := shootThenExpire(ctx, tx, uid, now); err != nil {
+	if err := f.shootThenExpire(ctx, tx, uid, now); err != nil {
 		return err
 	}
 	if last >= cur && stockLast >= cur {
@@ -292,7 +292,7 @@ func (f *Farm) settleZombies(ctx context.Context, tx *wallet.Tx, uid, now int64)
 		}
 		// Tính bù theo thứ tự thời gian: đợt đã qua vẫn tốn đạn trước khi tới đợt sau.
 		if spawned && now >= start+GunDelay {
-			if err := shootThenExpire(ctx, tx, uid, now); err != nil {
+			if err := f.shootThenExpire(ctx, tx, uid, now); err != nil {
 				return err
 			}
 		}
@@ -358,11 +358,13 @@ func deleteStock(ctx context.Context, tx *wallet.Tx, uid, id int64) error {
 	return err
 }
 
-// shootThenExpire cho súng bắn trước, rồi mới xử lý zombie hết hạn.
-func shootThenExpire(ctx context.Context, tx *wallet.Tx, uid, now int64) error {
-	if err := shootZombies(ctx, tx, uid, now); err != nil {
+// shootThenExpire cho súng bắn trước, rồi mới xử lý zombie hết hạn. Zombie súng hạ được tính cho nhiệm vụ của chủ vườn.
+func (f *Farm) shootThenExpire(ctx context.Context, tx *wallet.Tx, uid, now int64) error {
+	shot, err := shootZombies(ctx, tx, uid, now)
+	if err != nil {
 		return err
 	}
+	f.emit(ctx, tx, uid, "farm_zombie", shot)
 	if err := expireZombies(ctx, tx, uid, now); err != nil {
 		return err
 	}
@@ -372,15 +374,15 @@ func shootThenExpire(ctx context.Context, tx *wallet.Tx, uid, now int64) error {
 // shootZombies dùng đạn diệt các zombie đã quá giây GunDelay: đợt cũ trước; trong một đợt, ruộng theo ô rồi vật nuôi
 // theo id. Mỗi zombie dùng loại đạn theo giá trị món bị tấn công (pickAmmo); không có viên phù hợp thì bỏ qua (không
 // tốn đạn, zombie đó vẫn có thể ăn như khi không có súng).
-func shootZombies(ctx context.Context, tx *wallet.Tx, uid, now int64) error {
+func shootZombies(ctx context.Context, tx *wallet.Tx, uid, now int64) (int, error) {
 	var have Ammo
 	err := tx.QueryRowContext(ctx, `SELECT ammo_normal, ammo_medium, ammo FROM farm_guns WHERE user_id = ?`, uid).
 		Scan(&have.Normal, &have.Medium, &have.High)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil
+		return 0, nil
 	}
 	if err != nil || have == (Ammo{}) {
-		return err
+		return 0, err
 	}
 	rows, err := tx.QueryContext(ctx, `SELECT 0 AS stock, z.idx AS id, z.wave, '' AS place, COALESCE(p.crop, '') AS kind
 			FROM farm_zombies z LEFT JOIN farm_plots p ON p.user_id = z.user_id AND p.idx = z.idx
@@ -391,7 +393,7 @@ func shootZombies(ctx context.Context, tx *wallet.Tx, uid, now int64) error {
 		ORDER BY 3, 1, 2`,
 		uid, zombieWaveSeconds, GunDelay, now, uid, zombieWaveSeconds, GunDelay, now)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	type shot struct {
 		stock bool
@@ -405,7 +407,7 @@ func shootZombies(ctx context.Context, tx *wallet.Tx, uid, now int64) error {
 		var place, kind string
 		if err := rows.Scan(&z.stock, &z.id, &wave, &place, &kind); err != nil {
 			rows.Close()
-			return err
+			return 0, err
 		}
 		typ := pickAmmo(zombieTargetValue(z.stock, place, kind), left)
 		if typ == "" {
@@ -416,10 +418,10 @@ func shootZombies(ctx context.Context, tx *wallet.Tx, uid, now int64) error {
 	}
 	rows.Close()
 	if err := rows.Err(); err != nil {
-		return err
+		return 0, err
 	}
 	if len(shots) == 0 {
-		return nil
+		return 0, nil
 	}
 	for _, z := range shots {
 		query := `DELETE FROM farm_zombies WHERE user_id = ? AND idx = ?`
@@ -427,12 +429,12 @@ func shootZombies(ctx context.Context, tx *wallet.Tx, uid, now int64) error {
 			query = `DELETE FROM farm_stock_zombies WHERE user_id = ? AND stock_id = ?`
 		}
 		if _, err := tx.ExecContext(ctx, query, uid, z.id); err != nil {
-			return err
+			return 0, err
 		}
 	}
 	_, err = tx.ExecContext(ctx, `UPDATE farm_guns SET ammo_normal = ?, ammo_medium = ?, ammo = ?, killed = killed + ? WHERE user_id = ?`,
 		left.Normal, left.Medium, left.High, len(shots), uid)
-	return err
+	return len(shots), err
 }
 
 // zombieTargetValue là giá bán của cây / con mà zombie nhắm tới; 0 nếu ô đã trống hoặc con đã mất.

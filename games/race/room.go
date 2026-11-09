@@ -89,6 +89,9 @@ type Options struct {
 	Tick         time.Duration // nhịp phát vị trí và chạy máy đua; 0 = không tự chạy (test gọi step)
 	MinHP        int           // máu tối thiểu để vào phòng (0 = không kiểm tra)
 	Now          func() time.Time
+	// OnEvent (tuỳ chọn) nhận sự kiện cho nhiệm vụ: "race_finish" (người thật đua xong, không bỏ cuộc), "race_win" (về nhất).
+	// tx = nil: bên nhận tự mở giao dịch. Gọi trong goroutine riêng để không giữ khoá phòng.
+	OnEvent func(ctx context.Context, tx *wallet.Tx, uid int64, kind string, n int)
 }
 
 var DefaultOptions = Options{Countdown: 3 * time.Second, FinishWindow: 90 * time.Second, MaxRace: 10 * time.Minute,
@@ -198,6 +201,7 @@ type Player struct {
 // CarState là vị trí một xe trong tin "cars".
 type CarState struct {
 	Seat  int     `json:"seat"`
+	At    int64   `json:"at"` // lúc server nhận / tính vị trí này (ms): giao diện nội suy theo mốc này, bỏ gói trùng
 	X     float64 `json:"x"`
 	Z     float64 `json:"z"`
 	Rot   float64 `json:"rot"`
@@ -716,6 +720,15 @@ func (r *Room) end() {
 		if p.Bot {
 			continue
 		}
+		if ev := r.hub.opts.OnEvent; ev != nil && !p.dnf {
+			uid, won := p.UserID, place == 0
+			go func() {
+				ev(context.Background(), nil, uid, "race_finish", 1)
+				if won {
+					ev(context.Background(), nil, uid, "race_win", 1)
+				}
+			}()
+		}
 		gain := int64(minXP + bonusXP*(n-1-place)/max(1, n-1))
 		res.XP[seat] = gain
 		xp[p.UserID] = gain
@@ -887,7 +900,7 @@ func (r *Room) step() {
 	}
 	list := make([]CarState, 0, len(r.players))
 	for i, p := range r.players {
-		list = append(list, CarState{Seat: i, X: p.prog.pos.X, Z: p.prog.pos.Z, Rot: p.rot, Speed: p.speed,
+		list = append(list, CarState{Seat: i, At: p.prog.atMs, X: p.prog.pos.X, Z: p.prog.pos.Z, Rot: p.rot, Speed: p.speed,
 			Lap: p.prog.lap, CP: p.prog.cp, Nitro: p.nitro, Drift: p.drift,
 			Shield: nowMs < p.shieldUntil, Boost: nowMs < p.boostUntil, Spin: nowMs < p.spinUntil})
 	}

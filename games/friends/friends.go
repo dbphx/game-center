@@ -90,6 +90,15 @@ type Friends struct {
 	w    *wallet.Wallet
 	farm *farm.Farm
 	now  func() time.Time
+	// OnVisit (tuỳ chọn) báo cho nhiệm vụ: uid thăm vườn bạn other (steal = false, nên tính mỗi người một lần mỗi ngày)
+	// hoặc vừa trộm được ở đó (steal = true). Gọi sau khi thao tác đã ghi xong.
+	OnVisit func(ctx context.Context, uid, other int64, steal bool)
+}
+
+func (f *Friends) visited(ctx context.Context, uid, other int64, steal bool) {
+	if f.OnVisit != nil {
+		f.OnVisit(ctx, uid, other, steal)
+	}
 }
 
 func New(ctx context.Context, w *wallet.Wallet, f *farm.Farm) (*Friends, error) {
@@ -394,6 +403,8 @@ func (f *Friends) Farm(ctx context.Context, uid, other int64) (FarmView, error) 
 	}
 	if !friend {
 		v.StealsLeft = 0
+	} else {
+		f.visited(ctx, uid, other, false)
 	}
 	return FarmView{Owner: owner, Friend: friend, Visit: v}, nil
 }
@@ -421,6 +432,7 @@ func (f *Friends) StealStock(ctx context.Context, uid, other, id int64) (StealRe
 	if err != nil {
 		return StealReply{}, err
 	}
+	f.visited(ctx, uid, other, true)
 	return StealReply{StealResult: res, Farm: FarmView{Owner: owner, Friend: true, Visit: res.Visit}}, nil
 }
 
@@ -434,5 +446,6 @@ func (f *Friends) Steal(ctx context.Context, uid, other int64, plot int) (StealR
 	if err != nil {
 		return StealReply{}, err
 	}
+	f.visited(ctx, uid, other, true)
 	return StealReply{StealResult: res, Farm: FarmView{Owner: owner, Friend: true, Visit: res.Visit}}, nil
 }

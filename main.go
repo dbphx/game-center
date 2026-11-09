@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/dbphx/game-center/games/arena"
 	"github.com/dbphx/game-center/games/baucua"
@@ -20,6 +21,7 @@ import (
 	"github.com/dbphx/game-center/games/fishing"
 	"github.com/dbphx/game-center/games/friends"
 	"github.com/dbphx/game-center/games/plaza"
+	"github.com/dbphx/game-center/games/quests"
 	"github.com/dbphx/game-center/games/race"
 	"github.com/dbphx/game-center/games/site"
 	"github.com/dbphx/game-center/games/tienlen/online"
@@ -72,6 +74,19 @@ func games(w *wallet.Wallet) []server.Game {
 	if err != nil {
 		log.Fatalf("bạn bè: %v", err)
 	}
+	// Nhiệm vụ nông trại → mảnh ghép xe đua: các game báo sự kiện qua hook (không import lẫn nhau).
+	board, err := quests.New(context.Background(), w)
+	if err != nil {
+		log.Fatalf("nhiệm vụ: %v", err)
+	}
+	farmGame.OnEvent = board.Record
+	friendsGame.OnVisit = func(ctx context.Context, uid, other int64, steal bool) {
+		if steal {
+			board.Record(ctx, nil, uid, quests.FarmVisit, 1)
+			return
+		}
+		board.RecordUnique(ctx, nil, uid, quests.FarmVisit, strconv.FormatInt(other, 10))
+	}
 	caroAuth := func(ctx context.Context, token string) (caro.User, error) {
 		u, err := w.UserByToken(ctx, token)
 		return caro.User{ID: u.ID, Name: u.Name, Gender: u.Gender, Outfit: u.Outfit, Hair: u.Hair, Wings: u.Wings, Face: u.Face,
@@ -115,6 +130,7 @@ func games(w *wallet.Wallet) []server.Game {
 	}
 	raceOpts := race.DefaultOptions
 	raceOpts.MinHP = wallet.ZoneMinHP[race.GameID]
+	raceOpts.OnEvent = board.Record
 	racing, err := race.New(context.Background(), w, trackFS, raceOpts)
 	if err != nil {
 		log.Fatalf("trường đua: %v", err)
@@ -128,6 +144,7 @@ func games(w *wallet.Wallet) []server.Game {
 	if err != nil {
 		log.Fatalf("hồ câu cá: %v", err)
 	}
+	pond.OnCatch = func(ctx context.Context, uid int64) { board.Record(ctx, nil, uid, quests.FishCatch, 1) }
 	// Quảng trường: người chơi thấy nhau đi lại, trò chuyện, tặng xu (WebSocket /ws/plaza).
 	square := plaza.NewHub(w)
 	go square.Run(context.Background())
@@ -234,6 +251,14 @@ func games(w *wallet.Wallet) []server.Game {
 			Players:     "Bạn bè",
 			Path:        "/",
 			API:         friendsGame.Handler(),
+		},
+		{
+			ID:          quests.GameID,
+			Name:        "Nhiệm vụ",
+			Description: "Nhiệm vụ ngày / tuần ở nông trại (gặp NPC trong vườn): làm nông, câu cá, đua xe để nhận mảnh ghép xe đua.",
+			Players:     "1 người",
+			Path:        "/",
+			API:         board.Handler(),
 		},
 		{
 			ID:          plaza.GameID,

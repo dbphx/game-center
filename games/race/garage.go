@@ -92,6 +92,7 @@ type CarView struct {
 	Price     int64     `json:"price"`
 	Level     int       `json:"level"` // cấp nhân vật cần để mua
 	Owned     bool      `json:"owned"`
+	Exclusive bool      `json:"exclusive,omitempty"` // xe độc quyền: chỉ ghép từ mảnh, không mua được
 	Levels    Levels    `json:"levels"`
 	Stats     Stats     `json:"stats"`
 	Cosmetics Cosmetics `json:"cosmetics"`
@@ -104,6 +105,8 @@ type ItemView struct {
 	Name  string `json:"name"`
 	Price int64  `json:"price"`
 	Owned bool   `json:"owned"`
+	// Exclusive: đồ độc quyền, chỉ ghép từ mảnh.
+	Exclusive bool `json:"exclusive,omitempty"`
 }
 
 // GarageView là garage gửi cho giao diện (GET /api/race/garage).
@@ -193,14 +196,14 @@ func carView(m CarModel, c ownedCar, owned bool) CarView {
 	if !owned {
 		c = ownedCar{cosmetics: Cosmetics{Paint: DefaultPaint}}
 	}
-	return CarView{ID: m.ID, Name: m.Name, Kind: m.Kind, Price: m.Price, Level: m.Level, Owned: owned, Levels: c.levels,
+	return CarView{ID: m.ID, Name: m.Name, Kind: m.Kind, Price: m.Price, Level: m.Level, Owned: owned, Exclusive: m.Exclusive, Levels: c.levels,
 		Stats: StatsOf(m, c.levels), Cosmetics: c.cosmetics}
 }
 
 func (d garageData) view() GarageView {
 	v := GarageView{Current: d.current, UpgradePrice: map[string]map[string]int64{}, MaxLevel: MaxLevel,
 		NitroBoost: NitroBoost, NitroMs: NitroMs, NitroCharge: NitroCharge}
-	for _, m := range Cars {
+	for _, m := range AllCars() {
 		c, owned := d.cars[m.ID]
 		v.Cars = append(v.Cars, carView(m, c, owned))
 		prices := map[string]int64{}
@@ -213,9 +216,9 @@ func (d garageData) view() GarageView {
 		}
 		v.UpgradePrice[m.ID] = prices
 	}
-	for _, it := range Items {
+	for _, it := range AllItems() {
 		v.Items = append(v.Items, ItemView{ID: it.ID, Kind: it.Kind, Name: it.Name, Price: it.Price,
-			Owned: it.Price == 0 || d.items[it.ID]})
+			Owned: it.free() || d.items[it.ID], Exclusive: it.Exclusive})
 	}
 	return v
 }
@@ -271,6 +274,9 @@ func (g *Garage) BuyCar(ctx context.Context, uid int64, car string) (GarageView,
 		}
 		if _, owned := d.cars[car]; owned {
 			return conflict("bạn đã có " + m.Name)
+		}
+		if m.Exclusive {
+			return conflict("Chỉ ghép từ mảnh")
 		}
 		lv, err := tx.Level(uid)
 		if err != nil {
@@ -342,6 +348,9 @@ func (g *Garage) BuyItem(ctx context.Context, uid int64, item string) (GarageVie
 		if !ok {
 			return notFound("không có món đồ này")
 		}
+		if it.Exclusive {
+			return conflict("Chỉ ghép từ mảnh")
+		}
 		if it.Price == 0 || d.items[item] {
 			return conflict("bạn đã có " + it.Name)
 		}
@@ -381,14 +390,67 @@ func (g *Garage) Equip(ctx context.Context, uid int64, car, kind, item string) (
 			if it.Kind != kind {
 				return bad(it.Name + " không lắp vào chỗ này được")
 			}
-			if it.Price > 0 && !d.items[item] {
-				return conflict("bạn chưa mua " + it.Name)
+			if !it.free() && !d.items[item] {
+				return conflict("bạn chưa có " + it.Name)
 			}
 		}
 		// kind đã được kiểm trong danh sách Kinds nên ghép tên cột an toàn.
 		_, err := tx.ExecContext(ctx, `UPDATE race_cars SET `+kind+` = ? WHERE user_id = ? AND car = ?`, item, uid, car)
 		return err
 	})
+}
+
+// free: món có sẵn cho mọi người (sơn thường); đồ độc quyền giá 0 nhưng phải ghép mới có.
+func (it Item) free() bool { return it.Price == 0 && !it.Exclusive }
+
+// GrantCar tặng xe (ghép từ mảnh) trong giao dịch tx của người gọi: xe vào garage cấp 0, sơn mặc định, không đổi xe
+// đang chọn, không cần đủ cấp. Đã có xe → 409.
+func GrantCar(ctx context.Context, tx *wallet.Tx, uid int64, car string) error {
+	m, ok := findCar(car)
+	if !ok {
+		return notFound("không có mẫu xe này")
+	}
+	if err := ensure(ctx, tx, uid); err != nil {
+		return err
+	}
+	r, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO race_cars (user_id, car, paint) VALUES (?, ?, ?)`, uid, car, DefaultPaint)
+	if err != nil {
+		return err
+	}
+	if n, _ := r.RowsAffected(); n == 0 {
+		return conflict("bạn đã có " + m.Name)
+	}
+	return nil
+}
+
+// GrantItem tặng đồ trang trí (ghép từ mảnh) trong giao dịch tx. Đã có → 409.
+func GrantItem(ctx context.Context, tx *wallet.Tx, uid int64, item string) error {
+	it, ok := findItem(item)
+	if !ok {
+		return notFound("không có món đồ này")
+	}
+	if it.free() {
+		return conflict("bạn đã có " + it.Name)
+	}
+	r, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO race_items (user_id, item) VALUES (?, ?)`, uid, item)
+	if err != nil {
+		return err
+	}
+	if n, _ := r.RowsAffected(); n == 0 {
+		return conflict("bạn đã có " + it.Name)
+	}
+	return nil
+}
+
+// Owns cho biết người chơi đã có xe / đồ trang trí id chưa (đọc trong tx).
+func Owns(ctx context.Context, tx *wallet.Tx, uid int64, id string) (bool, error) {
+	if it, ok := findItem(id); ok && it.free() {
+		return true, nil
+	}
+	var n int
+	err := tx.QueryRowContext(ctx, `SELECT (SELECT COUNT(*) FROM race_cars WHERE user_id = ? AND car = ?)
+		+ (SELECT COUNT(*) FROM race_items WHERE user_id = ? AND item = ?)`, uid, id, uid, id).Scan(&n)
+	return n > 0, err
 }
 
 // Garage là nguồn xe mang vào phòng đua.

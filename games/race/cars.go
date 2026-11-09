@@ -43,6 +43,8 @@ type CarModel struct {
 	Rank  int
 	Kind  string // KindCar hoặc KindMoto
 	Level int    // cấp nhân vật cần để mua
+	// Exclusive: xe độc quyền, không bán bằng xu, chỉ ghép từ mảnh (nhiệm vụ nông trại).
+	Exclusive bool
 }
 
 // Cars là các mẫu xe theo thứ tự giá (cũng là thứ tự hạng): xe sau đẹp hơn và chỉ số gốc cao hơn.
@@ -75,8 +77,27 @@ func rankCars(list []CarModel) []CarModel {
 	return list
 }
 
+// ExclusiveCars là xe độc quyền chỉ ghép từ mảnh: chỉ số đúng bằng hạng Siêu Tân Tinh (moto theo quy tắc moto),
+// không nằm trong Cars nên không đổi hạng / rankBonus của các xe bán bằng xu.
+var ExclusiveCars = exclusiveCars([]CarModel{
+	{ID: "x_aurora", Name: "Cực Quang", Kind: KindCar},
+	{ID: "x_frost", Name: "Băng Phong", Kind: KindMoto},
+})
+
+func exclusiveCars(list []CarModel) []CarModel {
+	for i := range list {
+		list[i].Rank = len(Cars) - 1
+		list[i].Level = 1
+		list[i].Exclusive = true
+	}
+	return list
+}
+
+// AllCars là mọi mẫu xe: xe bán bằng xu theo hạng rồi tới xe độc quyền.
+func AllCars() []CarModel { return append(append([]CarModel{}, Cars...), ExclusiveCars...) }
+
 func findCar(id string) (CarModel, bool) {
-	for _, c := range Cars {
+	for _, c := range AllCars() {
 		if c.ID == id {
 			return c, true
 		}
@@ -151,6 +172,8 @@ type Item struct {
 	Kind  string // spoiler, neon, paint, decal
 	Name  string
 	Price int64
+	// Exclusive: đồ độc quyền, không bán, chỉ ghép từ mảnh.
+	Exclusive bool
 }
 
 // Kinds là các loại đồ trang trí lắp lên xe.
@@ -160,34 +183,45 @@ var Kinds = []string{"spoiler", "neon", "paint", "decal"}
 const DefaultPaint = "paint_red"
 
 var Items = []Item{
-	{"spoiler_low", "spoiler", "Cánh gió thấp", 10_000},
-	{"spoiler_mid", "spoiler", "Cánh gió đua", 30_000},
-	{"spoiler_gt", "spoiler", "Cánh gió GT", 80_000},
+	{"spoiler_low", "spoiler", "Cánh gió thấp", 10_000, false},
+	{"spoiler_mid", "spoiler", "Cánh gió đua", 30_000, false},
+	{"spoiler_gt", "spoiler", "Cánh gió GT", 80_000, false},
 
-	{"neon_blue", "neon", "Neon xanh dương", 20_000},
-	{"neon_pink", "neon", "Neon hồng", 20_000},
-	{"neon_green", "neon", "Neon xanh lá", 20_000},
-	{"neon_yellow", "neon", "Neon vàng", 20_000},
-	{"neon_purple", "neon", "Neon tím", 24_000},
-	{"neon_red", "neon", "Neon đỏ", 24_000},
+	{"neon_blue", "neon", "Neon xanh dương", 20_000, false},
+	{"neon_pink", "neon", "Neon hồng", 20_000, false},
+	{"neon_green", "neon", "Neon xanh lá", 20_000, false},
+	{"neon_yellow", "neon", "Neon vàng", 20_000, false},
+	{"neon_purple", "neon", "Neon tím", 24_000, false},
+	{"neon_red", "neon", "Neon đỏ", 24_000, false},
 
-	{"paint_red", "paint", "Sơn đỏ", 0},
-	{"paint_blue", "paint", "Sơn xanh dương", 0},
-	{"paint_yellow", "paint", "Sơn vàng", 0},
-	{"paint_green", "paint", "Sơn xanh lá", 0},
-	{"paint_white", "paint", "Sơn trắng", 0},
-	{"paint_black", "paint", "Sơn đen", 0},
-	{"paint_orange", "paint", "Sơn cam", 0},
-	{"paint_purple", "paint", "Sơn tím", 0},
+	{"paint_red", "paint", "Sơn đỏ", 0, false},
+	{"paint_blue", "paint", "Sơn xanh dương", 0, false},
+	{"paint_yellow", "paint", "Sơn vàng", 0, false},
+	{"paint_green", "paint", "Sơn xanh lá", 0, false},
+	{"paint_white", "paint", "Sơn trắng", 0, false},
+	{"paint_black", "paint", "Sơn đen", 0, false},
+	{"paint_orange", "paint", "Sơn cam", 0, false},
+	{"paint_purple", "paint", "Sơn tím", 0, false},
 
-	{"decal_number", "decal", "Decal số đua", 10_000},
-	{"decal_stripe", "decal", "Decal sọc đôi", 16_000},
-	{"decal_flame", "decal", "Decal lửa", 40_000},
-	{"decal_lightning", "decal", "Decal tia chớp", 100_000},
+	{"decal_number", "decal", "Decal số đua", 10_000, false},
+	{"decal_stripe", "decal", "Decal sọc đôi", 16_000, false},
+	{"decal_flame", "decal", "Decal lửa", 40_000, false},
+	{"decal_lightning", "decal", "Decal tia chớp", 100_000, false},
 }
 
+// ExclusiveItems là đồ trang trí độc quyền, chỉ ghép từ mảnh.
+var ExclusiveItems = []Item{
+	{"paint_x_chroma", "paint", "Sơn ánh kim", 0, true},
+	{"decal_x_snow", "decal", "Decal bông tuyết", 0, true},
+	{"neon_x_rainbow", "neon", "Neon cầu vồng", 0, true},
+	{"spoiler_x_glow", "spoiler", "Cánh gió phát sáng", 0, true},
+}
+
+// AllItems là mọi đồ trang trí: đồ bán / sơn miễn phí rồi tới đồ độc quyền.
+func AllItems() []Item { return append(append([]Item{}, Items...), ExclusiveItems...) }
+
 func findItem(id string) (Item, bool) {
-	for _, it := range Items {
+	for _, it := range AllItems() {
 		if it.ID == id {
 			return it, true
 		}

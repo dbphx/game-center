@@ -501,6 +501,10 @@ Mưa lửa là một tin `shot` có `skill:"rain"`, `skillName:"Mưa lửa"`, m�
 | Lốc Xoáy · Đỉnh Cao · Hoả Tiễn · Siêu Tân Tinh | 3.600.000 · 4.800.000 · 5.400.000 · 6.000.000 | 26 · 28 · 29 · 30 |
 
 - Mua xe cần đủ level (trường `level` trong garage; chưa đủ → 403 "Cần cấp N để mua …"); xe đã có vẫn dùng và nâng cấp.
+- **Xe / đồ độc quyền** (`exclusive: true` trong garage): Cực Quang `x_aurora` (xe), Băng Phong `x_frost` (moto) — chỉ số bằng
+  hạng Siêu Tân Tinh — và Sơn ánh kim `paint_x_chroma`, Decal bông tuyết `decal_x_snow`, Neon cầu vồng `neon_x_rainbow`,
+  Cánh gió phát sáng `spoiler_x_glow`. Không bán (mua → 409 "Chỉ ghép từ mảnh"), chỉ ghép từ mảnh nhiệm vụ (xem
+  [Nhiệm vụ và mảnh xe](#nhiệm-vụ-và-mảnh-xe)).
 
 - **Moto** (`kind: "moto"`, ô tô là `"car"`): tăng tốc +5%, bám đường −5% so với ô tô cùng hạng, không lắp được cánh gió (409).
 
@@ -571,6 +575,47 @@ mồi tốt cho cá to hơn. Vớt phải rác (dép cũ, lon) thì chỉ đư�
 | `POST /api/fishing/cast {bait}` | thả câu: `cast:{id, bait, createdAt, biteAt, windowMs, expiresAt, difficulty 1–5}`; 409 đang thả / hết mồi / giỏ đầy |
 | `POST /api/fishing/reel {castId, success}` | giật: `outcome` = `caught` \| `miss` \| `early` \| `late`, `message`, `caught:{fishId,name,rarity,cm,price,record}`, `gained:{xp}`; 404 lần thả lạ |
 | `POST /api/fishing/sell {ids}` hoặc `{all:true}` | bán cá trong giỏ: `gained:{coins, count}`; 409 không có gì để bán |
+
+## Nhiệm vụ và mảnh xe
+
+Nhiệm vụ hệ thống nằm ở nông trại: nhận, đổi nhiệm vụ và lấy thưởng tại NPC trong vườn (mùa Noel 1/12–6/1 — năm 2026 từ
+tháng 11 — là Ông già Noel, ngoài mùa là Bác nông dân). Thưởng là **mảnh ghép xe đua**. Gói `games/quests`.
+
+- **Ngày** (reset 0:00 giờ VN): 5 nhiệm vụ khác loại, mỗi cái 1 mảnh + 20 XP; xong cả 5 → rương ngày 1 mảnh.
+  **Tuần** (reset thứ Hai 0:00): 3 nhiệm vụ, mỗi cái 3 mảnh + 100 XP; xong cả 3 → rương tuần 1 mảnh độc quyền.
+  Xong rồi phải bấm Nhận (tiến độ không vượt mục tiêu; đã nhận thì thôi cộng).
+- Loại nhiệm vụ (ngày: cấp 1 → cấp 30 nội suy; tuần cố định): thu hoạch ô cây 10→30 / 150, gieo hạt 10→30 / —,
+  lấy trứng–sữa–len 5→15 / 60, bán hoặc thu con vật–cá 2→6 / 25, hạ zombie (đập hoặc súng đậu) 2→5 / 20,
+  thu hoạch tầng mây 1→3 / 10 (chỉ khi đã có chậu), thăm (mỗi bạn một lần / ngày) hoặc trộm vườn bạn 3 / 15,
+  câu được cá (không tính rác) 5→15 / 60, hoàn thành cuộc đua (không bỏ cuộc) 2→4 / 15, về nhất 1 / 5.
+- **Đổi nhiệm vụ** ngày chưa xong lấy loại khác (tiến độ về 0): lần đầu mỗi ngày miễn phí, sau đó 2.000 xu, tối đa 5 lần / ngày.
+- **Mảnh**: mỗi phần thưởng rút bậc Thường 60% · Hiếm 28% · Sử thi 10% · Độc quyền 2%, trong bậc chia đều.
+
+  | Bậc | Món | Mảnh cần |
+  |---|---|---|
+  | Thường | Sao Chổi, Gió Lốc, Tốc Hành, Tia Chớp, Chim Ưng | 6 |
+  | Hiếm | Rắn Lục, Bão Tố, Thiên Đỉnh, Bóng Ma, Neon Rider | 8 |
+  | Sử thi | Lốc Xoáy, Đỉnh Cao, Hoả Tiễn, Siêu Tân Tinh | 8 |
+  | Độc quyền | xe Cực Quang `x_aurora`, moto Băng Phong `x_frost` · Sơn ánh kim, Decal bông tuyết, Neon cầu vồng, Cánh gió phát sáng | xe 5 · đồ 3 |
+
+- **Ghép**: đủ mảnh và chưa có món → xe vào garage (cấp 0, sơn mặc định, không đổi xe đang chọn), **không cần đủ cấp**.
+  **Đổi mảnh thừa** (đã có món, hoặc vượt số cần): 3 mảnh thừa cùng bậc → 1 mảnh ngẫu nhiên bậc trên (Sử thi → Độc quyền;
+  Độc quyền không đổi). Không bán mảnh lấy xu.
+- Các game báo sự kiện qua hook đặt trong `main.go` (`farm.OnEvent`, `friends.OnVisit`, `fishing.OnCatch`,
+  `race.Options.OnEvent`); súng đậu ghi ngay trong giao dịch nông trại, còn lại ghi sau khi thao tác xong; lỗi ghi nhiệm vụ
+  không làm hỏng thao tác gốc.
+
+| API (`/api/quests`, cần đăng nhập) | Body | Trả |
+|---|---|---|
+| `GET /api/quests` | | `{daily[], weekly[], chest{daily{ready, claimed}, weekly{…}}, shards[{item, name, tier, kind, qty, need, owned}], rates, rerollCost, rerollsLeft, resetAt{day, week}, npc: "santa"\|"farmer", pending}` |
+| `POST /api/quests/claim` | `{id}` (`d0`–`d4`, `w0`–`w2`) | `{quests, gained:[{item, name, tier, kind, qty}]}` |
+| `POST /api/quests/chest` | `{kind}` `daily` / `weekly` | `{quests, gained}` |
+| `POST /api/quests/reroll` | `{id}` (chỉ nhiệm vụ ngày) | `{quests, cost}` |
+| `POST /api/quests/assemble` | `{item}` | `{quests, granted:{item, kind}}` |
+| `POST /api/quests/exchange` | `{tier}` `common` / `rare` / `epic` | `{quests, gained}` |
+
+Nhiệm vụ: `{id, kind, name, progress, target, reward{shards, xp}, done, claimed}`. Lỗi: 400 sai tham số, 402 thiếu xu,
+409 chưa xong / đã nhận / hết lượt đổi / thiếu mảnh / đã có, 401 chưa đăng nhập.
 
 ## Khu danh vọng
 

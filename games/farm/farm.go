@@ -99,6 +99,16 @@ type Farm struct {
 	w         *wallet.Wallet
 	now       func() time.Time
 	noZombies bool // tắt zombie (test tua đồng hồ nhiều giờ không liên quan tới zombie)
+	// OnEvent (tuỳ chọn) nhận sự kiện cho nhiệm vụ (farm_harvest, farm_plant, …): tx khác nil khi gọi giữa giao dịch
+	// nông trại (súng đậu hạ zombie), nil sau khi thao tác đã ghi xong. Bên nhận không được trả lỗi về đây.
+	OnEvent func(ctx context.Context, tx *wallet.Tx, uid int64, kind string, n int)
+}
+
+// emit gửi sự kiện nhiệm vụ nếu có người nghe.
+func (f *Farm) emit(ctx context.Context, tx *wallet.Tx, uid int64, kind string, n int) {
+	if f.OnEvent != nil && n > 0 {
+		f.OnEvent(ctx, tx, uid, kind, n)
+	}
 }
 
 func New(ctx context.Context, w *wallet.Wallet) (*Farm, error) {

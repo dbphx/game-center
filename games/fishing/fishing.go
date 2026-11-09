@@ -177,6 +177,8 @@ type Pond struct {
 	now func() time.Time
 	mu  sync.Mutex // giữ rng
 	rng *mrand.Rand
+	// OnCatch (tuỳ chọn) báo cho nhiệm vụ khi câu được cá thật (không tính rác), sau khi đã ghi xong.
+	OnCatch func(ctx context.Context, uid int64)
 	// pick quay kết quả một lần thả câu (mặc định roll; test thay để có kết quả cố định).
 	pick func(luck int) (Fish, int, int64)
 }
@@ -502,6 +504,11 @@ func (p *Pond) Reel(ctx context.Context, uid, castID int64, success bool) (State
 		msg = fmt.Sprintf("Câu được %s %d cm!", f.Name, res.Cm)
 		return nil
 	})
+	if err == nil && got != nil && p.OnCatch != nil {
+		if f, _ := findFish(got.FishID); f.Rarity != Junk {
+			p.OnCatch(ctx, uid)
+		}
+	}
 	return st, outcome, msg, got, xp, err
 }
 

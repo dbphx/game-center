@@ -78,6 +78,21 @@ func (f *Farm) Handler() http.Handler {
 		}
 		return u, true
 	}
+	// events: thao tác nào tính cho nhiệm vụ loại nào; số lượng lấy từ Gained.Count (ít nhất 1).
+	events := map[string]string{
+		"POST /api/farm/harvest": "farm_harvest", "POST /api/farm/harvest-all": "farm_harvest",
+		"POST /api/farm/plant": "farm_plant", "POST /api/farm/plant-all": "farm_plant",
+		"POST /api/farm/pot/harvest":         "farm_cloud",
+		"POST /api/farm/zombie/hit":          "farm_zombie",
+		"POST /api/farm/zombie/hit-stock":    "farm_zombie",
+		"POST /api/farm/produce-all":         "farm_product",
+		"POST /api/farm/animals/collect-all": "farm_animal", "POST /api/farm/fish/collect-all": "farm_animal",
+	}
+	for _, item := range []string{"animals", "poultry", "fish"} {
+		events["POST /api/farm/"+item+"/sell"] = "farm_animal"
+		events["POST /api/farm/"+item+"/collect"] = "farm_animal"
+		events["POST /api/farm/"+item+"/produce"] = "farm_product"
+	}
 	// route bọc xác thực, đọc body và gọi thao tác; thao tác trả State và (tuỳ chọn) phần thưởng.
 	route := func(pattern string, checkHP bool, op func(r *http.Request, uid int64, b body) (State, *Gained, error)) {
 		mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
@@ -100,6 +115,13 @@ func (f *Farm) Handler() http.Handler {
 			if err != nil {
 				writeErr(w, err)
 				return
+			}
+			if kind, ok := events[pattern]; ok {
+				n := 1
+				if g != nil && g.Count > 0 {
+					n = g.Count
+				}
+				f.emit(r.Context(), nil, u.ID, kind, n)
 			}
 			reply(w, r, u.ID, s, g)
 		})
