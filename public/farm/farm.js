@@ -489,6 +489,7 @@
     if (c.beanPlantedAt) return countdown(c.beanReadyAt - nowS());
     if (c.floors > 0) return VISIT ? `Đậu thần · tầng ${c.floors}` : `Lên mây · tầng ${c.floors}`;
     const next = beanFloors()[0];
+    if (next && !VISIT && user.level < next.level) return `Đậu thần · cần Lv ${next.level}`;
     return next ? `Đậu thần · ${xu(next.beanPrice)} xu` : 'Đậu thần';
   }
   function beanHTML() {
@@ -512,7 +513,9 @@
       const hours = Math.round(next.beanSeconds / 3600);
       parts.push(`<h3>Trồng đậu thần lên tầng ${next.floor}</h3>
         <p class="muted">Sau ${hours} giờ, tầng ${next.floor} mở vĩnh viễn. Trên đó mua chậu ${xu(next.potPrice)} xu để trồng ${esc(next.crop.name)}. Zombie và kẻ trộm không lên được mây.</p>
-        <button class="primary" data-bean-plant ${user.balance < next.beanPrice ? 'disabled' : ''}>${I.svg('coins')}Trồng hạt ${xu(next.beanPrice)} xu</button>`);
+        ${user.level < next.level
+          ? `<button disabled>${I.svg('lock')}Cần Lv ${next.level}</button>`
+          : `<button class="primary" data-bean-plant ${user.balance < next.beanPrice ? 'disabled' : ''}>${I.svg('coins')}Trồng hạt ${xu(next.beanPrice)} xu</button>`}`);
     } else {
       parts.push(`<h3>Cây đậu đã vươn tới tầng cao nhất</h3><p class="muted">Đã mở đủ ${c.floors} tầng mây.</p>`);
     }
@@ -3689,7 +3692,7 @@
     const price = (cat && cat.gunPrice) || 0;
     const ammo = (cat && cat.ammoPrice) || 0;
     const art_ = '<div class="offer-art"><img class="gun-offer" src="/img/toon/farm/pea_gun.png" alt="" draggable="false"></div>';
-    const note = `Mỗi viên đạn (${xu(ammo)} xu) diệt 1 zombie. Súng tự bắn sau ${GUN_DELAY} giây từ lúc zombie xuất hiện, kể cả khi bạn offline, và không mất máu.`;
+    const note = `Mỗi viên đạn (${xu(ammo)} xu) diệt 1 zombie. Súng tự bắn sau ${GUN_DELAY} giây từ lúc zombie xuất hiện, kể cả khi bạn offline, và không mất máu. Súng không bắn zombie nhắm vào cây/con rẻ hơn 1 viên đạn.`;
     $('pen-title').textContent = 'Súng đậu';
     if (!g.owned) {
       $('pen-body').innerHTML = `<div class="pen-offer">${art_}

@@ -47,7 +47,7 @@ func TestUpgradePlot(t *testing.T) {
 	if s.Plots[0].ReadyAt != before {
 		t.Fatalf("cây đang trồng giữ nguyên giờ chín: %d, muốn %d", s.Plots[0].ReadyAt, before)
 	}
-	if b := e.user().Balance; b != 50_000-GoodSoilPrice-50 {
+	if b := e.user().Balance; b != 50_000-GoodSoilPrice-75 {
 		t.Fatalf("xu sau nâng cấp: %d", b)
 	}
 	if _, err := e.f.UpgradePlot(ctx, e.uid, 0); err == nil {
@@ -99,7 +99,7 @@ func TestWorthCountsGoodSoil(t *testing.T) {
 
 func TestCatalogHasGoodSoil(t *testing.T) {
 	c := Catalog()
-	if c["goodSoilPrice"] != int64(8000) || c["goodSoilSpeedup"] != 0.3 {
+	if c["goodSoilPrice"] != int64(30000) || c["goodSoilSpeedup"] != 0.3 {
 		t.Fatalf("catalog: %v %v", c["goodSoilPrice"], c["goodSoilSpeedup"])
 	}
 }
@@ -186,7 +186,7 @@ const hour = 3600
 // newZombieEnv: nông trại có bật zombie, đã được server thấy lần đầu ở đợt hiện tại.
 func newZombieEnv(t *testing.T) *env {
 	t.Helper()
-	e := newEnv(t, 100_000_000, 0)
+	e := newEnv(t, 100_000_000, levelXP(25)) // đủ cấp trồng mọi cây
 	e.f.noZombies = false
 	e.ok(e.f.State(ctx, e.uid))
 	return e
@@ -628,6 +628,12 @@ func TestMigrateAddsGoodColumnOnce(t *testing.T) {
 // ---------- Súng đậu ----------
 
 // armed: nông trại có zombie bật, đã mua súng và n viên đạn.
+// gunCrop / gunStock là cây và con đáng giá hơn một viên đạn: súng chỉ bắn zombie nhắm vào chúng.
+const (
+	gunCrop  = "pumpkin" // bán 1.900
+	gunStock = "pig"     // bán 1.530
+)
+
 func armed(t *testing.T, n int) *env {
 	t.Helper()
 	e := newZombieEnv(t)
@@ -661,7 +667,7 @@ func TestBuyGunAndAmmoPrices(t *testing.T) {
 	if s := e.ok(e.f.BuyAmmo(ctx, e.uid, 3)); s.Gun.Ammo != 3 {
 		t.Fatalf("đạn: %d", s.Gun.Ammo)
 	}
-	if got := before - e.user().Balance; got != 7_500 {
+	if got := before - e.user().Balance; got != 4_500 {
 		t.Fatalf("giá 3 viên: %d", got)
 	}
 	for _, qty := range []int{0, -1, 1001} {
@@ -697,8 +703,8 @@ func TestGunAndAmmoNotEnoughCoinsKeepsCoins(t *testing.T) {
 
 func TestGunShootsFromSecond30AndKeepsCrop(t *testing.T) {
 	e := armed(t, 5)
-	e.ok(e.f.Plant(ctx, e.uid, 0, "carrot"))
-	e.ok(e.f.Plant(ctx, e.uid, 1, "carrot"))
+	e.ok(e.f.Plant(ctx, e.uid, 0, gunCrop))
+	e.ok(e.f.Plant(ctx, e.uid, 1, gunCrop))
 	e.spawn(0, true)
 	e.spawn(1, true)
 	e.clock = e.clock.Add((GunDelay - 1) * time.Second)
@@ -722,10 +728,10 @@ func TestGunShootsFromSecond30AndKeepsCrop(t *testing.T) {
 
 func TestDoDoesNotClearGunKilled(t *testing.T) {
 	e := armed(t, 1)
-	e.ok(e.f.Plant(ctx, e.uid, 0, "carrot"))
+	e.ok(e.f.Plant(ctx, e.uid, 0, gunCrop))
 	e.spawn(0, true)
 	e.clock = e.clock.Add(GunDelay * time.Second)
-	if s := e.ok(e.f.Plant(ctx, e.uid, 1, "carrot")); s.GunKilled != 1 {
+	if s := e.ok(e.f.Plant(ctx, e.uid, 1, gunCrop)); s.GunKilled != 1 {
 		t.Fatalf("thao tác khác vẫn trả số đã diệt: %d", s.GunKilled)
 	}
 	if s := e.ok(e.f.State(ctx, e.uid)); s.GunKilled != 1 {
@@ -736,7 +742,7 @@ func TestDoDoesNotClearGunKilled(t *testing.T) {
 func TestOutOfAmmoLeavesZombieToHitOrBite(t *testing.T) {
 	e := armed(t, 1)
 	for i := range 3 {
-		e.ok(e.f.Plant(ctx, e.uid, i, "carrot"))
+		e.ok(e.f.Plant(ctx, e.uid, i, gunCrop))
 		e.spawn(i, true)
 	}
 	e.clock = e.clock.Add(GunDelay * time.Second)
@@ -764,7 +770,7 @@ func TestOutOfAmmoLeavesZombieToHitOrBite(t *testing.T) {
 
 func TestHitBeforeSecond30SavesAmmo(t *testing.T) {
 	e := armed(t, 2)
-	e.ok(e.f.Plant(ctx, e.uid, 0, "carrot"))
+	e.ok(e.f.Plant(ctx, e.uid, 0, gunCrop))
 	e.spawn(0, true)
 	e.clock = e.clock.Add(10 * time.Second)
 	e.ok(e.f.HitZombie(ctx, e.uid, 0))
@@ -776,7 +782,7 @@ func TestHitBeforeSecond30SavesAmmo(t *testing.T) {
 
 func TestBuyAmmoMidWaveShootsOnNextSettle(t *testing.T) {
 	e := armed(t, 0)
-	e.ok(e.f.Plant(ctx, e.uid, 0, "carrot"))
+	e.ok(e.f.Plant(ctx, e.uid, 0, gunCrop))
 	e.spawn(0, true)
 	e.clock = e.clock.Add(time.Minute)
 	if s := e.ok(e.f.State(ctx, e.uid)); len(zombieCells(s)) != 1 {
@@ -802,7 +808,7 @@ func TestNoGunDoesNotShoot(t *testing.T) {
 func TestOfflineAmmoSavesEveryCrop(t *testing.T) {
 	e := armed(t, 500)
 	e.buyPlots(42)
-	if _, _, err := e.f.PlantAll(ctx, e.uid, "carrot"); err != nil {
+	if _, _, err := e.f.PlantAll(ctx, e.uid, gunCrop); err != nil {
 		t.Fatal(err)
 	}
 	e.clock = e.clock.Add(24*time.Hour + ZombieWindow*time.Second)
@@ -824,7 +830,7 @@ func TestOfflineAmmoSavesEveryCrop(t *testing.T) {
 func TestOfflineRunsOutOfAmmoThenCropsGetEaten(t *testing.T) {
 	e := armed(t, 4)
 	e.buyPlots(42)
-	if _, _, err := e.f.PlantAll(ctx, e.uid, "carrot"); err != nil {
+	if _, _, err := e.f.PlantAll(ctx, e.uid, gunCrop); err != nil {
 		t.Fatal(err)
 	}
 	// Hai đợt đầu ăn hết 4 viên (3 con rồi 1 con); các đợt sau không còn đạn.
@@ -857,7 +863,7 @@ func TestWorthCountsGunAndAmmo(t *testing.T) {
 
 func TestCatalogHasGun(t *testing.T) {
 	c := Catalog()
-	if c["gunPrice"] != int64(399_000) || c["ammoPrice"] != int64(2_500) {
+	if c["gunPrice"] != int64(399_000) || c["ammoPrice"] != int64(1_500) {
 		t.Fatalf("catalog: %v %v", c["gunPrice"], c["ammoPrice"])
 	}
 }
@@ -1214,8 +1220,8 @@ func TestHitStockConcurrentCostsOnce(t *testing.T) {
 func TestStockWithZombieIsBlocked(t *testing.T) {
 	e := newZombieEnv(t)
 	grown := func() int64 {
-		id := e.addStock(placeYard, "chicken", 900)
-		e.exec(`UPDATE farm_stock SET product_progress = 600 WHERE id = ?`, id)
+		id := e.addStock(placeYard, "chicken", 3600)
+		e.exec(`UPDATE farm_stock SET product_progress = 1800 WHERE id = ?`, id)
 		return id
 	}
 	a, b := grown(), grown()
@@ -1244,7 +1250,7 @@ func TestStockWithZombieIsBlocked(t *testing.T) {
 	_, _, err = e.f.ProduceAll(ctx, e.uid)
 	wantMsg(t, err, "đập zombie")
 
-	fish, other := e.addStock(placePond, "tilapia", 600), e.addStock(placePond, "tilapia", 600)
+	fish, other := e.addStock(placePond, "tilapia", 2700), e.addStock(placePond, "tilapia", 2700)
 	e.spawnStock(fish, false)
 	if _, g, err := e.f.CollectAllFish(ctx, e.uid); err != nil || g.Count != 1 {
 		t.Fatalf("CollectAllFish: %+v %v (con kia %d)", g, err, other)
@@ -1270,8 +1276,8 @@ func TestStockWithZombieCanStillBeFed(t *testing.T) {
 // Đợt cũ trước; trong một đợt, ruộng trước rồi vật nuôi; hết đạn thì dừng.
 func TestGunShootsStockInOrder(t *testing.T) {
 	e := armed(t, 2)
-	e.ok(e.f.Plant(ctx, e.uid, 0, "carrot"))
-	a, b := e.addStock(placeYard, "chicken", 0), e.addStock(placeYard, "chicken", 0)
+	e.ok(e.f.Plant(ctx, e.uid, 0, gunCrop))
+	a, b := e.addStock(placeBarn, gunStock, 0), e.addStock(placeBarn, gunStock, 0)
 	e.spawn(0, false)
 	e.spawnStock(a, false)
 	e.spawnStock(b, false)
@@ -1295,10 +1301,10 @@ func TestGunShootsStockInOrder(t *testing.T) {
 // Đợt cũ của vật nuôi được bắn trước đợt mới của ruộng.
 func TestGunShootsOlderWaveFirstAcrossTables(t *testing.T) {
 	e := armed(t, 1)
-	id := e.addStock(placeYard, "chicken", 0)
+	id := e.addStock(placeBarn, gunStock, 0)
 	e.spawnStock(id, false)
 	e.exec(`UPDATE farm_stock_zombies SET wave = wave - 1 WHERE stock_id = ?`, id)
-	e.ok(e.f.Plant(ctx, e.uid, 0, "carrot"))
+	e.ok(e.f.Plant(ctx, e.uid, 0, gunCrop))
 	e.spawn(0, false)
 	e.clock = time.Unix(e.wave()*hour+GunDelay, 0)
 	s := e.ok(e.f.State(ctx, e.uid))
@@ -1470,5 +1476,37 @@ func TestHitStockAPIAndVisit(t *testing.T) {
 	// Khách thấy danh sách con rút gọn (Visit.Stock, xem TestVisitStockFields), không thấy chuồng và thông tin nuôi của chủ.
 	if strings.Contains(string(raw), "animals") || strings.Contains(string(raw), "barn") {
 		t.Fatalf("Visit lộ vật nuôi: %s", raw)
+	}
+}
+
+// Súng bỏ qua zombie nhắm vào cây / con rẻ hơn một viên đạn: không tốn đạn, zombie vẫn ăn khi hết hạn.
+func TestGunSkipsCheapTargets(t *testing.T) {
+	e := armed(t, 5)
+	e.ok(e.f.Plant(ctx, e.uid, 0, "carrot")) // 100 xu < 1 viên
+	e.ok(e.f.Plant(ctx, e.uid, 1, "durian")) // 8.000 xu
+	chicken := e.addStock(placeYard, "chicken", 0)
+	fish := e.addStock(placePond, "tilapia", 0)
+	koi := e.addStock(placePond, "koi", 0)
+	e.spawn(0, true)
+	e.spawn(1, true)
+	e.spawnStock(chicken, true)
+	e.spawnStock(fish, true)
+	e.spawnStock(koi, true)
+	e.clock = e.clock.Add(GunDelay * time.Second)
+	s := e.ok(e.f.State(ctx, e.uid))
+	if s.GunKilled != 2 || s.Gun.Ammo != 3 {
+		t.Fatalf("chỉ bắn sầu riêng và koi: diệt %d, còn %d", s.GunKilled, s.Gun.Ammo)
+	}
+	if got := zombieCells(s); len(got) != 1 || got[0] != 0 {
+		t.Fatalf("zombie ô cà rốt phải còn: %v", got)
+	}
+	if got := stockZombies(s); len(got) != 2 || !slices.Contains(got, chicken) || !slices.Contains(got, fish) {
+		t.Fatalf("zombie gà và cá rô phi phải còn: %v", got)
+	}
+	// Hết hạn: zombie bị bỏ qua ăn như khi không có súng; đạn vẫn còn nguyên.
+	e.clock = e.clock.Add(ZombieWindow * time.Second)
+	s = e.ok(e.f.State(ctx, e.uid))
+	if s.Plots[0].Crop != "" || s.Plots[1].Crop != "durian" || s.Gun.Ammo != 3 {
+		t.Fatalf("hết hạn: ô %+v, đạn %d", s.Plots[:2], s.Gun.Ammo)
 	}
 }

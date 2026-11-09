@@ -85,69 +85,69 @@ nội dung đã viết lại, nên Cloudflare (ghi đè js không có `?v` thàn
 | Trang phục | Level | Giá |
 |---|---|---|
 | Thường ngày, Thể thao | 1 | miễn phí (khởi đầu) |
-| Áo hoodie | 2 | 800 xu |
-| Vest lịch lãm | 3 | 1.500 xu |
-| Áo dài | 4 | 2.500 xu |
-| Hoàng gia (có vương miện) | 6 | 5.000 xu |
-| Đồng phục học sinh | 1 | 600 xu |
-| Áo bà ba | 2 | 1.200 xu |
-| Áo Tết | 3 | 2.000 xu |
-| Hải tặc | 5 | 4.000 xu |
-| Đồ cưới | 7 | 8.000 xu |
-| Phi hành gia | 9 | 12.000 xu |
+| Áo hoodie | 4 | 2.400 xu |
+| Vest lịch lãm | 6 | 4.500 xu |
+| Áo dài | 8 | 7.500 xu |
+| Hoàng gia (có vương miện) | 12 | 15.000 xu |
+| Đồng phục học sinh | 1 | 1.800 xu |
+| Áo bà ba | 4 | 3.600 xu |
+| Áo Tết | 6 | 6.000 xu |
+| Hải tặc | 10 | 12.000 xu |
+| Đồ cưới | 14 | 24.000 xu |
+| Phi hành gia | 18 | 36.000 xu |
 
 - Shop còn bán **tóc** và **cánh** (dùng chung cả hai giới). Ai cũng có sẵn tóc mặc định; cánh có thể tháo ra bất cứ lúc nào.
 
 | Tóc | Level | Giá | | Cánh | Level | Giá |
 |---|---|---|---|---|---|---|
-| Tóc mặc định | 1 | có sẵn | | Cánh thiên thần | 3 | 2.500 xu |
-| Tóc dựng, Đuôi ngựa | 1 | 300 xu | | Cánh tiên | 4 | 3.500 xu |
-| Tóc dài xoăn, Tóc búi | 2 | 700 xu | | Cánh bướm | 5 | 4.500 xu |
-| Mohican | 3 | 1.200 xu | | Cánh dơi | 6 | 6.000 xu |
-| Hai bím hồng | 4 | 2.000 xu | | Cánh rồng | 8 | 10.000 xu |
+| Tóc mặc định | 1 | có sẵn | | Cánh thiên thần | 6 | 7.500 xu |
+| Tóc dựng, Đuôi ngựa | 1 | 900 xu | | Cánh tiên | 8 | 10.500 xu |
+| Tóc dài xoăn, Tóc búi | 4 | 2.100 xu | | Cánh bướm | 10 | 13.500 xu |
+| Mohican | 6 | 3.600 xu | | Cánh dơi | 12 | 18.000 xu |
+| Hai bím hồng | 8 | 6.000 xu | | Cánh rồng | 16 | 30.000 xu |
 
 - **Gương mặt** (dùng chung hai giới, ai cũng có sẵn mặt mặc định):
 
 | Gương mặt | Level | Giá |
 |---|---|---|
 | Mặt mặc định | 1 | có sẵn |
-| Cười tươi | 1 | 200 xu |
-| Nháy mắt | 1 | 300 xu |
-| Má hồng | 2 | 600 xu |
-| Kính râm | 2 | 800 xu |
-| Mèo con | 3 | 1.200 xu |
-| Mắt lấp lánh | 4 | 2.000 xu |
+| Cười tươi | 1 | 600 xu |
+| Nháy mắt | 1 | 900 xu |
+| Má hồng | 4 | 1.800 xu |
+| Kính râm | 4 | 2.400 xu |
+| Mèo con | 6 | 3.600 xu |
+| Mắt lấp lánh | 8 | 6.000 xu |
 
 - Trong game, avatar của mỗi người là mặt nhân vật của họ kèm level.
 
 ## Nông trại
 
-- 6 ô đất miễn phí, ô thứ 7 giá 10.000 xu, mỗi ô sau +2.000 xu, tối đa 48 ô. Cây có thời gian chín, level tối thiểu.
+- 6 ô đất miễn phí, ô thứ 7 giá 30.000 xu, mỗi ô sau +6.000 xu (đủ 48 ô hết ~6,4 triệu, nhắm ~2 tháng chơi), tối đa 48 ô. Cây có thời gian chín, level tối thiểu.
   Cây ngắn lãi / giờ cao cho người chơi liên tục; cây dài (4–12 giờ) lãi mỗi vụ cao hơn nhưng phải canh zombie (xem bên dưới):
 
 | Cây | Level | Hạt | Chín sau | Bán | XP |
 |---|---|---|---|---|---|
-| Rau muống | 1 | 30 | 1 phút | 52 | 1 |
-| Cà rốt | 1 | 50 | 2 phút | 90 | 2 |
-| Ngô | 1 | 80 | 5 phút | 160 | 4 |
-| Cà chua | 2 | 120 | 10 phút | 260 | 6 |
-| Khoai lang | 2 | 100 | 15 phút | 290 | 5 |
-| Lúa | 2 | 150 | 20 phút | 360 | 8 |
-| Bắp cải | 3 | 180 | 30 phút | 520 | 10 |
-| Dâu tây | 3 | 300 | 45 phút | 750 | 15 |
-| Ớt | 3 | 220 | 1 giờ | 820 | 14 |
-| Cà tím | 4 | 260 | 25 phút | 700 | 9 |
-| Dưa hấu | 4 | 500 | 2 giờ | 1.400 | 30 |
-| Dứa | 5 | 400 | 1 giờ | 1.250 | 18 |
-| Bí ngô | 5 | 600 | 4 giờ | 2.600 | 45 |
-| Thanh long | 6 | 800 | 6 giờ | 4.400 | 70 |
-| Nho | 7 | 1.000 | 3 giờ | 3.700 | 55 |
-| Sầu riêng | 8 | 2.000 | 12 giờ | 12.800 | 150 |
+| Rau muống | 1 | 45 | 1 phút | 60 | 1 |
+| Cà rốt | 1 | 75 | 2 phút | 100 | 2 |
+| Ngô | 1 | 120 | 5 phút | 160 | 4 |
+| Cà chua | 4 | 180 | 10 phút | 260 | 6 |
+| Khoai lang | 4 | 150 | 15 phút | 250 | 5 |
+| Lúa | 4 | 225 | 20 phút | 340 | 8 |
+| Bắp cải | 7 | 270 | 30 phút | 440 | 10 |
+| Dâu tây | 7 | 450 | 45 phút | 680 | 15 |
+| Ớt | 7 | 330 | 1 giờ | 620 | 14 |
+| Cà tím | 10 | 390 | 25 phút | 610 | 9 |
+| Dưa hấu | 10 | 750 | 2 giờ | 1.200 | 30 |
+| Dứa | 13 | 600 | 1 giờ | 1.000 | 18 |
+| Bí ngô | 13 | 900 | 4 giờ | 1.900 | 45 |
+| Thanh long | 16 | 1.200 | 6 giờ | 2.900 | 70 |
+| Nho | 20 | 1.500 | 3 giờ | 2.800 | 55 |
+| Sầu riêng | 25 | 3.000 | 12 giờ | 8.000 | 150 |
 
 - **Chuồng** (heo 1, cừu / bò 2 đơn vị) và **ao cá** (koi 3 đơn vị...): đều mở từ level 1, mặc định 5 đơn vị, mở rộng +5 tới 30.
-  Chuồng 3.000 xu, mở rộng lần thứ n 20.000 × n; ao 2.500 xu, mở rộng lần thứ n 15.000 × n.
+  Chuồng 9.000 xu, mở rộng lần thứ n 60.000 × n; ao 7.500 xu, mở rộng lần thứ n 45.000 × n.
 - **Sân gia cầm**: gà, vịt (1 đơn vị) không ở chuồng mà đi quanh trang trại. Có sẵn cho mọi người, mặc định 10 đơn vị,
-  mở rộng +5 tới 40, lần thứ n giá 10.000 × n xu. Gà vịt trong chuồng từ bản cũ được chuyển ra sân khi khởi động.
+  mở rộng +5 tới 40, lần thứ n giá 30.000 × n xu. Gà vịt trong chuồng từ bản cũ được chuyển ra sân khi khởi động.
 - **Mỗi chu kỳ đói một lần**: mỗi con (chuồng, sân, ao) chỉ lớn và ra trứng / sữa / lông **trong lúc no**, và mỗi chu kỳ
   chỉ cần cho ăn **một lần** — ăn xong no tới hết chu kỳ. Con mới mua đang đói; bữa đầu no tới lúc lớn **và** ra lứa
   sản phẩm đầu (heo, cá: no tới lúc lớn). Sản phẩm có rồi thì chưa cần ăn; lấy xong thì đói, một bữa cho một lứa kế.
@@ -163,22 +163,29 @@ nội dung đã viết lại, nên Cloudflare (ghi đè js không có `?v` thàn
   làm tròn xuống; `gained.coins` là tiền nhận sau thuế, `gained.tax` là thuế; catalog có `cropTax`, `stockTax`.
   Giá trị nông trại ở Khu danh vọng vẫn tính theo giá bán chưa thuế.
 
-| Con | Sản phẩm (chu kỳ, giá, XP) | Thịt (giá, XP) |
-|---|---|---|
-| Gà | Trứng gà — 10 phút, 60 xu, 2 XP | 400 xu, 5 XP |
-| Vịt | Trứng vịt — 15 phút, 80 xu, 2 XP | 520 xu, 6 XP |
-| Heo | — | 1.300 xu, 12 XP |
-| Cừu | Lông cừu — 30 phút, 400 xu, 6 XP | 2.000 xu, 20 XP |
-| Bò | Sữa bò — 20 phút, 300 xu, 5 XP | 3.400 xu, 35 XP |
+| Con | Level | Giá con | Lớn sau | Sản phẩm (chu kỳ, giá, XP) | Thịt / bán (giá, XP) |
+|---|---|---|---|---|---|
+| Gà | 1 | 200 | 1 giờ | Trứng gà — 30 phút, 90 xu, 2 XP | 380 xu, 5 XP |
+| Vịt | 1 | 250 | 1,5 giờ | Trứng vịt — 45 phút, 150 xu, 2 XP | 550 xu, 6 XP |
+| Heo | 5 | 600 | 4 giờ | — | 1.530 xu, 12 XP |
+| Cừu (2 đơn vị) | 8 | 900 | 6 giờ | Lông cừu — 2 giờ, 1.070 xu, 6 XP | 3.960 xu, 20 XP |
+| Bò (2 đơn vị) | 12 | 1.500 | 8 giờ | Sữa bò — 1,5 giờ, 930 xu, 5 XP | 6.060 xu, 35 XP |
+| Cá rô phi | 1 | 100 | 45 phút | — | 230 xu, 3 XP |
+| Cá trê | 4 | 250 | 2 giờ | — | 650 xu, 8 XP |
+| Cá chép (2 đơn vị) | 8 | 500 | 4 giờ | — | 2.310 xu, 15 XP |
+| Cá Koi (3 đơn vị) | 15 | 2.000 | 12 giờ | — | 11.600 xu, 50 XP |
+
+- Cân bằng 2026-11: con đã lớn (hoặc sản phẩm đã chờ lấy) theo thời gian cũ vẫn lớn sau khi cập nhật, con lớn dở giữ số giây đã lớn
+  (migration một lần, bảng `farm_migrations`).
 
 - **Làm nhanh**: gieo hạt mọi ô trống (dùng hạt trong kho trước, thiếu thì mua tới khi hết xu), thu hoạch tất cả,
   cho mọi con đói ăn (tới khi hết thức ăn; `autoBuy` thì tự mua đúng phần thức ăn còn thiếu, trong giới hạn xu và
   chỗ trống kho giống — giao diện hỏi trước, vd "Thiếu 6 Cám gia súc, 4 Thóc — mua 315 xu rồi cho ăn?"), lấy hết trứng /
   sữa / lông, thu hết cá đã lớn, lấy thịt tất cả gia súc / gia cầm đã lớn (tới khi kho đầy; phím Shift+M).
 - **Kho giống**: mua hạt theo số lượng (1–100 hạt/lần) cất vào kho; gieo hạt lấy từ kho, hết hạt thì tự mua 1 hạt.
-  Sức chứa 50, mở rộng +25 tới 300, lần mở rộng thứ n giá 10.000 × n xu.
+  Sức chứa 50, mở rộng +25 tới 300, lần mở rộng thứ n giá 30.000 × n xu.
 - **Kho sản phẩm**: thu hoạch cây và thu vật nuôi / cá đã lớn → vào kho (cộng XP lúc thu); bán ở kho mới được xu.
-  Sức chứa 50, mở rộng +25 tới 500, lần thứ n giá 15.000 × n xu. Kho đầy thì không thu hoạch được.
+  Sức chứa 50, mở rộng +25 tới 500, lần thứ n giá 45.000 × n xu. Kho đầy thì không thu hoạch được.
 
 | API (cần token, POST trả `{farm, user, gained?}`) | Body |
 |---|---|
@@ -201,7 +208,7 @@ Mã lỗi: 400 dữ liệu sai, 402 không đủ xu, 403 thiếu level / HP, 404
 
 ### Đất tốt và zombie
 
-- **Đất tốt**: mỗi ô nâng một lần, giá 8.000 xu, giữ vĩnh viễn. Cây gieo sau đó chín nhanh hơn 30% (`POST /api/farm/plot/upgrade {plot}`);
+- **Đất tốt**: mỗi ô nâng một lần, giá 30.000 xu, giữ vĩnh viễn. Cây gieo sau đó chín nhanh hơn 30% (`POST /api/farm/plot/upgrade {plot}`);
   cây đang trồng giữ nguyên giờ chín. Tiền nâng cấp tính vào giá trị nông trại ở Khu danh vọng.
 - **Zombie**: đúng đầu mỗi giờ theo giờ server có một đợt chung cho mọi nông trại, chủ có 5 phút để đập. Mục tiêu chọn ngẫu nhiên trong
   các ô có cây gieo trước lúc đợt bắt đầu, gồm cả cây đã chín. Số zombie là `max(1, ceil(p × số cây))` với `p = 1 − 0,5^(1/12) ≈ 5,61%`,
@@ -217,9 +224,10 @@ Mã lỗi: 400 dữ liệu sai, 402 không đủ xu, 403 thiếu level / HP, 404
 - **Zombie lựa mục tiêu** ở cả ruộng và khu vật nuôi: chọn cây / con gần trưởng thành nhất (tiến độ chặn ở 100%, đã chín hay đã lớn đều ở mức
   cao nhất), bằng tiến độ thì ngẫu nhiên. Tỉ lệ mất chung vẫn khoảng 50% sau 12 giờ, nhưng rủi ro dồn vào cây / con sắp lớn.
 - Ô có zombie không thu hoạch được và không bị bạn bè trộm được. `GET /api/farm/zombie/status` trả `{count, until}` cho bản đồ thành phố, `count` tính cả vật nuôi.
-- **Súng đậu**: mua một lần 399.000 xu (`POST /api/farm/gun/buy`), đạn 2.500 xu mỗi viên, mỗi lần mua 1–1.000 viên
+- **Súng đậu**: mua một lần 399.000 xu (`POST /api/farm/gun/buy`), đạn 1.500 xu mỗi viên, mỗi lần mua 1–1.000 viên
   (`POST /api/farm/gun/ammo {qty}`). Từ giây 30 của đợt, mỗi viên tự diệt một zombie, đợt cũ trước, kể cả khi chủ offline, không mất máu và
-  không mất cây. Đập tay trước giây 30 thì không tốn đạn; hết đạn thì zombie còn lại đập tay hoặc hết hạn như thường. Súng và đạn tính vào
+  không mất cây. Súng **bỏ qua** zombie nhắm vào cây / con có giá bán dưới 1 viên đạn (rau ngắn ngày, gà, vịt, cá rô phi...):
+  không tốn đạn, zombie đó vẫn ăn khi hết hạn nếu không đập tay. Đập tay trước giây 30 thì không tốn đạn; hết đạn thì zombie còn lại đập tay hoặc hết hạn như thường. Súng và đạn tính vào
   giá trị nông trại ở Khu danh vọng.
 - Không có tiến trình nền: server tính bù các đợt đã qua mỗi khi nông trại được đọc, tối đa 720 đợt gần nhất, ngẫu nhiên có seed theo
   `(người chơi, đợt)`. Lần đầu thấy một nông trại thì không tính ngược, đợt đầu tiên là đầu giờ kế tiếp.
@@ -234,15 +242,16 @@ Mã lỗi: 400 dữ liệu sai, 402 không đủ xu, 403 thiếu level / HP, 404
 
 | Tầng | Hạt đậu | Chờ | Giá chậu | Cây mây | Hạt | Bán | XP |
 |---|---|---|---|---|---|---|---|
-| 1 | 200.000 | 24 giờ | 100.000 | Dâu mây | 5.000 | 20.000 | 200 |
-| 2 | 1.000.000 | 48 giờ | 500.000 | Lê sương | 20.000 | 70.000 | 300 |
-| 3 | 3.000.000 | 72 giờ | 2.000.000 | Nho sao | 50.000 | 200.000 | 450 |
-| 4 | 10.000.000 | 96 giờ | 10.000.000 | Đào tiên | 100.000 | 600.000 | 700 |
+| 1 | 400.000 | 24 giờ | 200.000 | Dâu mây | 5.000 | 20.000 | 200 |
+| 2 | 2.000.000 | 48 giờ | 1.000.000 | Lê sương | 20.000 | 70.000 | 300 |
+| 3 | 6.000.000 | 72 giờ | 4.000.000 | Nho sao | 50.000 | 200.000 | 450 |
+| 4 | 20.000.000 | 96 giờ | 20.000.000 | Đào tiên | 100.000 | 600.000 | 700 |
 
+- Trồng đậu mở tầng cần đủ level: tầng 1 level 20, tầng 2 level 25, tầng 3 level 30, tầng 4 level 35 (thiếu → 403 "Cần cấp N"); tầng đã mở dùng bình thường.
 - Zombie không tấn công ô 49 và cây mây. Bạn bè không trộm được, cũng không thấy ô 49 và tầng mây khi ghé thăm. Đất tốt không áp dụng cho chậu.
 - Tiền hạt đậu, chậu và cây đang trồng trong chậu tính vào giá trị nông trại ở Khu danh vọng.
 - **Kiểu dáng chậu** (chỉ để đẹp, không đổi cây, giá hay thời gian chín): Chậu của tầng và Gốm trắng miễn phí; Gốm hoa, Gỗ mộc
-  20.000; Sứ thanh hoa 50.000; Ngọc lục bảo 100.000; Mây trắng 200.000; Pha lê 300.000; Vàng khảm đá 500.000 xu. Mua một lần
+  40.000; Sứ thanh hoa 100.000; Ngọc lục bảo 200.000; Mây trắng 400.000; Pha lê 600.000; Vàng khảm đá 1.000.000 xu. Mua một lần
   dùng cho mọi chậu (`POST /api/farm/pot/skin/buy {skin}`), lắp cho từng chậu (`POST /api/farm/pot/skin/set {floor, slot, skin}`),
   không đổi cây đang trồng. Catalog có `potSkins`; mỗi chậu có `skin`, `cloud.skins` là các kiểu đã có. Tiền mua kiểu chậu tính
   vào giá trị nông trại.
@@ -379,15 +388,16 @@ Khu riêng, trang `/arena/`. Bắn pháo theo lượt trên địa hình phá hu
   ra khỏi sân / rơi vực là chết; boss không bị đẩy), TV "Sóng nhiễu" (800, r 60, người trúng mất hết nộ), Tủ lạnh "Tủ lạnh rơi"
   (1100, r 90). Máy đủ nộ thì tung chiêu cuối.
 - **Vũ khí** (mua bằng xu, mỗi cái có cấp 0..10 riêng, trang bị một cái; chỉ số gốc Tấn công / Phòng thủ / May mắn / Thể lực):
-  Đại bác (miễn phí, 100/50/20/100), Dép lào (15000, 150/80/40/150), Chổi chà (30000, 220/120/60/220),
-  Cây lau nhà (60000, 300/160/80/300), TV (120000, 400/240/100/400), Tủ lạnh (250000, 550/320/120/600). Chỉ số ở cấp L = `round(gốc × (1 + 0.1·L))` + ngọc khảm.
+  Đại bác (miễn phí, 100/50/20/100), Dép lào (45000, 150/80/40/150), Chổi chà (90000, 220/120/60/220),
+  Cây lau nhà (180000, 300/160/80/300), TV (360000, 400/240/100/400), Tủ lạnh (750000, 550/320/120/600). Chỉ số ở cấp L = `round(gốc × (1 + 0.1·L))` + ngọc khảm.
   **Chuyển cấp**: đưa cấp của món A sang món B cùng loại (A phải cao hơn B), A về +0; phí 3000 xu × cấp.
-- **Nón** (thiên May mắn + Thể lực): Nón lá (miễn phí, 0/20/20/100), Mũ bảo hiểm (20000, 20/60/30/150),
-  Mũ len (40000, 40/80/50/220), Nón cao bồi (80000, 70/100/80/320), Mũ phù thuỷ (150000, 120/120/100/500),
-  Vương miện (300000, 160/180/130/800).
-  **Áo giáp** (thiên Phòng thủ + Thể lực): Áo thun (miễn phí, 0/40/0/150), Áo mưa (20000, 0/80/10/200),
-  Áo bóng đá (40000, 30/110/20/260), Áo phao (80000, 40/160/20/380), Giáp sắt (150000, 60/240/30/550),
-  Giáp rồng (300000, 100/320/50/800).
+- **Nón** (thiên May mắn + Thể lực): Nón lá (miễn phí, 0/20/20/100), Mũ bảo hiểm (60000, 20/60/30/150),
+  Mũ len (120000, 40/80/50/220), Nón cao bồi (240000, 70/100/80/320), Mũ phù thuỷ (450000, 120/120/100/500),
+  Vương miện (900000, 160/180/130/800).
+  **Áo giáp** (thiên Phòng thủ + Thể lực): Áo thun (miễn phí, 0/40/0/150), Áo mưa (60000, 0/80/10/200),
+  Áo bóng đá (120000, 30/110/20/260), Áo phao (240000, 40/160/20/380), Giáp sắt (450000, 60/240/30/550),
+  Giáp rồng (900000, 100/320/50/800).
+  Món mua bằng xu cần đủ level: theo thứ tự giá từ rẻ tới đắt level 1 / 6 / 12 / 20 / 30 (chưa đủ → 403 "Cần cấp N…"; món đã có vẫn dùng).
   Mỗi món có cấp 0..10 và 3 ô khảm riêng, mua / dùng / chuyển cấp (trong cùng loại) như vũ khí; dùng 1 nón + 1 áo.
 - **Chỉ số trong trận** = tổng vũ khí + nón + áo đang dùng (mỗi món ở cấp của nó, cộng ngọc của nó): sát thương × (1 + Tấn công/1000);
   giảm sát thương nhận = Phòng thủ/1000 (tối đa 60%); chí mạng = May mắn/10 % (× 1.5); máu tối đa = 2000 + Thể lực.
@@ -404,7 +414,7 @@ Khu riêng, trang `/arena/`. Bắn pháo theo lượt trên địa hình phá hu
   Khi giá / chỉ số đổi (bản ×10), món đã mua giữ nguyên, không hoàn hay thu thêm xu.
 - **Cường hoá**: mua đá 5 cấp (Lục 500, Lam 1500, Tím 4000, Vàng 10000, Đỏ 25000 xu); mỗi lần tốn 1 đá + phí 100·(L+1) xu,
   tỉ lệ `80 − 10·L + 6·(tier−1)` (1..95%); lên +10 (từ +9) **không quá 5%**, kể cả Đá Đỏ + bùa may mắn. Thất bại mất đá + phí và **tụt 1 cấp** (cấp 0 giữ 0), trừ khi dùng
-  **Bùa giữ cấp** (2000 xu). **Bùa may mắn** (1500 xu) +15% tỉ lệ. Bùa đã chọn bị tiêu dù thành hay bại. Lên +7 / +10 thì
+  **Bùa giữ cấp** (4000 xu). **Bùa may mắn** (3000 xu) +15% tỉ lệ. Bùa đã chọn bị tiêu dù thành hay bại. Lên +7 / +10 thì
   trang bị biến đổi hình (`evolved`).
 - **Cược** 0, 10, 20, 50, 100, 200, 500, 1000 xu: người thắng ăn cược của mọi người thua (máy là nhà cái) + tiền người bỏ trận;
   hoà không đổi. Ghi sổ cái game `arena`. **XP**: thắng 30, hoà 15, thua 10.
@@ -474,20 +484,22 @@ Mưa lửa là một tin `shot` có `skill:"rain"`, `skillName:"Mưa lửa"`, m�
   | Khiên (`shield`) | 5 giây, chặn 1 đòn |
   | Tăng tốc (`boost`) | ×1,25 tốc độ tối đa trong 1,5 giây |
 
-| Xe (theo hạng) | Giá |
-|---|---|
-| Xe Tập Lái | miễn phí |
-| Sao Chổi · **Gió Lốc** (moto) · Tốc Hành · Tia Chớp · Chim Ưng · Rắn Lục | 20.000 · 30.000 · 50.000 · 80.000 · 150.000 · 250.000 |
-| **Bão Tố** (moto) · Thiên Đỉnh · Bóng Ma · **Neon Rider** (moto) | 300.000 · 400.000 · 800.000 · 1.000.000 |
-| Lốc Xoáy · Đỉnh Cao · Hoả Tiễn · Siêu Tân Tinh | 1.200.000 · 1.600.000 · 1.800.000 · 2.000.000 |
+| Xe (theo hạng) | Giá | Level |
+|---|---|---|
+| Xe Tập Lái | miễn phí | 1 |
+| Sao Chổi · **Gió Lốc** (moto) · Tốc Hành · Tia Chớp · Chim Ưng · Rắn Lục | 60.000 · 90.000 · 150.000 · 240.000 · 450.000 · 750.000 | 3 · 5 · 7 · 9 · 12 · 15 |
+| **Bão Tố** (moto) · Thiên Đỉnh · Bóng Ma · **Neon Rider** (moto) | 900.000 · 1.200.000 · 2.400.000 · 3.000.000 | 17 · 19 · 22 · 24 |
+| Lốc Xoáy · Đỉnh Cao · Hoả Tiễn · Siêu Tân Tinh | 3.600.000 · 4.800.000 · 5.400.000 · 6.000.000 | 26 · 28 · 29 · 30 |
+
+- Mua xe cần đủ level (trường `level` trong garage; chưa đủ → 403 "Cần cấp N để mua …"); xe đã có vẫn dùng và nâng cấp.
 
 - **Moto** (`kind: "moto"`, ô tô là `"car"`): tăng tốc +5%, bám đường −5% so với ô tô cùng hạng, không lắp được cánh gió (409).
 
 - **Chỉ số:** xe khởi đầu cấp 0: tốc độ 30 m/s, tăng tốc 12 m/s², bám đường 0,70. Mỗi hạng xe cao hơn một chút; mỗi cấp nâng +2,5%;
   xe đắt nhất nâng tối đa hơn xe khởi đầu ≈20% mỗi chỉ số; không mẫu nào (kể cả moto) vượt trần đó.
 - **Nâng cấp** 3 món, mỗi món 5 cấp: động cơ / ống xả (tốc độ), turbo (tăng tốc), lốp / mâm (bám đường). Giá lên cấp n =
-  giá xe × 10% × n (xe khởi đầu tính như 10.000 xu).
-- **Đồ trang trí** (không có chỉ số): cánh gió 5.000–40.000, đèn neon gầm 10.000–12.000, decal 5.000–50.000; sơn 8 màu miễn phí.
+  giá xe × 10% × n (xe khởi đầu tính như 30.000 xu).
+- **Đồ trang trí** (không có chỉ số): cánh gió 10.000–80.000, đèn neon gầm 20.000–24.000, decal 10.000–100.000; sơn 8 màu miễn phí.
 
 | API (`/api/race`, cần đăng nhập) | Body | |
 |---|---|---|
@@ -515,8 +527,8 @@ rồi nộp điểm (số mục tiêu hoàn thành, tối đa `seconds / 2`).
 | Việc | Level | HP | Thời gian | Tiền công (0 → đủ điểm) | XP |
 |---|---|---|---|---|---|
 | Khuân gạch | 1 | 8 | 30 giây | 120 → 300 | 4 |
-| Trộn vữa | 3 | 10 | 30 giây | 200 → 500 | 6 |
-| Lái cần cẩu | 6 | 12 | 40 giây | 400 → 900 | 10 |
+| Trộn vữa | 6 | 10 | 30 giây | 200 → 500 | 6 |
+| Lái cần cẩu | 12 | 12 | 40 giây | 400 → 900 | 10 |
 
 - Tiền công = `basePay + (maxPay − basePay) × điểm / số mục tiêu`. Mỗi ngày (giờ Việt Nam) kiếm tối đa 6.000 xu ở công trường.
 - Chống gian lận: chỉ nộp được trong khung [hết giờ − 2 giây, hết giờ + 30 giây], mỗi ca một lần; quá hạn thì ca mất (máu đã trừ).

@@ -33,11 +33,11 @@ type Yield struct {
 
 // yields theo id vật nuôi; giá / XP của thịt bằng giá bán / XP của con đó.
 var yields = map[string]Yield{
-	"chicken": {&Product{"egg", "Trứng gà", 600, 60, 2}, Meat{"meat_chicken", "Thịt gà", 400, 5}},
-	"duck":    {&Product{"duck_egg", "Trứng vịt", 900, 80, 2}, Meat{"meat_duck", "Thịt vịt", 520, 6}},
-	"pig":     {nil, Meat{"meat_pig", "Thịt heo", 1300, 12}},
-	"sheep":   {&Product{"wool", "Lông cừu", 1800, 400, 6}, Meat{"meat_sheep", "Thịt cừu", 2000, 20}},
-	"cow":     {&Product{"milk", "Sữa bò", 1200, 300, 5}, Meat{"meat_cow", "Thịt bò", 3400, 35}},
+	"chicken": {&Product{"egg", "Trứng gà", 1800, 90, 2}, Meat{"meat_chicken", "Thịt gà", 380, 5}},
+	"duck":    {&Product{"duck_egg", "Trứng vịt", 2700, 150, 2}, Meat{"meat_duck", "Thịt vịt", 550, 6}},
+	"pig":     {nil, Meat{"meat_pig", "Thịt heo", 1530, 12}},
+	"sheep":   {&Product{"wool", "Lông cừu", 7200, 1070, 6}, Meat{"meat_sheep", "Thịt cừu", 3960, 20}},
+	"cow":     {&Product{"milk", "Sữa bò", 5400, 930, 5}, Meat{"meat_cow", "Thịt bò", 6060, 35}},
 }
 
 // animalJSON là một loại vật nuôi trong catalog, kèm sản phẩm và thịt.

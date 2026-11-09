@@ -14,8 +14,8 @@ func TestPotSkinCatalog(t *testing.T) {
 	want := []struct {
 		id    string
 		price int64
-	}{{"default", 0}, {"white", 0}, {"flower", 20_000}, {"wood", 20_000}, {"bluewhite", 50_000},
-		{"jade", 100_000}, {"cloud", 200_000}, {"crystal", 300_000}, {"gold", 500_000}}
+	}{{"default", 0}, {"white", 0}, {"flower", 40_000}, {"wood", 40_000}, {"bluewhite", 100_000},
+		{"jade", 200_000}, {"cloud", 400_000}, {"crystal", 600_000}, {"gold", 1_000_000}}
 	if len(PotSkins) != len(want) {
 		t.Fatalf("số kiểu chậu: %d", len(PotSkins))
 	}
@@ -49,7 +49,7 @@ func TestPotSkinBuyAndSet(t *testing.T) {
 
 	before := e.user().Balance
 	s = e.ok(e.f.BuyPotSkin(ctx, e.uid, "jade"))
-	if got := before - e.user().Balance; got != 100_000 {
+	if got := before - e.user().Balance; got != 200_000 {
 		t.Fatalf("giá ngọc lục bảo: %d", got)
 	}
 	if !contains(s.Cloud.Skins, "jade") {
@@ -96,8 +96,8 @@ func TestPotSkinWorth(t *testing.T) {
 	e := newEnv(t, 1_000_000, 0)
 	before := e.worth()
 	e.ok(e.f.BuyPotSkin(ctx, e.uid, "crystal"))
-	if got := e.worth() - before; got != 300_000 {
-		t.Fatalf("giá trị tăng %d, muốn 300.000", got)
+	if got := e.worth() - before; got != 600_000 {
+		t.Fatalf("giá trị tăng %d, muốn 600.000", got)
 	}
 }
 

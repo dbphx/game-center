@@ -34,30 +34,30 @@ type ItemInfo struct {
 var (
 	HairCatalog = []ItemInfo{
 		{ID: DefaultHair, Name: "Tóc mặc định", Kind: KindHair, Level: 1, Starter: true},
-		{ID: "short_spiky", Name: "Tóc dựng", Kind: KindHair, Level: 1, Price: 300},
-		{ID: "ponytail", Name: "Đuôi ngựa", Kind: KindHair, Level: 1, Price: 300},
-		{ID: "long_wave", Name: "Tóc dài xoăn", Kind: KindHair, Level: 2, Price: 700},
-		{ID: "bun", Name: "Tóc búi", Kind: KindHair, Level: 2, Price: 700},
-		{ID: "mohawk", Name: "Mohican", Kind: KindHair, Level: 3, Price: 1200},
-		{ID: "pink_twin", Name: "Hai bím hồng", Kind: KindHair, Level: 4, Price: 2000},
+		{ID: "short_spiky", Name: "Tóc dựng", Kind: KindHair, Level: 1, Price: 900},
+		{ID: "ponytail", Name: "Đuôi ngựa", Kind: KindHair, Level: 1, Price: 900},
+		{ID: "long_wave", Name: "Tóc dài xoăn", Kind: KindHair, Level: 4, Price: 2100},
+		{ID: "bun", Name: "Tóc búi", Kind: KindHair, Level: 4, Price: 2100},
+		{ID: "mohawk", Name: "Mohican", Kind: KindHair, Level: 6, Price: 3600},
+		{ID: "pink_twin", Name: "Hai bím hồng", Kind: KindHair, Level: 8, Price: 6000},
 	}
 
 	WingsCatalog = []ItemInfo{
-		{ID: "angel", Name: "Cánh thiên thần", Kind: KindWings, Level: 3, Price: 2500},
-		{ID: "fairy", Name: "Cánh tiên", Kind: KindWings, Level: 4, Price: 3500},
-		{ID: "butterfly", Name: "Cánh bướm", Kind: KindWings, Level: 5, Price: 4500},
-		{ID: "bat", Name: "Cánh dơi", Kind: KindWings, Level: 6, Price: 6000},
-		{ID: "dragon", Name: "Cánh rồng", Kind: KindWings, Level: 8, Price: 10000},
+		{ID: "angel", Name: "Cánh thiên thần", Kind: KindWings, Level: 6, Price: 7500},
+		{ID: "fairy", Name: "Cánh tiên", Kind: KindWings, Level: 8, Price: 10500},
+		{ID: "butterfly", Name: "Cánh bướm", Kind: KindWings, Level: 10, Price: 13500},
+		{ID: "bat", Name: "Cánh dơi", Kind: KindWings, Level: 12, Price: 18000},
+		{ID: "dragon", Name: "Cánh rồng", Kind: KindWings, Level: 16, Price: 30000},
 	}
 
 	FaceCatalog = []ItemInfo{
 		{ID: DefaultFace, Name: "Mặt mặc định", Kind: KindFace, Level: 1, Starter: true},
-		{ID: "smile", Name: "Cười tươi", Kind: KindFace, Level: 1, Price: 200},
-		{ID: "wink", Name: "Nháy mắt", Kind: KindFace, Level: 1, Price: 300},
-		{ID: "blush", Name: "Má hồng", Kind: KindFace, Level: 2, Price: 600},
-		{ID: "cool", Name: "Kính râm", Kind: KindFace, Level: 2, Price: 800},
-		{ID: "cat", Name: "Mèo con", Kind: KindFace, Level: 3, Price: 1200},
-		{ID: "star", Name: "Mắt lấp lánh", Kind: KindFace, Level: 4, Price: 2000},
+		{ID: "smile", Name: "Cười tươi", Kind: KindFace, Level: 1, Price: 600},
+		{ID: "wink", Name: "Nháy mắt", Kind: KindFace, Level: 1, Price: 900},
+		{ID: "blush", Name: "Má hồng", Kind: KindFace, Level: 4, Price: 1800},
+		{ID: "cool", Name: "Kính râm", Kind: KindFace, Level: 4, Price: 2400},
+		{ID: "cat", Name: "Mèo con", Kind: KindFace, Level: 6, Price: 3600},
+		{ID: "star", Name: "Mắt lấp lánh", Kind: KindFace, Level: 8, Price: 6000},
 	}
 
 	ErrInvalidItem = errors.New("món đồ không hợp lệ")

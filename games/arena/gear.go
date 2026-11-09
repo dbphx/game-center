@@ -33,26 +33,38 @@ var slotNames = map[string]string{SlotGun: "Súng", SlotHat: "Nón", SlotArmor: 
 
 // Arm là một loại vũ khí; 4 chỉ số gốc (ở +0): tấn công, phòng thủ, may mắn, thể lực.
 type Arm struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Price int64  `json:"price"`
-	Desc  string `json:"desc"`
-	Atk   int    `json:"atk"`
-	Def   int    `json:"def"`
-	Luck  int    `json:"luck"`
-	Sta   int    `json:"sta"`
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Price    int64  `json:"price"`
+	Desc     string `json:"desc"`
+	Atk      int    `json:"atk"`
+	Def      int    `json:"def"`
+	Luck     int    `json:"luck"`
+	Sta      int    `json:"sta"`
+	ReqLevel int    `json:"reqLevel"` // cấp nhân vật cần để mua (điền theo bậc giá, xem tierLevels)
+}
+
+// tierLevels là cấp nhân vật cần để mua món thứ i của mỗi ô (rẻ → đắt); món 0 là món mặc định miễn phí.
+var tierLevels = []int{1, 1, 6, 12, 20, 30}
+
+// withLevels điền cấp yêu cầu theo thứ tự giá trong danh mục.
+func withLevels(list []Arm) []Arm {
+	for i := range list {
+		list[i].ReqLevel = tierLevels[min(i, len(tierLevels)-1)]
+	}
+	return list
 }
 
 const ArmCannon = "cannon"
 
-var Arms = []Arm{
-	{ArmCannon, "Đại bác", 0, "Mặc định, ai cũng có", 100, 50, 20, 100},
-	{"dep", "Dép lào", 15000, "Nhẹ, ném đâu trúng đó", 150, 80, 40, 150},
-	{"choi", "Chổi chà", 30000, "Quét sạch đối thủ", 220, 120, 60, 220},
-	{"launha", "Cây lau nhà", 60000, "Lau sân, lau luôn đối thủ", 300, 160, 80, 300},
-	{"tv", "TV", 120000, "Nặng, nổ to như phim hành động", 400, 240, 100, 400},
-	{"tulanh", "Tủ lạnh", 250000, "Vũ khí tối thượng của mọi nhà", 550, 320, 120, 600},
-}
+var Arms = withLevels([]Arm{
+	{ArmCannon, "Đại bác", 0, "Mặc định, ai cũng có", 100, 50, 20, 100, 0},
+	{"dep", "Dép lào", 45000, "Nhẹ, ném đâu trúng đó", 150, 80, 40, 150, 0},
+	{"choi", "Chổi chà", 90000, "Quét sạch đối thủ", 220, 120, 60, 220, 0},
+	{"launha", "Cây lau nhà", 180000, "Lau sân, lau luôn đối thủ", 300, 160, 80, 300, 0},
+	{"tv", "TV", 360000, "Nặng, nổ to như phim hành động", 400, 240, 100, 400, 0},
+	{"tulanh", "Tủ lạnh", 750000, "Vũ khí tối thượng của mọi nhà", 550, 320, 120, 600, 0},
+})
 
 const (
 	HatDefault   = "nonla"  // nón mặc định, ai cũng có
@@ -60,24 +72,24 @@ const (
 )
 
 // Hats là danh mục nón: thiên may mắn + thể lực. Cùng kiểu Arm (4 chỉ số gốc ở +0).
-var Hats = []Arm{
-	{HatDefault, "Nón lá", 0, "Mặc định, che nắng che mưa", 0, 20, 20, 100},
-	{"mubh", "Mũ bảo hiểm", 20000, "An toàn là trên hết", 20, 60, 30, 150},
-	{"mulen", "Mũ len", 40000, "Ấm đầu, tỉnh táo", 40, 80, 50, 220},
-	{"caoboi", "Nón cao bồi", 80000, "Bắn nhanh như cao bồi miền Tây", 70, 100, 80, 320},
-	{"phuthuy", "Mũ phù thuỷ", 150000, "Phép màu gọi may mắn", 120, 120, 100, 500},
-	{"vuongmien", "Vương miện", 300000, "Đội lên là thành vua đấu trường", 160, 180, 130, 800},
-}
+var Hats = withLevels([]Arm{
+	{HatDefault, "Nón lá", 0, "Mặc định, che nắng che mưa", 0, 20, 20, 100, 0},
+	{"mubh", "Mũ bảo hiểm", 60000, "An toàn là trên hết", 20, 60, 30, 150, 0},
+	{"mulen", "Mũ len", 120000, "Ấm đầu, tỉnh táo", 40, 80, 50, 220, 0},
+	{"caoboi", "Nón cao bồi", 240000, "Bắn nhanh như cao bồi miền Tây", 70, 100, 80, 320, 0},
+	{"phuthuy", "Mũ phù thuỷ", 450000, "Phép màu gọi may mắn", 120, 120, 100, 500, 0},
+	{"vuongmien", "Vương miện", 900000, "Đội lên là thành vua đấu trường", 160, 180, 130, 800, 0},
+})
 
 // Armors là danh mục áo giáp: thiên phòng thủ + thể lực.
-var Armors = []Arm{
-	{ArmorDefault, "Áo thun", 0, "Mặc định, thoáng mát", 0, 40, 0, 150},
-	{"aomua", "Áo mưa", 20000, "Đạn trượt như nước", 0, 80, 10, 200},
-	{"bongda", "Áo bóng đá", 40000, "Chạy cả trận không mệt", 30, 110, 20, 260},
-	{"aophao", "Áo phao", 80000, "Rơi xuống nước vẫn nổi", 40, 160, 20, 380},
-	{"giapsat", "Giáp sắt", 150000, "Cứng như tường thành", 60, 240, 30, 550},
-	{"giaprong", "Giáp rồng", 300000, "Vảy rồng, đạn bật ra", 100, 320, 50, 800},
-}
+var Armors = withLevels([]Arm{
+	{ArmorDefault, "Áo thun", 0, "Mặc định, thoáng mát", 0, 40, 0, 150, 0},
+	{"aomua", "Áo mưa", 60000, "Đạn trượt như nước", 0, 80, 10, 200, 0},
+	{"bongda", "Áo bóng đá", 120000, "Chạy cả trận không mệt", 30, 110, 20, 260, 0},
+	{"aophao", "Áo phao", 240000, "Rơi xuống nước vẫn nổi", 40, 160, 20, 380, 0},
+	{"giapsat", "Giáp sắt", 450000, "Cứng như tường thành", 60, 240, 30, 550, 0},
+	{"giaprong", "Giáp rồng", 900000, "Vảy rồng, đạn bật ra", 100, 320, 50, 800, 0},
+})
 
 // catalog là danh mục món của một ô trang bị.
 func catalog(slot string) []Arm {
@@ -269,8 +281,8 @@ const (
 )
 
 var Charms = []Charm{
-	{CharmLuck, "Bùa may mắn", 1500, "+15% tỉ lệ"},
-	{CharmProtect, "Bùa giữ cấp", 2000, "Thất bại không tụt cấp"},
+	{CharmLuck, "Bùa may mắn", 3000, "+15% tỉ lệ"},
+	{CharmProtect, "Bùa giữ cấp", 4000, "Thất bại không tụt cấp"},
 }
 
 func findCharm(id string) (Charm, bool) {
@@ -484,6 +496,16 @@ var (
 	ErrLowLevel = errors.New("món nguồn phải có cấp cao hơn món nhận")
 )
 
+// NeedLevelError: nhân vật chưa đủ cấp để mua món.
+type NeedLevelError struct {
+	Level int
+	Name  string
+}
+
+func (e *NeedLevelError) Error() string {
+	return fmt.Sprintf("Cần cấp %d để mua %s", e.Level, e.Name)
+}
+
 // Armory là kho trang bị và đá cường hoá của mọi người chơi.
 type Armory struct {
 	w *wallet.Wallet
@@ -668,6 +690,13 @@ func (a *Armory) BuyItem(ctx context.Context, uid int64, slot, id string) (Inven
 	return a.withInv(ctx, uid, func(tx *wallet.Tx, inv Inventory) error {
 		if _, have := inv.Arms[id]; have {
 			return ErrOwned
+		}
+		lv, err := tx.Level(uid)
+		if err != nil {
+			return err
+		}
+		if lv < it.ReqLevel {
+			return &NeedLevelError{it.ReqLevel, it.Name}
 		}
 		if err := tx.Charge(uid, it.Price, GameID, "Đấu trường: mua "+it.Name); err != nil {
 			return err
@@ -898,7 +927,10 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 
 func writeErr(w http.ResponseWriter, err error) {
 	status, msg := http.StatusInternalServerError, err.Error()
+	var need *NeedLevelError
 	switch {
+	case errors.As(err, &need):
+		status = http.StatusForbidden
 	case errors.Is(err, ErrBadSlot), errors.Is(err, ErrBadStone), errors.Is(err, ErrBadQty), errors.Is(err, ErrBadCharm),
 		errors.Is(err, ErrBadArm), errors.Is(err, ErrBadGem), errors.Is(err, ErrBadSocket):
 		status = http.StatusBadRequest

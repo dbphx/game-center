@@ -90,6 +90,7 @@ type CarView struct {
 	Name      string    `json:"name"`
 	Kind      string    `json:"kind"` // "car" hoặc "moto"
 	Price     int64     `json:"price"`
+	Level     int       `json:"level"` // cấp nhân vật cần để mua
 	Owned     bool      `json:"owned"`
 	Levels    Levels    `json:"levels"`
 	Stats     Stats     `json:"stats"`
@@ -192,7 +193,7 @@ func carView(m CarModel, c ownedCar, owned bool) CarView {
 	if !owned {
 		c = ownedCar{cosmetics: Cosmetics{Paint: DefaultPaint}}
 	}
-	return CarView{ID: m.ID, Name: m.Name, Kind: m.Kind, Price: m.Price, Owned: owned, Levels: c.levels,
+	return CarView{ID: m.ID, Name: m.Name, Kind: m.Kind, Price: m.Price, Level: m.Level, Owned: owned, Levels: c.levels,
 		Stats: StatsOf(m, c.levels), Cosmetics: c.cosmetics}
 }
 
@@ -271,13 +272,20 @@ func (g *Garage) BuyCar(ctx context.Context, uid int64, car string) (GarageView,
 		if _, owned := d.cars[car]; owned {
 			return conflict("bạn đã có " + m.Name)
 		}
+		lv, err := tx.Level(uid)
+		if err != nil {
+			return err
+		}
+		if lv < m.Level {
+			return &Error{http.StatusForbidden, fmt.Sprintf("Cần cấp %d để mua %s", m.Level, m.Name)}
+		}
 		if err := tx.Charge(uid, m.Price, GameID, "Mua xe "+m.Name); err != nil {
 			return err
 		}
 		if _, err := tx.ExecContext(ctx, `INSERT INTO race_cars (user_id, car, paint) VALUES (?, ?, ?)`, uid, car, DefaultPaint); err != nil {
 			return err
 		}
-		_, err := tx.ExecContext(ctx, `UPDATE race_garage SET current_car = ? WHERE user_id = ?`, car, uid)
+		_, err = tx.ExecContext(ctx, `UPDATE race_garage SET current_car = ? WHERE user_id = ?`, car, uid)
 		return err
 	})
 }

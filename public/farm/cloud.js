@@ -87,7 +87,9 @@
     const msg = waiting
       ? `Đậu thần đang vươn tới, còn <b data-ready="${c.beanReadyAt}">${clock(c.beanReadyAt - cfg.now())}</b>`
       : n === c.floors + 1
-        ? `Trồng hạt đậu thần ở ô 49 (${cfg.xu(f.beanPrice)} xu) để mở`
+        ? (cfg.user().level < f.level
+          ? `Cần Lv ${f.level} để trồng đậu thần mở tầng này`
+          : `Trồng hạt đậu thần ở ô 49 (${cfg.xu(f.beanPrice)} xu) để mở`)
         : `Mở tầng ${n - 1} trước đã`;
     const pots = Array.from({ length: f.slots }, () =>
       `<div class="cloud-cell"><span class="cloud-slot locked"><span class="cloud-art"><img class="cloud-pot" src="${IMG}pot_${n}.png" alt="" draggable="false"></span><span class="slot-label"><b>Chưa mở</b></span></span></div>`);

@@ -50,13 +50,13 @@ const potSkinDefault = "default"
 var PotSkins = []PotSkin{
 	{potSkinDefault, "Chậu của tầng", 0},
 	{"white", "Gốm trắng", 0},
-	{"flower", "Gốm hoa", 20_000},
-	{"wood", "Gỗ mộc", 20_000},
-	{"bluewhite", "Sứ thanh hoa", 50_000},
-	{"jade", "Ngọc lục bảo", 100_000},
-	{"cloud", "Mây trắng", 200_000},
-	{"crystal", "Pha lê", 300_000},
-	{"gold", "Vàng khảm đá", 500_000},
+	{"flower", "Gốm hoa", 40_000},
+	{"wood", "Gỗ mộc", 40_000},
+	{"bluewhite", "Sứ thanh hoa", 100_000},
+	{"jade", "Ngọc lục bảo", 200_000},
+	{"cloud", "Mây trắng", 400_000},
+	{"crystal", "Pha lê", 600_000},
+	{"gold", "Vàng khảm đá", 1_000_000},
 }
 
 func findPotSkin(id string) (PotSkin, bool) {
@@ -96,6 +96,7 @@ const (
 // CloudFloor là một tầng mây: hạt đậu để mở tầng, loại chậu của tầng và cây mây trồng trong chậu đó.
 type CloudFloor struct {
 	Floor       int   `json:"floor"`
+	Level       int   `json:"level"` // cấp nhân vật cần để trồng đậu thần mở tầng này
 	BeanPrice   int64 `json:"beanPrice"`
 	BeanSeconds int64 `json:"beanSeconds"`
 	PotPrice    int64 `json:"potPrice"`
@@ -103,12 +104,13 @@ type CloudFloor struct {
 	Crop        Crop  `json:"crop"`
 }
 
-// CloudFloors là các tầng mây, chậu càng đắt thì cây càng quý. Không có điều kiện level, điều kiện duy nhất là đủ 48 ô.
+// CloudFloors là các tầng mây, chậu càng đắt thì cây càng quý. Cần đủ 48 ô và đủ cấp của tầng mới trồng đậu mở tầng;
+// tầng đã mở thì dùng bình thường dù cấp thấp hơn.
 var CloudFloors = []CloudFloor{
-	{1, 200_000, 24 * cloudBeanHour, 100_000, cloudSlots, Crop{"cloud_berry", "Dâu mây", 0, 5_000, cloudGrowSeconds, 20_000, 200}},
-	{2, 1_000_000, 48 * cloudBeanHour, 500_000, cloudSlots, Crop{"mist_pear", "Lê sương", 0, 20_000, cloudGrowSeconds, 70_000, 300}},
-	{3, 3_000_000, 72 * cloudBeanHour, 2_000_000, cloudSlots, Crop{"star_grape", "Nho sao", 0, 50_000, cloudGrowSeconds, 200_000, 450}},
-	{4, 10_000_000, 96 * cloudBeanHour, 10_000_000, cloudSlots, Crop{"fairy_peach", "Đào tiên", 0, 100_000, cloudGrowSeconds, 600_000, 700}},
+	{1, 20, 400_000, 24 * cloudBeanHour, 200_000, cloudSlots, Crop{"cloud_berry", "Dâu mây", 0, 5_000, cloudGrowSeconds, 20_000, 200}},
+	{2, 25, 2_000_000, 48 * cloudBeanHour, 1_000_000, cloudSlots, Crop{"mist_pear", "Lê sương", 0, 20_000, cloudGrowSeconds, 70_000, 300}},
+	{3, 30, 6_000_000, 72 * cloudBeanHour, 4_000_000, cloudSlots, Crop{"star_grape", "Nho sao", 0, 50_000, cloudGrowSeconds, 200_000, 450}},
+	{4, 35, 20_000_000, 96 * cloudBeanHour, 20_000_000, cloudSlots, Crop{"fairy_peach", "Đào tiên", 0, 100_000, cloudGrowSeconds, 600_000, 700}},
 }
 
 func findCloudCrop(id string) (Crop, bool) {
@@ -256,6 +258,9 @@ func (f *Farm) PlantBean(ctx context.Context, uid int64) (State, error) {
 			return conflict(fmt.Sprintf("đã mở đủ %d tầng mây", len(CloudFloors)))
 		}
 		cf := CloudFloors[s.Cloud.Floors]
+		if err := requireLevel(tx, uid, cf.Level); err != nil {
+			return err
+		}
 		if err := tx.Charge(uid, cf.BeanPrice, GameID, fmt.Sprintf("Trồng đậu thần lên tầng %d", cf.Floor)); err != nil {
 			return err
 		}

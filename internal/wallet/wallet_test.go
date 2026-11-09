@@ -241,10 +241,10 @@ func TestBuyOutfit(t *testing.T) {
 	w := open(t)
 	u, _ := register(t, w, "binh")
 
-	// Level 1 chưa mua được hoodie (cần level 2).
+	// Level 1 chưa mua được hoodie (cần level 4).
 	_, err := w.BuyOutfit(ctx, u.ID, "hoodie")
 	var lv *LevelError
-	if !errors.Is(err, ErrLevelTooLow) || !errors.As(err, &lv) || lv.Need != 2 || err.Error() != "cần level 2 để mua" {
+	if !errors.Is(err, ErrLevelTooLow) || !errors.As(err, &lv) || lv.Need != 4 || err.Error() != "cần level 4 để mua" {
 		t.Fatalf("thiếu level: %v", err)
 	}
 	if _, err := w.BuyOutfit(ctx, u.ID, "bikini"); !errors.Is(err, ErrInvalidCharacter) {
@@ -254,8 +254,8 @@ func TestBuyOutfit(t *testing.T) {
 		t.Fatalf("starter đã có sẵn, được %v", err)
 	}
 
-	// Đủ level (level 6) nhưng thiếu xu cho royal (5000).
-	w.AwardXP(ctx, map[int64]int64{u.ID: LevelStart(6)})
+	// Đủ level (level 12) nhưng thiếu xu cho royal (15000).
+	w.AwardXP(ctx, map[int64]int64{u.ID: LevelStart(12)})
 	if _, err := w.BuyOutfit(ctx, u.ID, "royal"); !errors.Is(err, ErrNotEnoughCoins) {
 		t.Fatalf("thiếu xu phải lỗi, được %v", err)
 	}
@@ -263,23 +263,24 @@ func TestBuyOutfit(t *testing.T) {
 		t.Fatalf("mua thất bại không được trừ xu: %+v", got)
 	}
 
+	w.Settle(ctx, "hub", "nạp thử", map[int64]int64{u.ID: 2000})
 	// Mua thành công: trừ xu, ghi sổ cái, có trong owned, mặc luôn.
 	u, err = w.BuyOutfit(ctx, u.ID, "hoodie")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if u.Balance != StartBalance-800 || u.Outfit != "hoodie" || !slices.Equal(u.Owned, []string{"casual", "sport", "hoodie"}) {
+	if u.Balance != StartBalance+2000-2400 || u.Outfit != "hoodie" || !slices.Equal(u.Owned, []string{"casual", "sport", "hoodie"}) {
 		t.Fatalf("sau khi mua: %+v", u)
 	}
 	h, _ := w.History(ctx, u.ID, 1)
-	if len(h) != 1 || h[0].Delta != -800 || h[0].Game != "shop" || h[0].Note != "Mua trang phục Áo hoodie" || h[0].BalanceAfter != u.Balance {
+	if len(h) != 1 || h[0].Delta != -2400 || h[0].Game != "shop" || h[0].Note != "Mua trang phục Áo hoodie" || h[0].BalanceAfter != u.Balance {
 		t.Fatalf("sổ cái sau khi mua: %+v", h)
 	}
 	if _, err := w.BuyOutfit(ctx, u.ID, "hoodie"); !errors.Is(err, ErrAlreadyOwned) {
 		t.Fatalf("mua lại phải báo đã có, được %v", err)
 	}
 	// Đổi qua lại giữa các món đã có thì miễn phí; giới tính giữ nguyên.
-	if u, _ = w.WearOutfit(ctx, u.ID, "casual"); u.Outfit != "casual" || u.Balance != StartBalance-800 || u.Gender != "male" {
+	if u, _ = w.WearOutfit(ctx, u.ID, "casual"); u.Outfit != "casual" || u.Balance != StartBalance+2000-2400 || u.Gender != "male" {
 		t.Fatalf("mặc lại starter: %+v", u)
 	}
 	if u, _ = w.WearOutfit(ctx, u.ID, "hoodie"); u.Outfit != "hoodie" {
@@ -291,19 +292,20 @@ func TestBuyOutfit(t *testing.T) {
 func TestBuyNewOutfits(t *testing.T) {
 	w := open(t)
 	u, _ := register(t, w, "tan")
+	w.Settle(ctx, "hub", "nạp thử", map[int64]int64{u.ID: 2000})
 	if _, err := w.BuyOutfit(ctx, u.ID, "aobaba"); !errors.Is(err, ErrLevelTooLow) {
-		t.Fatalf("áo bà ba cần level 2, được %v", err)
+		t.Fatalf("áo bà ba cần level 4, được %v", err)
 	}
 	u, err := w.BuyOutfit(ctx, u.ID, "school")
-	if err != nil || u.Outfit != "school" || u.Balance != StartBalance-600 || !slices.Equal(u.Owned, []string{"casual", "sport", "school"}) {
+	if err != nil || u.Outfit != "school" || u.Balance != StartBalance+2000-1800 || !slices.Equal(u.Owned, []string{"casual", "sport", "school"}) {
 		t.Fatalf("mua đồng phục: %+v %v", u, err)
 	}
-	w.AwardXP(ctx, map[int64]int64{u.ID: LevelStart(9)})
+	w.AwardXP(ctx, map[int64]int64{u.ID: LevelStart(18)})
 	if _, err := w.BuyOutfit(ctx, u.ID, "astronaut"); !errors.Is(err, ErrNotEnoughCoins) {
-		t.Fatalf("phi hành gia 12.000 xu phải thiếu xu, được %v", err)
+		t.Fatalf("phi hành gia 36.000 xu phải thiếu xu, được %v", err)
 	}
-	w.Settle(ctx, "hub", "nạp thử", map[int64]int64{u.ID: 20000})
-	if u, err = w.BuyOutfit(ctx, u.ID, "astronaut"); err != nil || u.Outfit != "astronaut" || u.Balance != StartBalance-600+20000-12000 {
+	w.Settle(ctx, "hub", "nạp thử", map[int64]int64{u.ID: 50000})
+	if u, err = w.BuyOutfit(ctx, u.ID, "astronaut"); err != nil || u.Outfit != "astronaut" || u.Balance != StartBalance+2000-1800+50000-36000 {
 		t.Fatalf("mua phi hành gia: %+v %v", u, err)
 	}
 	if u, err = w.BuyItem(ctx, u.ID, KindOutfit, "tet"); err != nil || !slices.Equal(u.Owned, []string{"casual", "sport", "school", "tet", "astronaut"}) {

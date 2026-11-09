@@ -42,25 +42,26 @@ type CarModel struct {
 	Price int64
 	Rank  int
 	Kind  string // KindCar hoặc KindMoto
+	Level int    // cấp nhân vật cần để mua
 }
 
 // Cars là các mẫu xe theo thứ tự giá (cũng là thứ tự hạng): xe sau đẹp hơn và chỉ số gốc cao hơn.
 var Cars = rankCars([]CarModel{
-	{ID: "starter", Name: "Xe Tập Lái", Price: 0},
-	{ID: "comet", Name: "Sao Chổi", Price: 20_000},
-	{ID: "moto_dash", Name: "Gió Lốc", Price: 30_000, Kind: KindMoto},
-	{ID: "sprint", Name: "Tốc Hành", Price: 50_000},
-	{ID: "bolt", Name: "Tia Chớp", Price: 80_000},
-	{ID: "raptor", Name: "Chim Ưng", Price: 150_000},
-	{ID: "viper", Name: "Rắn Lục", Price: 250_000},
-	{ID: "moto_storm", Name: "Bão Tố", Price: 300_000, Kind: KindMoto},
-	{ID: "zenith", Name: "Thiên Đỉnh", Price: 400_000},
-	{ID: "phantom", Name: "Bóng Ma", Price: 800_000},
-	{ID: "moto_neon", Name: "Neon Rider", Price: 1_000_000, Kind: KindMoto},
-	{ID: "vortex", Name: "Lốc Xoáy", Price: 1_200_000},
-	{ID: "apex", Name: "Đỉnh Cao", Price: 1_600_000},
-	{ID: "blaze", Name: "Hoả Tiễn", Price: 1_800_000},
-	{ID: "nova", Name: "Siêu Tân Tinh", Price: 2_000_000},
+	{ID: "starter", Name: "Xe Tập Lái", Price: 0, Level: 1},
+	{ID: "comet", Name: "Sao Chổi", Price: 60_000, Level: 3},
+	{ID: "moto_dash", Name: "Gió Lốc", Price: 90_000, Level: 5, Kind: KindMoto},
+	{ID: "sprint", Name: "Tốc Hành", Price: 150_000, Level: 7},
+	{ID: "bolt", Name: "Tia Chớp", Price: 240_000, Level: 9},
+	{ID: "raptor", Name: "Chim Ưng", Price: 450_000, Level: 12},
+	{ID: "viper", Name: "Rắn Lục", Price: 750_000, Level: 15},
+	{ID: "moto_storm", Name: "Bão Tố", Price: 900_000, Level: 17, Kind: KindMoto},
+	{ID: "zenith", Name: "Thiên Đỉnh", Price: 1_200_000, Level: 19},
+	{ID: "phantom", Name: "Bóng Ma", Price: 2_400_000, Level: 22},
+	{ID: "moto_neon", Name: "Neon Rider", Price: 3_000_000, Level: 24, Kind: KindMoto},
+	{ID: "vortex", Name: "Lốc Xoáy", Price: 3_600_000, Level: 26},
+	{ID: "apex", Name: "Đỉnh Cao", Price: 4_800_000, Level: 28},
+	{ID: "blaze", Name: "Hoả Tiễn", Price: 5_400_000, Level: 29},
+	{ID: "nova", Name: "Siêu Tân Tinh", Price: 6_000_000, Level: 30},
 })
 
 // rankCars đánh hạng theo thứ tự trong danh sách và điền loại mặc định là ô tô.
@@ -135,11 +136,11 @@ func StatsOf(c CarModel, lv Levels) Stats {
 	}
 }
 
-// upgradePrice là giá nâng một món lên cấp toLevel: giá xe × 10% × cấp (xe khởi đầu tính như 10.000 xu).
+// upgradePrice là giá nâng một món lên cấp toLevel: giá xe × 10% × cấp (xe khởi đầu tính như 30.000 xu).
 func upgradePrice(c CarModel, toLevel int) int64 {
 	base := c.Price
 	if base == 0 {
-		base = 10_000
+		base = 30_000
 	}
 	return base / 10 * int64(toLevel)
 }
@@ -159,16 +160,16 @@ var Kinds = []string{"spoiler", "neon", "paint", "decal"}
 const DefaultPaint = "paint_red"
 
 var Items = []Item{
-	{"spoiler_low", "spoiler", "Cánh gió thấp", 5_000},
-	{"spoiler_mid", "spoiler", "Cánh gió đua", 15_000},
-	{"spoiler_gt", "spoiler", "Cánh gió GT", 40_000},
+	{"spoiler_low", "spoiler", "Cánh gió thấp", 10_000},
+	{"spoiler_mid", "spoiler", "Cánh gió đua", 30_000},
+	{"spoiler_gt", "spoiler", "Cánh gió GT", 80_000},
 
-	{"neon_blue", "neon", "Neon xanh dương", 10_000},
-	{"neon_pink", "neon", "Neon hồng", 10_000},
-	{"neon_green", "neon", "Neon xanh lá", 10_000},
-	{"neon_yellow", "neon", "Neon vàng", 10_000},
-	{"neon_purple", "neon", "Neon tím", 12_000},
-	{"neon_red", "neon", "Neon đỏ", 12_000},
+	{"neon_blue", "neon", "Neon xanh dương", 20_000},
+	{"neon_pink", "neon", "Neon hồng", 20_000},
+	{"neon_green", "neon", "Neon xanh lá", 20_000},
+	{"neon_yellow", "neon", "Neon vàng", 20_000},
+	{"neon_purple", "neon", "Neon tím", 24_000},
+	{"neon_red", "neon", "Neon đỏ", 24_000},
 
 	{"paint_red", "paint", "Sơn đỏ", 0},
 	{"paint_blue", "paint", "Sơn xanh dương", 0},
@@ -179,10 +180,10 @@ var Items = []Item{
 	{"paint_orange", "paint", "Sơn cam", 0},
 	{"paint_purple", "paint", "Sơn tím", 0},
 
-	{"decal_number", "decal", "Decal số đua", 5_000},
-	{"decal_stripe", "decal", "Decal sọc đôi", 8_000},
-	{"decal_flame", "decal", "Decal lửa", 20_000},
-	{"decal_lightning", "decal", "Decal tia chớp", 50_000},
+	{"decal_number", "decal", "Decal số đua", 10_000},
+	{"decal_stripe", "decal", "Decal sọc đôi", 16_000},
+	{"decal_flame", "decal", "Decal lửa", 40_000},
+	{"decal_lightning", "decal", "Decal tia chớp", 100_000},
 }
 
 func findItem(id string) (Item, bool) {

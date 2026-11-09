@@ -41,49 +41,49 @@ func (b Building) expandPrice(expansions int) int64 { return b.expandBase * int6
 // Cây ngắn lãi / giờ cao cho người chơi liên tục; cây dài (4–12 giờ) cho người treo máy. Cùng thời gian thì
 // cây level cao lãi hơn.
 var Crops = []Crop{
-	{"water_spinach", "Rau muống", 1, 30, 60, 52, 1},
-	{"carrot", "Cà rốt", 1, 50, 120, 90, 2},
-	{"corn", "Ngô", 1, 80, 300, 160, 4},
-	{"tomato", "Cà chua", 2, 120, 600, 260, 6},
-	{"sweet_potato", "Khoai lang", 2, 100, 900, 290, 5},
-	{"rice", "Lúa", 2, 150, 1200, 360, 8},
-	{"cabbage", "Bắp cải", 3, 180, 1800, 520, 10},
-	{"strawberry", "Dâu tây", 3, 300, 2700, 750, 15},
-	{"chili", "Ớt", 3, 220, 3600, 820, 14},
-	{"eggplant", "Cà tím", 4, 260, 1500, 700, 9},
-	{"watermelon", "Dưa hấu", 4, 500, 7200, 1400, 30},
-	{"pineapple", "Dứa", 5, 400, 3600, 1250, 18},
-	{"pumpkin", "Bí ngô", 5, 600, 14400, 2600, 45},
-	{"dragon_fruit", "Thanh long", 6, 800, 21600, 4400, 70},
-	{"grape", "Nho", 7, 1000, 10800, 3700, 55},
-	{"durian", "Sầu riêng", 8, 2000, 43200, 12800, 150},
+	{"water_spinach", "Rau muống", 1, 45, 60, 60, 1},
+	{"carrot", "Cà rốt", 1, 75, 120, 100, 2},
+	{"corn", "Ngô", 1, 120, 300, 160, 4},
+	{"tomato", "Cà chua", 4, 180, 600, 260, 6},
+	{"sweet_potato", "Khoai lang", 4, 150, 900, 250, 5},
+	{"rice", "Lúa", 4, 225, 1200, 340, 8},
+	{"cabbage", "Bắp cải", 7, 270, 1800, 440, 10},
+	{"strawberry", "Dâu tây", 7, 450, 2700, 680, 15},
+	{"chili", "Ớt", 7, 330, 3600, 620, 14},
+	{"eggplant", "Cà tím", 10, 390, 1500, 610, 9},
+	{"watermelon", "Dưa hấu", 10, 750, 7200, 1200, 30},
+	{"pineapple", "Dứa", 13, 600, 3600, 1000, 18},
+	{"pumpkin", "Bí ngô", 13, 900, 14400, 1900, 45},
+	{"dragon_fruit", "Thanh long", 16, 1200, 21600, 2900, 70},
+	{"grape", "Nho", 20, 1500, 10800, 2800, 55},
+	{"durian", "Sầu riêng", 25, 3000, 43200, 8000, 150},
 }
 
 // Poultry là gia cầm thả rông trong sân (đi quanh trang trại), không nuôi trong chuồng.
 var Poultry = []Stock{
-	{"chicken", "Gà", 1, 1, 200, 900, 400, 5},
-	{"duck", "Vịt", 1, 1, 250, 1200, 520, 6},
+	{"chicken", "Gà", 1, 1, 200, 3600, 380, 5},
+	{"duck", "Vịt", 1, 1, 250, 5400, 550, 6},
 }
 
 var Animals = []Stock{
-	{"pig", "Heo", 2, 1, 600, 3600, 1300, 12},
-	{"sheep", "Cừu", 3, 2, 900, 7200, 2000, 20},
-	{"cow", "Bò", 4, 2, 1500, 10800, 3400, 35},
+	{"pig", "Heo", 5, 1, 600, 14400, 1530, 12},
+	{"sheep", "Cừu", 8, 2, 900, 21600, 3960, 20},
+	{"cow", "Bò", 12, 2, 1500, 28800, 6060, 35},
 }
 
 var Fish = []Stock{
-	{"tilapia", "Cá rô phi", 1, 1, 100, 600, 220, 3},
-	{"catfish", "Cá trê", 2, 1, 250, 1800, 560, 8},
-	{"carp", "Cá chép", 3, 2, 500, 3600, 1150, 15},
-	{"koi", "Cá Koi", 5, 3, 2000, 14400, 4800, 50},
+	{"tilapia", "Cá rô phi", 1, 1, 100, 2700, 230, 3},
+	{"catfish", "Cá trê", 4, 1, 250, 7200, 650, 8},
+	{"carp", "Cá chép", 8, 2, 500, 14400, 2310, 15},
+	{"koi", "Cá Koi", 15, 3, 2000, 43200, 11600, 50},
 }
 
 // Ô đất: FreePlots ô miễn phí, mua thêm tới MaxPlots; ô kế tiếp giá PlotBasePrice + PlotStep × (số ô đang có − FreePlots).
 const (
 	FreePlots     = 6
 	MaxPlots      = 48
-	PlotBasePrice = 10000
-	PlotStep      = 2000
+	PlotBasePrice = 30000
+	PlotStep      = 6000
 )
 
 func plotPrice(have int) int64 { return PlotBasePrice + PlotStep*int64(have-FreePlots) }
@@ -95,9 +95,9 @@ const (
 )
 
 var Buildings = map[string]Building{
-	placeBarn: {Name: "chuồng", Price: 3000, Level: 1, Capacity: 5, ExpandUnits: 5, MaxCapacity: 30, expandBase: 20000},
-	placeYard: {Name: "sân gia cầm", Price: 0, Level: 1, Capacity: 10, ExpandUnits: 5, MaxCapacity: 40, expandBase: 10000},
-	placePond: {Name: "ao cá", Price: 2500, Level: 1, Capacity: 5, ExpandUnits: 5, MaxCapacity: 30, expandBase: 15000},
+	placeBarn: {Name: "chuồng", Price: 9000, Level: 1, Capacity: 5, ExpandUnits: 5, MaxCapacity: 30, expandBase: 60000},
+	placeYard: {Name: "sân gia cầm", Price: 0, Level: 1, Capacity: 10, ExpandUnits: 5, MaxCapacity: 40, expandBase: 30000},
+	placePond: {Name: "ao cá", Price: 7500, Level: 1, Capacity: 5, ExpandUnits: 5, MaxCapacity: 30, expandBase: 45000},
 }
 
 const (
@@ -118,8 +118,8 @@ type StoreSpec struct {
 func (s StoreSpec) expandPrice(expansions int) int64 { return s.ExpandBase * int64(expansions+1) }
 
 var Stores = map[string]StoreSpec{
-	storeSeeds:    {Name: "kho giống", Capacity: 50, ExpandUnits: 25, MaxCapacity: 300, ExpandBase: 10000},
-	storeProducts: {Name: "kho sản phẩm", Capacity: 50, ExpandUnits: 25, MaxCapacity: 500, ExpandBase: 15000},
+	storeSeeds:    {Name: "kho giống", Capacity: 50, ExpandUnits: 25, MaxCapacity: 300, ExpandBase: 30000},
+	storeProducts: {Name: "kho sản phẩm", Capacity: 50, ExpandUnits: 25, MaxCapacity: 500, ExpandBase: 45000},
 }
 
 // product trả tên và giá bán của một món trong kho sản phẩm: nông sản, trứng / sữa / lông, thịt,

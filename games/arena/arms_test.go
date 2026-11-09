@@ -23,9 +23,9 @@ func TestArmsBuyEquipTransfer(t *testing.T) {
 	if _, err := e.a.EquipArm(ctx, e.uid, "dep"); !errors.Is(err, ErrNotOwned) {
 		t.Fatalf("chưa có thì không trang bị: %v", err)
 	}
-	e.setBalance(300000)
+	e.setBalance(900000)
 	inv, err := e.a.BuyArm(ctx, e.uid, "dep")
-	if err != nil || e.balance() != 285000 || inv.Gear.ArmID() != ArmCannon {
+	if err != nil || e.balance() != 855000 || inv.Gear.ArmID() != ArmCannon {
 		t.Fatalf("mua dép lào: %v ví %d %+v", err, e.balance(), inv.Gear)
 	}
 	if _, err := e.a.BuyArm(ctx, e.uid, "dep"); !errors.Is(err, ErrOwned) {

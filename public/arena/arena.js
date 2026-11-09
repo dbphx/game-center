@@ -1668,6 +1668,7 @@
       const key = `${cat}:${escapeHtml(a.id)}`;
       if (a.equipped) act = `<button type="button" class="arm-btn" disabled>${I.svg('check')}Đang dùng</button>`;
       else if (a.owned) act = `<button type="button" class="arm-btn primary" data-equip="${key}">Trang bị</button>`;
+      else if (a.reqLevel && user && (user.level || 1) < a.reqLevel) act = `<button type="button" class="arm-btn need-level" disabled title="Chưa đủ cấp nhân vật">${I.svg('lock')}Cần cấp ${a.reqLevel}</button>`;
       else act = `<button type="button" class="arm-btn primary" data-buy-arm="${key}" ${gear.balance < a.price ? 'disabled title="Không đủ xu"' : ''}>Mua · ${I.svg('coins')}${xu(a.price)}</button>`;
       return `<div class="arm-card${a.equipped ? ' on' : ''}${a.owned ? '' : ' locked'}">
           <div class="ac-top">${itemIcon(cat, a.id, a.level, 'ac-img')}

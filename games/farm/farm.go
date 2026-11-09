@@ -74,7 +74,7 @@ func bad(msg string) error      { return &Error{http.StatusBadRequest, msg} }
 func conflict(msg string) error { return &Error{http.StatusConflict, msg} }
 func notFound(msg string) error { return &Error{http.StatusNotFound, msg} }
 func needLevel(level int) error {
-	return &Error{http.StatusForbidden, fmt.Sprintf("cần level %d", level)}
+	return &Error{http.StatusForbidden, fmt.Sprintf("Cần cấp %d", level)}
 }
 func noCoins() error { return &Error{http.StatusPaymentRequired, "không đủ xu"} }
 func errStatus(err error) int {
@@ -122,6 +122,9 @@ func New(ctx context.Context, w *wallet.Wallet) (*Farm, error) {
 	}
 	if err := migratePotSkins(ctx, w); err != nil {
 		return nil, fmt.Errorf("nâng cấp chậu tầng mây: %w", err)
+	}
+	if err := migrateRebalance(ctx, w); err != nil {
+		return nil, fmt.Errorf("cân bằng vật nuôi: %w", err)
 	}
 	return &Farm{w: w, now: time.Now}, nil
 }

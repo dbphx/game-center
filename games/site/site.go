@@ -34,8 +34,8 @@ type Job struct {
 var Jobs = func() []Job {
 	jobs := []Job{
 		{ID: "bricks", Name: "Khuân gạch", Level: 1, HP: 8, Seconds: 30, BasePay: 120, MaxPay: 300, XP: 4},
-		{ID: "mortar", Name: "Trộn vữa", Level: 3, HP: 10, Seconds: 30, BasePay: 200, MaxPay: 500, XP: 6},
-		{ID: "crane", Name: "Lái cần cẩu", Level: 6, HP: 12, Seconds: 40, BasePay: 400, MaxPay: 900, XP: 10},
+		{ID: "mortar", Name: "Trộn vữa", Level: 6, HP: 10, Seconds: 30, BasePay: 200, MaxPay: 500, XP: 6},
+		{ID: "crane", Name: "Lái cần cẩu", Level: 12, HP: 12, Seconds: 40, BasePay: 400, MaxPay: 900, XP: 10},
 	}
 	for i := range jobs {
 		jobs[i].Targets = jobs[i].Seconds / 2

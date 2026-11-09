@@ -25,6 +25,10 @@ func (e *env) fullFarm(uid int64) {
 			e.t.Fatal(err)
 		}
 	}
+	// Đủ cấp mở mọi tầng mây (tầng 4 cần cấp 35); không đổi số dư.
+	if _, err := tx.ExecContext(ctx, `UPDATE users SET xp = MAX(xp, ?) WHERE id = ?`, levelXP(CloudFloors[len(CloudFloors)-1].Level), uid); err != nil {
+		e.t.Fatal(err)
+	}
 	if err := tx.Commit(); err != nil {
 		e.t.Fatal(err)
 	}
@@ -53,21 +57,22 @@ func (e *env) worth() int64 {
 
 func TestCloudFloorsTable(t *testing.T) {
 	want := []struct {
+		level          int
 		bean, sec, pot int64
 		crop           string
 		seed, sell, xp int64
 	}{
-		{200_000, 24 * 3600, 100_000, "cloud_berry", 5_000, 20_000, 200},
-		{1_000_000, 48 * 3600, 500_000, "mist_pear", 20_000, 70_000, 300},
-		{3_000_000, 72 * 3600, 2_000_000, "star_grape", 50_000, 200_000, 450},
-		{10_000_000, 96 * 3600, 10_000_000, "fairy_peach", 100_000, 600_000, 700},
+		{20, 400_000, 24 * 3600, 200_000, "cloud_berry", 5_000, 20_000, 200},
+		{25, 2_000_000, 48 * 3600, 1_000_000, "mist_pear", 20_000, 70_000, 300},
+		{30, 6_000_000, 72 * 3600, 4_000_000, "star_grape", 50_000, 200_000, 450},
+		{35, 20_000_000, 96 * 3600, 20_000_000, "fairy_peach", 100_000, 600_000, 700},
 	}
 	if len(CloudFloors) != len(want) {
 		t.Fatalf("số tầng: %d", len(CloudFloors))
 	}
 	for i, w := range want {
 		c := CloudFloors[i]
-		if c.Floor != i+1 || c.BeanPrice != w.bean || c.BeanSeconds != w.sec || c.PotPrice != w.pot || c.Slots != 6 {
+		if c.Floor != i+1 || c.Level != w.level || c.BeanPrice != w.bean || c.BeanSeconds != w.sec || c.PotPrice != w.pot || c.Slots != 6 {
 			t.Fatalf("tầng %d: %+v", i+1, c)
 		}
 		if c.Crop.ID != w.crop || c.Crop.SeedPrice != w.seed || c.Crop.SellPrice != w.sell || c.Crop.XP != w.xp || c.Crop.GrowSeconds != 43200 {
@@ -97,7 +102,7 @@ func TestBeanNeeds48Plots(t *testing.T) {
 	if !s.Cloud.Available || s.Cloud.BeanPlantedAt != now || s.Cloud.BeanReadyAt != now+24*3600 {
 		t.Fatalf("sau khi trồng: %+v", s.Cloud)
 	}
-	if b := e.user().Balance; b != 100_000_000-200_000 {
+	if b := e.user().Balance; b != 100_000_000-400_000 {
 		t.Fatalf("xu sau khi trồng: %d", b)
 	}
 }
@@ -153,7 +158,7 @@ func TestBeanFloorsAreSequentialAndStopAtFour(t *testing.T) {
 	}
 	before := e.user().Balance
 	e.ok(e.f.PlantBean(ctx, e.uid)) // hạt tầng 4
-	if got := before - e.user().Balance; got != 10_000_000 {
+	if got := before - e.user().Balance; got != 20_000_000 {
 		t.Fatalf("hạt tầng 4: %d", got)
 	}
 	// Hạt vừa chín: cùng yêu cầu chốt tầng 4 rồi mới báo đã đủ, không trồng hạt thứ năm.
@@ -191,12 +196,12 @@ func TestBuyPotRules(t *testing.T) {
 			t.Fatalf("chậu %d: %+v", i, s.Cloud.Pots)
 		}
 	}
-	if got := start - e.user().Balance; got != 600_000 {
+	if got := start - e.user().Balance; got != 1_200_000 {
 		t.Fatalf("6 chậu tầng 1: %d", got)
 	}
 	_, err = e.f.BuyPot(ctx, e.uid, 1) // chậu thứ 7
 	wantStatus(t, err, http.StatusConflict)
-	if got := start - e.user().Balance; got != 600_000 {
+	if got := start - e.user().Balance; got != 1_200_000 {
 		t.Fatalf("chậu thứ 7 trừ xu: %d", got)
 	}
 }
@@ -232,7 +237,7 @@ func TestBuyPotConcurrent(t *testing.T) {
 	if len(s.Cloud.Pots) != 6 {
 		t.Fatalf("số chậu: %d", len(s.Cloud.Pots))
 	}
-	if got := start - e.user().Balance; got != 600_000 {
+	if got := start - e.user().Balance; got != 1_200_000 {
 		t.Fatalf("tiền trừ: %d", got)
 	}
 }
@@ -469,26 +474,26 @@ func TestVisitorSeesNoCloud(t *testing.T) {
 }
 
 func TestWorthCountsCloud(t *testing.T) {
-	e := newEnv(t, 100_000_000, 0)
+	e := newEnv(t, 200_000_000, 0)
 	e.fullFarm(e.uid)
 	base := e.worth()
 
 	e.ok(e.f.PlantBean(ctx, e.uid)) // hạt đang lớn tính giá hạt tầng 1
-	if got := e.worth() - base; got != 200_000 {
+	if got := e.worth() - base; got != 400_000 {
 		t.Fatalf("hạt đang lớn: %d", got)
 	}
 	e.clock = e.clock.Add(24 * time.Hour)
 	e.ok(e.f.State(ctx, e.uid))
-	if got := e.worth() - base; got != 200_000 {
+	if got := e.worth() - base; got != 400_000 {
 		t.Fatalf("tầng đã mở: %d", got)
 	}
 	e.ok(e.f.BuyPot(ctx, e.uid, 1))
 	e.ok(e.f.PlantPot(ctx, e.uid, 1, 0))
-	if got := e.worth() - base; got != 200_000+100_000+5_000 {
+	if got := e.worth() - base; got != 400_000+200_000+5_000 {
 		t.Fatalf("tầng + chậu + cây: %d", got)
 	}
 	e.ok(e.f.PlantBean(ctx, e.uid)) // hạt tầng 2 đang lớn
-	if got := e.worth() - base; got != 200_000+100_000+5_000+1_000_000 {
+	if got := e.worth() - base; got != 400_000+200_000+5_000+2_000_000 {
 		t.Fatalf("thêm hạt tầng 2: %d", got)
 	}
 	// Thu hoạch: cây thành nông sản trong kho, tính theo giá bán thay vì giá hạt.
@@ -496,7 +501,7 @@ func TestWorthCountsCloud(t *testing.T) {
 	if _, _, err := e.f.HarvestPot(ctx, e.uid, 1, 0); err != nil {
 		t.Fatal(err)
 	}
-	if got := e.worth() - base; got != 200_000+100_000+20_000+1_000_000 {
+	if got := e.worth() - base; got != 400_000+200_000+20_000+2_000_000 {
 		t.Fatalf("sau thu hoạch: %d", got)
 	}
 }
@@ -575,4 +580,24 @@ func TestCloudAPI(t *testing.T) {
 	if code, _ := post("/api/farm/pot/plant", `{"floor":1,"slot":0}`); code == http.StatusOK {
 		t.Fatal("dưới 40 máu không làm nông trên mây được")
 	}
+}
+
+// Tầng mây cần đủ cấp: trồng đậu tầng 1 cần cấp 20; thiếu cấp bị từ chối, không trừ xu. Tầng đã mở thì vẫn mua chậu
+// dù cấp thấp hơn (vd người chơi mở từ trước đợt cân bằng).
+func TestBeanNeedsLevel(t *testing.T) {
+	e := newEnv(t, 100_000_000, 0)
+	e.fullFarm(e.uid)
+	e.set(100_000_000, levelXP(19))
+	_, err := e.f.PlantBean(ctx, e.uid)
+	wantStatus(t, err, http.StatusForbidden)
+	if err.Error() != "Cần cấp 20" || e.user().Balance != 100_000_000 {
+		t.Fatalf("thiếu cấp: %v, xu %d", err, e.user().Balance)
+	}
+	e.set(100_000_000, levelXP(20))
+	e.ok(e.f.PlantBean(ctx, e.uid))
+	e.clock = e.clock.Add(24 * time.Hour)
+	e.set(100_000_000, 0)
+	e.ok(e.f.BuyPot(ctx, e.uid, 1))
+	_, err = e.f.PlantBean(ctx, e.uid) // tầng 2 cần cấp 25
+	wantStatus(t, err, http.StatusForbidden)
 }

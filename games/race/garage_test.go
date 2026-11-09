@@ -54,6 +54,21 @@ func (e *garageEnv) setBalance(b int64) {
 	}
 }
 
+// setLevel đặt XP đúng mức đầu của level.
+func (e *garageEnv) setLevel(level int) {
+	e.t.Helper()
+	tx, err := e.w.Begin(ctx)
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE users SET xp = ? WHERE id = ?`, wallet.LevelStart(level), e.uid); err != nil {
+		e.t.Fatal(err)
+	}
+	if err := tx.Commit(); err != nil {
+		e.t.Fatal(err)
+	}
+}
+
 func (e *garageEnv) balance() int64 {
 	e.t.Helper()
 	b, err := e.w.Balance(ctx, e.uid)
@@ -94,18 +109,19 @@ func TestCarCatalogAndStats(t *testing.T) {
 		id    string
 		price int64
 		kind  string
+		level int
 	}{
-		{"starter", 0, KindCar}, {"comet", 20_000, KindCar}, {"moto_dash", 30_000, KindMoto}, {"sprint", 50_000, KindCar},
-		{"bolt", 80_000, KindCar}, {"raptor", 150_000, KindCar}, {"viper", 250_000, KindCar},
-		{"moto_storm", 300_000, KindMoto}, {"zenith", 400_000, KindCar}, {"phantom", 800_000, KindCar},
-		{"moto_neon", 1_000_000, KindMoto}, {"vortex", 1_200_000, KindCar}, {"apex", 1_600_000, KindCar},
-		{"blaze", 1_800_000, KindCar}, {"nova", 2_000_000, KindCar},
+		{"starter", 0, KindCar, 1}, {"comet", 60_000, KindCar, 3}, {"moto_dash", 90_000, KindMoto, 5}, {"sprint", 150_000, KindCar, 7},
+		{"bolt", 240_000, KindCar, 9}, {"raptor", 450_000, KindCar, 12}, {"viper", 750_000, KindCar, 15},
+		{"moto_storm", 900_000, KindMoto, 17}, {"zenith", 1_200_000, KindCar, 19}, {"phantom", 2_400_000, KindCar, 22},
+		{"moto_neon", 3_000_000, KindMoto, 24}, {"vortex", 3_600_000, KindCar, 26}, {"apex", 4_800_000, KindCar, 28},
+		{"blaze", 5_400_000, KindCar, 29}, {"nova", 6_000_000, KindCar, 30},
 	}
 	if len(Cars) != len(want) {
 		t.Fatalf("có %d mẫu, muốn %d", len(Cars), len(want))
 	}
 	for i, c := range Cars {
-		if c.ID != want[i].id || c.Price != want[i].price || c.Kind != want[i].kind || c.Rank != i {
+		if c.ID != want[i].id || c.Price != want[i].price || c.Kind != want[i].kind || c.Level != want[i].level || c.Rank != i {
 			t.Fatalf("mẫu %d: %+v, muốn %+v", i, c, want[i])
 		}
 	}
@@ -132,11 +148,11 @@ func TestCarCatalogAndStats(t *testing.T) {
 		}
 		prev = st.MaxSpeed
 	}
-	// Giá nâng cấp lên cấp n = giá xe × 10% × n; xe khởi đầu tính như 10.000.
-	if p := upgradePrice(Cars[0], 3); p != 3_000 {
+	// Giá nâng cấp lên cấp n = giá xe × 10% × n; xe khởi đầu tính như 30.000.
+	if p := upgradePrice(Cars[0], 3); p != 9_000 {
 		t.Fatalf("xe khởi đầu lên cấp 3: %d", p)
 	}
-	if p := upgradePrice(nova, 5); p != 1_000_000 {
+	if p := upgradePrice(nova, 5); p != 3_000_000 {
 		t.Fatalf("xe đắt nhất lên cấp 5: %d", p)
 	}
 }
@@ -151,6 +167,7 @@ func TestMotoStatsAndSpoiler(t *testing.T) {
 		t.Fatalf("moto %+v so với ô tô cùng hạng %+v", ms, cs)
 	}
 	e := newGarageEnv(t, 1_000_000)
+	e.setLevel(5)
 	if _, err := e.g.BuyCar(ctx, e.uid, "moto_dash"); err != nil {
 		t.Fatal(err)
 	}
@@ -175,7 +192,7 @@ func TestMotoStatsAndSpoiler(t *testing.T) {
 }
 
 func TestGarageStarterAndBuyCar(t *testing.T) {
-	e := newGarageEnv(t, 30_000)
+	e := newGarageEnv(t, 70_000)
 	v, err := e.g.View(ctx, e.uid)
 	if err != nil {
 		t.Fatal(err)
@@ -186,11 +203,18 @@ func TestGarageStarterAndBuyCar(t *testing.T) {
 	if carOf(v, "starter").Cosmetics.Paint == "" {
 		t.Fatal("xe khởi đầu phải có màu sơn")
 	}
-	if v.UpgradePrice["starter"]["engine"] != 1_000 {
+	if v.UpgradePrice["starter"]["engine"] != 3_000 {
 		t.Fatalf("giá nâng động cơ cấp 1: %v", v.UpgradePrice["starter"])
 	}
 
-	_, err = e.g.BuyCar(ctx, e.uid, "bolt") // 80.000, không đủ
+	// Chưa đủ cấp: báo "Cần cấp N", không trừ xu.
+	_, err = e.g.BuyCar(ctx, e.uid, "comet")
+	wantStatus(t, err, http.StatusForbidden)
+	if err.Error() != "Cần cấp 3 để mua Sao Chổi" || e.balance() != 70_000 || carOf(v, "comet").Level != 3 {
+		t.Fatalf("chưa đủ cấp: %v, xu %d", err, e.balance())
+	}
+	e.setLevel(9)
+	_, err = e.g.BuyCar(ctx, e.uid, "bolt") // 240.000, không đủ
 	wantStatus(t, err, http.StatusPaymentRequired)
 	_, err = e.g.BuyCar(ctx, e.uid, "khong-co")
 	wantStatus(t, err, http.StatusNotFound)
@@ -223,7 +247,7 @@ func TestUpgradeToLevelFive(t *testing.T) {
 		if v, err = e.g.Upgrade(ctx, e.uid, "starter", "engine"); err != nil {
 			t.Fatal(err)
 		}
-		if paid := before - e.balance(); paid != int64(lv)*1_000 {
+		if paid := before - e.balance(); paid != int64(lv)*3_000 {
 			t.Fatalf("lên cấp %d trả %d", lv, paid)
 		}
 	}
@@ -259,8 +283,8 @@ func TestBuyAndEquipItems(t *testing.T) {
 		t.Fatal("chưa mua đèn neon")
 	}
 	for _, it := range Items {
-		if it.Kind != "paint" && (it.Price < 5_000 || it.Price > 50_000) {
-			t.Fatalf("giá đồ trang trí %s = %d, ngoài 5.000–50.000", it.ID, it.Price)
+		if it.Kind != "paint" && (it.Price < 10_000 || it.Price > 100_000) {
+			t.Fatalf("giá đồ trang trí %s = %d, ngoài 10.000–100.000", it.ID, it.Price)
 		}
 	}
 	_, err := e.g.Equip(ctx, e.uid, "starter", "neon", "neon_pink")

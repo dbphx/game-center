@@ -228,13 +228,15 @@ async function openGarage() {
 }
 
 const kindOf = (c) => c.kind || (isMoto(c.id) ? 'moto' : 'car');
+// needLevel: xe chưa có và nhân vật chưa đủ cấp để mua (0 = mua được).
+const needLevel = (c) => (!c.owned && c.level && user && (user.level || 1) < c.level ? c.level : 0);
 function renderGarage() {
   const car = garage.cars.find((c) => c.id === gSel);
   const moto = kindOf(car) === 'moto';
   if (moto && gKind === 'spoiler') gKind = 'neon';
   $('g-filter').innerHTML = [['car', 'Ô tô'], ['moto', 'Moto']].map(([k, n]) => `<button data-filter="${k}" class="${k === gFilter ? 'on' : ''}">${n} <small>${garage.cars.filter((c) => kindOf(c) === k).length}</small></button>`).join('');
   $('g-cars').innerHTML = garage.cars.filter((c) => kindOf(c) === gFilter).map((c) => `<button class="car-tab ${c.id === gSel ? 'on' : ''}" data-car="${esc(c.id)}">
-      <b>${esc(c.name)}</b><small>${c.owned ? (c.id === garage.current ? 'Đang dùng' : 'Đã có') : c.price ? `${xu(c.price)} xu` : 'Miễn phí'}</small></button>`).join('');
+      <b>${esc(c.name)}</b><small>${c.owned ? (c.id === garage.current ? 'Đang dùng' : 'Đã có') : needLevel(c) ? `${I.svg('lock')}Cấp ${c.level}` : c.price ? `${xu(c.price)} xu` : 'Miễn phí'}</small></button>`).join('');
   $('g-name').textContent = car.name;
   $('g-credit').textContent = creditOf(car.id);
   $('g-state').textContent = car.owned ? (car.id === garage.current ? 'Đang dùng' : 'Đã có') : 'Chưa mua';
@@ -245,7 +247,9 @@ function renderGarage() {
     <div class="stat-row"><span>Tăng tốc</span>${bar(st.accel, 9, 15)}<b>${st.accel.toFixed(1)}</b></div>
     <div class="stat-row"><span>Bám đường</span>${bar(st.grip, 0.55, 1)}<b>${Math.round(st.grip * 100)}</b></div>`;
   $('g-action').innerHTML = !car.owned
-    ? `<button class="primary" data-act="buy">Mua xe — ${xu(car.price)} xu</button>`
+    ? needLevel(car)
+      ? `<button class="need-level" disabled title="Chưa đủ cấp nhân vật">${I.svg('lock')}Cần cấp ${car.level} — ${xu(car.price)} xu</button>`
+      : `<button class="primary" data-act="buy">Mua xe — ${xu(car.price)} xu</button>`
     : car.id !== garage.current ? '<button class="primary" data-act="select">Dùng xe này</button>' : '';
   // 3 món nâng cấp có chỉ số.
   const max = garage.maxLevel || 5;

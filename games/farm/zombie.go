@@ -15,7 +15,7 @@ import (
 
 // Đất tốt: nâng một lần mỗi ô, cây gieo sau đó chín nhanh hơn 30%.
 const (
-	GoodSoilPrice   = 8000
+	GoodSoilPrice   = 30000
 	GoodSoilSpeedup = 0.3
 )
 
@@ -40,7 +40,7 @@ const (
 // Súng đậu: mua một lần, mỗi viên đạn tự diệt một zombie từ giây GunDelay của đợt, kể cả khi chủ offline.
 const (
 	GunPrice    = 399000
-	AmmoPrice   = 2500
+	AmmoPrice   = 1500
 	GunDelay    = 30   // giây sau đầu giờ súng mới bắn, để người đang online thấy zombie và đạn bay
 	maxAmmoSale = 1000 // số đạn tối đa mỗi lần mua
 )
@@ -276,7 +276,8 @@ func shootThenExpire(ctx context.Context, tx *wallet.Tx, uid, now int64) error {
 }
 
 // shootZombies dùng đạn diệt các zombie đã quá giây GunDelay: đợt cũ trước; trong một đợt, ruộng theo ô rồi vật nuôi
-// theo id; hết đạn thì dừng.
+// theo id; hết đạn thì dừng. Súng bỏ qua zombie nhắm vào cây / con có giá bán rẻ hơn một viên đạn (không tốn đạn,
+// zombie đó vẫn có thể ăn như khi không có súng).
 func shootZombies(ctx context.Context, tx *wallet.Tx, uid, now int64) error {
 	var ammo int
 	err := tx.QueryRowContext(ctx, `SELECT ammo FROM farm_guns WHERE user_id = ?`, uid).Scan(&ammo)
@@ -286,10 +287,14 @@ func shootZombies(ctx context.Context, tx *wallet.Tx, uid, now int64) error {
 	if err != nil || ammo <= 0 {
 		return err
 	}
-	rows, err := tx.QueryContext(ctx, `SELECT 0 AS stock, idx AS id, wave FROM farm_zombies WHERE user_id = ? AND wave * ? + ? <= ?
-		UNION ALL SELECT 1, stock_id, wave FROM farm_stock_zombies WHERE user_id = ? AND wave * ? + ? <= ?
-		ORDER BY wave, stock, id LIMIT ?`,
-		uid, zombieWaveSeconds, GunDelay, now, uid, zombieWaveSeconds, GunDelay, now, ammo)
+	rows, err := tx.QueryContext(ctx, `SELECT 0 AS stock, z.idx AS id, z.wave, '' AS place, COALESCE(p.crop, '') AS kind
+			FROM farm_zombies z LEFT JOIN farm_plots p ON p.user_id = z.user_id AND p.idx = z.idx
+			WHERE z.user_id = ? AND z.wave * ? + ? <= ?
+		UNION ALL SELECT 1, z.stock_id, z.wave, COALESCE(st.place, ''), COALESCE(st.kind, '')
+			FROM farm_stock_zombies z LEFT JOIN farm_stock st ON st.id = z.stock_id
+			WHERE z.user_id = ? AND z.wave * ? + ? <= ?
+		ORDER BY 3, 1, 2`,
+		uid, zombieWaveSeconds, GunDelay, now, uid, zombieWaveSeconds, GunDelay, now)
 	if err != nil {
 		return err
 	}
@@ -298,12 +303,16 @@ func shootZombies(ctx context.Context, tx *wallet.Tx, uid, now int64) error {
 		id    int64
 	}
 	var shots []shot
-	for rows.Next() {
+	for rows.Next() && len(shots) < ammo {
 		var z shot
 		var wave int64
-		if err := rows.Scan(&z.stock, &z.id, &wave); err != nil {
+		var place, kind string
+		if err := rows.Scan(&z.stock, &z.id, &wave, &place, &kind); err != nil {
 			rows.Close()
 			return err
+		}
+		if zombieTargetValue(z.stock, place, kind) < AmmoPrice {
+			continue
 		}
 		shots = append(shots, z)
 	}
@@ -325,6 +334,20 @@ func shootZombies(ctx context.Context, tx *wallet.Tx, uid, now int64) error {
 	}
 	_, err = tx.ExecContext(ctx, `UPDATE farm_guns SET ammo = ammo - ?, killed = killed + ? WHERE user_id = ?`, len(shots), len(shots), uid)
 	return err
+}
+
+// zombieTargetValue là giá bán của cây / con mà zombie nhắm tới; 0 nếu ô đã trống hoặc con đã mất.
+func zombieTargetValue(stock bool, place, kind string) int64 {
+	if !stock {
+		if c, ok := findCrop(kind); ok {
+			return c.SellPrice
+		}
+		return 0
+	}
+	if st, ok := findStock(place, kind); ok {
+		return st.SellPrice
+	}
+	return 0
 }
 
 // Gun là súng đậu của một nông trại.

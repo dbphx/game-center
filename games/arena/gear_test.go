@@ -43,7 +43,19 @@ func newArmory(t *testing.T, balance int64) *armoryEnv {
 	}
 	e.uid, e.token = u.ID, token
 	e.setBalance(balance)
+	e.setPlayerLevel(30) // đủ cấp mua mọi món; test cấp yêu cầu đặt lại thấp hơn
 	return e
+}
+
+// setPlayerLevel đặt XP nhân vật đúng mức đầu của level.
+func (e *armoryEnv) setPlayerLevel(level int) {
+	e.t.Helper()
+	tx, _ := e.w.Begin(ctx)
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx, `UPDATE users SET xp = ? WHERE id = ?`, wallet.LevelStart(level), e.uid); err != nil {
+		e.t.Fatal(err)
+	}
+	tx.Commit()
 }
 
 func (e *armoryEnv) setBalance(b int64) {
@@ -173,7 +185,7 @@ func TestCharmsLuckProtectEvolve(t *testing.T) {
 	}
 	before := e.balance()
 	inv, err := e.a.BuyCharms(ctx, e.uid, CharmLuck, 2)
-	if err != nil || inv.Charms[CharmLuck] != 2 || e.balance() != before-3000 {
+	if err != nil || inv.Charms[CharmLuck] != 2 || e.balance() != before-6000 {
 		t.Fatalf("mua bùa may mắn: %+v %v", inv.Charms, err)
 	}
 	e.a.BuyCharms(ctx, e.uid, CharmProtect, 1)
@@ -299,7 +311,7 @@ func TestGearAPI(t *testing.T) {
 			t.Fatalf("%s %v: %d, phải %d", c.path, c.body, code, c.code)
 		}
 	}
-	e.setBalance(50000) // dép lào 15000, phí chuyển cấp 3000/cấp
+	e.setBalance(80000) // dép lào 45000, phí chuyển cấp 3000/cấp
 	if code := call("POST", "/api/arena/arms/buy", e.token, map[string]any{"id": "dep"}, &g); code != 200 || !g.Arms[1].Owned {
 		t.Fatalf("mua dép: %d %+v", code, g.Arms)
 	}

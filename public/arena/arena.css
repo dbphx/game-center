@@ -490,6 +490,8 @@ dialog.modal.gear-modal { width: min(640px, calc(100vw - 24px)); }
 .as-luck .as-bar i { background: linear-gradient(90deg, #ffe066, #ff9d00); }
 .as-sta .as-bar i { background: linear-gradient(90deg, #8fe39a, #3aa94a); }
 .arm-btn { justify-content: center; margin-top: auto; white-space: nowrap; }
+.arm-btn.need-level { color: var(--muted, #9aa3b5); }
+.arm-btn.need-level svg { width: 14px; height: 14px; }
 .arm-xfer { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 16px; background: var(--bg-2); border: 2px dashed var(--border); }
 .xf-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-family: var(--font-title); font-size: 16px; font-weight: 800; }
 .xf-head small { font-family: inherit; font-size: 12px; font-weight: 700; }

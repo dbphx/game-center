@@ -24,7 +24,7 @@ func TestBuyAndWearHair(t *testing.T) {
 		t.Fatalf("tóc mặc định có sẵn, được %v", err)
 	}
 	var lv *LevelError
-	if _, err := w.BuyItem(ctx, u.ID, KindHair, "bun"); !errors.As(err, &lv) || lv.Need != 2 {
+	if _, err := w.BuyItem(ctx, u.ID, KindHair, "bun"); !errors.As(err, &lv) || lv.Need != 4 {
 		t.Fatalf("thiếu level: %v", err)
 	}
 	if _, err := w.WearItem(ctx, u.ID, KindHair, "ponytail"); !errors.Is(err, ErrNotOwned) {
@@ -35,17 +35,17 @@ func TestBuyAndWearHair(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if u.Hair != "ponytail" || u.Balance != StartBalance-300 || !slices.Equal(u.OwnedHair, []string{DefaultHair, "ponytail"}) {
+	if u.Hair != "ponytail" || u.Balance != StartBalance-900 || !slices.Equal(u.OwnedHair, []string{DefaultHair, "ponytail"}) {
 		t.Fatalf("sau khi mua tóc: %+v", u)
 	}
 	h, _ := w.History(ctx, u.ID, 1)
-	if len(h) != 1 || h[0].Delta != -300 || h[0].Game != "shop" || h[0].Note != "Mua Đuôi ngựa" {
+	if len(h) != 1 || h[0].Delta != -900 || h[0].Game != "shop" || h[0].Note != "Mua Đuôi ngựa" {
 		t.Fatalf("sổ cái: %+v", h)
 	}
 	if _, err := w.BuyItem(ctx, u.ID, KindHair, "ponytail"); !errors.Is(err, ErrAlreadyOwned) {
 		t.Fatalf("mua lại phải báo đã có, được %v", err)
 	}
-	if u, _ = w.WearItem(ctx, u.ID, KindHair, DefaultHair); u.Hair != DefaultHair || u.Balance != StartBalance-300 {
+	if u, _ = w.WearItem(ctx, u.ID, KindHair, DefaultHair); u.Hair != DefaultHair || u.Balance != StartBalance-900 {
 		t.Fatalf("để lại tóc mặc định: %+v", u)
 	}
 	if u, _ = w.WearItem(ctx, u.ID, KindHair, "ponytail"); u.Hair != "ponytail" {
@@ -63,9 +63,9 @@ func TestBuyAndWearHair(t *testing.T) {
 func TestBuyAndRemoveWings(t *testing.T) {
 	w := open(t)
 	u, _ := register(t, w, "minh")
-	w.AwardXP(ctx, map[int64]int64{u.ID: LevelStart(8)})
+	w.AwardXP(ctx, map[int64]int64{u.ID: LevelStart(16)})
 	if _, err := w.BuyItem(ctx, u.ID, KindWings, "dragon"); !errors.Is(err, ErrNotEnoughCoins) {
-		t.Fatalf("cánh rồng 10000 xu phải thiếu xu, được %v", err)
+		t.Fatalf("cánh rồng 30000 xu phải thiếu xu, được %v", err)
 	}
 	if got, _ := w.User(ctx, u.ID); got.Balance != StartBalance || got.Wings != NoWings {
 		t.Fatalf("mua thất bại không được trừ xu: %+v", got)
@@ -73,14 +73,14 @@ func TestBuyAndRemoveWings(t *testing.T) {
 	if _, err := w.WearItem(ctx, u.ID, KindWings, "angel"); !errors.Is(err, ErrNotOwned) {
 		t.Fatalf("đeo cánh chưa mua phải lỗi, được %v", err)
 	}
-	if _, err := w.Settle(ctx, "hub", "nạp thử", map[int64]int64{u.ID: 3000}); err != nil {
+	if _, err := w.Settle(ctx, "hub", "nạp thử", map[int64]int64{u.ID: 9000}); err != nil {
 		t.Fatal(err)
 	}
 	u, err := w.BuyItem(ctx, u.ID, KindWings, "angel")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if u.Wings != "angel" || u.Balance != StartBalance+3000-2500 || !slices.Equal(u.OwnedWings, []string{"angel"}) {
+	if u.Wings != "angel" || u.Balance != StartBalance+9000-7500 || !slices.Equal(u.OwnedWings, []string{"angel"}) {
 		t.Fatalf("sau khi mua cánh: %+v", u)
 	}
 	if u, err = w.WearItem(ctx, u.ID, KindWings, NoWings); err != nil || u.Wings != NoWings || !slices.Equal(u.OwnedWings, []string{"angel"}) {
@@ -140,7 +140,7 @@ func TestBuyAndWearFace(t *testing.T) {
 		t.Fatalf("người mới: mặt %q có %v", u.Face, u.OwnedFace)
 	}
 	var lv *LevelError
-	if _, err := w.BuyItem(ctx, u.ID, KindFace, "cool"); !errors.As(err, &lv) || lv.Need != 2 {
+	if _, err := w.BuyItem(ctx, u.ID, KindFace, "cool"); !errors.As(err, &lv) || lv.Need != 4 {
 		t.Fatalf("thiếu level: %v", err)
 	}
 	if _, err := w.WearItem(ctx, u.ID, KindFace, "wink"); !errors.Is(err, ErrNotOwned) {
@@ -150,7 +150,7 @@ func TestBuyAndWearFace(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if u.Face != "wink" || u.Balance != StartBalance-300 || !slices.Equal(u.OwnedFace, []string{DefaultFace, "wink"}) {
+	if u.Face != "wink" || u.Balance != StartBalance-900 || !slices.Equal(u.OwnedFace, []string{DefaultFace, "wink"}) {
 		t.Fatalf("sau khi mua mặt: %+v", u)
 	}
 	if u, _ = w.WearItem(ctx, u.ID, KindFace, DefaultFace); u.Face != DefaultFace {
@@ -198,6 +198,7 @@ func TestMigrateFromV6DefaultFace(t *testing.T) {
 		got.Hair != "ponytail" || !slices.Equal(got.OwnedHair, []string{DefaultHair, "ponytail"}) {
 		t.Fatalf("sau nâng cấp v7: %+v %v", got, err)
 	}
+	w.Settle(ctx, "hub", "nạp thử", map[int64]int64{u.ID: 1000})
 	if got, err = w.BuyItem(ctx, u.ID, KindFace, "smile"); err != nil || got.Face != "smile" {
 		t.Fatalf("mua mặt sau nâng cấp: %+v %v", got, err)
 	}

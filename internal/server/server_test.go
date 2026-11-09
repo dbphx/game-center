@@ -152,21 +152,22 @@ func TestOutfitShopAPI(t *testing.T) {
 		return call(t, srv, "POST", "/api/outfits/buy", a.Token, map[string]string{"outfit": outfit}, out)
 	}
 	var e map[string]string
-	if code := buy("hoodie", &e); code != 403 || e["error"] != "cần level 2 để mua" {
+	if code := buy("hoodie", &e); code != 403 || e["error"] != "cần level 4 để mua" {
 		t.Fatalf("thiếu level: %d %v", code, e)
 	}
 	if code := buy("bikini", nil); code != 400 {
 		t.Fatalf("trang phục lạ phải 400, được %d", code)
 	}
-	w.AwardXP(context.Background(), map[int64]int64{a.User.ID: wallet.LevelStart(6)})
+	w.AwardXP(context.Background(), map[int64]int64{a.User.ID: wallet.LevelStart(12)})
 	if code := buy("royal", nil); code != 402 {
 		t.Fatalf("thiếu xu phải 402, được %d", code)
 	}
 	var u wallet.User
-	if code := buy("suit", nil); code != 402 { // 1.500 xu > 1.000 xu ban đầu
+	if code := buy("suit", nil); code != 402 { // 4.500 xu > 1.000 xu ban đầu
 		t.Fatalf("suit khi chỉ có 1.000 xu phải 402, được %d", code)
 	}
-	if code := buy("hoodie", &u); code != 200 || u.Outfit != "hoodie" || u.Balance != wallet.StartBalance-800 || !slices.Contains(u.Owned, "hoodie") {
+	w.Settle(context.Background(), "hub", "nạp thử", map[int64]int64{a.User.ID: 2000})
+	if code := buy("hoodie", &u); code != 200 || u.Outfit != "hoodie" || u.Balance != wallet.StartBalance+2000-2400 || !slices.Contains(u.Owned, "hoodie") {
 		t.Fatalf("mua hoodie: %d %+v", code, u)
 	}
 	if code := buy("hoodie", nil); code != 409 {
@@ -178,8 +179,8 @@ func TestOutfitShopAPI(t *testing.T) {
 		Outfits []string            `json:"outfits"`
 	}
 	call(t, srv, "GET", "/api/config", "", nil, &cfg)
-	if len(cfg.Catalog) != 12 || cfg.Catalog[5].ID != "royal" || cfg.Catalog[5].Level != 6 || cfg.Catalog[5].Price != 5000 || !cfg.Catalog[0].Starter ||
-		len(cfg.Outfits) != 12 || cfg.Catalog[11].ID != "astronaut" || cfg.Catalog[11].Level != 9 || cfg.Catalog[11].Price != 12000 {
+	if len(cfg.Catalog) != 12 || cfg.Catalog[5].ID != "royal" || cfg.Catalog[5].Level != 12 || cfg.Catalog[5].Price != 15000 || !cfg.Catalog[0].Starter ||
+		len(cfg.Outfits) != 12 || cfg.Catalog[11].ID != "astronaut" || cfg.Catalog[11].Level != 18 || cfg.Catalog[11].Price != 36000 {
 		t.Fatalf("catalog trong config: %+v", cfg)
 	}
 }
@@ -195,7 +196,7 @@ func TestHairWingsShopAPI(t *testing.T) {
 		return call(t, srv, "POST", "/api/me/items/"+op, a.Token, map[string]string{"kind": kind, "id": id}, out)
 	}
 	var e map[string]string
-	if code := item("buy", "wings", "angel", &e); code != 403 || e["error"] != "cần level 3 để mua" {
+	if code := item("buy", "wings", "angel", &e); code != 403 || e["error"] != "cần level 6 để mua" {
 		t.Fatalf("thiếu level: %d %v", code, e)
 	}
 	if code := item("buy", "hat", "x", nil); code != 400 {
@@ -205,17 +206,17 @@ func TestHairWingsShopAPI(t *testing.T) {
 		t.Fatalf("để tóc chưa mua phải 403, được %d", code)
 	}
 	var u wallet.User
-	if code := item("buy", "hair", "short_spiky", &u); code != 200 || u.Hair != "short_spiky" || u.Balance != wallet.StartBalance-300 {
+	if code := item("buy", "hair", "short_spiky", &u); code != 200 || u.Hair != "short_spiky" || u.Balance != wallet.StartBalance-900 {
 		t.Fatalf("mua tóc: %d %+v", code, u)
 	}
 	if code := item("buy", "hair", "short_spiky", nil); code != 409 {
 		t.Fatalf("mua lại phải 409, được %d", code)
 	}
-	w.AwardXP(context.Background(), map[int64]int64{a.User.ID: wallet.LevelStart(8)})
+	w.AwardXP(context.Background(), map[int64]int64{a.User.ID: wallet.LevelStart(16)})
 	if code := item("buy", "wings", "dragon", nil); code != 402 {
 		t.Fatalf("thiếu xu phải 402, được %d", code)
 	}
-	w.Settle(context.Background(), "hub", "nạp thử", map[int64]int64{a.User.ID: 5000})
+	w.Settle(context.Background(), "hub", "nạp thử", map[int64]int64{a.User.ID: 12000})
 	if code := item("buy", "wings", "fairy", &u); code != 200 || u.Wings != "fairy" || !slices.Equal(u.OwnedWings, []string{"fairy"}) {
 		t.Fatalf("mua cánh: %d %+v", code, u)
 	}
@@ -241,7 +242,7 @@ func TestHairWingsShopAPI(t *testing.T) {
 		Face  []wallet.ItemInfo `json:"face"`
 	}
 	call(t, srv, "GET", "/api/config", "", nil, &cfg)
-	if len(cfg.Hair) != 7 || !cfg.Hair[0].Starter || len(cfg.Wings) != 5 || cfg.Wings[4].ID != "dragon" || cfg.Wings[4].Price != 10000 ||
+	if len(cfg.Hair) != 7 || !cfg.Hair[0].Starter || len(cfg.Wings) != 5 || cfg.Wings[4].ID != "dragon" || cfg.Wings[4].Price != 30000 ||
 		len(cfg.Face) != 7 || !cfg.Face[0].Starter || cfg.Face[6].ID != "star" {
 		t.Fatalf("catalog tóc / cánh: %+v", cfg)
 	}

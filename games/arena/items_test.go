@@ -16,14 +16,15 @@ import (
 func TestItemCatalogs(t *testing.T) {
 	sum := func(a Arm) int { return a.Atk + a.Def + a.Luck + a.Sta }
 	tulanh, _ := findArm("tulanh")
-	prices := []int64{0, 20000, 40000, 80000, 150000, 300000}
+	prices := []int64{0, 60000, 120000, 240000, 450000, 900000}
+	levels := []int{1, 1, 6, 12, 20, 30}
 	for slot, list := range map[string][]Arm{SlotHat: Hats, SlotArmor: Armors} {
 		if len(list) != 6 || list[0].ID != defaultItem(slot) {
 			t.Fatalf("%s: %d món, mặc định %s", slot, len(list), list[0].ID)
 		}
 		for i, it := range list {
-			if it.Price != prices[i] {
-				t.Fatalf("%s giá %d", it.ID, it.Price)
+			if it.Price != prices[i] || it.ReqLevel != levels[i] {
+				t.Fatalf("%s giá %d cấp %d", it.ID, it.Price, it.ReqLevel)
 			}
 			if i > 0 && sum(it) <= sum(list[i-1]) {
 				t.Fatalf("%s phải mạnh hơn %s", it.ID, list[i-1].ID)
@@ -40,7 +41,7 @@ func TestItemCatalogs(t *testing.T) {
 
 // Nón / áo: mua, đội / mặc (chỉ đổi món cùng ô), cường hoá món đang dùng, chuyển cấp trong cùng ô, ô khảm riêng từng món.
 func TestHatArmorItems(t *testing.T) {
-	e := newArmory(t, 1000000)
+	e := newArmory(t, 3000000)
 	if _, err := e.a.BuyItem(ctx, e.uid, SlotHat, "giaprong"); !errors.Is(err, ErrBadArm) {
 		t.Fatalf("áo không mua ở ô nón: %v", err)
 	}
@@ -51,7 +52,7 @@ func TestHatArmorItems(t *testing.T) {
 		t.Fatalf("chưa mua: %v", err)
 	}
 	inv, err := e.a.BuyItem(ctx, e.uid, SlotHat, "caoboi")
-	if err != nil || inv.Gear.HatID != HatDefault || e.balance() != 920000 {
+	if err != nil || inv.Gear.HatID != HatDefault || e.balance() != 2760000 {
 		t.Fatalf("mua nón cao bồi: %v %+v %d", err, inv.Gear, e.balance())
 	}
 	if _, err := e.a.BuyItem(ctx, e.uid, SlotArmor, "giapsat"); err != nil {
@@ -187,7 +188,7 @@ func TestMigrateOldHatArmor(t *testing.T) {
 
 // API /api/arena/items/*: mua, dùng, chuyển cấp theo ô; khảm theo item.
 func TestItemsAPI(t *testing.T) {
-	e := newArmory(t, 200000)
+	e := newArmory(t, 600000)
 	srv := httptest.NewServer(e.a.Handler())
 	defer srv.Close()
 	post := func(path string, body any) (int, GearReply) {
@@ -204,7 +205,7 @@ func TestItemsAPI(t *testing.T) {
 		json.NewDecoder(res.Body).Decode(&g)
 		return res.StatusCode, g
 	}
-	if code, g := post("/api/arena/items/buy", map[string]any{"slot": "armor", "id": "aophao"}); code != 200 || !g.Armors[3].Owned || g.Balance != 120000 {
+	if code, g := post("/api/arena/items/buy", map[string]any{"slot": "armor", "id": "aophao"}); code != 200 || !g.Armors[3].Owned || g.Balance != 360000 {
 		t.Fatalf("mua áo phao: %d %+v", code, g.Armors)
 	}
 	if code, _ := post("/api/arena/items/buy", map[string]any{"slot": "armor", "id": "aophao"}); code != 409 {
@@ -232,7 +233,7 @@ func TestItemsAPI(t *testing.T) {
 	}
 	code, g = post("/api/arena/items/transfer", map[string]any{"slot": "armor", "from": "aophao", "to": "aothun"})
 	if code != 200 || g.Transfer == nil || *g.Transfer != (Transfer{SlotArmor, "aophao", "aothun", 4}) || g.Armors[0].Level != 4 ||
-		g.Armors[3].Level != 0 || g.Gear.Armor != 0 || g.Balance != 120000-15000-12000 {
+		g.Armors[3].Level != 0 || g.Gear.Armor != 0 || g.Balance != 360000-45000-12000 {
 		t.Fatalf("chuyển cấp áo: %d %+v %d", code, g.Transfer, g.Balance)
 	}
 	// Khảm theo item (không phải món đang dùng).
@@ -244,5 +245,42 @@ func TestItemsAPI(t *testing.T) {
 	code, g = post("/api/arena/gems/unsocket", map[string]any{"slot": "armor", "item": "aothun", "idx": 0})
 	if code != 200 || g.Armors[0].Sockets[0].Gem != nil || len(g.Gems) != 1 {
 		t.Fatalf("tháo ngọc áo thun: %d", code)
+	}
+}
+
+// Cấp yêu cầu: chưa đủ cấp nhân vật thì không mua được (403 qua API), không trừ xu; món đã có vẫn dùng.
+func TestItemLevelGate(t *testing.T) {
+	e := newArmory(t, 3000000)
+	e.setPlayerLevel(5)
+	if _, err := e.a.BuyItem(ctx, e.uid, SlotHat, "mubh"); err != nil {
+		t.Fatalf("món bậc 1 cần cấp 1: %v", err)
+	}
+	before := e.balance()
+	_, err := e.a.BuyArm(ctx, e.uid, "choi")
+	var need *NeedLevelError
+	if !errors.As(err, &need) || err.Error() != "Cần cấp 6 để mua Chổi chà" || e.balance() != before {
+		t.Fatalf("chưa đủ cấp: %v, ví %d", err, e.balance())
+	}
+	srv := httptest.NewServer(e.a.Handler())
+	defer srv.Close()
+	req, _ := http.NewRequest("POST", srv.URL+"/api/arena/items/buy", bytes.NewBufferString(`{"slot":"armor","id":"giaprong"}`))
+	req.Header.Set("Authorization", "Bearer "+e.token)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var body map[string]string
+	json.NewDecoder(res.Body).Decode(&body)
+	res.Body.Close()
+	if res.StatusCode != 403 || body["error"] != "Cần cấp 30 để mua Giáp rồng" {
+		t.Fatalf("API chưa đủ cấp: %d %v", res.StatusCode, body)
+	}
+	e.setPlayerLevel(6)
+	if _, err := e.a.BuyArm(ctx, e.uid, "choi"); err != nil {
+		t.Fatalf("đủ cấp 6: %v", err)
+	}
+	e.setPlayerLevel(1) // tụt cấp (không xảy ra thật) vẫn dùng được món đã có
+	if _, err := e.a.EquipArm(ctx, e.uid, "choi"); err != nil {
+		t.Fatalf("món đã có vẫn dùng: %v", err)
 	}
 }

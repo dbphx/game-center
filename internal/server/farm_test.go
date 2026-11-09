@@ -52,11 +52,11 @@ func TestFarmAPI(t *testing.T) {
 	}
 
 	var r farmReply
-	if code := call(t, srv, "GET", "/api/farm", a.Token, nil, &r); code != 200 || len(r.Farm.Plots) != 6 || r.Farm.NextPlotPrice != 10000 || r.User.ID != a.User.ID {
+	if code := call(t, srv, "GET", "/api/farm", a.Token, nil, &r); code != 200 || len(r.Farm.Plots) != 6 || r.Farm.NextPlotPrice != 30000 || r.User.ID != a.User.ID {
 		t.Fatalf("nông trại mới: %d %+v", code, r)
 	}
 	if code := call(t, srv, "POST", "/api/farm/plant", a.Token, map[string]any{"plot": 0, "crop": "carrot"}, &r); code != 200 ||
-		r.Farm.Plots[0].Crop != "carrot" || r.User.Balance != wallet.StartBalance-50 {
+		r.Farm.Plots[0].Crop != "carrot" || r.User.Balance != wallet.StartBalance-75 {
 		t.Fatalf("trồng: %d %+v", code, r)
 	}
 
@@ -68,11 +68,11 @@ func TestFarmAPI(t *testing.T) {
 		{"/api/farm/plant", map[string]any{"plot": 0, "crop": "corn"}, 409},   // ô đang có cây
 		{"/api/farm/plant", map[string]any{"plot": 50, "crop": "corn"}, 400},  // ô không tồn tại
 		{"/api/farm/plant", map[string]any{"crop": "corn"}, 400},              // thiếu ô
-		{"/api/farm/plant", map[string]any{"plot": 1, "crop": "tomato"}, 403}, // cần level 2
+		{"/api/farm/plant", map[string]any{"plot": 1, "crop": "tomato"}, 403}, // cần level 4
 		{"/api/farm/harvest", map[string]any{"plot": 0}, 409},                 // chưa chín
 		{"/api/farm/harvest-all", nil, 409},                                   // chưa có ô nào chín
 		{"/api/farm/plots/buy", nil, 402},                                     // 10.000 xu > số dư
-		{"/api/farm/barn/buy", nil, 402},                                      // chuồng Lv1 nhưng 3.000 xu > số dư
+		{"/api/farm/barn/buy", nil, 402},                                      // chuồng Lv1 nhưng 9.000 xu > số dư
 		{"/api/farm/animals/buy", map[string]any{"kind": "pig"}, 409},         // chưa có chuồng
 		{"/api/farm/fish/buy", map[string]any{"kind": "tilapia"}, 409},        // chưa có ao
 		{"/api/farm/fish/sell", map[string]any{"id": 1}, 409},                 // chưa có ao
@@ -86,7 +86,7 @@ func TestFarmAPI(t *testing.T) {
 	}
 
 	// Ao cá cần level 1: nạp thêm xu rồi mua ao, thả cá rô phi, bán cá chưa lớn bị từ chối.
-	if _, err := w.Settle(context.Background(), "test", "nạp xu", map[int64]int64{a.User.ID: 5000}); err != nil {
+	if _, err := w.Settle(context.Background(), "test", "nạp xu", map[int64]int64{a.User.ID: 10000}); err != nil {
 		t.Fatal(err)
 	}
 	if code := call(t, srv, "POST", "/api/farm/pond/buy", a.Token, nil, &r); code != 200 || r.Farm.Pond == nil || r.Farm.Pond.Capacity != 5 {

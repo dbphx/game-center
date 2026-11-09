@@ -27,16 +27,16 @@ var (
 	Catalog = []OutfitInfo{
 		{ID: "casual", Name: "Thường ngày", Level: 1, Starter: true},
 		{ID: "sport", Name: "Thể thao", Level: 1, Starter: true},
-		{ID: "hoodie", Name: "Áo hoodie", Level: 2, Price: 800},
-		{ID: "suit", Name: "Vest lịch lãm", Level: 3, Price: 1500},
-		{ID: "aodai", Name: "Áo dài", Level: 4, Price: 2500},
-		{ID: "royal", Name: "Hoàng gia", Level: 6, Price: 5000},
-		{ID: "school", Name: "Đồng phục học sinh", Level: 1, Price: 600},
-		{ID: "aobaba", Name: "Áo bà ba", Level: 2, Price: 1200},
-		{ID: "tet", Name: "Áo Tết", Level: 3, Price: 2000},
-		{ID: "pirate", Name: "Hải tặc", Level: 5, Price: 4000},
-		{ID: "wedding", Name: "Đồ cưới", Level: 7, Price: 8000},
-		{ID: "astronaut", Name: "Phi hành gia", Level: 9, Price: 12000},
+		{ID: "hoodie", Name: "Áo hoodie", Level: 4, Price: 2400},
+		{ID: "suit", Name: "Vest lịch lãm", Level: 6, Price: 4500},
+		{ID: "aodai", Name: "Áo dài", Level: 8, Price: 7500},
+		{ID: "royal", Name: "Hoàng gia", Level: 12, Price: 15000},
+		{ID: "school", Name: "Đồng phục học sinh", Level: 1, Price: 1800},
+		{ID: "aobaba", Name: "Áo bà ba", Level: 4, Price: 3600},
+		{ID: "tet", Name: "Áo Tết", Level: 6, Price: 6000},
+		{ID: "pirate", Name: "Hải tặc", Level: 10, Price: 12000},
+		{ID: "wedding", Name: "Đồ cưới", Level: 14, Price: 24000},
+		{ID: "astronaut", Name: "Phi hành gia", Level: 18, Price: 36000},
 	}
 
 	// Outfits là id các trang phục theo thứ tự trong Catalog.
