@@ -82,6 +82,11 @@ dialog.modal.quest-dlg { width: min(640px, calc(100vw - 20px)); overflow: visibl
 .tier-rare { --tc: var(--t-rare); }
 .tier-epic { --tc: var(--t-epic); }
 .tier-exclusive { --tc: var(--t-exclusive); }
+.tier-vip { --tc: #e0322b; }
+/* Nhóm chậu Noel VIP: nền đỏ – vàng nổi bật, ảnh chậu lớn hơn ảnh xe. */
+.q-tier.tier-vip { background: #fff4e0; border: 2px solid #f2b632; border-radius: 14px; padding: 8px 10px 10px; box-shadow: 0 0 0 3px rgba(255, 196, 40, .25); }
+.q-tier.tier-vip h3 img { width: 32px; height: 15px; }
+.q-card.tier-vip .q-thumb { height: 76px; width: auto; object-fit: contain; filter: drop-shadow(0 0 6px rgba(255, 200, 60, .7)); }
 .q-card.full { box-shadow: 0 0 0 3px color-mix(in srgb, var(--tc) 35%, transparent), 0 0 14px color-mix(in srgb, var(--tc) 45%, transparent); }
 .q-card.owned { opacity: .7; }
 .q-thumb { width: 100%; max-width: 132px; aspect-ratio: 8 / 5; object-fit: contain; }

@@ -61,6 +61,11 @@ Cây phố (phượng, bằng lăng, bàng, sao), khu Công trường / Hồ câ
 Chậu tầng mây (`public/img/toon/farm/pot_*.png`, ảnh 2× 240×264 hiển thị 120×132, tâm mặt đất `plantY` = 32) dựng 3D bằng
 three.js rồi xuất PNG (CC0): `tools/render_pots/` — chạy static server ở gốc repo (`python3 -m http.server 8305`), `node
 tools/render_pots/render.mjs` (cần playwright-core + Chrome) rồi `python3 tools/render_pots/finish.py` (viền + bóng); xem README.txt ở đó.
+Chậu Noel VIP (`pot_skin_vip_gift|snowman|pine.png`) dựng cùng script, không theo dáng chậu tròn (hộp quà bung nắp, người tuyết
+đội mũ chóp chứa đất, xe trượt tuyết mạ vàng) nhưng giữ tâm mặt đất y = 32; `finish.py` thêm quầng sáng màu quanh viền (`glow`).
+Dựng riêng: `node tools/render_pots/render.mjs <url> <thư mục> pot_skin_vip_gift,pot_skin_vip_snowman,pot_skin_vip_pine`.
+Ánh lấp lánh / quầng chân / nhãn VIP (`vip_sparkle.png`, `vip_halo.png`, `vip_badge.png`) vẽ bằng `python3 tools/render_pots/vip_fx.py public/img/toon/farm`,
+hoạt ảnh chỉ bằng CSS transform / opacity.
 Mùa Noel nông trại (`public/img/toon/farm/noel/`, CC0): bản phủ tuyết của ảnh cảnh (cùng tên, cùng kích thước ảnh gốc —
 `season.js` chỉ đổi đường dẫn) dựng bằng `python3 tools/render_noel/snow.py`; cây thông, người tuyết, quà, vòng hoa, dây đèn,
 chấm "!" và NPC (Ông già Noel / Bác nông dân, 3 khung đứng – vẫy tay) dựng 3D bằng `tools/render_noel/` (render.mjs → finish.py →

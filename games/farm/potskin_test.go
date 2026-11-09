@@ -16,12 +16,19 @@ func TestPotSkinCatalog(t *testing.T) {
 		price int64
 	}{{"default", 0}, {"white", 0}, {"flower", 40_000}, {"wood", 40_000}, {"bluewhite", 100_000},
 		{"jade", 200_000}, {"cloud", 400_000}, {"crystal", 600_000}, {"gold", 1_000_000}}
-	if len(PotSkins) != len(want) {
-		t.Fatalf("số kiểu chậu: %d", len(PotSkins))
+	// Kiểu thường (mua bằng xu); chậu VIP kiểm ở vippot_test.go.
+	var normal []PotSkin
+	for _, s := range PotSkins {
+		if !s.VIP {
+			normal = append(normal, s)
+		}
+	}
+	if len(normal) != len(want) {
+		t.Fatalf("số kiểu chậu thường: %d", len(normal))
 	}
 	for i, w := range want {
-		if PotSkins[i].ID != w.id || PotSkins[i].Price != w.price || PotSkins[i].Name == "" {
-			t.Fatalf("kiểu %d: %+v", i, PotSkins[i])
+		if normal[i].ID != w.id || normal[i].Price != w.price || normal[i].Name == "" {
+			t.Fatalf("kiểu %d: %+v", i, normal[i])
 		}
 	}
 	if _, ok := Catalog()["potSkins"]; !ok {

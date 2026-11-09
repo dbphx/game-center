@@ -504,6 +504,314 @@ const POTS = {
   },
 };
 
+
+// ---------- Chậu Noel VIP (chỉ ghép từ mảnh nhiệm vụ) ----------
+// Phải nổi bật hẳn so với 12 chậu thường: vật liệu bóng cao cấp, chi tiết dày, đèn nhỏ phát sáng, ánh viền mạnh; bậc càng cao càng xịn.
+
+// Hộp bo góc: hình vuông cạnh 2·half bo bán kính rad, đùn cao h từ y0 lên.
+function roundBox(half, h, rad, y0 = 0, bevel = 0.025) {
+  const sh = new THREE.Shape();
+  const a = half - rad;
+  sh.moveTo(-a, -half); sh.lineTo(a, -half); sh.quadraticCurveTo(half, -half, half, -a);
+  sh.lineTo(half, a); sh.quadraticCurveTo(half, half, a, half); sh.lineTo(-a, half);
+  sh.quadraticCurveTo(-half, half, -half, a); sh.lineTo(-half, -a); sh.quadraticCurveTo(-half, -half, -a, -half);
+  const g = new THREE.ExtrudeGeometry(sh, { depth: h - bevel * 2, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 4, curveSegments: 10 });
+  g.rotateX(-Math.PI / 2);
+  g.translate(0, y0 + bevel, 0);
+  g.computeVertexNormals();
+  return g;
+}
+// Đèn nhỏ phát sáng (bóng + quầng mờ).
+function bulb(color, r = 0.022) {
+  const grp = new THREE.Group();
+  grp.add(new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 2.2, roughness: 0.3 })));
+  const halo = new THREE.Mesh(new THREE.SphereGeometry(r * 2.1, 16, 12), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.22, depthWrite: false }));
+  grp.add(halo);
+  return grp;
+}
+// Ngôi sao 5 cánh nổi (đùn dày, vát cạnh).
+function star3d(r, depth, mat) {
+  const sh = new THREE.Shape();
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * Math.PI * 2 + Math.PI / 2;
+    const rr = i % 2 === 0 ? r : r * 0.45;
+    i === 0 ? sh.moveTo(Math.cos(a) * rr, Math.sin(a) * rr) : sh.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+  }
+  const g = new THREE.ExtrudeGeometry(sh, { depth, bevelEnabled: true, bevelThickness: depth * 0.6, bevelSize: r * 0.12, bevelSegments: 3 });
+  g.translate(0, 0, -depth / 2);
+  return new THREE.Mesh(g, mat);
+}
+// Bông tuyết nổi (6 nhánh, mỗi nhánh 2 tia phụ) dựng bằng ống mảnh.
+function snowflake3d(r, mat, tube = 0.006) {
+  const grp = new THREE.Group();
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2;
+    const dir = new THREE.Vector3(Math.cos(a), Math.sin(a), 0);
+    const line = (p0, p1) => grp.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.LineCurve3(p0, p1), 1, tube, 6), mat));
+    line(new THREE.Vector3(), dir.clone().multiplyScalar(r));
+    for (const t of [0.45, 0.72]) {
+      const base = dir.clone().multiplyScalar(r * t);
+      for (const s of [-1, 1]) {
+        const b = new THREE.Vector3(Math.cos(a + s * 0.75), Math.sin(a + s * 0.75), 0).multiplyScalar(r * 0.28 * (t === 0.45 ? 1 : 0.7));
+        line(base, base.clone().add(b));
+      }
+    }
+  }
+  return grp;
+}
+// Rải hạt lấp lánh (kim tuyến) lên mặt ngoài thân lathe.
+function glitter(outer, n, colors, seed, y0 = 0.05, y1 = 0.85, size = 0.008) {
+  const grp = new THREE.Group();
+  const r = rng(seed);
+  const geo = new THREE.OctahedronGeometry(1, 0);
+  const mats = colors.map((c) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 1.4, metalness: 0.6, roughness: 0.15 }));
+  for (let i = 0; i < n; i++) {
+    const y = y0 + r() * (y1 - y0), a = r() * Math.PI * 2, rad = radiusAt(outer, y) + 0.004;
+    const m = new THREE.Mesh(geo, mats[i % mats.length]);
+    const s = size * (0.6 + r() * 0.9);
+    m.scale.setScalar(s); m.rotation.set(r() * 3, r() * 3, r() * 3);
+    m.position.set(Math.cos(a) * rad, y, Math.sin(a) * rad);
+    grp.add(m);
+  }
+  return grp;
+}
+// Nơ ruy băng 3D: hai quai phồng + nút thắt + hai đuôi, đặt tại p, quay mặt theo hướng yaw.
+function bow3d(mat, size, edgeMat) {
+  const grp = new THREE.Group();
+  for (const s of [-1, 1]) {
+    const pts = [[0, 0], [0.5, 0.42], [1.0, 0.5], [1.12, 0.1], [0.9, -0.28], [0.45, -0.22], [0, 0]].map(([x, y]) => new THREE.Vector3(s * x * size, y * size, 0));
+    const curve = new THREE.CatmullRomCurve3(pts, true);
+    const loop = new THREE.Mesh(new THREE.TubeGeometry(curve, 60, size * 0.2, 16, true), mat);
+    loop.scale.set(1, 1, 0.55);
+    grp.add(loop);
+    const edge = new THREE.Mesh(new THREE.TubeGeometry(curve, 60, size * 0.05, 8, true), edgeMat);
+    edge.position.z = size * 0.1;
+    grp.add(edge);
+    const tail = new THREE.CatmullRomCurve3([[0, 0], [0.25, -0.5], [0.4, -1.0], [0.62, -1.35]].map(([x, y]) => new THREE.Vector3(s * x * size, y * size, -0.02)));
+    const t = new THREE.Mesh(new THREE.TubeGeometry(tail, 30, size * 0.13, 12), mat);
+    t.scale.set(1, 1, 0.45);
+    grp.add(t);
+  }
+  const knot = new THREE.Mesh(new THREE.SphereGeometry(size * 0.28, 24, 16), mat);
+  knot.scale.set(1, 1.1, 0.75);
+  grp.add(knot);
+  return grp;
+}
+
+const VIP_POTS = {
+  // Bậc 1 — Chậu Quà Noel: hộp quà đỏ bóng vừa bung nắp (nắp nghiêng tựa bên hông, nơ vàng lớn trên nắp), ruy băng vàng
+  // xoắn bay lên từ góc hộp, sao vàng nhỏ và kim tuyến bung ra; đất nằm trong lòng hộp.
+  pot_skin_vip_gift() {
+    const g = new THREE.Group();
+    const red = new THREE.MeshPhysicalMaterial({ color: 0xa8001a, roughness: 0.12, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 1.3 });
+    const au = gold({ roughness: 0.12, envMapIntensity: 2.2 });
+    const satin = new THREE.MeshPhysicalMaterial({ color: 0xffcf3a, metalness: 0.8, roughness: 0.18, clearcoat: 1, envMapIntensity: 2.4, sheen: 1, sheenColor: new THREE.Color(0xfff2a8), side: THREE.DoubleSide });
+    const half = 0.36, top = 0.9;
+    g.add(new THREE.Mesh(roundBox(half, top, 0.07), red));
+    // Ruy băng dọc bốn mặt.
+    for (let i = 0; i < 4; i++) {
+      const rib = new THREE.Mesh(new THREE.BoxGeometry(0.12, top - 0.02, 0.028), au);
+      const a = (i / 4) * Math.PI * 2;
+      rib.position.set(Math.sin(a) * (half + 0.035), top / 2, Math.cos(a) * (half + 0.035));
+      rib.rotation.y = a; g.add(rib);
+    }
+    // Miệng hộp: viền vàng quanh đất.
+    const lip = new THREE.Mesh(roundBox(half + 0.012, 0.05, 0.075, top - 0.05), au);
+    g.add(lip);
+    g.add(soil(0.31));
+    // Nắp hộp nghiêng tựa vào hông phải phía trước, có nơ lớn.
+    const lid = new THREE.Group();
+    lid.add(new THREE.Mesh(roundBox(half + 0.04, 0.12, 0.08), red));
+    for (const a of [0, Math.PI / 2]) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.125, 2 * half + 0.1), au); b.rotation.y = a; b.position.y = 0.06; lid.add(b); }
+    const bow = bow3d(satin, 0.16, new THREE.MeshPhysicalMaterial({ color: 0xffe9a0, metalness: 0.9, roughness: 0.15 }));
+    bow.position.set(0, 0.2, 0); bow.rotation.x = -0.2; lid.add(bow);
+    lid.position.set(0.42, 0.0, 0.3); lid.rotation.set(0.25, -0.75, 1.15); lid.scale.setScalar(0.72);
+    // Hộp quà nhỏ xanh lá ở chân bên trái.
+    const mini = new THREE.Group();
+    mini.add(new THREE.Mesh(roundBox(0.13, 0.22, 0.03), new THREE.MeshPhysicalMaterial({ color: 0x0b8a3e, roughness: 0.15, clearcoat: 1, envMapIntensity: 1.3 })));
+    for (const a of [0, Math.PI / 2]) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.225, 0.3), au); b.rotation.y = a; b.position.y = 0.11; mini.add(b); }
+    const mbow = bow3d(satin, 0.06, au); mbow.position.y = 0.25; mini.add(mbow);
+    mini.position.set(-0.38, 0, 0.36); mini.rotation.y = 0.5; g.add(mini);
+    g.add(lid);
+    // Ruy băng xoắn bay lên từ hai góc.
+    for (const [x, z, ph, h] of [[-0.3, 0.3, 0, 0.42], [-0.28, -0.32, 2.1, 0.36], [0.3, -0.3, 4.0, 0.3]]) {
+      const pts = [];
+      for (let t = 0; t <= 1; t += 0.05) pts.push(new THREE.Vector3(x + Math.cos(ph + t * 9) * 0.07 * (1 - t * 0.3) - t * 0.06 * Math.sign(x), top + t * h, z + Math.sin(ph + t * 9) * 0.07));
+      const rib = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 80, 0.016, 8), satin);
+      rib.scale.set(1, 1, 1); g.add(rib);
+    }
+    // Sao vàng nhỏ + kim tuyến bung ra.
+    const starMat = new THREE.MeshPhysicalMaterial({ color: 0xffe066, metalness: 1, roughness: 0.1, emissive: 0xffb300, emissiveIntensity: 0.8, envMapIntensity: 2.5 });
+    const r = rng(43);
+    for (const [x, y, z, s] of [[-0.42, 1.08, 0.05, 0.06], [0.08, 1.12, -0.36, 0.05], [-0.15, 1.05, 0.34, 0.04], [0.42, 0.98, -0.12, 0.045]]) {
+      const st = star3d(s, 0.015, starMat); st.position.set(x, y, z); st.rotation.set(r() - 0.5, r() * 3, r() - 0.5); g.add(st);
+    }
+    const conf = [0xffd54a, 0xff3b5c, 0xffffff, 0x3ad17a];
+    for (let i = 0; i < 40; i++) {
+      const a = r() * Math.PI * 2, d = 0.15 + r() * 0.35;
+      const m = new THREE.Mesh(new THREE.OctahedronGeometry(0.01 + r() * 0.008, 0), new THREE.MeshStandardMaterial({ color: conf[i % 4], emissive: conf[i % 4], emissiveIntensity: 0.9, metalness: 0.5, roughness: 0.2 }));
+      m.position.set(Math.cos(a) * d, top + 0.04 + r() * 0.25, Math.sin(a) * d); m.rotation.set(r() * 3, r() * 3, r() * 3); g.add(m);
+    }
+    // Kim tuyến vàng rải trên mặt hộp.
+    const gl = new THREE.MeshStandardMaterial({ color: 0xffe08a, emissive: 0xffc94a, emissiveIntensity: 1.2, metalness: 0.8, roughness: 0.1 });
+    for (let i = 0; i < 60; i++) {
+      const a = Math.floor(r() * 4) * Math.PI / 2, u = (r() - 0.5) * 0.6, y = 0.08 + r() * 0.74;
+      if (Math.abs(u) < 0.08) continue;
+      const m = new THREE.Mesh(new THREE.OctahedronGeometry(0.006 + r() * 0.006, 0), gl);
+      m.position.copy(new THREE.Vector3(Math.sin(a), 0, Math.cos(a)).multiplyScalar(half + 0.03).add(new THREE.Vector3(Math.cos(a), 0, -Math.sin(a)).multiplyScalar(u)));
+      m.position.y = y; g.add(m);
+    }
+    g.scale.setScalar(0.84);
+    return { group: g, outline: '#5e0610', glow: '#ffcf5a', vip: true, y: SOIL_Y * (1 - 0.84) };
+  },
+
+  // Bậc 2 — Chậu Người Tuyết: người tuyết lấp lánh đội chiếc mũ chóp to — cây mọc từ miệng mũ. Mắt than, mũi cà rốt, má hồng,
+  // tay cành cây đeo găng đỏ, khăn len đỏ trắng có đuôi bay, cúc than, bông tuyết nổi phát sáng.
+  pot_skin_vip_snowman() {
+    const g = new THREE.Group();
+    const snow = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.4, sheen: 1, sheenRoughness: 0.3, sheenColor: new THREE.Color(0xbfe4ff), clearcoat: 0.45, clearcoatRoughness: 0.2, envMapIntensity: 1.25, iridescence: 0.25 });
+    const coal = new THREE.MeshPhysicalMaterial({ color: 0x1b1b22, roughness: 0.2, clearcoat: 1, envMapIntensity: 1.5 });
+    const yaw0 = 0.35; // bù góc xoay chung để mặt nhìn thẳng
+    const fwd = (yaw, rr, y) => new THREE.Vector3(Math.sin(yaw) * rr, y, Math.cos(yaw) * rr);
+    // Thân + đầu.
+    const bodyC = 0.13, bodyR = 0.3, headC = 0.5, headR = 0.215;
+    const b1 = new THREE.Mesh(new THREE.SphereGeometry(bodyR, 48, 32), snow); b1.position.y = bodyC; b1.scale.y = 0.9; g.add(b1);
+    const b2 = new THREE.Mesh(new THREE.SphereGeometry(headR, 48, 32), snow); b2.position.y = headC; g.add(b2);
+    const sparkle = (cy, rad, n, seed) => {
+      const r = rng(seed); const mats = [0xffffff, 0xcff0ff, 0xa8dcff].map((c) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 1.4, metalness: 0.6, roughness: 0.15 }));
+      for (let i = 0; i < n; i++) { const u = r() * 2 - 1, a = r() * Math.PI * 2, s = Math.sqrt(1 - u * u); const m = new THREE.Mesh(new THREE.OctahedronGeometry(0.006 + r() * 0.005, 0), mats[i % 3]); m.position.set(Math.cos(a) * s * rad, cy + u * rad * 0.9, Math.sin(a) * s * rad); g.add(m); }
+    };
+    sparkle(bodyC, bodyR + 0.004, 140, 51); sparkle(headC, headR + 0.004, 90, 52);
+    // Mặt.
+    for (const s of [-1, 1]) {
+      const e = new THREE.Mesh(new THREE.SphereGeometry(0.032, 20, 16), coal); e.position.copy(fwd(yaw0 + s * 0.32, headR - 0.005, headC + 0.06)); g.add(e);
+      const hl = new THREE.Mesh(new THREE.SphereGeometry(0.01, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffffff })); hl.position.copy(fwd(yaw0 + s * 0.32 - 0.06, headR + 0.02, headC + 0.075)); g.add(hl);
+      const cp = fwd(yaw0 + s * 0.55, headR + 0.003, headC - 0.03);
+      const cheek = new THREE.Mesh(new THREE.CircleGeometry(0.038, 24), new THREE.MeshBasicMaterial({ color: 0xff7aa0, transparent: true, opacity: 0.6, depthWrite: false }));
+      cheek.position.copy(cp); cheek.lookAt(cp.x * 3, cp.y, cp.z * 3); g.add(cheek);
+    }
+    for (let i = -2; i <= 2; i++) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.014, 12, 10), coal); m.position.copy(fwd(yaw0 + i * 0.16, headR - 0.003, headC - 0.1 + Math.abs(i) * 0.022)); g.add(m); }
+    const np = fwd(yaw0, headR, headC);
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.2, 20), new THREE.MeshPhysicalMaterial({ color: 0xff7a1a, roughness: 0.35, clearcoat: 0.6 }));
+    nose.position.copy(fwd(yaw0, headR + 0.085, headC - 0.005)); nose.lookAt(np.x * 5, headC - 0.04, np.z * 5); nose.rotateX(Math.PI / 2); g.add(nose);
+    // Cúc than.
+    for (const y of [0.25, 0.12, -0.01]) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.024, 14, 10), coal); m.position.copy(fwd(yaw0, Math.sqrt(Math.max(0, bodyR ** 2 - ((y - bodyC) / 0.9) ** 2)) + 0.005, y)); g.add(m); }
+    // Khăn len đỏ trắng + đuôi bay.
+    const knit = canvasTex(512, 64, (c, w, h) => { for (let i = 0; i < 16; i++) { c.fillStyle = i % 2 ? '#ffffff' : '#e3122d'; c.fillRect((i * w) / 16, 0, w / 16 + 1, h); } c.fillStyle = 'rgba(0,0,0,.12)'; for (let x = 0; x < w; x += 6) c.fillRect(x, 0, 2, h); });
+    const knitMat = new THREE.MeshPhysicalMaterial({ map: knit, roughness: 0.8, sheen: 1, sheenColor: new THREE.Color(0xffd0d8) });
+    const scarf = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.05, 18, 64), knitMat); scarf.rotation.x = Math.PI / 2; scarf.position.y = 0.33; g.add(scarf);
+    const tailPts = [[0.0, 0.33], [0.12, 0.28], [0.26, 0.24], [0.4, 0.27], [0.5, 0.22]].map(([d, y]) => { const v = fwd(yaw0 + 0.95, 0.2 + d, y); return v; });
+    g.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(tailPts), 30, 0.042, 12), knitMat));
+    // Tay cành cây + găng đỏ.
+    const wood = new THREE.MeshStandardMaterial({ color: 0x5b3a1e, roughness: 0.8 });
+    const mitt = new THREE.MeshPhysicalMaterial({ color: 0xe3122d, roughness: 0.6, sheen: 1, sheenColor: new THREE.Color(0xffb0b8) });
+    for (const s of [-1, 1]) {
+      const a = yaw0 + s * Math.PI / 2;
+      const p0 = fwd(a, bodyR - 0.04, 0.22), p1 = fwd(a, bodyR + 0.17, 0.36), p2 = fwd(a, bodyR + 0.27, 0.46);
+      g.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([p0, p1, p2]), 12, 0.014, 6), wood));
+      const twig = new THREE.Mesh(new THREE.TubeGeometry(new THREE.LineCurve3(p1, p1.clone().add(new THREE.Vector3(0, 0.08, 0))), 1, 0.008, 6), wood); g.add(twig);
+      const m = new THREE.Mesh(new THREE.SphereGeometry(0.045, 16, 12), mitt); m.position.copy(p2); m.scale.set(1, 1.2, 0.8); g.add(m);
+    }
+    // Mũ chóp to = chậu: vành ôm đỉnh đầu, chóp mở miệng chứa đất.
+    const felt = new THREE.MeshPhysicalMaterial({ color: 0x1a1a24, roughness: 0.3, clearcoat: 0.9, clearcoatRoughness: 0.15, sheen: 0.8, sheenColor: new THREE.Color(0x6a6aa0), envMapIntensity: 1.2 });
+    const brimY = 0.66, topY = 0.9, crownR = 0.31;
+    const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.44, 0.035, 64), felt); brim.position.y = brimY; g.add(brim);
+    g.add(torus(0.44, 0.018, felt, brimY));
+    const crown = new THREE.Mesh(new THREE.CylinderGeometry(crownR + 0.015, crownR, topY - brimY, 64, 1, true), felt); crown.position.y = (topY + brimY) / 2; g.add(crown);
+    g.add(torus(crownR + 0.015, 0.022, felt, topY));
+    const band = new THREE.Mesh(new THREE.CylinderGeometry(crownR + 0.008, crownR + 0.006, 0.07, 64, 1, true), new THREE.MeshPhysicalMaterial({ color: 0xe3122d, roughness: 0.2, clearcoat: 1, side: THREE.DoubleSide })); band.position.y = brimY + 0.06; g.add(band);
+    // Nhành ô rô + quả đỏ + bông tuyết trên dải mũ.
+    const holly = new THREE.MeshPhysicalMaterial({ color: 0x0f7a34, roughness: 0.25, clearcoat: 1 });
+    const hp = fwd(yaw0 + 0.7, crownR + 0.03, brimY + 0.07);
+    for (const k of [-1, 1]) { const lf = new THREE.Mesh(new THREE.SphereGeometry(0.04, 12, 8), holly); lf.scale.set(1.6, 0.5, 0.6); lf.position.copy(hp).add(new THREE.Vector3(k * 0.04, 0.01, 0)); lf.rotation.z = k * 0.5; g.add(lf); }
+    for (const [dx, dy] of [[0, 0.02], [0.025, 0.0], [-0.02, -0.005]]) { const b = new THREE.Mesh(new THREE.SphereGeometry(0.018, 12, 8), new THREE.MeshPhysicalMaterial({ color: 0xff1a2e, clearcoat: 1, emissive: 0x700010, emissiveIntensity: 0.6 })); b.position.copy(hp).add(new THREE.Vector3(dx, dy + 0.02, 0.02)); g.add(b); }
+    const flakeMat = new THREE.MeshStandardMaterial({ color: 0xdff4ff, emissive: 0x8fd8ff, emissiveIntensity: 1.8, metalness: 0.3, roughness: 0.2 });
+    const fp = fwd(yaw0 - 0.5, crownR + 0.02, brimY + 0.06); const fl = snowflake3d(0.05, flakeMat, 0.006); fl.position.copy(fp); fl.lookAt(fp.x * 3, fp.y, fp.z * 3); g.add(fl);
+    // Tuyết đọng trên vành mũ.
+    const snowM = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.35, sheen: 1, sheenColor: new THREE.Color(0xd8f0ff), emissive: 0xffffff, emissiveIntensity: 0.1 });
+    const rr = rng(61);
+    for (let i = 0; i < 14; i++) { const a = rr() * Math.PI * 2; const m = new THREE.Mesh(new THREE.SphereGeometry(0.03 + rr() * 0.02, 12, 8), snowM); m.scale.set(1.4, 0.4, 1.1); m.position.set(Math.cos(a) * (0.36 + rr() * 0.05), brimY + 0.02, Math.sin(a) * (0.36 + rr() * 0.05)); g.add(m); }
+    // Đế tuyết nhỏ.
+    const base = new THREE.Mesh(new THREE.SphereGeometry(0.36, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), snowM); base.scale.set(1, 0.18, 1); base.position.y = -0.1; g.add(base);
+    g.add(soil(crownR - 0.01));
+    return { group: g, outline: '#2f5578', glow: '#9fe0ff', vip: true };
+  },
+
+  // Bậc 3 — Chậu Thông Vàng: xe trượt tuyết của Ông già Noel mạ vàng — thân cong cuộn đầu, đệm nhung đỏ, đất trên lòng ghế,
+  // càng trượt vàng cuộn tròn, đá quý nạm hai bên, dây đèn ấm dọc mép, ngôi sao vàng phát sáng ở mũi, cây thông nhỏ mạ vàng
+  // và túi quà phía sau, tuyết lấp lánh.
+  pot_skin_vip_pine() {
+    const g = new THREE.Group();
+    const au = gold({ roughness: 0.1, envMapIntensity: 2.6, clearcoat: 1, clearcoatRoughness: 0.04 });
+    const au2 = gold({ color: 0xffb52e, roughness: 0.18, envMapIntensity: 2.2 });
+    const velvet = new THREE.MeshPhysicalMaterial({ color: 0xb00020, roughness: 0.55, sheen: 1, sheenRoughness: 0.35, sheenColor: new THREE.Color(0xff6b80), envMapIntensity: 0.9 });
+    // Thân xe: mặt cắt hông (x dài, y cao) đùn theo z.
+    const sh = new THREE.Shape();
+    sh.moveTo(0.46, 0.3);
+    sh.bezierCurveTo(0.52, 0.5, 0.5, 0.78, 0.56, 0.92); // lưng ghế
+    sh.bezierCurveTo(0.6, 1.0, 0.5, 1.02, 0.46, 0.94); // cuộn lưng
+    sh.lineTo(0.42, 0.86);
+    sh.lineTo(-0.3, 0.84);
+    sh.bezierCurveTo(-0.42, 0.86, -0.5, 0.96, -0.52, 1.02); // mũi vươn lên
+    sh.bezierCurveTo(-0.55, 1.1, -0.66, 1.06, -0.63, 0.96); // cuộn mũi
+    sh.bezierCurveTo(-0.6, 0.86, -0.52, 0.86, -0.55, 0.92);
+    sh.bezierCurveTo(-0.62, 0.7, -0.5, 0.45, -0.36, 0.3);
+    sh.lineTo(0.46, 0.3);
+    const depth = 0.52;
+    const sideGeo = new THREE.ExtrudeGeometry(sh, { depth, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.025, bevelSegments: 5, curveSegments: 32 });
+    sideGeo.translate(0, 0, -depth / 2);
+    const bodyMesh = new THREE.Mesh(sideGeo, au);
+    g.add(bodyMesh);
+    // Đệm nhung đỏ phủ mặt ghế (đất nằm giữa).
+    const cushion = new THREE.Mesh(roundBox(0.3, 0.06, 0.08, 0.84), velvet); cushion.scale.set(1.25, 1, 0.92); g.add(cushion);
+    g.add(torus(0.3, 0.022, au2, 0.905));
+    g.add(soil(0.29));
+    // Ô nhung đỏ viền vàng hai bên hông + đá quý.
+    for (const zs of [-1, 1]) {
+      const panel = new THREE.Mesh(roundBox(0.18, 0.012, 0.05), velvet);
+      panel.scale.set(1.9, 1, 1); panel.rotation.x = zs * Math.PI / 2; panel.position.set(0.02, 0.58, zs * (depth / 2 + 0.035));
+      g.add(panel);
+      const frame = new THREE.Mesh(new THREE.TorusGeometry(1, 0.012, 8, 64), au2); frame.scale.set(0.36, 0.2, 1); frame.position.set(0.02, 0.58, zs * (depth / 2 + 0.045)); g.add(frame);
+      const gems = [0xff1744, 0x00c27a, 0x2f7bff, 0x00c27a, 0xff1744];
+      gems.forEach((c, i) => { const m = new THREE.Mesh(new THREE.OctahedronGeometry(i === 2 ? 0.045 : 0.028, 1), gem(c)); m.scale.z = 0.6; m.position.set(-0.26 + i * 0.14, i === 2 ? 0.58 : 0.58 + (i % 2 ? 0.08 : -0.08) * 0, zs * (depth / 2 + 0.05)); if (i !== 2) m.position.y = 0.58; g.add(m); });
+    }
+    // Càng trượt cuộn tròn ở mũi + thanh chống.
+    for (const zs of [-1, 1]) {
+      const z = zs * 0.22;
+      const rp = [[0.5, 0.06], [0.1, 0.03], [-0.4, 0.04], [-0.6, 0.14], [-0.66, 0.28], [-0.58, 0.36], [-0.52, 0.28]].map(([x, y]) => new THREE.Vector3(x, y, z));
+      g.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(rp), 80, 0.03, 12), au));
+      for (const x of [-0.25, 0.08, 0.38]) { const st = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.27, 10), au2); st.position.set(x, 0.17, z); g.add(st); }
+    }
+    // Dây đèn ấm dọc mép trên hai bên.
+    const warm = [0xffe08a, 0xff7a7a, 0x9ad8ff, 0xfff6d6, 0x7dffb0];
+    for (const zs of [-1, 1]) for (let i = 0; i < 9; i++) {
+      const x = -0.3 + i * 0.085;
+      const b = bulb(warm[(i + (zs > 0 ? 0 : 2)) % warm.length], 0.016); b.position.set(x, 0.885, zs * (depth / 2 + 0.03)); g.add(b);
+    }
+    // Ngôi sao vàng phát sáng ở mũi xe.
+    const starMat = new THREE.MeshPhysicalMaterial({ color: 0xffe066, metalness: 1, roughness: 0.08, envMapIntensity: 3, emissive: 0xffb300, emissiveIntensity: 1.0, clearcoat: 1 });
+    const st = star3d(0.085, 0.025, starMat); st.position.set(-0.6, 1.05, 0.0); st.rotation.y = 0.35; g.add(st);
+    const halo = new THREE.Mesh(new THREE.CircleGeometry(0.15, 40), new THREE.MeshBasicMaterial({ color: 0xffd54a, transparent: true, opacity: 0.28, depthWrite: false })); halo.position.set(-0.605, 1.05, -0.02); halo.rotation.y = 0.35; g.add(halo);
+    // Cây thông nhỏ mạ vàng + túi quà đỏ ở sau lưng ghế (cạnh đất, không che giữa).
+    const tree = new THREE.Group();
+    for (const [rr, y, h] of [[0.09, 0.0, 0.12], [0.075, 0.07, 0.11], [0.055, 0.14, 0.1]]) { const c = new THREE.Mesh(new THREE.ConeGeometry(rr, h, 14), au); c.position.y = y + h / 2; tree.add(c); }
+    for (let i = 0; i < 7; i++) { const b = bulb(warm[i % warm.length], 0.008); const a = i * 2.2; b.position.set(Math.cos(a) * 0.06, 0.04 + i * 0.022, Math.sin(a) * 0.06); tree.add(b); }
+    const ts = star3d(0.025, 0.01, starMat); ts.position.y = 0.26; tree.add(ts);
+    tree.scale.setScalar(1.7); tree.position.set(0.42, 0.86, -0.13); g.add(tree);
+    const sack = new THREE.Mesh(new THREE.SphereGeometry(0.09, 24, 16), velvet); sack.scale.set(1, 1.15, 0.9); sack.position.set(0.42, 0.97, 0.13); g.add(sack);
+    g.add(torus(0.03, 0.012, au2, 1.07).translateX(0.42).translateY(0.13));
+    // Tuyết lấp lánh trên càng và mũi.
+    const snowM = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.35, sheen: 1, sheenColor: new THREE.Color(0xd8f0ff), emissive: 0xffffff, emissiveIntensity: 0.12 });
+    const rr = rng(97);
+    for (let i = 0; i < 16; i++) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.02 + rr() * 0.015, 10, 8), snowM); m.scale.set(1.4, 0.5, 1); m.position.set(-0.5 + rr() * 1.0, 0.07, (rr() < 0.5 ? -1 : 1) * 0.22); g.add(m); }
+    const gl = [0xffffff, 0xfff1b0].map((c) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 1.5, metalness: 0.7, roughness: 0.1 }));
+    for (let i = 0; i < 70; i++) { const m = new THREE.Mesh(new THREE.OctahedronGeometry(0.006 + rr() * 0.006, 0), gl[i % 2]); m.position.set(-0.45 + rr() * 0.9, 0.34 + rr() * 0.5, (rr() < 0.5 ? -1 : 1) * (depth / 2 + 0.03)); g.add(m); }
+    g.scale.setScalar(0.8);
+    return { group: g, outline: '#5a3a00', glow: '#ffd24a', vip: true, y: SOIL_Y * (1 - 0.8) };
+  },
+};
+Object.assign(POTS, VIP_POTS);
+
 function lights(scene) {
   scene.environment = envTex;
   scene.add(new THREE.HemisphereLight(0xffffff, 0x8aa6c0, 0.9));
@@ -523,11 +831,17 @@ window.SOIL_Y = SOIL_Y;
 window.renderPot = (id) => {
   const scene = new THREE.Scene();
   lights(scene);
-  const { group, outline, y = 0 } = POTS[id]();
+  const { group, outline, y = 0, glow, vip } = POTS[id]();
+  if (vip) {
+    // Chậu VIP: thêm ánh viền mạnh hai bên để nổi khối, sáng hơn chậu thường.
+    const rimL = new THREE.DirectionalLight(0xfff0c8, 2.2); rimL.position.set(-3.5, 1.5, -2); scene.add(rimL);
+    const rimR = new THREE.DirectionalLight(0xd8ecff, 2.0); rimR.position.set(3.5, 1.2, -1.5); scene.add(rimR);
+    const top = new THREE.DirectionalLight(0xffffff, 0.8); top.position.set(0, 5, 1); scene.add(top);
+  }
   group.position.y = y;
   group.rotation.y = -0.35; // xoay nhẹ để hoạ tiết không đối xứng cứng
   scene.add(group);
   renderer.render(scene, camera);
-  return { png: renderer.domElement.toDataURL('image/png'), outline };
+  return { png: renderer.domElement.toDataURL('image/png'), outline, glow, vip: !!vip };
 };
 window.potsReady = true;

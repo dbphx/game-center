@@ -227,46 +227,76 @@ function piston() {
   g.rotation.set(0.15, 0.6, -0.32);
   return { group: g, frame: [-0.62, 0.62, 1.05, -0.5], outline: '#1a1430' };
 }
-// Bộ tăng áp: vỏ ốc sên đỏ (xoắn), cửa hút tròn, cánh quạt nén bên trong, ống xả bạc.
+// Bộ tăng áp (turbo): vỏ máy nén hình ốc xoắn (volute) nhôm bạc ánh xanh nhìn chính diện, cửa hút tròn thấy rõ cánh quạt
+// xoắn và đai ốc trục, ống ra tiếp tuyến có bích vuông 4 bu-lông; phía sau là vỏ tua-bin gang sẫm ánh nhiệt tím xanh, ống xả
+// bích tròn; giữa hai vỏ là thân ổ trục có đai vàng.
+function volute(R0, R1, t0, t1, material, turns = 1.8, segs = 40) {
+  const grp = new THREE.Group();
+  for (let i = 0; i < segs; i++) {
+    const k = i / segs;
+    const step = (turns * Math.PI * 2) / segs;
+    const tor = new THREE.Mesh(new THREE.TorusGeometry(R0 + (R1 - R0) * k, t0 + (t1 - t0) * k, 18, 4, step * 1.08), material);
+    tor.rotation.z = k * turns * Math.PI * 2;
+    grp.add(tor);
+  }
+  return grp;
+}
 function turboKit() {
   const g = new THREE.Group();
-  const red = glossy(0xe0342c);
-  const steel = metal(0xcfd5de, { roughness: 0.2 });
-  // Vỏ xoắn: các đoạn ống to dần quanh tâm.
-  const n = 26;
-  for (let i = 0; i < n; i++) {
-    const a = (i / n) * Math.PI * 1.75;
-    const rad = 0.22 + (i / n) * 0.14;
-    const seg = mesh(new THREE.SphereGeometry(0.12 + (i / n) * 0.1, 18, 14), red, Math.cos(a) * rad, Math.sin(a) * rad, 0);
-    g.add(seg);
+  const alu = metal(0xc9d6e6, { roughness: 0.18, envMapIntensity: 1.6 });
+  const aluDark = metal(0x8fa3bd, { roughness: 0.3 });
+  const iron = new THREE.MeshPhysicalMaterial({ color: 0x4a4f5c, metalness: 0.9, roughness: 0.35, iridescence: 0.8, iridescenceIOR: 1.6, envMapIntensity: 1.3 });
+  const goldM = metal(0xe0a92a, { roughness: 0.22 });
+  // Vỏ máy nén (trước, mặt hướng về người xem: trục theo z).
+  const comp = new THREE.Group();
+  comp.add(volute(0.26, 0.34, 0.1, 0.17, alu));
+  const disc = mesh(new THREE.CylinderGeometry(0.33, 0.33, 0.24, 48), alu, 0, 0, 0);
+  disc.rotation.x = Math.PI / 2; comp.add(disc);
+  // Gờ đúc quanh mặt trước.
+  const lip = mesh(new THREE.TorusGeometry(0.3, 0.03, 12, 48), aluDark, 0, 0, 0.12); comp.add(lip);
+  // Cửa hút: ống ngắn loe miệng.
+  const inlet = mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.2, 40, 1, true), alu, 0, 0, 0.2);
+  inlet.rotation.x = Math.PI / 2; inlet.material = alu.clone(); inlet.material.side = THREE.DoubleSide; comp.add(inlet);
+  comp.add(mesh(new THREE.TorusGeometry(0.205, 0.03, 12, 48), alu, 0, 0, 0.3));
+  // Lòng cửa hút tối để cánh quạt nổi lên.
+  const back = mesh(new THREE.CircleGeometry(0.2, 40), mat(0x1c2230, { roughness: 0.8 }), 0, 0, 0.12); comp.add(back);
+  // Cánh quạt nén xoắn (9 cánh) + đai ốc trục.
+  const blade = metal(0xe8eef6, { roughness: 0.15, envMapIntensity: 2 });
+  for (let i = 0; i < 9; i++) {
+    const a = (i / 9) * Math.PI * 2;
+    const b = mesh(new THREE.BoxGeometry(0.018, 0.16, 0.12), blade, 0, 0, 0.17);
+    b.position.set(Math.cos(a) * 0.1, Math.sin(a) * 0.1, 0.17);
+    b.rotation.set(0, 0, a - Math.PI / 2); b.rotateY(0.55);
+    comp.add(b);
   }
-  const hub = mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.26, 36), red, 0, 0, 0);
-  hub.rotation.x = Math.PI / 2;
-  g.add(hub);
-  const inlet = mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.26, 36, 1, true), steel, 0, 0, 0.24);
-  inlet.rotation.x = Math.PI / 2;
-  g.add(inlet);
-  const rim = mesh(new THREE.TorusGeometry(0.21, 0.025, 10, 40), steel, 0, 0, 0.37);
-  g.add(rim);
-  // Cánh nén nhìn qua cửa hút.
-  for (let i = 0; i < 7; i++) {
-    const b = mesh(new THREE.BoxGeometry(0.02, 0.17, 0.05), metal(0x9aa3b2), 0, 0, 0.2);
-    b.rotation.z = (i / 7) * Math.PI * 2;
-    b.position.set(Math.sin(b.rotation.z) * -0.08, Math.cos(b.rotation.z) * 0.08, 0.22);
-    b.rotation.y = 0.5;
-    g.add(b);
+  comp.add(mesh(new THREE.ConeGeometry(0.055, 0.12, 20), metal(0xffc13b, { roughness: 0.2 }), 0, 0, 0.24));
+  comp.children[comp.children.length - 1].rotation.x = Math.PI / 2;
+  // Ống ra tiếp tuyến lên trên bên phải + bích vuông 4 bu-lông.
+  const outPipe = mesh(new THREE.CylinderGeometry(0.11, 0.13, 0.34, 32), alu, 0.4, 0.2, 0);
+  outPipe.rotation.z = -0.35; comp.add(outPipe);
+  const flange = mesh(new THREE.BoxGeometry(0.32, 0.05, 0.32), aluDark, 0.46, 0.37, 0);
+  flange.rotation.z = -0.35; comp.add(flange);
+  for (const [dx, dz] of [[-0.11, -0.11], [0.11, -0.11], [-0.11, 0.11], [0.11, 0.11]]) {
+    const bolt = mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.06, 6), metal(0x3a3f4a), 0.46 + dx * Math.cos(0.35), 0.37 + dx * Math.sin(0.35) + 0.01, dz);
+    bolt.rotation.z = -0.35; comp.add(bolt);
   }
-  g.add(mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.08, 16), metal(0xffb423), 0, 0, 0.26));
-  g.children[g.children.length - 1].rotation.x = Math.PI / 2;
-  // Ống xả ra tiếp tuyến.
-  const out = mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.42, 28), steel, 0.48, -0.18, 0);
-  out.rotation.z = Math.PI / 2;
-  g.add(out);
-  g.add(mesh(new THREE.TorusGeometry(0.135, 0.025, 10, 32), metal(0x8a93a2), 0.69, -0.18, 0));
-  g.children[g.children.length - 1].rotation.y = Math.PI / 2;
-  g.rotation.set(0.2, -0.55, 0.1);
+  comp.position.z = 0.18;
+  g.add(comp);
+  // Thân ổ trục + đai vàng.
+  const core = mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.22, 32), aluDark, 0, 0, -0.04);
+  core.rotation.x = Math.PI / 2; g.add(core);
+  const band = mesh(new THREE.TorusGeometry(0.175, 0.03, 12, 40), goldM, 0, 0, -0.04); g.add(band);
+  // Vỏ tua-bin (sau): gang sẫm ánh nhiệt, nhỏ hơn, xoắn ngược.
+  const turb = new THREE.Group();
+  const tv = volute(0.22, 0.3, 0.09, 0.15, iron); tv.rotation.y = Math.PI; turb.add(tv);
+  const td = mesh(new THREE.CylinderGeometry(0.29, 0.29, 0.2, 40), iron, 0, 0, 0); td.rotation.x = Math.PI / 2; turb.add(td);
+  const ex = mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.28, 28), iron, -0.36, -0.22, 0); ex.rotation.z = Math.PI / 2 - 0.4; turb.add(ex);
+  const exF = mesh(new THREE.TorusGeometry(0.14, 0.035, 10, 32), metal(0x6b7180), -0.48, -0.28, 0); exF.rotation.y = Math.PI / 2; exF.rotation.x = 0.4; turb.add(exF);
+  turb.position.z = -0.3;
+  g.add(turb);
+  g.rotation.set(0.28, -0.62, 0.05);
   g.position.y = 0.3;
-  return { group: g, frame: [-0.7, 0.8, 0.95, -0.4], outline: '#1a1430' };
+  return { group: g, frame: [-0.72, 0.78, 1.0, -0.42], outline: '#1a1430' };
 }
 // Lốp đua: lốp đen gai sọc, vành đúc vàng 6 chấu, chữ sọc đỏ trên hông lốp.
 function tireKit() {

@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dbphx/game-center/games/farm"
 	"github.com/dbphx/game-center/games/race"
 	"github.com/dbphx/game-center/internal/wallet"
 )
@@ -31,6 +32,9 @@ func newEnv(t *testing.T, balance int64) *env {
 	}
 	t.Cleanup(func() { w.Close() })
 	if _, err := race.NewGarage(ctx, w); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := farm.New(ctx, w); err != nil { // bảng chậu VIP
 		t.Fatal(err)
 	}
 	q, err := New(ctx, w)
@@ -130,8 +134,8 @@ func TestGenerateDailyWeekly(t *testing.T) {
 	if s.NPC != "santa" || s.Pending != 0 || s.RerollCost != 0 || s.RerollsLeft != RerollsPerDay {
 		t.Fatalf("trạng thái đầu: npc %s pending %d reroll %d/%d", s.NPC, s.Pending, s.RerollCost, s.RerollsLeft)
 	}
-	if len(s.Shards) != len(Shards) || len(Shards) != 14+6 {
-		t.Fatalf("muốn 20 loại mảnh, được %d", len(s.Shards))
+	if len(s.Shards) != len(Shards) || len(Shards) != 14+6+3 {
+		t.Fatalf("muốn 23 loại mảnh (14 xe + 6 độc quyền + 3 chậu VIP), được %d", len(s.Shards))
 	}
 }
 
@@ -342,6 +346,7 @@ func TestReroll(t *testing.T) {
 
 func TestDropRates(t *testing.T) {
 	e := newEnv(t, 0)
+	e.clock = time.Date(2027, 2, 10, 9, 0, 0, 0, vietnam) // ngoài mùa Noel: không có mảnh chậu
 	count := map[string]int{}
 	const n = 100_000
 	for range n {
@@ -369,6 +374,89 @@ func TestDropRates(t *testing.T) {
 	if _, ok := findShard("starter"); ok {
 		t.Fatal("Xe Tập Lái không có mảnh")
 	}
+	if count[TierVip] != 0 {
+		t.Fatalf("ngoài mùa Noel không rơi mảnh chậu: %d", count[TierVip])
+	}
+	// Moto ghi đúng loại xe.
+	if sh, _ := findShard("moto_dash"); sh.Vehicle != race.KindMoto {
+		t.Fatalf("Gió Lốc là moto: %+v", sh)
+	}
+	if sh, _ := findShard("comet"); sh.Vehicle != race.KindCar {
+		t.Fatalf("Sao Chổi là ô tô: %+v", sh)
+	}
+}
+
+// Trong mùa Noel ~10% mảnh là mảnh chậu VIP (55/30/15); bậc mảnh xe giữ tỉ lệ cũ trong 90% còn lại.
+func TestPotShardsOnlyInNoel(t *testing.T) {
+	e := newEnv(t, 0) // 10/11/2026: đang mùa Noel
+	count := map[string]int{}
+	tiers := map[string]int{}
+	const n = 200_000
+	for range n {
+		sh := e.q.rollShard("")
+		tiers[sh.Tier]++
+		count[sh.Item]++
+	}
+	if got := float64(tiers[TierVip]) / n * 1000; got < 92 || got > 108 {
+		t.Fatalf("mảnh chậu %.1f‰, muốn ~%d‰", got, PotShardRate)
+	}
+	pot := float64(tiers[TierVip])
+	for item, want := range map[string]float64{"vip_gift": 0.55, "vip_snowman": 0.30, "vip_pine": 0.15} {
+		if got := float64(count[item]) / pot; got < want-0.02 || got > want+0.02 {
+			t.Fatalf("%s: %.3f, muốn %.2f", item, got, want)
+		}
+	}
+	if got := float64(tiers[TierCommon]) / float64(n-tiers[TierVip]) * 1000; got < 590 || got > 610 {
+		t.Fatalf("bậc thường trong phần mảnh xe: %.1f‰", got)
+	}
+	// Rương tuần (bậc độc quyền) không ra mảnh chậu.
+	for range 2000 {
+		if e.q.rollShard(TierExclusive).Tier != TierExclusive {
+			t.Fatal("rút theo bậc ra mảnh chậu")
+		}
+	}
+	if s := e.view(); s.Rates[TierVip] != PotShardRate {
+		t.Fatalf("rates mùa Noel: %v", s.Rates)
+	}
+	e.clock = time.Date(2027, 1, 7, 9, 0, 0, 0, vietnam)
+	if s := e.view(); s.Rates[TierVip] != 0 {
+		t.Fatalf("rates ngoài mùa: %v", s.Rates)
+	}
+}
+
+// Ghép chậu VIP: tiêu mảnh, cộng một chậu vào nông trại, ghép tiếp được; mảnh chậu không đổi lên bậc.
+func TestAssemblePot(t *testing.T) {
+	e := newEnv(t, 0)
+	_, _, err := e.q.Assemble(ctx, e.uid, "vip_pine")
+	wantStatus(t, err, http.StatusConflict)
+	e.exec(`INSERT INTO race_shards (user_id, item, qty) VALUES (?, 'vip_pine', 17), (?, 'vip_gift', 3)`, e.uid, e.uid)
+	s, g, err := e.q.Assemble(ctx, e.uid, "vip_pine")
+	if err != nil || g != (Granted{"vip_pine", "pot"}) {
+		t.Fatalf("ghép chậu: %v %+v", err, g)
+	}
+	if s, _, err = e.q.Assemble(ctx, e.uid, "vip_pine"); err != nil {
+		t.Fatal("chậu VIP ghép được nhiều lần:", err)
+	}
+	v := shardOf(s, "vip_pine")
+	if v.Qty != 1 || v.Count != 2 || v.Owned || v.Kind != "pot" || v.Need != 8 || v.Speed != 50 {
+		t.Fatalf("sau 2 lần ghép: %+v", v)
+	}
+	if v := shardOf(s, "vip_gift"); v.Need != 4 || v.Speed != 15 {
+		t.Fatalf("chậu quà: %+v", v)
+	}
+	_, _, err = e.q.Assemble(ctx, e.uid, "vip_pine")
+	wantStatus(t, err, http.StatusConflict) // còn 1 mảnh
+	tx, err := e.w.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := farm.VipPotQty(ctx, tx, e.uid)
+	tx.Rollback()
+	if err != nil || got["vip_pine"] != 2 {
+		t.Fatalf("kho chậu nông trại: %v %v", got, err)
+	}
+	_, _, err = e.q.Exchange(ctx, e.uid, TierVip)
+	wantStatus(t, err, http.StatusBadRequest)
 }
 
 func TestAssemble(t *testing.T) {

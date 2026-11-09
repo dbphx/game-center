@@ -3041,6 +3041,87 @@
    "note": "ảnh 2× (240×264), hiển thị 120×132"
   },
   {
+   "file": "pot_skin_vip_gift.png",
+   "w": 120,
+   "h": 132,
+   "use": "Kiểu chậu VIP \"Chậu Quà Noel\" ở tầng mây (chỉ ghép từ mảnh nhiệm vụ); đặt cây sao cho đáy ảnh cây (y=106 của ảnh crop) nằm ở y=plantY của chậu",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (dựng 3D bằng three.js, tools/render_pots, CC0)"
+   ],
+   "plantY": 32,
+   "skin": "vip_gift",
+   "vip": true,
+   "note": "ảnh 2× (240×264), hiển thị 120×132; có quầng sáng màu quanh viền"
+  },
+  {
+   "file": "pot_skin_vip_snowman.png",
+   "w": 120,
+   "h": 132,
+   "use": "Kiểu chậu VIP \"Chậu Người Tuyết\" ở tầng mây (chỉ ghép từ mảnh nhiệm vụ); đặt cây sao cho đáy ảnh cây (y=106 của ảnh crop) nằm ở y=plantY của chậu",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (dựng 3D bằng three.js, tools/render_pots, CC0)"
+   ],
+   "plantY": 32,
+   "skin": "vip_snowman",
+   "vip": true,
+   "note": "ảnh 2× (240×264), hiển thị 120×132; có quầng sáng màu quanh viền"
+  },
+  {
+   "file": "pot_skin_vip_pine.png",
+   "w": 120,
+   "h": 132,
+   "use": "Kiểu chậu VIP \"Chậu Thông Vàng\" ở tầng mây (chỉ ghép từ mảnh nhiệm vụ); đặt cây sao cho đáy ảnh cây (y=106 của ảnh crop) nằm ở y=plantY của chậu",
+   "anchor": "bottom-center",
+   "tile": false,
+   "source": [
+    "DCity (dựng 3D bằng three.js, tools/render_pots, CC0)"
+   ],
+   "plantY": 32,
+   "skin": "vip_pine",
+   "vip": true,
+   "note": "ảnh 2× (240×264), hiển thị 120×132; có quầng sáng màu quanh viền"
+  },
+  {
+   "file": "vip_sparkle.png",
+   "w": 24,
+   "h": 24,
+   "use": "Ánh lấp lánh nhấp nháy trên chậu VIP ở tầng mây (CSS transform/opacity)",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tools/render_pots/vip_fx.py, CC0)"
+   ],
+   "note": "ảnh 2× (48×48)"
+  },
+  {
+   "file": "vip_halo.png",
+   "w": 120,
+   "h": 40,
+   "use": "Quầng sáng vàng mềm dưới chân chậu VIP đã lắp",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tools/render_pots/vip_fx.py, CC0)"
+   ],
+   "note": "ảnh 2× (240×80)"
+  },
+  {
+   "file": "vip_badge.png",
+   "w": 32,
+   "h": 15,
+   "use": "Nhãn VIP nhỏ trên chậu VIP và thẻ chọn kiểu chậu",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ bằng PIL, tools/render_pots/vip_fx.py, CC0)"
+   ],
+   "note": "ảnh 2× (64×30)"
+  },
+  {
    "file": "crop_cloud_berry_1.png",
    "w": 96,
    "h": 120,

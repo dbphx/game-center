@@ -14,7 +14,7 @@ OUT_W, OUT_H = 240, 264
 BASE_Y = round(OUT_H * 1.15 / 1.364)
 
 
-def finish(src: Path, outline_hex: str) -> Image.Image:
+def finish(src: Path, outline_hex: str, glow_hex: str | None = None) -> Image.Image:
     im = Image.open(src).convert("RGBA").resize((OUT_W, OUT_H), Image.LANCZOS)
     a = im.getchannel("A")
     # Viền: nở alpha 2 px (1 px khi hiển thị), tô màu viền, đặt sau chậu.
@@ -35,6 +35,12 @@ def finish(src: Path, outline_hex: str) -> Image.Image:
     sh.putalpha(shadow)
     out = Image.new("RGBA", im.size, (0, 0, 0, 0))
     out.alpha_composite(sh)
+    if glow_hex:
+        # Chậu VIP: quầng sáng màu mềm quanh viền (nở alpha rồi làm mờ), nằm sau viền tối.
+        halo_a = a.filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(7))
+        halo = Image.new("RGBA", im.size, glow_hex)
+        halo.putalpha(halo_a.point(lambda v: min(255, int(v * 0.95))))
+        out.alpha_composite(halo)
     out.alpha_composite(line)
     out.alpha_composite(im)
     return out
@@ -46,7 +52,7 @@ def main():
     meta = json.loads((src / "meta.json").read_text())
     for pid, m in meta.items():
         # Bảng 256 màu: ~10 KB / ảnh thay vì ~65 KB, mắt thường gần như không thấy khác.
-        im = finish(src / f"{pid}.png", m["outline"])
+        im = finish(src / f"{pid}.png", m["outline"], m.get("glow"))
         im.quantize(colors=256, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.FLOYDSTEINBERG).save(dst / f"{pid}.png", optimize=True)
     print("xong", len(meta), "ảnh →", dst)
 

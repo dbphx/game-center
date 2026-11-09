@@ -20,12 +20,14 @@ page.on('console', (m) => m.type() === 'error' && console.error('console:', m.te
 page.on('pageerror', (e) => console.error('pageerror:', e.message));
 await page.goto(`${base}/tools/render_pots/index.html`);
 await page.waitForFunction(() => window.potsReady === true, null, { timeout: 30000 });
-const ids = await page.evaluate(() => window.POT_IDS);
+// Tham số thứ 3 (tuỳ chọn): danh sách id cách nhau dấu phẩy, vd "pot_skin_vip_gift,pot_skin_vip_pine".
+const only = process.argv[4] ? process.argv[4].split(',') : null;
+const ids = (await page.evaluate(() => window.POT_IDS)).filter((id) => !only || only.includes(id));
 const meta = {};
 for (const id of ids) {
   const r = await page.evaluate((id) => window.renderPot(id), id);
   fs.writeFileSync(path.join(out, `${id}.png`), Buffer.from(r.png.split(',')[1], 'base64'));
-  meta[id] = { outline: r.outline };
+  meta[id] = { outline: r.outline, glow: r.glow, vip: r.vip };
 }
 fs.writeFileSync(path.join(out, 'meta.json'), JSON.stringify(meta, null, 1));
 await browser.close();

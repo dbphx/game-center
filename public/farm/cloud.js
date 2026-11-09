@@ -21,9 +21,14 @@
   const pad = (n) => String(n).padStart(2, '0');
   // Kiểu dáng chậu: "default" là chậu riêng của tầng (pot_1..4), còn lại là pot_skin_<id>.png. Chỉ để đẹp.
   const skins = () => (cat && cat.potSkins) || [];
+  // Chậu VIP (vip: true): không mua được, mỗi chậu ghép từ mảnh nhiệm vụ lắp cho một chỗ, rút ngắn thời gian chín speedPct%.
+  const vipOf = (id) => (farm.cloud && farm.cloud.vip && farm.cloud.vip[id]) || { owned: 0, used: 0 };
+  const isVip = (id) => !!(skins().find((x) => x.id === id) || {}).vip;
   const owned = (id) => {
     const s = skins().find((x) => x.id === id);
-    return !!s && (s.price === 0 || ((farm.cloud && farm.cloud.skins) || []).includes(id));
+    if (!s) return false;
+    if (s.vip) return vipOf(id).owned > 0;
+    return s.price === 0 || ((farm.cloud && farm.cloud.skins) || []).includes(id);
   };
   const skinSrc = (n, id) => (!id || id === 'default' ? `${IMG}pot_${n}.png` : `${IMG}pot_skin_${id}.png`);
 
@@ -52,8 +57,12 @@
     const btn = skinBtn && skins().length
       ? `<button class="skin-btn" data-act="skin" data-floor="${n}" data-slot="${slot}" title="Đổi kiểu chậu">${I().svg('sparkles') || ''}Đổi kiểu</button>`
       : '';
-    return `<div class="cloud-cell"><button class="cloud-slot ${st}" data-act="${act}" data-floor="${n}" data-slot="${slot}" ${st === 'locked' ? 'disabled' : ''}>
-      <span class="cloud-art">${art}</span><span class="slot-label">${label}</span></button>${btn}</div>`;
+    const p = potOf(n, slot);
+    const vip = p && isVip(p.skin);
+    // Chậu VIP: quầng sáng dưới chân, ánh lấp lánh nhấp nháy, nhãn VIP.
+    const fx = vip ? `<span class="vip-fx" aria-hidden="true"><img class="vip-halo" src="${IMG}vip_halo.png" alt="" draggable="false">${[1, 2, 3, 4].map((k) => `<img class="vip-sp sp${k}" src="${IMG}vip_sparkle.png" alt="" draggable="false">`).join('')}<img class="vip-badge" src="${IMG}vip_badge.png" alt="" draggable="false"></span>` : '';
+    return `<div class="cloud-cell"><button class="cloud-slot ${st}${vip ? ' vip' : ''}" data-act="${act}" data-floor="${n}" data-slot="${slot}" ${st === 'locked' ? 'disabled' : ''}>
+      <span class="cloud-art">${fx}${art}</span><span class="slot-label">${label}</span></button>${btn}</div>`;
   }
 
   function slotHTML(n, slot) {
@@ -114,17 +123,27 @@
     const p = potOf(floor, slot);
     if (!p) return '';
     const cur = p.skin || 'default';
-    const cards = skins().map((s) => {
+    const card = (s) => {
       const mine = owned(s.id);
       const using = s.id === cur;
-      const tag = using ? '<em class="using">Đang dùng</em>' : mine ? '<em class="owned">Đã có</em>'
-        : `<em>${I().svg('coins')}${cfg.xu(s.price)} xu</em>`;
-      return `<button class="skin-card${using ? ' using' : ''}${mine ? '' : ' locked'}" data-act="pick" data-skin="${s.id}" ${using ? 'disabled' : ''}>
-        <img src="${skinSrc(floor, s.id)}" alt="" draggable="false"><b>${s.name}</b>${tag}</button>`;
-    }).join('');
+      let tag;
+      if (s.vip) {
+        const v = vipOf(s.id);
+        const free = v.owned - v.used;
+        tag = `<em class="vip-speed">−${s.speedPct}% thời gian chín</em>` + (using ? '<em class="using">Đang dùng</em>'
+          : v.owned ? `<em class="${free > 0 ? 'owned' : 'none'}">Còn ${free}/${v.owned} chậu</em>` : '<em class="none">Ghép từ mảnh ở NPC</em>');
+      } else {
+        tag = using ? '<em class="using">Đang dùng</em>' : mine ? '<em class="owned">Đã có</em>' : `<em>${I().svg('coins')}${cfg.xu(s.price)} xu</em>`;
+      }
+      return `<button class="skin-card${using ? ' using' : ''}${mine ? '' : ' locked'}${s.vip ? ' vip' : ''}" data-act="pick" data-skin="${s.id}" ${using ? 'disabled' : ''}>
+        ${s.vip ? `<img class="vip-badge" src="${IMG}vip_badge.png" alt="VIP" draggable="false">` : ''}<img src="${skinSrc(floor, s.id)}" alt="" draggable="false"><b>${s.name}</b>${tag}</button>`;
+    };
+    const vipCards = skins().filter((s) => s.vip).map(card).join('');
+    const cards = skins().filter((s) => !s.vip).map(card).join('');
     return `<div class="skin-pick" data-act="pick-close"><div class="skin-panel" role="dialog" aria-label="Chọn kiểu chậu">
       <div class="skin-head"><h3>Kiểu chậu · tầng ${floor}, chậu ${slot + 1}</h3><button class="skin-x" data-act="pick-close" aria-label="Đóng">${I().svg('x')}</button></div>
-      <p class="skin-note">Chỉ để đẹp, không đổi cây, giá hay thời gian chín. Mua một lần dùng cho mọi chậu.</p>
+      ${vipCards ? `<h4 class="skin-sec vip">Chậu Noel VIP</h4><p class="skin-note">Không bán — ghép từ mảnh nhiệm vụ ở NPC trong vườn. Mỗi chậu lắp cho một chỗ; cây chín nhanh hơn (tính lúc gieo).</p><div class="skin-grid">${vipCards}</div>` : ''}
+      <h4 class="skin-sec">Kiểu thường</h4><p class="skin-note">Chỉ để đẹp, không đổi cây, giá hay thời gian chín. Mua một lần dùng cho mọi chậu.</p>
       <div class="skin-grid">${cards}</div></div></div>`;
   }
 
@@ -165,7 +184,8 @@
     const stages = farm.cloud.pots.filter((p) => p.plantedAt).map((p) => (cfg.now() - p.plantedAt) / Math.max(1, p.readyAt - p.plantedAt) < 0.5).join();
     const u = cfg.user();
     const pick = picking ? `${picking.floor}.${picking.slot}` : '';
-    return [farm.cloud.floors, farm.cloud.beanReadyAt, pots, stages, u && u.balance, zombieDown(), (farm.cloud.skins || []).join(), pick].join('|');
+    const vip = Object.entries(farm.cloud.vip || {}).map(([k, v]) => `${k}${v.owned}/${v.used}`).join();
+    return [farm.cloud.floors, farm.cloud.beanReadyAt, pots, stages, u && u.balance, zombieDown(), (farm.cloud.skins || []).join(), pick, vip].join('|');
   }
   function draw(force) {
     if (!isOpen()) return;
@@ -260,6 +280,11 @@
     const { floor, slot } = picking;
     const s = skins().find((x) => x.id === id);
     if (!s) return;
+    if (s.vip) {
+      const v = vipOf(id);
+      if (!v.owned) return cfg.toast(`${s.name} chỉ có khi ghép từ mảnh nhiệm vụ ở NPC trong vườn`);
+      if (v.used >= v.owned) return cfg.toast(`Đã lắp hết ${v.owned} ${s.name} — tháo ở chỗ khác hoặc ghép thêm`);
+    }
     return act(async () => {
       if (!owned(id)) {
         if (!enough(s.price)) return;
@@ -270,7 +295,7 @@
       const res = await cfg.api('/api/farm/pot/skin/set', { floor, slot, skin: id });
       if (res) {
         picking = null;
-        cfg.toast(`Đã đổi sang chậu ${s.name}`);
+        cfg.toast(s.vip ? `Đã lắp ${s.name} — cây gieo từ giờ chín nhanh hơn ${s.speedPct}%` : `Đã đổi sang chậu ${s.name}`);
         draw(true);
       }
     });

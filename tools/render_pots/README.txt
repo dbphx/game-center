@@ -9,3 +9,7 @@ Dựng ảnh chậu tầng mây (public/img/toon/farm/pot_*.png) — ảnh tự 
 Khung chung 120×132 (ảnh 240×264), máy quay trực giao nghiêng 25°, tâm mặt đất ở y = 32 (manifest plantY).
 Đổi khung thì sửa cả public/farm/cloud.css (.cloud-art, .cloud-pot, .cloud-crop).
 Mỗi chậu là một hàm trong pots.js (profile LatheGeometry + vật liệu + hoạ tiết vẽ canvas).
+
+Chậu Noel VIP: pot_skin_vip_* trong VIP_POTS (pots.js) — vật thể tuỳ ý nhưng tâm mặt đất vẫn ở (0, SOIL_Y, 0); trả thêm glow
+(màu quầng sáng finish.py vẽ quanh viền) và vip: true (thêm đèn viền). Chỉ dựng vài chậu: thêm tham số thứ 3 là danh sách id
+cách nhau dấu phẩy. Ảnh hiệu ứng VIP: python3 tools/render_pots/vip_fx.py public/img/toon/farm

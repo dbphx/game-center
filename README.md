@@ -264,6 +264,13 @@ Mã lỗi: 400 dữ liệu sai, 402 không đủ xu, 403 thiếu level / HP, 404
   dùng cho mọi chậu (`POST /api/farm/pot/skin/buy {skin}`), lắp cho từng chậu (`POST /api/farm/pot/skin/set {floor, slot, skin}`),
   không đổi cây đang trồng. Catalog có `potSkins`; mỗi chậu có `skin`, `cloud.skins` là các kiểu đã có. Tiền mua kiểu chậu tính
   vào giá trị nông trại.
+- **Chậu Noel VIP** (không bán bằng xu, chỉ ghép từ mảnh nhiệm vụ — xem "Nhiệm vụ và mảnh xe"): Chậu Quà Noel `vip_gift`
+  (hộp quà bung nắp, −15% thời gian chín), Chậu Người Tuyết `vip_snowman` (người tuyết đội mũ chóp là chậu, −30%), Chậu Thông Vàng
+  `vip_pine` (xe trượt tuyết mạ vàng chở cây thông vàng, −50%). Mỗi lần ghép ra **một chậu**, lắp cho đúng một chỗ qua
+  `POST /api/farm/pot/skin/set` (mọi tầng); lắp quá số đang có → 409; tháo / đổi kiểu khác thì chậu trả lại kho. Thời gian chín
+  tính **lúc gieo** (12 giờ × (1 − giảm)); đổi chậu khi cây đang lớn không đổi cây đó. Mua → 409. `potSkins` có `vip: true`,
+  `speedPct`; `cloud.vip = {<id>: {owned, used}}`, `cloud.skins` có kiểu VIP khi đã ghép ít nhất một chậu. Bảng `farm_vip_pots`
+  (số đã ghép; số đang lắp đếm từ `farm_pots.skin`). Chậu VIP không có giá nên không tính vào giá trị nông trại.
 
 ### Mùa Noel và NPC trong vườn
 
@@ -604,7 +611,9 @@ tháng 11 — là Ông già Noel, ngoài mùa là Bác nông dân). Thưởng l�
   thu hoạch tầng mây 1→3 / 10 (chỉ khi đã có chậu), thăm (mỗi bạn một lần / ngày) hoặc trộm vườn bạn 3 / 15,
   câu được cá (không tính rác) 5→15 / 60, hoàn thành cuộc đua (không bỏ cuộc) 2→4 / 15, về nhất 1 / 5.
 - **Đổi nhiệm vụ** ngày chưa xong lấy loại khác (tiến độ về 0): lần đầu mỗi ngày miễn phí, sau đó 2.000 xu, tối đa 5 lần / ngày.
-- **Mảnh**: mỗi phần thưởng rút bậc Thường 60% · Hiếm 28% · Sử thi 10% · Độc quyền 2%, trong bậc chia đều.
+- **Mảnh**: mỗi phần thưởng rút bậc Thường 60% · Hiếm 28% · Sử thi 10% · Độc quyền 2%, trong bậc chia đều. Trong mùa Noel
+  (cùng quy tắc NPC), mỗi lần rút ngẫu nhiên có 10% ra **mảnh chậu Noel VIP** (bậc `vip`: Quà Noel 55% · Người Tuyết 30% ·
+  Thông Vàng 15%), 90% còn lại theo tỉ lệ trên; rương tuần (bậc độc quyền) không ra mảnh chậu; hết mùa không rơi mảnh chậu.
 
   | Bậc | Món | Mảnh cần |
   |---|---|---|
@@ -612,17 +621,19 @@ tháng 11 — là Ông già Noel, ngoài mùa là Bác nông dân). Thưởng l�
   | Hiếm | Rắn Lục, Bão Tố, Thiên Đỉnh, Bóng Ma, Neon Rider | 8 |
   | Sử thi | Lốc Xoáy, Đỉnh Cao, Hoả Tiễn, Siêu Tân Tinh | 8 |
   | Độc quyền | xe Cực Quang `x_aurora`, moto Băng Phong `x_frost` · Sơn ánh kim, Decal bông tuyết, Neon cầu vồng, Cánh gió phát sáng | xe 5 · đồ 3 |
+  | Chậu Noel VIP | Chậu Quà Noel · Chậu Người Tuyết · Chậu Thông Vàng (`kind: "pot"`) | 4 · 6 · 8 |
 
 - **Ghép**: đủ mảnh và chưa có món → xe vào garage (cấp 0, sơn mặc định, không đổi xe đang chọn), **không cần đủ cấp**.
   **Đổi mảnh thừa** (đã có món, hoặc vượt số cần): 3 mảnh thừa cùng bậc → 1 mảnh ngẫu nhiên bậc trên (Sử thi → Độc quyền;
-  Độc quyền không đổi). Không bán mảnh lấy xu.
+  Độc quyền không đổi; mảnh chậu không đổi). Không bán mảnh lấy xu. **Chậu VIP ghép được nhiều lần**, mỗi lần một chậu vào
+  tầng mây (`owned` luôn false, `count` = số chậu đã ghép).
 - Các game báo sự kiện qua hook đặt trong `main.go` (`farm.OnEvent`, `friends.OnVisit`, `fishing.OnCatch`,
   `race.Options.OnEvent`); súng đậu ghi ngay trong giao dịch nông trại, còn lại ghi sau khi thao tác xong; lỗi ghi nhiệm vụ
   không làm hỏng thao tác gốc.
 
 | API (`/api/quests`, cần đăng nhập) | Body | Trả |
 |---|---|---|
-| `GET /api/quests` | | `{daily[], weekly[], chest{daily{ready, claimed, parts}, weekly{…}}, shards[{item, name, tier, kind, qty, need, owned}], rates, rerollCost, rerollsLeft, resetAt{day, week}, npc: "santa"\|"farmer", pending, parts{piston, turbo_kit, tire_kit}, partInfo[{id, name, for}]}` |
+| `GET /api/quests` | | `{daily[], weekly[], chest{daily{ready, claimed, parts}, weekly{…}}, shards[{item, name, tier, kind, qty, need, owned, vehicle?: "car"\|"moto", count?, speedPct?}], rates (thêm `vip` trong mùa Noel), rerollCost, rerollsLeft, resetAt{day, week}, npc: "santa"\|"farmer", pending, parts{piston, turbo_kit, tire_kit}, partInfo[{id, name, for}]}` |
 | `POST /api/quests/claim` | `{id}` (`d0`–`d4`, `w0`–`w2`) | `{quests, gained:[{item, name, tier, kind, qty}], gainedParts:[{part, name, qty}]}` |
 | `POST /api/quests/chest` | `{kind}` `daily` / `weekly` | `{quests, gained, gainedParts}` |
 | `POST /api/quests/reroll` | `{id}` (chỉ nhiệm vụ ngày) | `{quests, cost}` |

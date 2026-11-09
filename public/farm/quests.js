@@ -1,5 +1,5 @@
 // Bảng nhiệm vụ trong nông trại: nhấn NPC trong vườn (#farm-npc, sự kiện "farm:npc" — public/farm/season.js) để mở.
-// Tab Ngày / Tuần / Mảnh xe: nhận thưởng, đổi nhiệm vụ, mở rương, ghép xe từ mảnh, đổi mảnh thừa lên bậc trên.
+// Tab Ngày / Tuần / Mảnh ghép: nhận thưởng, đổi nhiệm vụ, mở rương, ghép xe từ mảnh, đổi mảnh thừa lên bậc trên.
 // Mọi luật do server quyết định (/api/quests, games/quests); trang này chỉ hiển thị và gửi thao tác.
 // Dấu "!" trên đầu NPC (class has-quest) bật khi có thưởng chờ nhận (`pending`).
 (function () {
@@ -19,8 +19,9 @@
     rare: { name: 'Hiếm', next: 'epic' },
     epic: { name: 'Sử thi', next: 'exclusive' },
     exclusive: { name: 'Độc quyền' },
+    vip: { name: 'Chậu Noel VIP' },
   };
-  const TIER_ORDER = ['common', 'rare', 'epic', 'exclusive'];
+  const TIER_ORDER = ['vip', 'common', 'rare', 'epic', 'exclusive'];
   // Hình minh hoạ từng loại nhiệm vụ (ảnh sẵn có của nông trại / xe đua).
   const KIND_IMG = {
     farm_harvest: FARM + 'crop_corn_ripe.png',
@@ -34,7 +35,9 @@
     race_finish: IMG + 'cars/comet.png',
     race_win: IMG + 'cars/nova.png',
   };
-  const thumb = (item) => `${IMG}cars/${item}.png`;
+  // Ảnh món: xe / đồ đua ở /img/quests/cars, chậu VIP dùng chính ảnh chậu của tầng mây.
+  const thumb = (item) => (item.startsWith('vip_') ? `${FARM}pot_skin_${item}.png` : `${IMG}cars/${item}.png`);
+  const kindName = (s) => (s.kind === 'pot' ? `Chậu tầng mây · −${s.speedPct || 0}% thời gian` : s.kind === 'car' ? (s.vehicle === 'moto' ? 'Moto' : 'Xe') : 'Đồ trang trí');
   const GREET = {
     santa: 'Hô hô hô! Chăm vườn giỏi thì ông tặng mảnh ghép xe đua. Gom đủ mảnh là có xe mới!',
     farmer: 'Chào cháu! Làm giúp bác mấy việc trong vườn, bác thưởng mảnh ghép xe đua nhé.',
@@ -107,7 +110,7 @@
       <div class="quest-tabs" role="tablist">
         <button data-qtab="daily" role="tab">Ngày</button>
         <button data-qtab="weekly" role="tab">Tuần</button>
-        <button data-qtab="shards" role="tab">Mảnh xe</button>
+        <button data-qtab="shards" role="tab">Mảnh ghép</button>
       </div>
       <div class="quest-body"></div>
     </div>
@@ -217,25 +220,33 @@
     const rates = state.rates || {};
     const sections = TIER_ORDER.filter((t) => by[t]).map((t) => {
       const spare = by[t].reduce((n, s) => n + (s.owned ? s.qty : Math.max(0, s.qty - s.need)), 0);
+      const pot = t === 'vip';
       const next = TIERS[t].next;
       const ex = next ? `<button class="q-ex" data-exchange="${t}" ${spare >= 3 ? '' : 'disabled'} title="3 mảnh thừa bậc ${TIERS[t].name} → 1 mảnh ngẫu nhiên bậc ${TIERS[next].name}">Đổi 3 mảnh thừa → ${TIERS[next].name} <small>(thừa ${spare})</small></button>` : '';
       const cards = by[t].map((s) => {
         const full = s.qty >= s.need;
         const pct = Math.round((Math.min(s.qty, s.need) / s.need) * 100);
+        const have = pot && s.count ? `<span class="q-owned">${icon('check')}Có ${s.count} chậu</span>` : '';
         const state2 = s.owned ? `<span class="q-owned">${icon('check')}Đã có</span>`
-          : full ? `<button class="primary q-assemble" data-assemble="${esc(s.item)}">Ghép</button>`
-          : `<span class="muted">Còn thiếu ${s.need - s.qty}</span>`;
+          : full ? `<button class="primary q-assemble" data-assemble="${esc(s.item)}">Ghép</button>${have}`
+          : `<span class="muted">Còn thiếu ${s.need - s.qty}</span>${have}`;
         return `<div class="q-card tier-${t} ${s.owned ? 'owned' : ''} ${full && !s.owned ? 'full' : ''}" title="${esc(s.name)}">
           <img class="q-thumb" src="${thumb(s.item)}" alt="" draggable="false" onerror="this.src='${IMG}shard_${t}.png'">
-          <b>${esc(s.name)}</b><small>${s.kind === 'car' ? 'Xe' : 'Đồ trang trí'}</small>
+          <b>${esc(s.name)}</b><small>${kindName(s)}</small>
           <div class="q-bar sm"><span style="width:${pct}%"></span><em>${s.qty}/${s.need}</em></div>
           ${state2}
         </div>`;
       }).join('');
+      if (pot) {
+        const rate = rates.vip ? `rơi ${rates.vip / 10}% số mảnh · chỉ trong mùa Noel` : 'hết mùa Noel — mảnh chậu không rơi nữa, chậu đã có vẫn dùng';
+        return `<section class="q-tier tier-vip"><h3><img src="${FARM}vip_badge.png" alt="">${TIERS[t].name}<small>${rate}</small></h3>
+          <p class="muted q-note">Không bán. Mỗi lần ghép ra 1 chậu, lắp cho một chỗ ở tầng mây (nút "Đổi kiểu"); cây chín nhanh hơn, tính lúc gieo.</p>
+          <div class="q-grid">${cards}</div></section>`;
+      }
       return `<section class="q-tier tier-${t}"><h3><img src="${IMG}shard_${t}.png" alt="">${TIERS[t].name}<small>rơi ${(rates[t] || 0) / 10}%</small>${ex}</h3>
         <div class="q-grid">${cards}</div></section>`;
     }).join('');
-    return `${partsHtml()}<p class="muted q-note">Mỗi phần thưởng là mảnh ngẫu nhiên. Đủ mảnh thì ghép ra xe (không cần đủ cấp); xe ghép xong có trong garage Trường đua.</p>${sections}`;
+    return `${partsHtml()}<p class="muted q-note">Mỗi phần thưởng là mảnh ngẫu nhiên. Đủ mảnh thì ghép ra xe (không cần đủ cấp); xe ghép xong có trong garage Trường đua, chậu VIP vào tầng mây.</p>${sections}`;
   }
 
   // ---------- Thao tác ----------
@@ -314,8 +325,8 @@
       <div class="qr-list">${gained.map((g, i) => `<div class="qr-item tier-${g.tier}" style="--i:${i}">
         <span class="qr-glow"></span>
         <img class="qr-thumb" src="${thumb(g.item)}" alt="" onerror="this.src='${IMG}shard_${g.tier}.png'">
-        <img class="qr-shard" src="${IMG}shard_${g.tier}.png" alt="">
-        <b>${esc(g.name)}</b><small>${TIERS[g.tier] ? TIERS[g.tier].name : ''} · +${g.qty} mảnh</small>
+        <img class="qr-shard" src="${g.tier === 'vip' ? FARM + 'vip_badge.png' : IMG + 'shard_' + g.tier + '.png'}" alt="">
+        <b>${esc(g.name)}</b><small>${g.tier === 'vip' ? 'Mảnh chậu VIP' : TIERS[g.tier] ? TIERS[g.tier].name : ''} · +${g.qty} mảnh</small>
       </div>`).join('')}${parts.map((p, i) => `<div class="qr-item qr-part" style="--i:${gained.length + i}">
         <span class="qr-glow"></span>
         <img class="qr-thumb" src="${IMG}part_${esc(p.part)}.png" alt="">
@@ -333,7 +344,7 @@
       <h3>Ghép thành công!</h3>
       <div class="qr-item big tier-${s.tier}" style="--i:0"><span class="qr-glow"></span>
         <img class="qr-thumb" src="${thumb(s.item)}" alt="" onerror="this.src='${IMG}shard_${s.tier}.png'">
-        <b>${esc(s.name)}</b><small>${s.kind === 'car' ? 'Xe mới đã vào garage Trường đua' : 'Đồ trang trí đã vào garage Trường đua'}</small></div>
+        <b>${esc(s.name)}</b><small>${s.kind === 'pot' ? `Chậu VIP đã vào tầng mây — lắp bằng nút "Đổi kiểu" (−${s.speedPct || 0}% thời gian chín)` : s.kind === 'car' ? (s.vehicle === 'moto' ? 'Moto mới đã vào garage Trường đua' : 'Xe mới đã vào garage Trường đua') : 'Đồ trang trí đã vào garage Trường đua'}</small></div>
       <p class="muted">Bấm để đóng</p></div>`;
     box.classList.remove('hidden');
     void box.offsetWidth;

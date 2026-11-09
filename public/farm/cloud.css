@@ -186,3 +186,27 @@ body.in-cloud .toast { z-index: 9000; }
   .skin-card b { font-size: 11px; }
   .skin-card em { font-size: 10px; }
 }
+
+/* ---------- Chậu Noel VIP: quầng sáng dưới chân, ánh lấp lánh, nhãn VIP ---------- */
+.vip-fx { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
+.vip-halo { position: absolute; left: 0; bottom: calc(-10px * var(--s)); width: calc(120px * var(--s)); height: calc(40px * var(--s)); z-index: -1;
+  animation: vip-halo 2.4s ease-in-out infinite; }
+.cloud-slot.vip .cloud-pot { filter: drop-shadow(0 0 calc(6px * var(--s)) rgba(255, 210, 80, .75)); }
+.vip-sp { position: absolute; width: calc(22px * var(--s)); height: calc(22px * var(--s)); opacity: 0; animation: vip-twinkle 2.2s ease-in-out infinite; }
+.vip-sp.sp1 { left: 6%; bottom: 46%; animation-delay: 0s; }
+.vip-sp.sp2 { right: 4%; bottom: 30%; animation-delay: .55s; }
+.vip-sp.sp3 { left: 30%; bottom: 8%; animation-delay: 1.1s; width: calc(16px * var(--s)); height: calc(16px * var(--s)); }
+.vip-sp.sp4 { right: 22%; bottom: 52%; animation-delay: 1.65s; width: calc(14px * var(--s)); height: calc(14px * var(--s)); }
+.vip-badge { position: absolute; right: 0; bottom: calc(6px * var(--s)); width: calc(32px * var(--s)); height: calc(15px * var(--s)); }
+@keyframes vip-twinkle { 0%, 100% { opacity: 0; transform: scale(.4) rotate(0deg); } 40% { opacity: 1; transform: scale(1) rotate(45deg); } 70% { opacity: .2; transform: scale(.7) rotate(80deg); } }
+@keyframes vip-halo { 0%, 100% { opacity: .65; transform: scaleX(.92); } 50% { opacity: 1; transform: scaleX(1.04); } }
+@media (prefers-reduced-motion: reduce) { .vip-sp, .vip-halo { animation: none; } .vip-sp { opacity: .8; } }
+
+.skin-sec { margin: 8px 0 0; font: 800 14px var(--font-title); color: #17506f; }
+.skin-sec.vip { color: #9a5b00; }
+.skin-card { position: relative; }
+.skin-card.vip { border-color: #f2b632; background: linear-gradient(180deg, #fff8dc, #fff); box-shadow: 0 0 0 2px rgba(255, 196, 40, .35), 0 4px 14px rgba(255, 170, 0, .25); }
+.skin-card.vip .vip-badge { position: absolute; top: 4px; right: 4px; width: 32px; height: 15px; }
+.skin-card.vip.locked img:not(.vip-badge) { opacity: .6; filter: saturate(.7); }
+.skin-card em.vip-speed { color: #b45309; }
+.skin-card em.none { color: #8a6d3b; font-weight: 600; }

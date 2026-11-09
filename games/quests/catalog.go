@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/dbphx/game-center/games/farm"
 	"github.com/dbphx/game-center/games/race"
 )
 
@@ -89,7 +90,11 @@ const (
 	TierRare      = "rare"
 	TierEpic      = "epic"
 	TierExclusive = "exclusive"
+	TierVip       = "vip" // mảnh chậu Noel VIP: chỉ rơi trong mùa Noel, không đổi lên bậc
 )
+
+// PotShardRate: trong mùa Noel, phần nghìn số lần rơi mảnh (ngẫu nhiên) ra mảnh chậu VIP; còn lại theo tỉ lệ mảnh xe.
+const PotShardRate = 100
 
 // Tiers theo thứ tự từ thấp tới cao; Rate là tỉ lệ rơi bậc (phần nghìn).
 var Tiers = []struct {
@@ -99,11 +104,14 @@ var Tiers = []struct {
 
 // Shard là một loại mảnh: id trùng id xe / đồ trang trí của Trường đua.
 type Shard struct {
-	Item string
-	Name string
-	Tier string
-	Kind string // "car" hoặc "item"
-	Need int    // số mảnh để ghép
+	Item    string
+	Name    string
+	Tier    string
+	Kind    string // "car", "item" hoặc "pot" (chậu Noel VIP của nông trại)
+	Need    int    // số mảnh để ghép
+	Vehicle string // xe: "car" / "moto"
+	Weight  int    // chậu VIP: trọng số rút trong nhóm mảnh chậu
+	Speed   int    // chậu VIP: % rút ngắn thời gian chín
 }
 
 // shardTier: bậc của từng xe bán bằng xu (Xe Tập Lái không có mảnh).
@@ -120,6 +128,11 @@ const (
 	exclusiveItemNeed = 3
 )
 
+// potShard: số mảnh và trọng số rơi của từng chậu VIP (rẻ ra nhiều hơn).
+var potShard = map[string]struct{ need, weight int }{
+	"vip_gift": {4, 55}, "vip_snowman": {6, 30}, "vip_pine": {8, 15},
+}
+
 // Shards là mọi loại mảnh, theo bậc rồi theo hạng xe.
 var Shards = buildShards()
 
@@ -128,15 +141,19 @@ func buildShards() []Shard {
 	for _, tier := range []string{TierCommon, TierRare, TierEpic} {
 		for _, c := range race.Cars {
 			if shardTier[c.ID] == tier {
-				out = append(out, Shard{Item: c.ID, Name: c.Name, Tier: tier, Kind: "car", Need: needOf[tier]})
+				out = append(out, Shard{Item: c.ID, Name: c.Name, Tier: tier, Kind: "car", Need: needOf[tier], Vehicle: c.Kind})
 			}
 		}
 	}
 	for _, c := range race.ExclusiveCars {
-		out = append(out, Shard{Item: c.ID, Name: c.Name, Tier: TierExclusive, Kind: "car", Need: exclusiveCarNeed})
+		out = append(out, Shard{Item: c.ID, Name: c.Name, Tier: TierExclusive, Kind: "car", Need: exclusiveCarNeed, Vehicle: c.Kind})
 	}
 	for _, it := range race.ExclusiveItems {
 		out = append(out, Shard{Item: it.ID, Name: it.Name, Tier: TierExclusive, Kind: "item", Need: exclusiveItemNeed})
+	}
+	for _, p := range farm.VipPots() {
+		ps := potShard[p.ID]
+		out = append(out, Shard{Item: p.ID, Name: p.Name, Tier: TierVip, Kind: "pot", Need: ps.need, Weight: ps.weight, Speed: p.SpeedPct})
 	}
 	return out
 }

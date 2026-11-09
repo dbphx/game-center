@@ -15,6 +15,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/dbphx/game-center/games/farm"
 	"github.com/dbphx/game-center/games/race"
 	"github.com/dbphx/game-center/internal/wallet"
 )
@@ -276,13 +277,16 @@ type ChestState struct {
 }
 
 type ShardView struct {
-	Item  string `json:"item"`
-	Name  string `json:"name"`
-	Tier  string `json:"tier"`
-	Kind  string `json:"kind"`
-	Qty   int    `json:"qty"`
-	Need  int    `json:"need"`
-	Owned bool   `json:"owned"`
+	Item    string `json:"item"`
+	Name    string `json:"name"`
+	Tier    string `json:"tier"`
+	Kind    string `json:"kind"` // "car" / "item" / "pot"
+	Qty     int    `json:"qty"`
+	Need    int    `json:"need"`
+	Owned   bool   `json:"owned"`             // xe / đồ đã có (chậu VIP luôn false: ghép được nhiều lần)
+	Vehicle string `json:"vehicle,omitempty"` // xe: "car" / "moto"
+	Count   int    `json:"count,omitempty"`   // chậu VIP: số chậu đã ghép
+	Speed   int    `json:"speedPct,omitempty"`
 }
 
 type Gain struct {
@@ -386,16 +390,25 @@ func (q *Quests) load(ctx context.Context, tx *wallet.Tx, uid int64, p periods) 
 	if err != nil {
 		return s, err
 	}
+	pots, err := farm.VipPotQty(ctx, tx, uid)
+	if err != nil {
+		return s, err
+	}
 	for _, sh := range Shards {
-		owned, err := race.Owns(ctx, tx, uid, sh.Item)
-		if err != nil {
+		v := ShardView{Item: sh.Item, Name: sh.Name, Tier: sh.Tier, Kind: sh.Kind, Qty: have[sh.Item], Need: sh.Need, Vehicle: sh.Vehicle, Speed: sh.Speed}
+		if sh.Kind == "pot" {
+			v.Count = pots[sh.Item]
+		} else if v.Owned, err = race.Owns(ctx, tx, uid, sh.Item); err != nil {
 			return s, err
 		}
-		s.Shards = append(s.Shards, ShardView{Item: sh.Item, Name: sh.Name, Tier: sh.Tier, Kind: sh.Kind, Qty: have[sh.Item], Need: sh.Need, Owned: owned})
+		s.Shards = append(s.Shards, v)
 	}
 	s.Rates = map[string]int{}
 	for _, t := range Tiers {
 		s.Rates[t.ID] = t.Rate
+	}
+	if NoelActive(q.now()) {
+		s.Rates[TierVip] = PotShardRate // mảnh chậu chỉ rơi trong mùa Noel
 	}
 	used, err := rerollsUsed(ctx, tx, uid, p.dayKey)
 	if err != nil {
@@ -471,8 +484,22 @@ func (q *Quests) View(ctx context.Context, uid int64) (State, error) { return q.
 
 // ---------- Mảnh ----------
 
-// rollShard rút một mảnh: bậc theo tỉ lệ (tier = "" thì rút bậc), trong bậc chia đều.
+// rollShard rút một mảnh: bậc theo tỉ lệ (tier = "" thì rút bậc), trong bậc chia đều. Rút ngẫu nhiên trong mùa Noel thì
+// PotShardRate‰ ra mảnh chậu VIP (theo trọng số từng chậu).
 func (q *Quests) rollShard(tier string) Shard {
+	if tier == "" && NoelActive(q.now()) && q.intN(1000) < PotShardRate {
+		pots := shardsOf(TierVip)
+		total := 0
+		for _, p := range pots {
+			total += p.Weight
+		}
+		r := q.intN(total)
+		for _, p := range pots {
+			if r -= p.Weight; r < 0 {
+				return p
+			}
+		}
+	}
 	if tier == "" {
 		r, acc := q.intN(1000), 0
 		tier = Tiers[len(Tiers)-1].ID
@@ -690,6 +717,16 @@ func (q *Quests) Assemble(ctx context.Context, uid int64, item string) (State, G
 		}
 		i := slices.IndexFunc(s.Shards, func(v ShardView) bool { return v.Item == item })
 		v := s.Shards[i]
+		if sh.Kind == "pot" { // chậu VIP ghép được nhiều lần, mỗi lần một chậu
+			if v.Qty < sh.Need {
+				return conflict(fmt.Sprintf("thiếu mảnh: %d/%d", v.Qty, sh.Need))
+			}
+			if _, err := tx.ExecContext(ctx, `UPDATE race_shards SET qty = qty - ? WHERE user_id = ? AND item = ?`, sh.Need, uid, item); err != nil {
+				return err
+			}
+			g = Granted{Item: item, Kind: sh.Kind}
+			return farm.GrantVipPot(ctx, tx, uid, item)
+		}
 		if v.Owned {
 			return conflict("bạn đã có " + sh.Name)
 		}

@@ -35,28 +35,97 @@ CREATE TABLE IF NOT EXISTS farm_pot_skins (
 	skin    TEXT NOT NULL,
 	PRIMARY KEY (user_id, skin)
 );
+-- Chậu Noel VIP (chỉ ghép từ mảnh nhiệm vụ): qty là số chậu đã ghép; số đang lắp đếm từ farm_pots.skin.
+CREATE TABLE IF NOT EXISTS farm_vip_pots (
+	user_id INTEGER NOT NULL REFERENCES users(id),
+	skin    TEXT NOT NULL,
+	qty     INTEGER NOT NULL DEFAULT 0,
+	PRIMARY KEY (user_id, skin)
+);
 `
 
-// PotSkin là một kiểu dáng chậu: chỉ để đẹp, không đổi cây, giá hay thời gian chín.
+// PotSkin là một kiểu dáng chậu. Kiểu thường chỉ để đẹp (mua một lần dùng mọi chậu); kiểu VIP không mua được, mỗi chậu
+// ghép từ mảnh nhiệm vụ lắp cho đúng một chỗ và rút ngắn thời gian chín SpeedPct%.
 type PotSkin struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Price int64  `json:"price"`
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Price    int64  `json:"price"`
+	VIP      bool   `json:"vip,omitempty"`
+	SpeedPct int    `json:"speedPct,omitempty"`
 }
 
 // potSkinDefault là chậu mặc định của tầng (pot_1..4); cùng với các kiểu giá 0 thì ai cũng có sẵn.
 const potSkinDefault = "default"
 
 var PotSkins = []PotSkin{
-	{potSkinDefault, "Chậu của tầng", 0},
-	{"white", "Gốm trắng", 0},
-	{"flower", "Gốm hoa", 40_000},
-	{"wood", "Gỗ mộc", 40_000},
-	{"bluewhite", "Sứ thanh hoa", 100_000},
-	{"jade", "Ngọc lục bảo", 200_000},
-	{"cloud", "Mây trắng", 400_000},
-	{"crystal", "Pha lê", 600_000},
-	{"gold", "Vàng khảm đá", 1_000_000},
+	{ID: potSkinDefault, Name: "Chậu của tầng", Price: 0},
+	{ID: "white", Name: "Gốm trắng", Price: 0},
+	{ID: "flower", Name: "Gốm hoa", Price: 40_000},
+	{ID: "wood", Name: "Gỗ mộc", Price: 40_000},
+	{ID: "bluewhite", Name: "Sứ thanh hoa", Price: 100_000},
+	{ID: "jade", Name: "Ngọc lục bảo", Price: 200_000},
+	{ID: "cloud", Name: "Mây trắng", Price: 400_000},
+	{ID: "crystal", Name: "Pha lê", Price: 600_000},
+	{ID: "gold", Name: "Vàng khảm đá", Price: 1_000_000},
+	// Chậu Noel VIP — theo bậc, bậc càng cao cây chín càng nhanh.
+	{ID: "vip_gift", Name: "Chậu Quà Noel", VIP: true, SpeedPct: 15},
+	{ID: "vip_snowman", Name: "Chậu Người Tuyết", VIP: true, SpeedPct: 30},
+	{ID: "vip_pine", Name: "Chậu Thông Vàng", VIP: true, SpeedPct: 50},
+}
+
+// VipPots là các chậu VIP theo bậc (thấp → cao).
+func VipPots() []PotSkin {
+	var out []PotSkin
+	for _, s := range PotSkins {
+		if s.VIP {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// VipStock là số chậu VIP một loại: đã ghép / đang lắp.
+type VipStock struct {
+	Owned int `json:"owned"`
+	Used  int `json:"used"`
+}
+
+// GrantVipPot cộng một chậu VIP (ghép từ mảnh nhiệm vụ) trong giao dịch tx.
+func GrantVipPot(ctx context.Context, tx *wallet.Tx, uid int64, skin string) error {
+	ps, ok := findPotSkin(skin)
+	if !ok || !ps.VIP {
+		return bad("không phải chậu VIP")
+	}
+	_, err := tx.ExecContext(ctx, `INSERT INTO farm_vip_pots (user_id, skin, qty) VALUES (?, ?, 1)
+		ON CONFLICT(user_id, skin) DO UPDATE SET qty = qty + 1`, uid, skin)
+	return err
+}
+
+// VipPotQty là số chậu VIP người chơi đã ghép, theo loại.
+func VipPotQty(ctx context.Context, q querier, uid int64) (map[string]int, error) {
+	rows, err := q.QueryContext(ctx, `SELECT skin, qty FROM farm_vip_pots WHERE user_id = ? AND qty > 0`, uid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]int{}
+	for rows.Next() {
+		var id string
+		var n int
+		if err := rows.Scan(&id, &n); err != nil {
+			return nil, err
+		}
+		out[id] = n
+	}
+	return out, rows.Err()
+}
+
+// potSpeed là phần trăm rút ngắn thời gian chín của kiểu chậu (0 với kiểu thường).
+func potSpeed(skin string) int64 {
+	if ps, ok := findPotSkin(skin); ok {
+		return int64(ps.SpeedPct)
+	}
+	return 0
 }
 
 func findPotSkin(id string) (PotSkin, bool) {
@@ -138,8 +207,10 @@ type Cloud struct {
 	BeanPlantedAt int64 `json:"beanPlantedAt"`
 	BeanReadyAt   int64 `json:"beanReadyAt"`
 	Pots          []Pot `json:"pots"`
-	// Skins: các kiểu dáng chậu người chơi đã có (luôn gồm các kiểu miễn phí).
+	// Skins: các kiểu dáng chậu người chơi đã có (luôn gồm các kiểu miễn phí; kiểu VIP khi đã ghép ít nhất một chậu).
 	Skins []string `json:"skins"`
+	// Vip: chậu VIP đã ghép / đang lắp theo loại (đủ cả 3 loại, kể cả khi 0).
+	Vip map[string]VipStock `json:"vip"`
 }
 
 func (c Cloud) pot(floor, slot int) (Pot, bool) {
@@ -170,7 +241,7 @@ func (f *Farm) settleBean(ctx context.Context, tx *wallet.Tx, uid, now int64) er
 
 // loadCloud đọc phần trên mây; plots là số ô đất đang có.
 func loadCloud(ctx context.Context, q querier, uid int64, plots int) (Cloud, error) {
-	c := Cloud{Available: plots >= MaxPlots, Pots: []Pot{}, Skins: []string{}}
+	c := Cloud{Available: plots >= MaxPlots, Pots: []Pot{}, Skins: []string{}, Vip: map[string]VipStock{}}
 	rows, err := q.QueryContext(ctx, `SELECT floors, bean_planted, bean_ready_at FROM farm_cloud WHERE user_id = ?`, uid)
 	if err != nil {
 		return c, err
@@ -217,12 +288,29 @@ func loadCloud(ctx context.Context, q querier, uid int64, plots int) (Cloud, err
 		}
 		owned[id] = true
 	}
+	if err := rows.Err(); err != nil {
+		return c, err
+	}
+	rows.Close()
+	vip, err := VipPotQty(ctx, q, uid)
+	if err != nil {
+		return c, err
+	}
+	for _, s := range VipPots() {
+		st := VipStock{Owned: vip[s.ID]}
+		for _, p := range c.Pots {
+			if p.Skin == s.ID {
+				st.Used++
+			}
+		}
+		c.Vip[s.ID] = st
+	}
 	for _, s := range PotSkins { // theo thứ tự catalog
-		if s.Price == 0 || owned[s.ID] {
+		if (s.Price == 0 && !s.VIP) || owned[s.ID] || (s.VIP && vip[s.ID] > 0) {
 			c.Skins = append(c.Skins, s.ID)
 		}
 	}
-	return c, rows.Err()
+	return c, nil
 }
 
 // cloudFloor trả tầng theo số 1–4.
@@ -312,8 +400,10 @@ func (f *Farm) PlantPot(ctx context.Context, uid int64, floor, slot int) (State,
 			return err
 		}
 		now := f.now().Unix()
+		// Chậu VIP rút ngắn thời gian chín, tính lúc gieo (đổi chậu sau đó không đổi cây này).
+		grow := cf.Crop.GrowSeconds * (100 - potSpeed(p.Skin)) / 100
 		_, err := tx.ExecContext(ctx, `UPDATE farm_pots SET planted_at = ?, ready_at = ? WHERE user_id = ? AND floor = ? AND slot = ?`,
-			now, now+cf.Crop.GrowSeconds, uid, floor, slot)
+			now, now+grow, uid, floor, slot)
 		return err
 	})
 }
@@ -358,6 +448,9 @@ func (f *Farm) BuyPotSkin(ctx context.Context, uid int64, skin string) (State, e
 	if !ok {
 		return State{}, notFound("không có kiểu chậu này")
 	}
+	if ps.VIP {
+		return State{}, conflict(ps.Name + ": chỉ ghép từ mảnh nhiệm vụ, không bán")
+	}
 	return f.do(ctx, uid, func(tx *wallet.Tx, s State) error {
 		if slices.Contains(s.Cloud.Skins, ps.ID) {
 			return conflict("bạn đã có kiểu chậu " + ps.Name)
@@ -376,12 +469,19 @@ func (f *Farm) SetPotSkin(ctx context.Context, uid int64, floor, slot int, skin 
 		return State{}, err
 	}
 	return f.do(ctx, uid, func(tx *wallet.Tx, s State) error {
-		if _, ok := s.Cloud.pot(floor, slot); !ok {
+		p, ok := s.Cloud.pot(floor, slot)
+		if !ok {
 			return conflict("chỗ này chưa có chậu")
 		}
 		ps, ok := findPotSkin(skin)
 		if !ok || !slices.Contains(s.Cloud.Skins, ps.ID) {
 			return conflict("bạn chưa có kiểu chậu này")
+		}
+		// Chậu VIP: mỗi chậu chiếm một chỗ; tháo / đổi kiểu khác thì tự trả lại (đếm từ farm_pots).
+		if ps.VIP && p.Skin != ps.ID {
+			if st := s.Cloud.Vip[ps.ID]; st.Used >= st.Owned {
+				return conflict(fmt.Sprintf("đã lắp hết %d %s", st.Owned, ps.Name))
+			}
 		}
 		stored := ps.ID
 		if stored == potSkinDefault {
