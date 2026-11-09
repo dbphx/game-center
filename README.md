@@ -265,6 +265,18 @@ Mã lỗi: 400 dữ liệu sai, 402 không đủ xu, 403 thiếu level / HP, 404
   không đổi cây đang trồng. Catalog có `potSkins`; mỗi chậu có `skin`, `cloud.skins` là các kiểu đã có. Tiền mua kiểu chậu tính
   vào giá trị nông trại.
 
+### Mùa Noel và NPC trong vườn
+
+Trang nông trại nạp thêm `public/farm/season.js` + `season.css` (lớp phủ, không sửa `farm.js`). `noelActive(date)` đúng trong
+tháng 12, ngày 1–6/1 và riêng năm 2026 từ tháng 11 (giờ Việt Nam); `?season=noel` / `?season=off` ép bật / tắt khi thử.
+Trong mùa Noel: `<body class="season-noel">`, tuyết rơi (canvas vẽ ảnh bông tuyết PNG, ba lớp, điện thoại ít bông hơn, tắt khi
+`prefers-reduced-motion`), mái kho / cổng / cây / hàng rào / nền đất / ô ruộng đổi sang bản phủ tuyết cùng kích thước, dây đèn
+nháy dọc hàng rào, cây thông + quà thay cây đào trái cổng, người tuyết thay cây đào phải cổng, vòng hoa trên cổng và hai kho;
+tầng mây có đồi phủ tuyết, tuyết rơi, cây thông nhỏ + quà ở bờ mây đáy.
+NPC luôn có (trừ khi đang thăm nhà bạn): `<div id="farm-npc" class="farm-npc has-quest" role="button">` đứng bên trái cổng —
+Ông già Noel kèm bao quà trong mùa Noel, Bác nông dân (nón lá, giỏ rau) ngoài mùa; thỉnh thoảng vẫy tay; nhấn (hoặc Enter)
+phát `document.dispatchEvent(new CustomEvent('farm:npc', {detail: {npc}}))`; class `has-quest` hiện chấm "!" vàng trên đầu.
+
 ## Bầu Cua Tôm Cá
 
 Trong khu Casino. Có **sòng chung** (mã `chung`, máy luôn làm cái) và **bàn riêng** người chơi tự mở để chơi với

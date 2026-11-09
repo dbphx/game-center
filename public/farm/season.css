@@ -1,0 +1,113 @@
+/* Mùa trong nông trại (season.js). Chỉ có hiệu lực khi <body> có class season-noel; ngoài mùa chỉ còn NPC (cuối file).
+   Mọi hình là ảnh PNG trong /img/toon/farm/noel/ (tuyết dựng từ chính ảnh gốc, đồ trang trí dựng 3D) — CSS chỉ đổi đường
+   dẫn ảnh, màu trời và xếp chỗ. */
+
+/* ---------- Trời mùa đông + nền phủ tuyết ---------- */
+body.season-noel .stage { background: linear-gradient(#93b9d8, #dbe8f4 70%, #eef4fa 70%); }
+body.season-noel .scene { background: linear-gradient(#93b9d8, #dbe8f4); }
+body.season-noel .world {
+  background: linear-gradient(#93b9d8, #dbe8f4) 0 0 / 100% calc(var(--oy, 0px) + 140px) no-repeat,
+    url('/img/toon/farm/noel/dirt_smooth.png') 0 var(--oy, 0px) / 128px repeat;
+}
+body.season-noel .sky { background-image: url('/img/toon/farm/noel/far_farmland.png'); }
+body.season-noel .cloud { filter: saturate(.6) brightness(1.04); }
+body.season-noel .dirt,
+body.season-noel .obj.area.yard { background-image: url('/img/toon/farm/noel/dirt_smooth.png'); }
+body.season-noel .patch,
+body.season-noel .obj.area,
+body.season-noel .field-bed,
+body.season-noel .grass-edge.bottom { background-image: url('/img/toon/farm/noel/grass_tile.png'); }
+body.season-noel .obj.area.yard { background-image: url('/img/toon/farm/noel/dirt_smooth.png'); }
+body.season-noel .patch::before,
+body.season-noel .obj.area::before { background-image: url('/img/toon/farm/noel/bush_1.png'); }
+body.season-noel .bush-row { background-image: url('/img/toon/farm/noel/bush_1.png'); }
+body.season-noel .grass-edge,
+body.season-noel .grass-edge.bottom::before { background-image: url('/img/toon/farm/noel/grass_edge.png'); }
+body.season-noel .plot .soil { background-image: url('/img/toon/farm/noel/soil_plot_light.png'); }
+body.season-noel .plot .soil.wet { background-image: url('/img/toon/farm/noel/soil_plot_light_wet.png'); }
+body.season-noel .plot .soil.good { background-image: url('/img/toon/farm/noel/soil_plot_light_good.png'); }
+body.season-noel .plot .soil.wet.good { background-image: url('/img/toon/farm/noel/soil_plot_light_wet_good.png'); }
+body.season-noel .plot .soil.grass { background-image: url('/img/toon/farm/noel/grass_plot.png'); }
+
+/* ---------- Hàng rào phủ tuyết + dây đèn nháy ---------- */
+body.season-noel .fence-row,
+body.season-noel .yard .fence-bottom,
+body.season-noel .fence-bottom-row { background-image: url('/img/toon/farm/noel/fence_row.png'); }
+body.season-noel .yard .fence-top,
+body.season-noel .fence-thick { background-image: url('/img/toon/farm/noel/fence_wood.png'); }
+body.season-noel .hedge { background-image: url('/img/toon/farm/noel/fence_bamboo.png'); }
+body.season-noel .hedge-side { background-image: url('/img/toon/farm/noel/fence_bamboo_side.png'); }
+body.season-noel .hedge.picket { background-image: url('/img/toon/farm/noel/fence_picket.png'); }
+body.season-noel .hedge-side.picket { background-image: url('/img/toon/farm/noel/fence_picket_side.png'); }
+body.season-noel .hedge.store { background-image: url('/img/toon/farm/noel/fence_flower_store.png'); }
+body.season-noel .hedge-side.store { background-image: url('/img/toon/farm/noel/fence_flower_store_side.png'); }
+
+/* Dây đèn: hai ảnh lặp ngang chồng nhau, ảnh trên (bộ đèn b) bật / tắt luân phiên với ảnh dưới (bộ đèn a). */
+body.season-noel .hedge::before,
+body.season-noel .hedge::after,
+body.season-noel .fence-row::before,
+body.season-noel .fence-row::after,
+body.season-noel .fence-thick::before,
+body.season-noel .fence-thick::after {
+  content: ''; position: absolute; left: 0; right: 0; top: var(--lights-top, 2px); height: 28px; pointer-events: none;
+  background: url('/img/toon/farm/noel/lights_a.png') left top / 128px 28px repeat-x;
+}
+body.season-noel .hedge::after,
+body.season-noel .fence-row::after,
+body.season-noel .fence-thick::after {
+  background-image: url('/img/toon/farm/noel/lights_b.png');
+  animation: noel-blink 1.6s steps(1, end) infinite;
+}
+body.season-noel .fence-row { --lights-top: 2px; }
+body.season-noel .hedge { --lights-top: 6px; }
+body.season-noel .hedge.picket { --lights-top: 2px; }
+body.season-noel .fence-thick { --lights-top: 24px; }
+@keyframes noel-blink { 0% { opacity: 1; } 50% { opacity: 0; } }
+
+/* ---------- Đồ trang trí đặt trong cảnh (season.js chèn vào #season-layer, cùng lớp chiều sâu với #objects) ---------- */
+.season-hidden { visibility: hidden !important; }
+#season-layer, .season-decor { position: static; pointer-events: none; }
+.noel-deco { position: absolute; pointer-events: none; transform: translate(calc(-1 * var(--fx)), calc(-1 * var(--fy))); }
+.noel-deco img { display: block; width: 100%; height: 100%; }
+.noel-deco.tree .glow { position: absolute; inset: 0; animation: noel-blink 1.4s steps(1, end) infinite; }
+.noel-deco.tree { animation: noel-sway 6s ease-in-out infinite alternate; transform-origin: var(--fx) var(--fy); }
+@keyframes noel-sway { from { rotate: -.6deg; } to { rotate: .6deg; } }
+
+/* ---------- Tuyết rơi (canvas vẽ ảnh bông tuyết PNG) ---------- */
+.noel-snow { position: absolute; inset: 0; z-index: 5; width: 100%; height: 100%; pointer-events: none; }
+#cloud-scene > .noel-snow { position: fixed; z-index: 4; }
+
+/* Tầng mây: đồi phủ tuyết + cây thông nhỏ trên bờ mây đáy */
+body.season-noel #cloud-scene { background-image: url('/img/toon/farm/noel/bg_sky_hills.png'); background-color: #cfe2f0; }
+body.season-noel .cloud-head { background: rgba(214, 230, 244, .9); }
+.cloud-noel { position: absolute; right: 18px; bottom: 6px; z-index: 1; display: flex; align-items: flex-end; gap: 0; pointer-events: none; }
+.cloud-noel .noel-deco { position: relative; transform: none; }
+@media (max-width: 600px) { .cloud-noel { right: 4px; transform: scale(.72); transform-origin: right bottom; opacity: .95; } }
+
+/* ---------- NPC nông trại (luôn có): Ông già Noel trong mùa Noel, Bác nông dân ngoài mùa ---------- */
+.farm-npc {
+  position: absolute; pointer-events: auto; cursor: pointer; outline: none;
+  transform: translate(calc(-1 * var(--fx)), calc(-1 * var(--fy)));
+  -webkit-tap-highlight-color: transparent;
+}
+.farm-npc .npc-img { display: block; width: 100%; height: 100%; transition: filter .15s, transform .15s; transform-origin: 50% 88%; }
+.farm-npc:hover .npc-img, .farm-npc:focus-visible .npc-img { filter: drop-shadow(0 0 8px rgba(255, 225, 90, .95)) brightness(1.05); transform: scale(1.04); }
+.farm-npc:active .npc-img { transform: scale(.96); }
+.farm-npc.bump .npc-img { animation: npc-bump .45s ease-out; }
+@keyframes npc-bump { 30% { transform: scale(1.08, .92); } 60% { transform: scale(.96, 1.05); } }
+.farm-npc .npc-name {
+  position: absolute; left: 50%; bottom: calc(100% - 6px); transform: translateX(-50%); white-space: nowrap;
+  padding: 1px 8px; border-radius: 999px; background: rgba(255, 251, 236, .92); border: 2px solid #d59b23;
+  color: #8a5a07; font: 800 11px var(--font-title, inherit); pointer-events: none;
+}
+.farm-npc .npc-quest {
+  position: absolute; left: 50%; bottom: calc(100% + 14px); width: 16px; height: 41px; margin-left: -8px; display: none;
+  filter: drop-shadow(0 0 6px rgba(255, 210, 60, .9)); animation: npc-quest 1.2s ease-in-out infinite alternate; pointer-events: none;
+}
+.farm-npc.has-quest .npc-quest { display: block; }
+@keyframes npc-quest { from { translate: 0 0; } to { translate: 0 -6px; } }
+
+@media (prefers-reduced-motion: reduce) {
+  body.season-noel .hedge::after, body.season-noel .fence-row::after, body.season-noel .fence-thick::after,
+  .noel-deco.tree, .noel-deco.tree .glow, .farm-npc .npc-quest { animation: none; }
+}

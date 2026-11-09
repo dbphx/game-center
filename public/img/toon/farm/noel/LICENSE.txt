@@ -1,0 +1,5 @@
+Ảnh mùa Noel nông trại DCity (public/img/toon/farm/noel/)
+
+Mọi ảnh trong thư mục này do DCity tự dựng: bản phủ tuyết ghép bằng Pillow từ ảnh CC0 của dự án, đồ trang trí
+và NPC là hình học tự dựng bằng three.js (MIT). Phát hành CC0 1.0 (Public Domain Dedication):
+http://creativecommons.org/publicdomain/zero/1.0/

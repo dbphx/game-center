@@ -1,0 +1,515 @@
+{
+ "style": "Mùa Noel cho nông trại: tuyết phủ trên chính ảnh gốc (mái, tán cây, hàng rào, nền), đồ trang trí và NPC dựng 3D cùng góc nhìn ảnh farm3d; ảnh 2× (hiển thị bằng w × h)",
+ "anchor_note": "foot = điểm chân theo px hiển thị; ảnh phủ tuyết giữ nguyên kích thước và neo của ảnh gốc",
+ "images": [
+  {
+   "file": "bg_sky_hills.png",
+   "w": 1536,
+   "h": 560,
+   "replaces": "bg_sky_hills",
+   "use": "Bản mùa Noel của bg_sky_hills.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "bush_1.png",
+   "w": 120,
+   "h": 60,
+   "replaces": "bush_1",
+   "use": "Bản mùa Noel của bush_1.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "dirt_smooth.png",
+   "w": 256,
+   "h": 256,
+   "replaces": "dirt_smooth",
+   "use": "Bản mùa Noel của dirt_smooth.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "far_farmland.png",
+   "w": 768,
+   "h": 210,
+   "replaces": "far_farmland",
+   "use": "Bản mùa Noel của far_farmland.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "farm_gate.png",
+   "w": 386,
+   "h": 267,
+   "replaces": "farm_gate",
+   "use": "Bản mùa Noel của farm_gate.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "fence_bamboo.png",
+   "w": 128,
+   "h": 72,
+   "replaces": "fence_bamboo",
+   "use": "Bản mùa Noel của fence_bamboo.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "fence_bamboo_side.png",
+   "w": 40,
+   "h": 56,
+   "replaces": "fence_bamboo_side",
+   "use": "Bản mùa Noel của fence_bamboo_side.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "fence_flower_store.png",
+   "w": 128,
+   "h": 72,
+   "replaces": "fence_flower_store",
+   "use": "Bản mùa Noel của fence_flower_store.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "fence_flower_store_side.png",
+   "w": 40,
+   "h": 56,
+   "replaces": "fence_flower_store_side",
+   "use": "Bản mùa Noel của fence_flower_store_side.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "fence_picket.png",
+   "w": 96,
+   "h": 56,
+   "replaces": "fence_picket",
+   "use": "Bản mùa Noel của fence_picket.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "fence_picket_side.png",
+   "w": 36,
+   "h": 48,
+   "replaces": "fence_picket_side",
+   "use": "Bản mùa Noel của fence_picket_side.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "fence_piece.png",
+   "w": 66,
+   "h": 56,
+   "replaces": "fence_piece",
+   "use": "Bản mùa Noel của fence_piece.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "fence_row.png",
+   "w": 531,
+   "h": 56,
+   "replaces": "fence_row",
+   "use": "Bản mùa Noel của fence_row.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "fence_side.png",
+   "w": 46,
+   "h": 440,
+   "replaces": "fence_side",
+   "use": "Bản mùa Noel của fence_side.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "fence_side_full.png",
+   "w": 46,
+   "h": 440,
+   "replaces": "fence_side_full",
+   "use": "Bản mùa Noel của fence_side_full.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "fence_wood.png",
+   "w": 120,
+   "h": 88,
+   "replaces": "fence_wood",
+   "use": "Bản mùa Noel của fence_wood.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "flake_dot.png",
+   "w": 16,
+   "h": 16,
+   "use": "Bông tuyết tròn mềm (lớp xa / giữa)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "flake_star.png",
+   "w": 28,
+   "h": 28,
+   "use": "Bông tuyết tinh thể to (lớp gần)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "flake_star_s.png",
+   "w": 18,
+   "h": 18,
+   "use": "Bông tuyết tinh thể nhỏ",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "gift_blue.png",
+   "w": 34,
+   "h": 44,
+   "anchor": "foot",
+   "foot": [
+    17,
+    35
+   ],
+   "use": "Hộp quà xanh dương",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "gift_green.png",
+   "w": 38,
+   "h": 39,
+   "anchor": "foot",
+   "foot": [
+    19,
+    29
+   ],
+   "use": "Hộp quà xanh lá",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "gift_red.png",
+   "w": 48,
+   "h": 45,
+   "anchor": "foot",
+   "foot": [
+    24,
+    34
+   ],
+   "use": "Hộp quà đỏ",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "grass_edge.png",
+   "w": 256,
+   "h": 44,
+   "replaces": "grass_edge",
+   "use": "Bản mùa Noel của grass_edge.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "grass_plot.png",
+   "w": 96,
+   "h": 96,
+   "replaces": "grass_plot",
+   "use": "Bản mùa Noel của grass_plot.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "grass_tile.png",
+   "w": 128,
+   "h": 128,
+   "replaces": "grass_tile",
+   "use": "Bản mùa Noel của grass_tile.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "haystack.png",
+   "w": 227,
+   "h": 275,
+   "replaces": "haystack",
+   "use": "Bản mùa Noel của haystack.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "hut_rice.png",
+   "w": 209,
+   "h": 226,
+   "replaces": "hut_rice",
+   "use": "Bản mùa Noel của hut_rice.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "hut_seed.png",
+   "w": 168,
+   "h": 196,
+   "replaces": "hut_seed",
+   "use": "Bản mùa Noel của hut_seed.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "lights_a.png",
+   "w": 128,
+   "h": 28,
+   "anchor": "foot",
+   "foot": [
+    64,
+    24
+   ],
+   "use": "Dây đèn nháy lặp ngang 128 px (bộ a sáng)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "lights_b.png",
+   "w": 128,
+   "h": 28,
+   "anchor": "foot",
+   "foot": [
+    64,
+    24
+   ],
+   "use": "Dây đèn nháy (bộ b sáng)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "npc_farmer_0.png",
+   "w": 99,
+   "h": 134,
+   "anchor": "foot",
+   "foot": [
+    55,
+    118
+   ],
+   "use": "NPC Bác nông dân (nón lá, giỏ rau) ngoài mùa Noel, khung 0 (đứng)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "npc_farmer_1.png",
+   "w": 99,
+   "h": 134,
+   "anchor": "foot",
+   "foot": [
+    55,
+    118
+   ],
+   "use": "NPC Bác nông dân (nón lá, giỏ rau) ngoài mùa Noel, khung 1 (vẫy tay)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "npc_farmer_2.png",
+   "w": 99,
+   "h": 134,
+   "anchor": "foot",
+   "foot": [
+    55,
+    118
+   ],
+   "use": "NPC Bác nông dân (nón lá, giỏ rau) ngoài mùa Noel, khung 2 (vẫy tay)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "npc_santa_0.png",
+   "w": 99,
+   "h": 134,
+   "anchor": "foot",
+   "foot": [
+    55,
+    118
+   ],
+   "use": "NPC Ông già Noel kèm bao quà, khung 0 (đứng)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "npc_santa_1.png",
+   "w": 99,
+   "h": 134,
+   "anchor": "foot",
+   "foot": [
+    55,
+    118
+   ],
+   "use": "NPC Ông già Noel kèm bao quà, khung 1 (vẫy tay)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "npc_santa_2.png",
+   "w": 99,
+   "h": 134,
+   "anchor": "foot",
+   "foot": [
+    55,
+    118
+   ],
+   "use": "NPC Ông già Noel kèm bao quà, khung 2 (vẫy tay)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "pen_shed.png",
+   "w": 205,
+   "h": 198,
+   "replaces": "pen_shed",
+   "use": "Bản mùa Noel của pen_shed.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "quest_mark.png",
+   "w": 16,
+   "h": 41,
+   "anchor": "foot",
+   "foot": [
+    8,
+    39
+   ],
+   "use": "Chấm ! vàng trên đầu NPC (có nhiệm vụ)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "snowman.png",
+   "w": 84,
+   "h": 135,
+   "anchor": "foot",
+   "foot": [
+    42,
+    121
+   ],
+   "use": "Người tuyết, thay cây đào phải cổng",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "soil_plot_light.png",
+   "w": 96,
+   "h": 96,
+   "replaces": "soil_plot_light",
+   "use": "Bản mùa Noel của soil_plot_light.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "soil_plot_light_good.png",
+   "w": 96,
+   "h": 96,
+   "replaces": "soil_plot_light_good",
+   "use": "Bản mùa Noel của soil_plot_light_good.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "soil_plot_light_wet.png",
+   "w": 96,
+   "h": 96,
+   "replaces": "soil_plot_light_wet",
+   "use": "Bản mùa Noel của soil_plot_light_wet.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "soil_plot_light_wet_good.png",
+   "w": 96,
+   "h": 96,
+   "replaces": "soil_plot_light_wet_good",
+   "use": "Bản mùa Noel của soil_plot_light_wet_good.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_a.png",
+   "w": 146,
+   "h": 194,
+   "anchor": "foot",
+   "foot": [
+    73,
+    173
+   ],
+   "use": "Cây thông Noel (bộ đèn a sáng), đặt thay cây đào trái cổng",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_b.png",
+   "w": 146,
+   "h": 194,
+   "anchor": "foot",
+   "foot": [
+    73,
+    173
+   ],
+   "use": "Cây thông Noel (bộ đèn b sáng), chồng lên tree_a nhấp nháy",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_big.png",
+   "w": 174,
+   "h": 240,
+   "replaces": "tree_big",
+   "use": "Bản mùa Noel của tree_big.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_chuoi.png",
+   "w": 218,
+   "h": 210,
+   "replaces": "tree_chuoi",
+   "use": "Bản mùa Noel của tree_chuoi.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_da.png",
+   "w": 412,
+   "h": 340,
+   "replaces": "tree_da",
+   "use": "Bản mùa Noel của tree_da.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_dao.png",
+   "w": 210,
+   "h": 230,
+   "replaces": "tree_dao",
+   "use": "Bản mùa Noel của tree_dao.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_dua.png",
+   "w": 340,
+   "h": 320,
+   "replaces": "tree_dua",
+   "use": "Bản mùa Noel của tree_dua.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_khe.png",
+   "w": 320,
+   "h": 350,
+   "replaces": "tree_khe",
+   "use": "Bản mùa Noel của tree_khe.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_mai.png",
+   "w": 210,
+   "h": 230,
+   "replaces": "tree_mai",
+   "use": "Bản mùa Noel của tree_mai.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_tre.png",
+   "w": 170,
+   "h": 250,
+   "replaces": "tree_tre",
+   "use": "Bản mùa Noel của tree_tre.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "tree_xoai.png",
+   "w": 320,
+   "h": 350,
+   "replaces": "tree_xoai",
+   "use": "Bản mùa Noel của tree_xoai.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "well.png",
+   "w": 150,
+   "h": 116,
+   "replaces": "well",
+   "use": "Bản mùa Noel của well.png (cùng kích thước ảnh gốc)",
+   "license": "CC0 1.0"
+  },
+  {
+   "file": "wreath.png",
+   "w": 61,
+   "h": 66,
+   "anchor": "foot",
+   "foot": [
+    31,
+    56
+   ],
+   "use": "Vòng hoa treo cổng / kho",
+   "license": "CC0 1.0"
+  }
+ ]
+}

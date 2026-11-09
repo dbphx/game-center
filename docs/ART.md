@@ -51,7 +51,7 @@ Toàn game theo phong cách hoạt hình Avatar (bộ pixel cũ đã xoá, còn 
 | Bệnh viện | `public/img/toon/hospital/`, xe cứu thương ở `toon/city/` |
 | `/credits.html` | tổng hợp ghi công từ manifest / CREDITS.csv / LICENSE.txt |
 | `public/icons.js` | icon giao diện SVG nhỏ trong nút — ngoại lệ, giữ |
-| `public/race/` | Trường đua 3D (three.js): mô hình GLB CC0 hoặc CC-BY **có ghi công** (người dùng đồng ý) — tên tác giả hiện trong garage và ghi ở `public/race/models/CREDITS.txt`; không dùng mô hình trích từ game thương mại |
+| `public/race/` | Trường đua 3D (three.js): mô hình GLB CC0 hoặc CC-BY **có ghi công** (người dùng đồng ý) — tên tác giả hiện trong garage và ghi ở `public/race/models/CREDITS.txt`; không dùng mô hình trích từ game thương mại. Siêu xe hạng cao (và xe độc quyền) dựng bằng code trong `public/race/hyper.js` (thân loft, vây lưỡi dao, cánh kính phát sáng, neon), garage hiện "Thiết kế: DCity" |
 
 Bản đồ (`public/city.js`) đọc mọi ảnh qua bảng ánh xạ tên → file + điểm chân lấy từ manifest. Một bộ ảnh thay thế
 (vd 3D ở `public/img/toon/city3d/`) chỉ cần manifest có `"replaces": "tên cũ"` cho từng ảnh (hoặc bảng `"map"`), neo chân
@@ -61,6 +61,10 @@ Cây phố (phượng, bằng lăng, bàng, sao), khu Công trường / Hồ câ
 Chậu tầng mây (`public/img/toon/farm/pot_*.png`, ảnh 2× 240×264 hiển thị 120×132, tâm mặt đất `plantY` = 32) dựng 3D bằng
 three.js rồi xuất PNG (CC0): `tools/render_pots/` — chạy static server ở gốc repo (`python3 -m http.server 8305`), `node
 tools/render_pots/render.mjs` (cần playwright-core + Chrome) rồi `python3 tools/render_pots/finish.py` (viền + bóng); xem README.txt ở đó.
+Mùa Noel nông trại (`public/img/toon/farm/noel/`, CC0): bản phủ tuyết của ảnh cảnh (cùng tên, cùng kích thước ảnh gốc —
+`season.js` chỉ đổi đường dẫn) dựng bằng `python3 tools/render_noel/snow.py`; cây thông, người tuyết, quà, vòng hoa, dây đèn,
+chấm "!" và NPC (Ông già Noel / Bác nông dân, 3 khung đứng – vẫy tay) dựng 3D bằng `tools/render_noel/` (render.mjs → finish.py →
+manifest.py, xem README.txt ở đó); `noel.json` ghi kích thước hiển thị và điểm chân.
 
 Nguồn hiện tại đều CC0 (Kenney, OpenGameArt; phần tự ghép bằng PIL phát hành CC0).
 Hạn chế: xe chỉ có ảnh nghiêng (chỉ chạy đường ngang); nhân vật hướng lên/xuống nhún thay vì bước; nằm = xoay 90°.
