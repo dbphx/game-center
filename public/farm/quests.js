@@ -192,7 +192,7 @@
         <img class="q-ic" src="${KIND_IMG[q.kind] || IMG + 'shard_common.png'}" alt="" draggable="false">
         <div class="q-main"><b>${esc(q.name)}</b>
           <div class="q-bar"><span style="width:${pct}%"></span><em>${Math.min(q.progress, q.target)}/${q.target}</em></div>
-          <small class="q-reward"><img src="${IMG}shard_common.png" alt="">${q.reward.shards} mảnh · +${q.reward.xp} XP</small>
+          <small class="q-reward"><img src="${IMG}shard_common.png" alt="">${q.reward.shards} mảnh${q.reward.parts ? ` · <img src="${IMG}part_piston.png" alt="">${q.reward.parts} phụ kiện` : ''} · +${q.reward.xp} XP</small>
         </div>
         <div class="q-act">${btn}</div>
       </div>`;
@@ -206,7 +206,7 @@
       <div class="q-list">${rows}</div>
       <div class="q-chest ${chest.ready && !chest.claimed ? 'ready' : ''}">
         <img src="${chestImg}" alt="" draggable="false">
-        <div><b>${daily ? 'Rương ngày' : 'Rương tuần'}</b><small>${daily ? 'Xong cả 5 nhiệm vụ ngày: thêm 1 mảnh' : 'Xong cả 3 nhiệm vụ tuần: 1 mảnh Độc quyền'}</small></div>
+        <div><b>${daily ? 'Rương ngày' : 'Rương tuần'}</b><small>${daily ? 'Xong cả 5 nhiệm vụ ngày: thêm 1 mảnh' : 'Xong cả 3 nhiệm vụ tuần: 1 mảnh Độc quyền'}${chest.parts ? ` + ${chest.parts} phụ kiện` : ''}</small></div>
         ${chestBtn}
       </div>`;
   }
@@ -235,10 +235,20 @@
       return `<section class="q-tier tier-${t}"><h3><img src="${IMG}shard_${t}.png" alt="">${TIERS[t].name}<small>rơi ${(rates[t] || 0) / 10}%</small>${ex}</h3>
         <div class="q-grid">${cards}</div></section>`;
     }).join('');
-    return `<p class="muted q-note">Mỗi phần thưởng là mảnh ngẫu nhiên. Đủ mảnh thì ghép ra xe (không cần đủ cấp); xe ghép xong có trong garage Trường đua.</p>${sections}`;
+    return `${partsHtml()}<p class="muted q-note">Mỗi phần thưởng là mảnh ngẫu nhiên. Đủ mảnh thì ghép ra xe (không cần đủ cấp); xe ghép xong có trong garage Trường đua.</p>${sections}`;
   }
 
   // ---------- Thao tác ----------
+  // partsHtml: kho phụ kiện nâng cấp xe (Piston / Bộ tăng áp / Lốp đua) — chỉ có từ nhiệm vụ, dùng ở garage Trường đua.
+  function partsHtml() {
+    const info = state.partInfo || [];
+    if (!info.length) return '';
+    const have = state.parts || {};
+    return `<section class="q-parts"><h3><img src="${IMG}part_piston.png" alt="">Phụ kiện nâng cấp xe</h3>
+      <div class="q-parts-row">${info.map((p) => `<div class="q-part"><img src="${IMG}part_${esc(p.id)}.png" alt="" draggable="false"><b>${esc(p.name)}</b><span>${have[p.id] || 0}</span></div>`).join('')}</div>
+      <p class="muted">Dùng ở garage Trường đua: nâng một món lên cấp n cần n phụ kiện đúng loại + xu. Mỗi nhiệm vụ ngày cho 1, nhiệm vụ tuần 3, rương ngày 2, rương tuần 5.</p></section>`;
+  }
+
   async function onClick(e) {
     const t = e.target;
     if (t.closest('[data-qclose]')) return dlg.close();
@@ -248,13 +258,13 @@
     const c = t.closest('[data-claim]');
     if (c) {
       const r = await act('claim', { id: c.dataset.claim });
-      if (r) reveal(r.gained, 'Nhận thưởng nhiệm vụ');
+      if (r) reveal(r.gained, 'Nhận thưởng nhiệm vụ', '', r.gainedParts);
       return;
     }
     const ch = t.closest('[data-chest]');
     if (ch) {
       const r = await act('chest', { kind: ch.dataset.chest });
-      if (r) reveal(r.gained, ch.dataset.chest === 'daily' ? 'Rương ngày' : 'Rương tuần', ch.dataset.chest);
+      if (r) reveal(r.gained, ch.dataset.chest === 'daily' ? 'Rương ngày' : 'Rương tuần', ch.dataset.chest, r.gainedParts);
       return;
     }
     const rr = t.closest('[data-reroll]');
@@ -291,10 +301,13 @@
   }
 
   // ---------- Hoạt ảnh mở mảnh ----------
-  function reveal(gained, title, chest) {
-    if (!gained || !gained.length) return;
+  function reveal(gained, title, chest, parts) {
+    gained = gained || [];
+    parts = parts || [];
+    if (!gained.length && !parts.length) return;
     const box = dlg.querySelector('.quest-reveal');
     const total = gained.reduce((n, g) => n + g.qty, 0);
+    const totalParts = parts.reduce((n, p) => n + p.qty, 0);
     box.innerHTML = `<div class="qr-card">
       ${chest ? `<img class="qr-chest" src="${IMG}chest_${chest}_open.png" alt="">` : ''}
       <h3>${esc(title)}</h3>
@@ -303,8 +316,12 @@
         <img class="qr-thumb" src="${thumb(g.item)}" alt="" onerror="this.src='${IMG}shard_${g.tier}.png'">
         <img class="qr-shard" src="${IMG}shard_${g.tier}.png" alt="">
         <b>${esc(g.name)}</b><small>${TIERS[g.tier] ? TIERS[g.tier].name : ''} · +${g.qty} mảnh</small>
+      </div>`).join('')}${parts.map((p, i) => `<div class="qr-item qr-part" style="--i:${gained.length + i}">
+        <span class="qr-glow"></span>
+        <img class="qr-thumb" src="${IMG}part_${esc(p.part)}.png" alt="">
+        <b>${esc(p.name)}</b><small>Phụ kiện · +${p.qty}</small>
       </div>`).join('')}</div>
-      <p class="muted">Nhận ${total} mảnh · bấm để đóng</p>
+      <p class="muted">Nhận ${[total ? `${total} mảnh` : '', totalParts ? `${totalParts} phụ kiện` : ''].filter(Boolean).join(' · ')} · bấm để đóng</p>
     </div>`;
     box.classList.remove('hidden');
     void box.offsetWidth;

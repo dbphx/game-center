@@ -522,13 +522,15 @@ Mưa lửa là một tin `shot` có `skill:"rain"`, `skillName:"Mưa lửa"`, m�
 
 - **Chỉ số:** xe khởi đầu cấp 0: tốc độ 30 m/s, tăng tốc 12 m/s², bám đường 0,70. Mỗi hạng xe cao hơn một chút; mỗi cấp nâng +2,5%;
   xe đắt nhất nâng tối đa hơn xe khởi đầu ≈20% mỗi chỉ số; không mẫu nào (kể cả moto) vượt trần đó.
-- **Nâng cấp** 3 món, mỗi món 5 cấp: động cơ / ống xả (tốc độ), turbo (tăng tốc), lốp / mâm (bám đường). Giá lên cấp n =
-  giá xe × 10% × n (xe khởi đầu tính như 30.000 xu).
+- **Nâng cấp** 3 món, mỗi món 5 cấp: động cơ / ống xả (tốc độ), turbo (tăng tốc), lốp / mâm (bám đường). Lên cấp n cần
+  **n phụ kiện đúng loại** + giá xe × 10% × n xu (xe khởi đầu tính như 30.000 xu). Phụ kiện: Piston `piston` (động cơ),
+  Bộ tăng áp `turbo_kit` (turbo), Lốp đua `tire_kit` (lốp) — **không bán**, chỉ có từ nhiệm vụ ở NPC nông trại (xem
+  "Nhiệm vụ và mảnh xe"); thiếu → 409 "Cần N <tên> (có M)", không trừ xu. Cấp đã nâng trước đây giữ nguyên.
 - **Đồ trang trí** (không có chỉ số): cánh gió 10.000–80.000, đèn neon gầm 20.000–24.000, decal 10.000–100.000; sơn 8 màu miễn phí.
 
 | API (`/api/race`, cần đăng nhập) | Body | |
 |---|---|---|
-| `GET /api/race/garage` | | `{cars:[{id,name,kind,price,owned,levels,stats,cosmetics}], current, items, upgradePrice, maxLevel, nitroBoost, nitroMs, nitroCharge}` |
+| `GET /api/race/garage` | | `{cars:[{id,name,kind,price,owned,levels,stats,cosmetics}], current, items, upgradePrice, maxLevel, nitroBoost, nitroMs, nitroCharge, parts{piston, turbo_kit, tire_kit}, partNeed{xe:{engine, turbo, tires}}, partOf{engine:"piston", …}, partInfo[{id, name, for}]}` — `partNeed` = số phụ kiện cho cấp kế (0 = tối đa / chưa có xe) |
 | `POST /api/race/car/buy` · `/car/select` | `{car}` | mua (chọn luôn) / chọn xe |
 | `POST /api/race/upgrade` | `{car, part}` | `part`: `engine` / `turbo` / `tires` |
 | `POST /api/race/item/buy` | `{item}` | mua đồ trang trí |
@@ -593,8 +595,9 @@ mồi tốt cho cá to hơn. Vớt phải rác (dép cũ, lon) thì chỉ đư�
 Nhiệm vụ hệ thống nằm ở nông trại: nhận, đổi nhiệm vụ và lấy thưởng tại NPC trong vườn (mùa Noel 1/12–6/1 — năm 2026 từ
 tháng 11 — là Ông già Noel, ngoài mùa là Bác nông dân). Thưởng là **mảnh ghép xe đua**. Gói `games/quests`.
 
-- **Ngày** (reset 0:00 giờ VN): 5 nhiệm vụ khác loại, mỗi cái 1 mảnh + 20 XP; xong cả 5 → rương ngày 1 mảnh.
-  **Tuần** (reset thứ Hai 0:00): 3 nhiệm vụ, mỗi cái 3 mảnh + 100 XP; xong cả 3 → rương tuần 1 mảnh độc quyền.
+- **Ngày** (reset 0:00 giờ VN): 5 nhiệm vụ khác loại, mỗi cái 1 mảnh + 1 phụ kiện + 20 XP; xong cả 5 → rương ngày 1 mảnh + 2 phụ kiện.
+  **Tuần** (reset thứ Hai 0:00): 3 nhiệm vụ, mỗi cái 3 mảnh + 3 phụ kiện + 100 XP; xong cả 3 → rương tuần 1 mảnh độc quyền + 5 phụ kiện.
+  **Phụ kiện nâng cấp xe** (Piston / Bộ tăng áp / Lốp đua, mỗi cái ngẫu nhiên đều 1/3) vào kho garage, dùng nâng cấp xe ở Trường đua.
   Xong rồi phải bấm Nhận (tiến độ không vượt mục tiêu; đã nhận thì thôi cộng).
 - Loại nhiệm vụ (ngày: cấp 1 → cấp 30 nội suy; tuần cố định): thu hoạch ô cây 10→30 / 150, gieo hạt 10→30 / —,
   lấy trứng–sữa–len 5→15 / 60, bán hoặc thu con vật–cá 2→6 / 25, hạ zombie (đập hoặc súng đậu) 2→5 / 20,
@@ -619,14 +622,14 @@ tháng 11 — là Ông già Noel, ngoài mùa là Bác nông dân). Thưởng l�
 
 | API (`/api/quests`, cần đăng nhập) | Body | Trả |
 |---|---|---|
-| `GET /api/quests` | | `{daily[], weekly[], chest{daily{ready, claimed}, weekly{…}}, shards[{item, name, tier, kind, qty, need, owned}], rates, rerollCost, rerollsLeft, resetAt{day, week}, npc: "santa"\|"farmer", pending}` |
-| `POST /api/quests/claim` | `{id}` (`d0`–`d4`, `w0`–`w2`) | `{quests, gained:[{item, name, tier, kind, qty}]}` |
-| `POST /api/quests/chest` | `{kind}` `daily` / `weekly` | `{quests, gained}` |
+| `GET /api/quests` | | `{daily[], weekly[], chest{daily{ready, claimed, parts}, weekly{…}}, shards[{item, name, tier, kind, qty, need, owned}], rates, rerollCost, rerollsLeft, resetAt{day, week}, npc: "santa"\|"farmer", pending, parts{piston, turbo_kit, tire_kit}, partInfo[{id, name, for}]}` |
+| `POST /api/quests/claim` | `{id}` (`d0`–`d4`, `w0`–`w2`) | `{quests, gained:[{item, name, tier, kind, qty}], gainedParts:[{part, name, qty}]}` |
+| `POST /api/quests/chest` | `{kind}` `daily` / `weekly` | `{quests, gained, gainedParts}` |
 | `POST /api/quests/reroll` | `{id}` (chỉ nhiệm vụ ngày) | `{quests, cost}` |
 | `POST /api/quests/assemble` | `{item}` | `{quests, granted:{item, kind}}` |
 | `POST /api/quests/exchange` | `{tier}` `common` / `rare` / `epic` | `{quests, gained}` |
 
-Nhiệm vụ: `{id, kind, name, progress, target, reward{shards, xp}, done, claimed}`. Lỗi: 400 sai tham số, 402 thiếu xu,
+Nhiệm vụ: `{id, kind, name, progress, target, reward{shards, parts, xp}, done, claimed}`. Lỗi: 400 sai tham số, 402 thiếu xu,
 409 chưa xong / đã nhận / hết lượt đổi / thiếu mảnh / đã có, 401 chưa đăng nhập.
 
 ## Khu danh vọng

@@ -113,13 +113,13 @@ func TestGenerateDailyWeekly(t *testing.T) {
 			t.Fatal("chưa có chậu tầng mây thì không giao nhiệm vụ tầng mây")
 		}
 		tp, _ := findTemplate(q.Kind)
-		if q.Target != tp.DailyMin || q.Reward != (Reward{1, 20}) {
+		if q.Target != tp.DailyMin || q.Reward != (Reward{1, 1, 20}) {
 			t.Fatalf("nhiệm vụ cấp 1: %+v", q)
 		}
 	}
 	for _, q := range s.Weekly {
 		tp, _ := findTemplate(q.Kind)
-		if tp.Weekly == 0 || q.Target != tp.Weekly || q.Reward != (Reward{3, 100}) {
+		if tp.Weekly == 0 || q.Target != tp.Weekly || q.Reward != (Reward{3, 3, 100}) {
 			t.Fatalf("nhiệm vụ tuần: %+v", q)
 		}
 	}
@@ -189,7 +189,7 @@ func TestRecordProgressAndClaim(t *testing.T) {
 	if got, _ := findQuest(e.view(), "d0"); got.Progress != 1 || got.Done {
 		t.Fatalf("tiến độ sau 1: %+v", got)
 	}
-	_, _, err := e.q.Claim(ctx, e.uid, "d0")
+	_, _, _, err := e.q.Claim(ctx, e.uid, "d0")
 	wantStatus(t, err, http.StatusConflict) // chưa xong
 	e.q.Record(ctx, nil, e.uid, d0.Kind, 1000)
 	s = e.view()
@@ -197,20 +197,26 @@ func TestRecordProgressAndClaim(t *testing.T) {
 	if got.Progress != got.Target || !got.Done || s.Pending < 1 {
 		t.Fatalf("tiến độ không vượt mục tiêu: %+v pending %d", got, s.Pending)
 	}
-	s, gained, err := e.q.Claim(ctx, e.uid, "d0")
+	if got.Reward.Parts != DailyParts {
+		t.Fatalf("thưởng nhiệm vụ ngày phải có %d phụ kiện: %+v", DailyParts, got.Reward)
+	}
+	s, gained, parts, err := e.q.Claim(ctx, e.uid, "d0")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(gained) != 1 || gained[0].Qty != 1 || shardOf(s, gained[0].Item).Qty != 1 {
 		t.Fatalf("nhận 1 mảnh: %+v", gained)
 	}
+	if partSum(parts) != DailyParts || totalParts(s) != DailyParts || parts[0].Name == "" {
+		t.Fatalf("nhận phụ kiện: %+v, kho %v", parts, s.Parts)
+	}
 	u, _ := e.w.User(ctx, e.uid)
 	if u.XP != DailyXP {
 		t.Fatalf("XP %d, muốn %d", u.XP, DailyXP)
 	}
-	_, _, err = e.q.Claim(ctx, e.uid, "d0")
+	_, _, _, err = e.q.Claim(ctx, e.uid, "d0")
 	wantStatus(t, err, http.StatusConflict) // nhận một lần
-	_, _, err = e.q.Claim(ctx, e.uid, "x9")
+	_, _, _, err = e.q.Claim(ctx, e.uid, "x9")
 	wantStatus(t, err, http.StatusBadRequest)
 	// Đã nhận thì sự kiện sau không cộng nữa.
 	e.q.Record(ctx, nil, e.uid, d0.Kind, 1)
@@ -250,9 +256,9 @@ func TestRecordUniquePerDay(t *testing.T) {
 func TestChests(t *testing.T) {
 	e := newEnv(t, 0)
 	s := e.view()
-	_, _, err := e.q.Chest(ctx, e.uid, "daily")
+	_, _, _, err := e.q.Chest(ctx, e.uid, "daily")
 	wantStatus(t, err, http.StatusConflict)
-	_, _, err = e.q.Chest(ctx, e.uid, "monthly")
+	_, _, _, err = e.q.Chest(ctx, e.uid, "monthly")
 	wantStatus(t, err, http.StatusBadRequest)
 	for _, q := range s.Daily {
 		e.finish(s, q.ID)
@@ -264,15 +270,28 @@ func TestChests(t *testing.T) {
 	if !s.Chest.Daily.Ready || !s.Chest.Weekly.Ready || s.Pending != DailyCount+WeeklyCount+2 {
 		t.Fatalf("rương sẵn sàng: %+v pending %d", s.Chest, s.Pending)
 	}
-	s, g, err := e.q.Chest(ctx, e.uid, "daily")
+	if s.Chest.Daily.Parts != DailyChestParts || s.Chest.Weekly.Parts != WeeklyChestParts {
+		t.Fatalf("phụ kiện rương: %+v", s.Chest)
+	}
+	s, g, parts, err := e.q.Chest(ctx, e.uid, "daily")
 	if err != nil || len(g) != 1 || !s.Chest.Daily.Claimed {
 		t.Fatalf("mở rương ngày: %v %+v", err, g)
 	}
-	_, _, err = e.q.Chest(ctx, e.uid, "daily")
+	if partSum(parts) != DailyChestParts || totalParts(s) != DailyChestParts {
+		t.Fatalf("rương ngày ra %d phụ kiện: %+v", DailyChestParts, parts)
+	}
+	_, _, _, err = e.q.Chest(ctx, e.uid, "daily")
 	wantStatus(t, err, http.StatusConflict)
-	_, g, err = e.q.Chest(ctx, e.uid, "weekly")
+	_, g, parts, err = e.q.Chest(ctx, e.uid, "weekly")
 	if err != nil || len(g) != 1 || g[0].Tier != TierExclusive {
 		t.Fatalf("rương tuần ra mảnh độc quyền: %v %+v", err, g)
+	}
+	if partSum(parts) != WeeklyChestParts {
+		t.Fatalf("rương tuần ra %d phụ kiện: %+v", WeeklyChestParts, parts)
+	}
+	_, _, parts, err = e.q.Claim(ctx, e.uid, "w0")
+	if err != nil || partSum(parts) != WeeklyParts {
+		t.Fatalf("nhiệm vụ tuần ra %d phụ kiện: %v %+v", WeeklyParts, err, parts)
 	}
 }
 
@@ -444,7 +463,7 @@ func TestConcurrentRecordAndClaim(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			_, _, err := e.q.Claim(ctx, e.uid, "d0")
+			_, _, _, err := e.q.Claim(ctx, e.uid, "d0")
 			ok <- err == nil
 		}()
 	}
@@ -458,6 +477,63 @@ func TestConcurrentRecordAndClaim(t *testing.T) {
 	}
 	if n != 1 {
 		t.Fatalf("nhận đồng thời %d lần, muốn 1", n)
+	}
+	if got := totalParts(e.view()); got != DailyParts {
+		t.Fatalf("nhận đồng thời: %d phụ kiện, muốn %d", got, DailyParts)
+	}
+}
+
+func partSum(list []PartGain) int {
+	n := 0
+	for _, p := range list {
+		n += p.Qty
+	}
+	return n
+}
+
+func totalParts(s State) int {
+	n := 0
+	for _, q := range s.Parts {
+		n += q
+	}
+	return n
+}
+
+// Phụ kiện chia đều 3 loại; phụ kiện nhận được dùng nâng cấp xe được.
+func TestPartsEvenAndUsable(t *testing.T) {
+	e := newEnv(t, 1_000_000)
+	i := 0
+	e.q.intN = func(n int) int { i++; return i % n }
+	tx, err := e.w.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := e.q.giveParts(ctx, tx, e.uid, 9)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 3 {
+		t.Fatalf("9 phụ kiện xoay vòng phải đủ 3 loại: %+v", got)
+	}
+	for _, p := range got {
+		if p.Qty != 3 {
+			t.Fatalf("mỗi loại 3: %+v", got)
+		}
+	}
+	s := e.view()
+	if len(s.PartInfo) != 3 || s.Parts[race.PartPiston] != 3 {
+		t.Fatalf("kho phụ kiện: %v %+v", s.Parts, s.PartInfo)
+	}
+	g, err := race.NewGarage(ctx, e.w)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v, err := g.Upgrade(ctx, e.uid, "starter", "engine")
+	if err != nil || v.Parts[race.PartPiston] != 2 {
+		t.Fatalf("dùng phụ kiện nhiệm vụ nâng cấp: %v %v", err, v.Parts)
 	}
 }
 

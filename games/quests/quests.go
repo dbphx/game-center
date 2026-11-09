@@ -254,6 +254,7 @@ func (q *Quests) inTx(ctx context.Context, tx *wallet.Tx, fn func(tx *wallet.Tx)
 
 type Reward struct {
 	Shards int   `json:"shards"`
+	Parts  int   `json:"parts"` // phụ kiện nâng cấp xe
 	XP     int64 `json:"xp"`
 }
 
@@ -271,6 +272,7 @@ type Quest struct {
 type ChestState struct {
 	Ready   bool `json:"ready"`
 	Claimed bool `json:"claimed"`
+	Parts   int  `json:"parts"` // số phụ kiện rương cho
 }
 
 type ShardView struct {
@@ -291,6 +293,13 @@ type Gain struct {
 	Qty  int    `json:"qty"`
 }
 
+// PartGain là phụ kiện vừa nhận (gộp theo loại).
+type PartGain struct {
+	Part string `json:"part"`
+	Name string `json:"name"`
+	Qty  int    `json:"qty"`
+}
+
 type State struct {
 	Daily  []Quest `json:"daily"`
 	Weekly []Quest `json:"weekly"`
@@ -308,6 +317,9 @@ type State struct {
 	} `json:"resetAt"`
 	NPC     string `json:"npc"`     // "santa" mùa Noel, "farmer" ngoài mùa
 	Pending int    `json:"pending"` // số phần thưởng chờ nhận (nhiệm vụ xong + rương)
+	// Phụ kiện nâng cấp xe đang có (theo mã) và danh sách phụ kiện (tên, món dùng).
+	Parts    map[string]int  `json:"parts"`
+	PartInfo []race.PartItem `json:"partInfo"`
 }
 
 func (q *Quests) load(ctx context.Context, tx *wallet.Tx, uid int64, p periods) (State, error) {
@@ -328,10 +340,10 @@ func (q *Quests) load(ctx context.Context, tx *wallet.Tx, uid int64, p periods) 
 		t, _ := findTemplate(kind)
 		qu.Kind, qu.Name, qu.Done = kind, t.title(qu.Target), qu.Progress >= qu.Target
 		if period == p.day {
-			qu.ID, qu.Reward = fmt.Sprintf("d%d", slot), Reward{DailyShards, DailyXP}
+			qu.ID, qu.Reward = fmt.Sprintf("d%d", slot), Reward{DailyShards, DailyParts, DailyXP}
 			s.Daily = append(s.Daily, qu)
 		} else {
-			qu.ID, qu.Reward = fmt.Sprintf("w%d", slot), Reward{WeeklyShards, WeeklyXP}
+			qu.ID, qu.Reward = fmt.Sprintf("w%d", slot), Reward{WeeklyShards, WeeklyParts, WeeklyXP}
 			s.Weekly = append(s.Weekly, qu)
 		}
 	}
@@ -353,6 +365,11 @@ func (q *Quests) load(ctx context.Context, tx *wallet.Tx, uid int64, p periods) 
 		}
 		*c.out = ChestState{Ready: allDone(c.list), Claimed: n > 0}
 	}
+	s.Chest.Daily.Parts, s.Chest.Weekly.Parts = DailyChestParts, WeeklyChestParts
+	if s.Parts, err = race.PartQty(ctx, tx, uid); err != nil {
+		return s, err
+	}
+	s.PartInfo = race.PartItems
 	for _, list := range [][]Quest{s.Daily, s.Weekly} {
 		for _, qu := range list {
 			if qu.Done && !qu.Claimed {
@@ -493,6 +510,25 @@ func (q *Quests) give(ctx context.Context, tx *wallet.Tx, uid int64, n int, tier
 	return out, nil
 }
 
+// giveParts rút n phụ kiện (đều 1/3 mỗi loại), cộng vào kho garage, gộp theo loại (thứ tự như race.PartItems).
+func (q *Quests) giveParts(ctx context.Context, tx *wallet.Tx, uid int64, n int) ([]PartGain, error) {
+	count := make([]int, len(race.PartItems))
+	for range n {
+		count[q.intN(len(race.PartItems))]++
+	}
+	out := []PartGain{}
+	for i, p := range race.PartItems {
+		if count[i] == 0 {
+			continue
+		}
+		if err := race.GrantParts(ctx, tx, uid, p.ID, count[i]); err != nil {
+			return nil, err
+		}
+		out = append(out, PartGain{Part: p.ID, Name: p.Name, Qty: count[i]})
+	}
+	return out, nil
+}
+
 // ---------- Thao tác ----------
 
 func findQuest(s State, id string) (Quest, bool) {
@@ -524,9 +560,10 @@ func slotOf(id string, p periods) (string, int, bool) {
 	return "", 0, false
 }
 
-// Claim nhận thưởng một nhiệm vụ đã xong: mảnh ngẫu nhiên + XP.
-func (q *Quests) Claim(ctx context.Context, uid int64, id string) (State, []Gain, error) {
+// Claim nhận thưởng một nhiệm vụ đã xong: mảnh ngẫu nhiên + phụ kiện + XP.
+func (q *Quests) Claim(ctx context.Context, uid int64, id string) (State, []Gain, []PartGain, error) {
 	var gained []Gain
+	var parts []PartGain
 	s, err := q.do(ctx, uid, func(tx *wallet.Tx, s State, p periods) error {
 		qu, ok := findQuest(s, id)
 		if !ok {
@@ -546,15 +583,19 @@ func (q *Quests) Claim(ctx context.Context, uid int64, id string) (State, []Gain
 			return err
 		}
 		var err error
-		gained, err = q.give(ctx, tx, uid, qu.Reward.Shards, "")
+		if gained, err = q.give(ctx, tx, uid, qu.Reward.Shards, ""); err != nil {
+			return err
+		}
+		parts, err = q.giveParts(ctx, tx, uid, qu.Reward.Parts)
 		return err
 	})
-	return s, gained, err
+	return s, gained, parts, err
 }
 
 // Chest mở rương ngày ("daily": 1 mảnh ngẫu nhiên) hoặc tuần ("weekly": 1 mảnh độc quyền) khi làm xong mọi nhiệm vụ kỳ đó.
-func (q *Quests) Chest(ctx context.Context, uid int64, kind string) (State, []Gain, error) {
+func (q *Quests) Chest(ctx context.Context, uid int64, kind string) (State, []Gain, []PartGain, error) {
 	var gained []Gain
+	var parts []PartGain
 	s, err := q.do(ctx, uid, func(tx *wallet.Tx, s State, p periods) error {
 		var c ChestState
 		var period, tier string
@@ -576,10 +617,13 @@ func (q *Quests) Chest(ctx context.Context, uid int64, kind string) (State, []Ga
 			return err
 		}
 		var err error
-		gained, err = q.give(ctx, tx, uid, ChestShards, tier)
+		if gained, err = q.give(ctx, tx, uid, ChestShards, tier); err != nil {
+			return err
+		}
+		parts, err = q.giveParts(ctx, tx, uid, c.Parts)
 		return err
 	})
-	return s, gained, err
+	return s, gained, parts, err
 }
 
 // Reroll đổi một nhiệm vụ ngày chưa xong lấy loại khác (tiến độ về 0): lần đầu trong ngày miễn phí, sau đó RerollCost xu,

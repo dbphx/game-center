@@ -120,6 +120,12 @@ type GarageView struct {
 	NitroBoost   float64                     `json:"nitroBoost"`
 	NitroMs      int                         `json:"nitroMs"`
 	NitroCharge  float64                     `json:"nitroCharge"` // hệ số tốc độ tích nitro
+	// Phụ kiện nâng cấp: Parts = số đang có theo mã; PartNeed[xe][món] = số phụ kiện cần cho cấp kế (0 = tối đa / chưa có
+	// xe); PartOf[món] = mã phụ kiện của món đó; PartInfo = danh sách phụ kiện (tên hiển thị).
+	Parts    map[string]int            `json:"parts"`
+	PartNeed map[string]map[string]int `json:"partNeed"`
+	PartOf   map[string]string         `json:"partOf"`
+	PartInfo []PartItem                `json:"partInfo"`
 }
 
 // Garage lưu xe và đồ của người chơi trong ví SQLite.
@@ -128,7 +134,7 @@ type Garage struct {
 }
 
 func NewGarage(ctx context.Context, w *wallet.Wallet) (*Garage, error) {
-	if err := w.ExecSchema(ctx, garageSchema); err != nil {
+	if err := w.ExecSchema(ctx, garageSchema+partsSchema); err != nil {
 		return nil, fmt.Errorf("tạo bảng trường đua: %w", err)
 	}
 	return &Garage{w: w}, nil
@@ -143,6 +149,7 @@ type garageData struct {
 	current string
 	cars    map[string]ownedCar
 	items   map[string]bool
+	parts   map[string]int
 }
 
 // ensure tạo garage mặc định (xe khởi đầu sơn đỏ) nếu người chơi chưa có.
@@ -181,15 +188,20 @@ func load(ctx context.Context, tx *wallet.Tx, uid int64) (garageData, error) {
 	if err != nil {
 		return d, err
 	}
-	defer rows.Close()
 	for rows.Next() {
 		var id string
 		if err := rows.Scan(&id); err != nil {
+			rows.Close()
 			return d, err
 		}
 		d.items[id] = true
 	}
-	return d, rows.Err()
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return d, err
+	}
+	d.parts, err = PartQty(ctx, tx, uid)
+	return d, err
 }
 
 func carView(m CarModel, c ownedCar, owned bool) CarView {
@@ -202,19 +214,23 @@ func carView(m CarModel, c ownedCar, owned bool) CarView {
 
 func (d garageData) view() GarageView {
 	v := GarageView{Current: d.current, UpgradePrice: map[string]map[string]int64{}, MaxLevel: MaxLevel,
-		NitroBoost: NitroBoost, NitroMs: NitroMs, NitroCharge: NitroCharge}
+		NitroBoost: NitroBoost, NitroMs: NitroMs, NitroCharge: NitroCharge,
+		Parts: d.parts, PartNeed: map[string]map[string]int{}, PartOf: map[string]string{}, PartInfo: PartItems}
+	for _, p := range PartItems {
+		v.PartOf[p.For] = p.ID
+	}
 	for _, m := range AllCars() {
 		c, owned := d.cars[m.ID]
 		v.Cars = append(v.Cars, carView(m, c, owned))
-		prices := map[string]int64{}
+		prices, needs := map[string]int64{}, map[string]int{}
 		for _, part := range Parts {
 			if lv := c.levels.get(part); owned && lv < MaxLevel {
-				prices[part] = upgradePrice(m, lv+1)
+				prices[part], needs[part] = upgradePrice(m, lv+1), partNeed(lv+1)
 			} else {
-				prices[part] = 0
+				prices[part], needs[part] = 0, 0
 			}
 		}
-		v.UpgradePrice[m.ID] = prices
+		v.UpgradePrice[m.ID], v.PartNeed[m.ID] = prices, needs
 	}
 	for _, it := range AllItems() {
 		v.Items = append(v.Items, ItemView{ID: it.ID, Kind: it.Kind, Name: it.Name, Price: it.Price,
@@ -313,7 +329,7 @@ func (g *Garage) SelectCar(ctx context.Context, uid int64, car string) (GarageVi
 // partNames là tên món nâng cấp hiện trong sổ cái.
 var partNames = map[string]string{"engine": "động cơ", "turbo": "turbo", "tires": "lốp"}
 
-// Upgrade nâng một món (engine / turbo / tires) của xe lên cấp kế tiếp.
+// Upgrade nâng một món (engine / turbo / tires) của xe lên cấp kế tiếp: cần partNeed phụ kiện đúng loại + upgradePrice xu.
 func (g *Garage) Upgrade(ctx context.Context, uid int64, car, part string) (GarageView, error) {
 	return g.do(ctx, uid, func(tx *wallet.Tx, d garageData) error {
 		m, ok := findCar(car)
@@ -330,6 +346,10 @@ func (g *Garage) Upgrade(ctx context.Context, uid int64, car, part string) (Gara
 		lv := c.levels.get(part)
 		if lv >= MaxLevel {
 			return conflict(fmt.Sprintf("%s đã cấp tối đa", partNames[part]))
+		}
+		// Kiểm phụ kiện trước (thiếu thì không trừ xu); thiếu xu thì Charge lỗi và giao dịch huỷ, phụ kiện trả lại.
+		if err := useParts(ctx, tx, uid, PartFor(part), partNeed(lv+1)); err != nil {
+			return err
 		}
 		note := fmt.Sprintf("Nâng %s %s lên cấp %d", partNames[part], m.Name, lv+1)
 		if err := tx.Charge(uid, upgradePrice(m, lv+1), GameID, note); err != nil {

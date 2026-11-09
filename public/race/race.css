@@ -144,6 +144,11 @@ button.exclusive-btn.ready .shard-tag, button.assemble-btn.ready .shard-tag { co
 .loading { position: fixed; inset: 0; z-index: 25; display: grid; place-items: center; color: #fff; font-family: var(--font-title); font-size: 22px; background: rgba(5, 8, 25, .7); }
 
 @media (max-width: 640px) {
+  /* Topbar không bao giờ rộng hơn màn hình (số xu dài đẩy ô tên ra ngoài → cả trang tràn ngang): bỏ logo cạnh nút quay lại. */
+  .topbar { overflow: hidden; }
+  .topbar .user { min-width: 0; }
+  .topbar .brand { gap: 0; flex-shrink: 0; }
+  .topbar .brand #logo { display: none; }
   .garage-cars { flex-direction: row; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; width: auto; max-height: none; margin-top: 0; padding: 10px 0; }
   .garage-cars .car-tab { width: auto; }
   .car-tab { min-width: 104px; padding: 6px 10px; }
@@ -205,3 +210,19 @@ button.exclusive-btn.ready .shard-tag, button.assemble-btn.ready .shard-tag { co
 
 /* Ghi công mô hình 3D (CC-BY bắt buộc ghi tên tác giả). */
 .g-credit { color: rgba(220, 230, 255, .62); font-size: 12px; align-self: center; }
+
+/* Phụ kiện nâng cấp (từ nhiệm vụ). */
+.part-stock { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; padding: 8px 10px; margin-bottom: 4px; border-radius: 12px;
+  background: rgba(40, 50, 110, .55); border: 1px solid #3d4a9a; font-size: 13px; color: #dfe6ff; flex: 1 1 100%; }
+.part-stock span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.part-stock b { color: #ffd65a; font-variant-numeric: tabular-nums; }
+.part-stock small { flex: 1 1 100%; color: #a9b4dc; font-size: 12px; }
+.part-ic { width: 22px; height: 22px; object-fit: contain; vertical-align: middle; margin: 0 2px; }
+.part button .part-ic { width: 20px; height: 20px; }
+/* Nút nâng 2 dòng: giá xu / phụ kiện cần, không xuống dòng lộn xộn. */
+button.up-btn { display: inline-flex; flex-direction: column; align-items: center; gap: 1px; line-height: 1.2; padding: 6px 12px; }
+button.up-btn b, button.up-btn small { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+button.up-btn small { font-size: 12px; opacity: .85; }
+button.need-part { opacity: .9; cursor: not-allowed; background: #2a2f55; color: #ffb4b4; border-color: #5a3d6a; }
+button.need-part small { color: #c9cfee; }
+button.up-btn:not(.need-part) small { color: #6b4a12; opacity: 1; font-weight: 800; }

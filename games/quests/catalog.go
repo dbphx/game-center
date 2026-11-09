@@ -72,6 +72,12 @@ const (
 	WeeklyXP     = 100 //
 	ChestShards  = 1   // rương ngày: 1 mảnh ngẫu nhiên; rương tuần: 1 mảnh độc quyền
 
+	// Phụ kiện nâng cấp xe (ngẫu nhiên đều 3 loại: Piston / Bộ tăng áp / Lốp đua), thêm vào cạnh mảnh.
+	DailyParts       = 1 // mỗi nhiệm vụ ngày
+	DailyChestParts  = 2 // rương ngày
+	WeeklyParts      = 3 // mỗi nhiệm vụ tuần
+	WeeklyChestParts = 5 // rương tuần
+
 	RerollCost    = 2000 // xu mỗi lần đổi nhiệm vụ sau lần miễn phí
 	RerollsPerDay = 5    // tối đa số lần đổi mỗi ngày (lần đầu miễn phí)
 	ExchangeCost  = 3    // 3 mảnh thừa cùng bậc → 1 mảnh bậc trên

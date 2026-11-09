@@ -204,6 +204,104 @@ function shard(tier) {
   return { group: g, frame: [-0.6, 0.6, 1.05, -0.15], outline: '#1a1430' };
 }
 
+// ---------- Phụ kiện nâng cấp xe (Piston / Bộ tăng áp / Lốp đua) ----------
+// Piston: đầu piston bạc có 3 rãnh xéc-măng, chốt và tay biên thép, chân biên tròn.
+function piston() {
+  const g = new THREE.Group();
+  const steel = metal(0xd9dee6, { roughness: 0.22 });
+  const dark = metal(0x5a6170, { roughness: 0.35 });
+  const head = mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.46, 40), steel, 0, 0.62, 0);
+  g.add(head);
+  g.add(mesh(new THREE.CylinderGeometry(0.33, 0.34, 0.04, 40), metal(0xf2f4f8, { roughness: 0.12 }), 0, 0.87, 0)); // mặt đỉnh
+  for (const y of [0.74, 0.68, 0.62]) g.add(mesh(new THREE.TorusGeometry(0.343, 0.012, 8, 48), dark, 0, y, 0));
+  g.children.slice(-3).forEach((r) => (r.rotation.x = Math.PI / 2));
+  const pin = mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.74, 20), metal(0xb8c0cc), 0, 0.5, 0);
+  pin.rotation.z = Math.PI / 2;
+  g.add(pin);
+  const rod = mesh(new THREE.BoxGeometry(0.13, 0.62, 0.09), dark, 0, 0.16, 0);
+  g.add(rod);
+  const end = mesh(new THREE.TorusGeometry(0.16, 0.06, 14, 36), dark, 0, -0.18, 0);
+  g.add(end);
+  g.add(mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.1, 20), metal(0xffb423, { roughness: 0.25 }), 0, -0.18, 0));
+  g.children[g.children.length - 1].rotation.x = Math.PI / 2;
+  g.rotation.set(0.15, 0.6, -0.32);
+  return { group: g, frame: [-0.62, 0.62, 1.05, -0.5], outline: '#1a1430' };
+}
+// Bộ tăng áp: vỏ ốc sên đỏ (xoắn), cửa hút tròn, cánh quạt nén bên trong, ống xả bạc.
+function turboKit() {
+  const g = new THREE.Group();
+  const red = glossy(0xe0342c);
+  const steel = metal(0xcfd5de, { roughness: 0.2 });
+  // Vỏ xoắn: các đoạn ống to dần quanh tâm.
+  const n = 26;
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 1.75;
+    const rad = 0.22 + (i / n) * 0.14;
+    const seg = mesh(new THREE.SphereGeometry(0.12 + (i / n) * 0.1, 18, 14), red, Math.cos(a) * rad, Math.sin(a) * rad, 0);
+    g.add(seg);
+  }
+  const hub = mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.26, 36), red, 0, 0, 0);
+  hub.rotation.x = Math.PI / 2;
+  g.add(hub);
+  const inlet = mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.26, 36, 1, true), steel, 0, 0, 0.24);
+  inlet.rotation.x = Math.PI / 2;
+  g.add(inlet);
+  const rim = mesh(new THREE.TorusGeometry(0.21, 0.025, 10, 40), steel, 0, 0, 0.37);
+  g.add(rim);
+  // Cánh nén nhìn qua cửa hút.
+  for (let i = 0; i < 7; i++) {
+    const b = mesh(new THREE.BoxGeometry(0.02, 0.17, 0.05), metal(0x9aa3b2), 0, 0, 0.2);
+    b.rotation.z = (i / 7) * Math.PI * 2;
+    b.position.set(Math.sin(b.rotation.z) * -0.08, Math.cos(b.rotation.z) * 0.08, 0.22);
+    b.rotation.y = 0.5;
+    g.add(b);
+  }
+  g.add(mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.08, 16), metal(0xffb423), 0, 0, 0.26));
+  g.children[g.children.length - 1].rotation.x = Math.PI / 2;
+  // Ống xả ra tiếp tuyến.
+  const out = mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.42, 28), steel, 0.48, -0.18, 0);
+  out.rotation.z = Math.PI / 2;
+  g.add(out);
+  g.add(mesh(new THREE.TorusGeometry(0.135, 0.025, 10, 32), metal(0x8a93a2), 0.69, -0.18, 0));
+  g.children[g.children.length - 1].rotation.y = Math.PI / 2;
+  g.rotation.set(0.2, -0.55, 0.1);
+  g.position.y = 0.3;
+  return { group: g, frame: [-0.7, 0.8, 0.95, -0.4], outline: '#1a1430' };
+}
+// Lốp đua: lốp đen gai sọc, vành đúc vàng 6 chấu, chữ sọc đỏ trên hông lốp.
+function tireKit() {
+  const g = new THREE.Group();
+  const rubber = mat(0x22252c, { roughness: 0.85 });
+  const tire = mesh(new THREE.TorusGeometry(0.42, 0.17, 24, 64), rubber);
+  tire.scale.z = 1.35;
+  g.add(tire);
+  // Gai lốp.
+  for (let i = 0; i < 36; i++) {
+    const a = (i / 36) * Math.PI * 2;
+    const k = mesh(new THREE.BoxGeometry(0.05, 0.035, 0.3), mat(0x15171c), Math.cos(a) * 0.585, Math.sin(a) * 0.585, 0);
+    k.rotation.z = a;
+    g.add(k);
+  }
+  const stripe = mesh(new THREE.TorusGeometry(0.43, 0.012, 8, 64), glow(0xff3b3b, 0.5), 0, 0, 0.215);
+  g.add(stripe);
+  const rimMat = metal(0xffc13b, { roughness: 0.2 });
+  const rim = mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.16, 40, 1, true), rimMat);
+  rim.rotation.x = Math.PI / 2;
+  g.add(rim);
+  g.add(mesh(new THREE.TorusGeometry(0.3, 0.022, 10, 48), rimMat, 0, 0, 0.08));
+  for (let i = 0; i < 6; i++) {
+    const sp = mesh(new THREE.BoxGeometry(0.06, 0.28, 0.04), rimMat, 0, 0, 0.06);
+    sp.rotation.z = (i / 6) * Math.PI * 2;
+    sp.position.set(Math.sin(-sp.rotation.z) * 0.15, Math.cos(sp.rotation.z) * 0.15, 0.06);
+    g.add(sp);
+  }
+  g.add(mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.08, 20), metal(0x3a3f4a), 0, 0, 0.07));
+  g.children[g.children.length - 1].rotation.x = Math.PI / 2;
+  g.rotation.set(-0.15, 0.55, 0);
+  g.position.y = 0.3;
+  return { group: g, frame: [-0.72, 0.72, 1.0, -0.42], outline: '#1a1430' };
+}
+
 function setLights(scene) {
   scene.environment = envTex;
   scene.add(new THREE.HemisphereLight(0xffffff, 0x8aa6c0, 0.9));
@@ -227,6 +325,9 @@ const ITEMS = {
   shard_rare: () => shard('rare'),
   shard_epic: () => shard('epic'),
   shard_exclusive: () => shard('exclusive'),
+  part_piston: piston,
+  part_turbo_kit: turboKit,
+  part_tire_kit: tireKit,
 };
 
 function renderSimple(id) {

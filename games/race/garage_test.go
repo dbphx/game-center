@@ -240,6 +240,7 @@ func TestGarageStarterAndBuyCar(t *testing.T) {
 
 func TestUpgradeToLevelFive(t *testing.T) {
 	e := newGarageEnv(t, 100_000)
+	e.grant(PartPiston, 15) // 1+2+3+4+5
 	var v GarageView
 	var err error
 	for lv := 1; lv <= MaxLevel; lv++ {
@@ -269,6 +270,7 @@ func TestUpgradeToLevelFive(t *testing.T) {
 		t.Fatal("thao tác lỗi không được trừ xu")
 	}
 	e.setBalance(0)
+	e.grant(PartTire, 1)
 	_, err = e.g.Upgrade(ctx, e.uid, "starter", "tires")
 	wantStatus(t, err, http.StatusPaymentRequired)
 }

@@ -32,8 +32,8 @@ func writeErr(w http.ResponseWriter, err error) {
 // Handler trả API nhiệm vụ, gắn ở /api/quests (cần đăng nhập).
 //
 //	GET  /api/quests                    → trạng thái (State)
-//	POST /api/quests/claim {id}         → {quests, gained}
-//	POST /api/quests/chest {kind}       → {quests, gained}       kind: daily / weekly
+//	POST /api/quests/claim {id}         → {quests, gained, gainedParts}
+//	POST /api/quests/chest {kind}       → {quests, gained, gainedParts}   kind: daily / weekly
 //	POST /api/quests/reroll {id}        → {quests, cost}
 //	POST /api/quests/assemble {item}    → {quests, granted}
 //	POST /api/quests/exchange {tier}    → {quests, gained}
@@ -72,12 +72,12 @@ func (q *Quests) Handler() http.Handler {
 		return q.View(r.Context(), uid)
 	})
 	route("POST /api/quests/claim", func(r *http.Request, uid int64, b body) (any, error) {
-		s, g, err := q.Claim(r.Context(), uid, b.ID)
-		return map[string]any{"quests": s, "gained": g}, err
+		s, g, parts, err := q.Claim(r.Context(), uid, b.ID)
+		return map[string]any{"quests": s, "gained": g, "gainedParts": parts}, err
 	})
 	route("POST /api/quests/chest", func(r *http.Request, uid int64, b body) (any, error) {
-		s, g, err := q.Chest(r.Context(), uid, b.Kind)
-		return map[string]any{"quests": s, "gained": g}, err
+		s, g, parts, err := q.Chest(r.Context(), uid, b.Kind)
+		return map[string]any{"quests": s, "gained": g, "gainedParts": parts}, err
 	})
 	route("POST /api/quests/reroll", func(r *http.Request, uid int64, b body) (any, error) {
 		s, cost, err := q.Reroll(r.Context(), uid, b.ID)

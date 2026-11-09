@@ -117,6 +117,18 @@
   "cars/spoiler_x_glow": {
    "w": 160,
    "h": 100
+  },
+  "part_piston": {
+   "w": 48,
+   "h": 48
+  },
+  "part_turbo_kit": {
+   "w": 48,
+   "h": 48
+  },
+  "part_tire_kit": {
+   "w": 48,
+   "h": 48
   }
  }
 }

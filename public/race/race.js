@@ -281,10 +281,23 @@ function renderGarage() {
   // 3 món nâng cấp có chỉ số.
   const max = garage.maxLevel || 5;
   const prices = (garage.upgradePrice || {})[car.id] || {};
-  const parts = ['engine', 'turbo', 'tires'].map((p) => {
+  // Phụ kiện nâng cấp (chỉ có từ nhiệm vụ): lên cấp n cần n phụ kiện đúng loại + xu.
+  const have = garage.parts || {};
+  const info = Object.fromEntries((garage.partInfo || []).map((x) => [x.id, x]));
+  const needs = (garage.partNeed || {})[car.id] || {};
+  const partImg = (id) => `<img class="part-ic" src="/img/quests/part_${esc(id)}.png" alt="">`;
+  const stock = car.owned && garage.partInfo ? `<div class="part-stock">${garage.partInfo.map((x) => `<span title="${esc(x.name)}">${partImg(x.id)}${esc(x.name)} <b>${have[x.id] || 0}</b></span>`).join('')}
+      <small>Phụ kiện chỉ có từ nhiệm vụ ở Ông già Noel trong nông trại</small></div>` : '';
+  const parts = stock + ['engine', 'turbo', 'tires'].map((p) => {
     const lv = (car.levels || {})[p] || 0;
     const price = prices[p] || 0;
-    const btn = !car.owned ? '' : lv >= max ? '<span class="chip">Tối đa</span>' : `<button data-act="up" data-part="${p}">Nâng — ${xu(price)} xu</button>`;
+    const pid = (garage.partOf || {})[p];
+    const need = needs[p] || 0;
+    const pname = (info[pid] || {}).name || 'phụ kiện';
+    const short = need && pid && (have[pid] || 0) < need;
+    const btn = !car.owned ? '' : lv >= max ? '<span class="chip">Tối đa</span>'
+      : short ? `<button class="up-btn need-part" disabled title="Làm nhiệm vụ ở Ông già Noel trong nông trại"><b>${partImg(pid)}Cần ${need} ${esc(pname)}</b><small>(có ${have[pid] || 0}) · ${xu(price)} xu</small></button>`
+      : `<button class="up-btn" data-act="up" data-part="${p}"><b>Nâng — ${xu(price)} xu</b>${need && pid ? `<small>${partImg(pid)}${need} ${esc(pname)}</small>` : ''}</button>`;
     return `<div class="part"><b>${PART_NAMES[p][0]}</b>${btn}
       <span class="dots">${Array.from({ length: max }, (_, i) => `<i class="${i < lv ? 'on' : ''}"></i>`).join('')}</span>
       <small>Cấp ${lv}/${max} · tăng ${PART_NAMES[p][1].toLowerCase()} · hình trên xe đổi theo cấp</small></div>`;

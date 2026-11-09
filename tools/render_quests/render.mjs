@@ -1,6 +1,6 @@
 // Chạy tools/render_quests/index.html trong Chrome, lưu ảnh thô từng món vào thư mục ra (kèm meta.json: viền).
 // Cần: python3 tools/render_quests/serve.py 8307 và playwright-core (NODE_PATH).
-// Dùng: node tools/render_quests/render.mjs [http://127.0.0.1:8307] [thư mục ra]
+// Dùng: node tools/render_quests/render.mjs [http://127.0.0.1:8307] [thư mục ra] [tiền tố id]
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -19,7 +19,9 @@ page.on('console', (m) => m.type() === 'error' && console.error('console:', m.te
 page.on('pageerror', (e) => console.error('pageerror:', e.message));
 await page.goto(`${base}/tools/render_quests/index.html`);
 await page.waitForFunction(() => window.questsReady === true, null, { timeout: 30000 });
-const ids = await page.evaluate(() => window.ITEM_IDS);
+// Tham số thứ 4 (tuỳ chọn): chỉ dựng món có id bắt đầu bằng tiền tố này, vd part_
+const only = process.argv[4] || '';
+const ids = (await page.evaluate(() => window.ITEM_IDS)).filter((id) => id.startsWith(only));
 const meta = {};
 for (const id of ids) {
   const r = await page.evaluate((id) => window.renderItem(id), id);

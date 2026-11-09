@@ -141,3 +141,16 @@ dialog.modal.quest-dlg { width: min(640px, calc(100vw - 20px)); overflow: visibl
   .q-ex { margin-left: 0; }
   .qr-item { width: 132px; }
 }
+
+/* Phụ kiện nâng cấp xe (từ nhiệm vụ) */
+.q-parts { margin: 0 0 12px; padding: 10px 12px; border-radius: 16px; background: #fff7e6; border: 2px solid #f0d49a; }
+.q-parts h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; font-size: 16px; }
+.q-parts h3 img { width: 24px; height: 24px; }
+.q-parts-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.q-part { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; border-radius: 12px; background: #fff; border: 2px solid #f3e1b8; }
+.q-part img { width: 52px; height: 52px; object-fit: contain; }
+.q-part b { font-size: 13px; text-align: center; }
+.q-part span { font-family: var(--font-title); font-size: 18px; color: #b26b00; font-variant-numeric: tabular-nums; }
+.q-parts p { margin: 6px 0 0; font-size: 12px; }
+.qr-item.qr-part { --tc: #e08a1e; }
+.qr-item.qr-part .qr-thumb { aspect-ratio: 1; width: 70%; }

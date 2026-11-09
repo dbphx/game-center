@@ -43,7 +43,9 @@ def main(src, dst):
     src, dst = Path(src), Path(dst)
     (dst / "cars").mkdir(parents=True, exist_ok=True)
     meta = json.loads((src / "meta.json").read_text())
-    man = {}
+    # Gộp vào manifest cũ: dựng lại một phần (vd chỉ phụ kiện) không làm mất ảnh khác.
+    old = dst / "manifest.json"
+    man = json.loads(old.read_text()).get("images", {}) if old.exists() else {}
     for pid, m in meta.items():
         im = Image.open(src / f"{pid}.png").convert("RGBA")
         if m.get("car"):
