@@ -224,11 +224,20 @@ Mã lỗi: 400 dữ liệu sai, 402 không đủ xu, 403 thiếu level / HP, 404
 - **Zombie lựa mục tiêu** ở cả ruộng và khu vật nuôi: chọn cây / con gần trưởng thành nhất (tiến độ chặn ở 100%, đã chín hay đã lớn đều ở mức
   cao nhất), bằng tiến độ thì ngẫu nhiên. Tỉ lệ mất chung vẫn khoảng 50% sau 12 giờ, nhưng rủi ro dồn vào cây / con sắp lớn.
 - Ô có zombie không thu hoạch được và không bị bạn bè trộm được. `GET /api/farm/zombie/status` trả `{count, until}` cho bản đồ thành phố, `count` tính cả vật nuôi.
-- **Súng đậu**: mua một lần 399.000 xu (`POST /api/farm/gun/buy`), đạn 1.500 xu mỗi viên, mỗi lần mua 1–1.000 viên
-  (`POST /api/farm/gun/ammo {qty}`). Từ giây 30 của đợt, mỗi viên tự diệt một zombie, đợt cũ trước, kể cả khi chủ offline, không mất máu và
-  không mất cây. Súng **bỏ qua** zombie nhắm vào cây / con có giá bán dưới 1 viên đạn (rau ngắn ngày, gà, vịt, cá rô phi...):
-  không tốn đạn, zombie đó vẫn ăn khi hết hạn nếu không đập tay. Đập tay trước giây 30 thì không tốn đạn; hết đạn thì zombie còn lại đập tay hoặc hết hạn như thường. Súng và đạn tính vào
-  giá trị nông trại ở Khu danh vọng.
+- **Súng đậu**: mua một lần 399.000 xu (`POST /api/farm/gun/buy`). **Ba loại đạn**, mỗi lần mua 1–1.000 viên một loại
+  (`POST /api/farm/gun/ammo {type, qty}`, `type` ∈ `normal` / `medium` / `high`, sai → 400); catalog `ammoTypes`, state `gun.ammo = {normal, medium, high}`:
+
+| Loại | Giá / viên | Bắn zombie nhắm vào món có giá bán |
+|---|---|---|
+| Đạn thường `normal` | 100 | 300–1.999 xu (gà, vịt, heo, bí ngô...) |
+| Đạn trung `medium` | 500 | 2.000–7.999 xu (bò, cừu, thanh long...) |
+| Đạn cao `high` | 1.500 | từ 8.000 xu (sầu riêng, cá Koi...) |
+
+  Từ giây 30 của đợt, súng tự diệt zombie, đợt cũ trước, kể cả khi chủ offline, không mất máu và không mất cây. Mỗi con dùng đúng loại
+  theo bậc của món bị tấn công; hết loại đó thì dùng loại cao hơn **chỉ khi** viên đó không đắt hơn món, không bao giờ dùng loại thấp
+  hơn. Món dưới 300 xu (rau ngắn ngày, cá rô phi...) hay không có viên phù hợp thì súng bỏ qua: không tốn đạn, zombie đó vẫn ăn khi hết
+  hạn nếu không đập tay. Đập tay trước giây 30 thì không tốn đạn. Đạn mua trước khi chia loại (2.500 xu/viên) giữ 1:1 thành Đạn cao.
+  Súng và đạn (theo giá từng loại) tính vào giá trị nông trại ở Khu danh vọng.
 - Không có tiến trình nền: server tính bù các đợt đã qua mỗi khi nông trại được đọc, tối đa 720 đợt gần nhất, ngẫu nhiên có seed theo
   `(người chơi, đợt)`. Lần đầu thấy một nông trại thì không tính ngược, đợt đầu tiên là đầu giờ kế tiếp.
 

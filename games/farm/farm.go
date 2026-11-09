@@ -123,6 +123,9 @@ func New(ctx context.Context, w *wallet.Wallet) (*Farm, error) {
 	if err := migratePotSkins(ctx, w); err != nil {
 		return nil, fmt.Errorf("nâng cấp chậu tầng mây: %w", err)
 	}
+	if err := migrateAmmo(ctx, w); err != nil {
+		return nil, fmt.Errorf("nâng cấp đạn súng đậu: %w", err)
+	}
 	if err := migrateRebalance(ctx, w); err != nil {
 		return nil, fmt.Errorf("cân bằng vật nuôi: %w", err)
 	}

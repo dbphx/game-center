@@ -3294,6 +3294,39 @@
    "source": [
     "DCity (vẽ / ghép bằng PIL cho dự án)"
    ]
+  },
+  {
+   "file": "ammo_normal.png",
+   "w": 32,
+   "h": 32,
+   "use": "Đạn thường — viên đậu xanh (biến thể màu của pea.png): ô đạn trong hộp súng và đạn bay",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "ammo_medium.png",
+   "w": 32,
+   "h": 32,
+   "use": "Đạn trung — viên đậu cam (biến thể màu của pea.png): ô đạn trong hộp súng và đạn bay",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
+  },
+  {
+   "file": "ammo_high.png",
+   "w": 32,
+   "h": 32,
+   "use": "Đạn cao — viên đậu tím (biến thể màu của pea.png): ô đạn trong hộp súng và đạn bay",
+   "anchor": "center",
+   "tile": false,
+   "source": [
+    "DCity (vẽ / ghép bằng PIL cho dự án)"
+   ]
   }
  ]
 }

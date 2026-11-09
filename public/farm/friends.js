@@ -67,7 +67,7 @@
           const b = f.bean || r.bean || {};
           return { available: !!b.available, floors: b.floors || 0, beanPlantedAt: b.plantedAt || 0, beanReadyAt: b.readyAt || 0, pots: [] };
         })(),
-        gun: { owned: !!(f.gun != null ? f.gun : r.gun), ammo: 0 },
+        gun: { owned: !!(f.gun != null ? f.gun : r.gun), ammo: {} },
       },
     };
   }

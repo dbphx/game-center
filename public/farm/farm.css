@@ -922,7 +922,18 @@ button.danger { background: linear-gradient(180deg, #ff8a7a, #e03131); border-co
 .gun-label.empty { border-color: #b91c1c; color: #b91c1c; }
 .gun-offer { height: 120px; width: auto; transform: scaleX(-1); }
 .gun-count.empty { color: #b91c1c; }
-.gun-ammo { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.ammo-list { display: flex; flex-direction: column; gap: 8px; width: 100%; margin: 4px 0 10px; text-align: left; }
+.ammo-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 8px 10px; border-radius: 12px; background: #fffbec; border: 2px solid #e6dcc0; }
+.ammo-row.ammo-normal { border-color: #8fcf63; }
+.ammo-row.ammo-medium { border-color: #f0a35a; }
+.ammo-row.ammo-high { border-color: #b36ad8; }
+.ammo-icon { width: 32px; height: 32px; flex: none; }
+.ammo-info { flex: 1 1 160px; min-width: 0; display: flex; flex-direction: column; gap: 1px; font-size: 13px; }
+.ammo-info .muted { margin: 0; padding: 0; background: none; text-align: left; font-size: 12px; }
+.ammo-have { font-weight: 800; color: #2f6a12; }
+.ammo-have.empty { color: #b91c1c; }
+.ammo-buy { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 100%; }
+.ammo-buy button { flex: 1 1 90px; padding: 6px 8px; font-size: 12px; white-space: nowrap; }
 .zombie-stay { position: fixed; z-index: 6999; pointer-events: none; }
 .pea-shot { position: fixed; z-index: 7001; width: 22px; height: 22px; pointer-events: none; }
 @keyframes zombie-pulse { 50% { box-shadow: 0 3px 0 #7f1d1d, 0 0 0 4px rgba(239, 68, 68, .45); } }

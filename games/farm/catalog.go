@@ -193,7 +193,7 @@ func Catalog() map[string]any {
 		"goodSoilPrice":   int64(GoodSoilPrice),
 		"goodSoilSpeedup": GoodSoilSpeedup,
 		"gunPrice":        int64(GunPrice),
-		"ammoPrice":       int64(AmmoPrice),
+		"ammoTypes":       AmmoTypes,
 		// Thuế bán, xem tax.go.
 		"cropTax":     CropTaxPercent,
 		"stockTax":    StockTaxPercent,

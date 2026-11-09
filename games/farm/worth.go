@@ -126,17 +126,21 @@ func (f *Farm) Worth(ctx context.Context) (map[int64]int64, error) {
 	}
 
 	// Súng đậu và đạn còn lại.
-	rows, err = tx.QueryContext(ctx, `SELECT user_id, ammo FROM farm_guns`)
+	rows, err = tx.QueryContext(ctx, `SELECT user_id, ammo_normal, ammo_medium, ammo FROM farm_guns`)
 	if err != nil {
 		return nil, err
 	}
 	for rows.Next() {
-		var uid, ammo int64
-		if err := rows.Scan(&uid, &ammo); err != nil {
+		var uid int64
+		var a Ammo
+		if err := rows.Scan(&uid, &a.Normal, &a.Medium, &a.High); err != nil {
 			rows.Close()
 			return nil, err
 		}
-		worth[uid] += GunPrice + ammo*AmmoPrice
+		worth[uid] += GunPrice
+		for _, t := range AmmoTypes {
+			worth[uid] += int64(*a.count(t.ID)) * t.Price
+		}
 	}
 	rows.Close()
 	if err := rows.Err(); err != nil {

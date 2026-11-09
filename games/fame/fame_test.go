@@ -78,12 +78,12 @@ func (e *env) board(uid int64) Board {
 func TestWorthParts(t *testing.T) {
 	e := newEnv(t)
 	id, _ := e.user("An", 1000)
-	// Đồ thời trang: vest 1500 + áo thường ngày (starter, 0) + tóc mohican 1200 + cánh thiên thần 2500.
+	// Đồ thời trang: vest 4500 + áo thường ngày (starter, 0) + tóc mohican 3600 + cánh thiên thần 7500.
 	e.exec(`INSERT INTO user_outfits (user_id, outfit, created_at) VALUES (?, 'suit', 0)`, id)
 	e.exec(`INSERT INTO user_items (user_id, kind, item, created_at) VALUES (?, 'hair', 'mohawk', 0), (?, 'wings', 'angel', 0), (?, 'hair', 'da_xoa', 0)`, id, id, id)
-	// Nông trại: 8 ô (2 ô mua: 10000 + 12000), 1 ô đang trồng ngô (hạt 80);
-	// chuồng mở rộng 2 lần (3000 + 20000 + 40000); sân gia cầm mở rộng 1 lần (10000); kho giống mở rộng 1 lần (10000);
-	// một con bò (mua 1500), một cá rô phi (100); kho: 3 hạt cà rốt (50), 2 cám (50), 4 cà chua (bán 260).
+	// Nông trại: 8 ô (2 ô mua: 30000 + 36000), 1 ô đang trồng ngô (hạt 120);
+	// chuồng mở rộng 2 lần (9000 + 60000 + 120000); sân gia cầm mở rộng 1 lần (30000); kho giống mở rộng 1 lần (30000);
+	// một con bò (mua 1500), một cá rô phi (100); kho: 3 hạt cà rốt (75), 2 cám (50), 4 cà chua (bán 260).
 	for i := range 8 {
 		crop := ""
 		if i == 0 {
@@ -97,8 +97,8 @@ func TestWorthParts(t *testing.T) {
 	e.exec(`INSERT INTO farm_items (user_id, store, item, qty) VALUES (?, 'seeds', 'carrot', 3), (?, 'seeds', 'feed_livestock', 2), (?, 'products', 'tomato', 4)`, id, id, id)
 
 	b := e.board(id)
-	wantItems := int64(1500 + 1200 + 2500)
-	wantFarm := int64(10000 + 12000 + 80 + 3000 + 20000 + 40000 + 10000 + 10000 + 1500 + 100 + 3*50 + 2*50 + 4*260)
+	wantItems := int64(4500 + 3600 + 7500)
+	wantFarm := int64(30000 + 36000 + 120 + 9000 + 60000 + 120000 + 30000 + 30000 + 1500 + 100 + 3*75 + 2*50 + 4*260)
 	got := b.Top[0]
 	if got.Coins != 1000 || got.Items != wantItems || got.Farm != wantFarm || got.Total != 1000+wantItems+wantFarm {
 		t.Fatalf("tài sản = %+v, muốn items %d farm %d", got, wantItems, wantFarm)

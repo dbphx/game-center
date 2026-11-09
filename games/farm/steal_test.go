@@ -952,7 +952,7 @@ func TestVisitShowsBeanAndGun(t *testing.T) {
 	e.openFloors(2)
 	e.ok(e.f.PlantBean(ctx, e.uid))
 	e.ok(e.f.BuyGun(ctx, e.uid))
-	e.ok(e.f.BuyAmmo(ctx, e.uid, 7))
+	e.ok(e.f.BuyAmmo(ctx, e.uid, AmmoHigh, 7))
 	if v, err = e.f.Visit(ctx, e.uid, thief); err != nil {
 		t.Fatal(err)
 	}

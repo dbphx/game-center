@@ -57,6 +57,7 @@ func (f *Farm) Handler() http.Handler {
 		Qty  int    `json:"qty"`
 		Item string `json:"item"`
 		Feed string `json:"feed"`
+		Type string `json:"type"` // loại đạn súng đậu: normal / medium / high
 		// Floor, Slot: tầng mây (1–4) và chỗ đặt chậu (0–5).
 		Floor int    `json:"floor"`
 		Slot  *int   `json:"slot"`
@@ -143,7 +144,7 @@ func (f *Farm) Handler() http.Handler {
 		return noGain(f.BuyGun(r.Context(), uid))
 	})
 	handle("POST /api/farm/gun/ammo", func(r *http.Request, uid int64, b body) (State, *Gained, error) {
-		return noGain(f.BuyAmmo(r.Context(), uid, b.Qty))
+		return noGain(f.BuyAmmo(r.Context(), uid, b.Type, b.Qty))
 	})
 	handle("POST /api/farm/bean/plant", func(r *http.Request, uid int64, _ body) (State, *Gained, error) {
 		return noGain(f.PlantBean(r.Context(), uid))

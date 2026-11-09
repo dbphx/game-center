@@ -9,6 +9,7 @@ import (
 	"math"
 	mrand "math/rand/v2"
 	"slices"
+	"strings"
 
 	"github.com/dbphx/game-center/internal/wallet"
 )
@@ -40,10 +41,101 @@ const (
 // Súng đậu: mua một lần, mỗi viên đạn tự diệt một zombie từ giây GunDelay của đợt, kể cả khi chủ offline.
 const (
 	GunPrice    = 399000
-	AmmoPrice   = 1500
 	GunDelay    = 30   // giây sau đầu giờ súng mới bắn, để người đang online thấy zombie và đạn bay
 	maxAmmoSale = 1000 // số đạn tối đa mỗi lần mua
 )
+
+// Ba loại đạn, mỗi loại bắn zombie nhắm vào món có giá trị (giá bán) trong bậc của nó; viên đạn luôn rẻ hơn món được cứu.
+const (
+	AmmoNormal = "normal"
+	AmmoMedium = "medium"
+	AmmoHigh   = "high"
+)
+
+// AmmoType là một loại đạn: giá mỗi viên, bậc giá trị mục tiêu [Min, Max] (Max = 0: không giới hạn trên).
+type AmmoType struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Price int64  `json:"price"`
+	Min   int64  `json:"min"`
+	Max   int64  `json:"max"`
+	col   string // cột trong farm_guns
+}
+
+// AmmoTypes theo thứ tự từ rẻ tới đắt. Cột ammo (từ trước khi chia loại, đạn đã mua 2.500 xu/viên) là Đạn cao.
+var AmmoTypes = []AmmoType{
+	{AmmoNormal, "Đạn thường", 100, 300, 1_999, "ammo_normal"},
+	{AmmoMedium, "Đạn trung", 500, 2_000, 7_999, "ammo_medium"},
+	{AmmoHigh, "Đạn cao", 1_500, 8_000, 0, "ammo"},
+}
+
+// Ammo là số đạn còn của từng loại.
+type Ammo struct {
+	Normal int `json:"normal"`
+	Medium int `json:"medium"`
+	High   int `json:"high"`
+}
+
+// count trỏ tới số đạn loại id.
+func (a *Ammo) count(id string) *int {
+	switch id {
+	case AmmoNormal:
+		return &a.Normal
+	case AmmoMedium:
+		return &a.Medium
+	}
+	return &a.High
+}
+
+func findAmmo(id string) (AmmoType, bool) {
+	for _, t := range AmmoTypes {
+		if t.ID == id {
+			return t, true
+		}
+	}
+	return AmmoType{}, false
+}
+
+// pickAmmo chọn loại đạn bắn zombie nhắm vào món giá trị value: loại đúng bậc trước, hết thì loại cao hơn kế tiếp nếu
+// viên đó không đắt hơn món; không bao giờ dùng loại thấp hơn bậc. "" = không bắn.
+func pickAmmo(value int64, have Ammo) string {
+	tier := -1
+	for i, t := range AmmoTypes {
+		if value >= t.Min && (t.Max == 0 || value <= t.Max) {
+			tier = i
+		}
+	}
+	if tier < 0 {
+		return ""
+	}
+	for _, t := range AmmoTypes[tier:] {
+		if *have.count(t.ID) > 0 && t.Price <= value {
+			return t.ID
+		}
+	}
+	return ""
+}
+
+// migrateAmmo thêm cột đạn thường / trung cho farm_guns của database từ bản cũ; cột ammo cũ giữ nguyên làm Đạn cao.
+func migrateAmmo(ctx context.Context, w *wallet.Wallet) error {
+	tx, err := w.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	for _, col := range []string{"ammo_normal", "ammo_medium"} {
+		var has bool
+		if err := tx.QueryRowContext(ctx, `SELECT count(*) > 0 FROM pragma_table_info('farm_guns') WHERE name = ?`, col).Scan(&has); err != nil {
+			return err
+		}
+		if !has {
+			if _, err := tx.ExecContext(ctx, `ALTER TABLE farm_guns ADD COLUMN `+col+` INTEGER NOT NULL DEFAULT 0`); err != nil {
+				return err
+			}
+		}
+	}
+	return tx.Commit()
+}
 
 // zombieRisk là nguy cơ mỗi giờ của một cây không được canh: mất đúng 50% sau 12 giờ.
 var zombieRisk = 1 - math.Pow(0.5, 1.0/12)
@@ -63,7 +155,9 @@ CREATE TABLE IF NOT EXISTS farm_zombie_progress (
 );
 CREATE TABLE IF NOT EXISTS farm_guns (
 	user_id INTEGER PRIMARY KEY REFERENCES users(id), -- có dòng = đã mua súng
-	ammo    INTEGER NOT NULL DEFAULT 0, -- đạn còn lại
+	ammo    INTEGER NOT NULL DEFAULT 0, -- Đạn cao còn lại (trước khi chia loại là đạn duy nhất)
+	ammo_normal INTEGER NOT NULL DEFAULT 0, -- Đạn thường
+	ammo_medium INTEGER NOT NULL DEFAULT 0, -- Đạn trung
 	killed  INTEGER NOT NULL DEFAULT 0  -- số zombie súng đã diệt chưa báo cho chủ
 );
 CREATE TABLE IF NOT EXISTS farm_stock_zombies (
@@ -276,15 +370,16 @@ func shootThenExpire(ctx context.Context, tx *wallet.Tx, uid, now int64) error {
 }
 
 // shootZombies dùng đạn diệt các zombie đã quá giây GunDelay: đợt cũ trước; trong một đợt, ruộng theo ô rồi vật nuôi
-// theo id; hết đạn thì dừng. Súng bỏ qua zombie nhắm vào cây / con có giá bán rẻ hơn một viên đạn (không tốn đạn,
-// zombie đó vẫn có thể ăn như khi không có súng).
+// theo id. Mỗi zombie dùng loại đạn theo giá trị món bị tấn công (pickAmmo); không có viên phù hợp thì bỏ qua (không
+// tốn đạn, zombie đó vẫn có thể ăn như khi không có súng).
 func shootZombies(ctx context.Context, tx *wallet.Tx, uid, now int64) error {
-	var ammo int
-	err := tx.QueryRowContext(ctx, `SELECT ammo FROM farm_guns WHERE user_id = ?`, uid).Scan(&ammo)
+	var have Ammo
+	err := tx.QueryRowContext(ctx, `SELECT ammo_normal, ammo_medium, ammo FROM farm_guns WHERE user_id = ?`, uid).
+		Scan(&have.Normal, &have.Medium, &have.High)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil
 	}
-	if err != nil || ammo <= 0 {
+	if err != nil || have == (Ammo{}) {
 		return err
 	}
 	rows, err := tx.QueryContext(ctx, `SELECT 0 AS stock, z.idx AS id, z.wave, '' AS place, COALESCE(p.crop, '') AS kind
@@ -303,7 +398,8 @@ func shootZombies(ctx context.Context, tx *wallet.Tx, uid, now int64) error {
 		id    int64
 	}
 	var shots []shot
-	for rows.Next() && len(shots) < ammo {
+	left := have
+	for left != (Ammo{}) && rows.Next() {
 		var z shot
 		var wave int64
 		var place, kind string
@@ -311,9 +407,11 @@ func shootZombies(ctx context.Context, tx *wallet.Tx, uid, now int64) error {
 			rows.Close()
 			return err
 		}
-		if zombieTargetValue(z.stock, place, kind) < AmmoPrice {
+		typ := pickAmmo(zombieTargetValue(z.stock, place, kind), left)
+		if typ == "" {
 			continue
 		}
+		*left.count(typ)--
 		shots = append(shots, z)
 	}
 	rows.Close()
@@ -332,7 +430,8 @@ func shootZombies(ctx context.Context, tx *wallet.Tx, uid, now int64) error {
 			return err
 		}
 	}
-	_, err = tx.ExecContext(ctx, `UPDATE farm_guns SET ammo = ammo - ?, killed = killed + ? WHERE user_id = ?`, len(shots), len(shots), uid)
+	_, err = tx.ExecContext(ctx, `UPDATE farm_guns SET ammo_normal = ?, ammo_medium = ?, ammo = ?, killed = killed + ? WHERE user_id = ?`,
+		left.Normal, left.Medium, left.High, len(shots), uid)
 	return err
 }
 
@@ -353,12 +452,13 @@ func zombieTargetValue(stock bool, place, kind string) int64 {
 // Gun là súng đậu của một nông trại.
 type Gun struct {
 	Owned bool `json:"owned"`
-	Ammo  int  `json:"ammo"`
+	Ammo  Ammo `json:"ammo"`
 }
 
 // loadGun đọc súng và số zombie súng đã diệt chưa báo.
 func loadGun(ctx context.Context, q querier, uid int64) (g Gun, killed int, err error) {
-	err = q.QueryRowContext(ctx, `SELECT ammo, killed FROM farm_guns WHERE user_id = ?`, uid).Scan(&g.Ammo, &killed)
+	err = q.QueryRowContext(ctx, `SELECT ammo_normal, ammo_medium, ammo, killed FROM farm_guns WHERE user_id = ?`, uid).
+		Scan(&g.Ammo.Normal, &g.Ammo.Medium, &g.Ammo.High, &killed)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Gun{}, 0, nil
 	}
@@ -380,8 +480,12 @@ func (f *Farm) BuyGun(ctx context.Context, uid int64) (State, error) {
 	})
 }
 
-// BuyAmmo mua qty viên đạn đậu cho súng đã có.
-func (f *Farm) BuyAmmo(ctx context.Context, uid int64, qty int) (State, error) {
+// BuyAmmo mua qty viên đạn loại typ cho súng đã có.
+func (f *Farm) BuyAmmo(ctx context.Context, uid int64, typ string, qty int) (State, error) {
+	t, ok := findAmmo(typ)
+	if !ok {
+		return State{}, bad("loại đạn không hợp lệ")
+	}
 	if qty < 1 || qty > maxAmmoSale {
 		return State{}, bad(fmt.Sprintf("mỗi lần mua từ 1 tới %d viên đạn", maxAmmoSale))
 	}
@@ -389,10 +493,10 @@ func (f *Farm) BuyAmmo(ctx context.Context, uid int64, qty int) (State, error) {
 		if !s.Gun.Owned {
 			return conflict("hãy mua súng đậu trước")
 		}
-		if err := tx.Charge(uid, int64(qty)*AmmoPrice, GameID, fmt.Sprintf("Mua %d đạn đậu", qty)); err != nil {
+		if err := tx.Charge(uid, int64(qty)*t.Price, GameID, fmt.Sprintf("Mua %d %s", qty, strings.ToLower(t.Name))); err != nil {
 			return err
 		}
-		_, err := tx.ExecContext(ctx, `UPDATE farm_guns SET ammo = ammo + ? WHERE user_id = ?`, qty, uid)
+		_, err := tx.ExecContext(ctx, `UPDATE farm_guns SET `+t.col+` = `+t.col+` + ? WHERE user_id = ?`, qty, uid)
 		return err
 	})
 }
