@@ -2875,158 +2875,170 @@
   {
    "file": "pot_1.png",
    "w": 120,
-   "h": 104,
+   "h": 132,
    "use": "Chậu đất nung men, viền kem, hoa lá nổi (mặc định tầng 1); đặt cây sao cho đáy ảnh cây (y=106 của ảnh crop) nằm ở y=plantY của chậu",
    "anchor": "bottom-center",
    "tile": false,
    "source": [
-    "DCity (vẽ bằng PIL / numpy)"
+    "DCity (dựng 3D bằng three.js, tools/render_pots, CC0)"
    ],
-   "plantY": 14,
-   "floor": 1
+   "plantY": 32,
+   "floor": 1,
+   "note": "ảnh 2× (240×264), hiển thị 120×132"
   },
   {
    "file": "pot_2.png",
    "w": 120,
-   "h": 104,
+   "h": 132,
    "use": "Chậu men trắng sứ, viền lam trời, vân mây (mặc định tầng 2); đặt cây sao cho đáy ảnh cây (y=106 của ảnh crop) nằm ở y=plantY của chậu",
    "anchor": "bottom-center",
    "tile": false,
    "source": [
-    "DCity (vẽ bằng PIL / numpy)"
+    "DCity (dựng 3D bằng three.js, tools/render_pots, CC0)"
    ],
-   "plantY": 14,
-   "floor": 2
+   "plantY": 32,
+   "floor": 2,
+   "note": "ảnh 2× (240×264), hiển thị 120×132"
   },
   {
    "file": "pot_3.png",
    "w": 120,
-   "h": 104,
+   "h": 132,
    "use": "Chậu ngọc bích viền bạc, vân mây khắc (mặc định tầng 3); đặt cây sao cho đáy ảnh cây (y=106 của ảnh crop) nằm ở y=plantY của chậu",
    "anchor": "bottom-center",
    "tile": false,
    "source": [
-    "DCity (vẽ bằng PIL / numpy)"
+    "DCity (dựng 3D bằng three.js, tools/render_pots, CC0)"
    ],
-   "plantY": 14,
-   "floor": 3
+   "plantY": 32,
+   "floor": 3,
+   "note": "ảnh 2× (240×264), hiển thị 120×132"
   },
   {
    "file": "pot_4.png",
    "w": 120,
-   "h": 104,
+   "h": 132,
    "use": "Chậu vàng khảm đá quý (mặc định tầng 4); đặt cây sao cho đáy ảnh cây (y=106 của ảnh crop) nằm ở y=plantY của chậu",
    "anchor": "bottom-center",
    "tile": false,
    "source": [
-    "DCity (vẽ bằng PIL / numpy)"
+    "DCity (dựng 3D bằng three.js, tools/render_pots, CC0)"
    ],
-   "plantY": 14,
-   "floor": 4
+   "plantY": 32,
+   "floor": 4,
+   "note": "ảnh 2× (240×264), hiển thị 120×132"
   },
   {
    "file": "pot_skin_white.png",
    "w": 120,
-   "h": 104,
+   "h": 132,
    "use": "Kiểu chậu \"Gốm trắng\" ở tầng mây; đặt cây sao cho đáy ảnh cây (y=106 của ảnh crop) nằm ở y=plantY của chậu",
    "anchor": "bottom-center",
    "tile": false,
    "source": [
-    "DCity (vẽ bằng PIL / numpy)"
+    "DCity (dựng 3D bằng three.js, tools/render_pots, CC0)"
    ],
-   "plantY": 14,
-   "skin": "white"
+   "plantY": 32,
+   "skin": "white",
+   "note": "ảnh 2× (240×264), hiển thị 120×132"
   },
   {
    "file": "pot_skin_flower.png",
    "w": 120,
-   "h": 104,
+   "h": 132,
    "use": "Kiểu chậu \"Gốm hoa\" ở tầng mây; đặt cây sao cho đáy ảnh cây (y=106 của ảnh crop) nằm ở y=plantY của chậu",
    "anchor": "bottom-center",
    "tile": false,
    "source": [
-    "DCity (vẽ bằng PIL / numpy)"
+    "DCity (dựng 3D bằng three.js, tools/render_pots, CC0)"
    ],
-   "plantY": 14,
-   "skin": "flower"
+   "plantY": 32,
+   "skin": "flower",
+   "note": "ảnh 2× (240×264), hiển thị 120×132"
   },
   {
    "file": "pot_skin_wood.png",
    "w": 120,
-   "h": 104,
+   "h": 132,
    "use": "Kiểu chậu \"Gỗ mộc\" ở tầng mây; đặt cây sao cho đáy ảnh cây (y=106 của ảnh crop) nằm ở y=plantY của chậu",
    "anchor": "bottom-center",
    "tile": false,
    "source": [
-    "DCity (vẽ bằng PIL / numpy)"
+    "DCity (dựng 3D bằng three.js, tools/render_pots, CC0)"
    ],
-   "plantY": 14,
-   "skin": "wood"
+   "plantY": 32,
+   "skin": "wood",
+   "note": "ảnh 2× (240×264), hiển thị 120×132"
   },
   {
    "file": "pot_skin_bluewhite.png",
    "w": 120,
-   "h": 104,
+   "h": 132,
    "use": "Kiểu chậu \"Sứ thanh hoa\" ở tầng mây; đặt cây sao cho đáy ảnh cây (y=106 của ảnh crop) nằm ở y=plantY của chậu",
    "anchor": "bottom-center",
    "tile": false,
    "source": [
-    "DCity (vẽ bằng PIL / numpy)"
+    "DCity (dựng 3D bằng three.js, tools/render_pots, CC0)"
    ],
-   "plantY": 14,
-   "skin": "bluewhite"
+   "plantY": 32,
+   "skin": "bluewhite",
+   "note": "ảnh 2× (240×264), hiển thị 120×132"
   },
   {
    "file": "pot_skin_jade.png",
    "w": 120,
-   "h": 104,
+   "h": 132,
    "use": "Kiểu chậu \"Ngọc lục bảo\" ở tầng mây; đặt cây sao cho đáy ảnh cây (y=106 của ảnh crop) nằm ở y=plantY của chậu",
    "anchor": "bottom-center",
    "tile": false,
    "source": [
-    "DCity (vẽ bằng PIL / numpy)"
+    "DCity (dựng 3D bằng three.js, tools/render_pots, CC0)"
    ],
-   "plantY": 14,
-   "skin": "jade"
+   "plantY": 32,
+   "skin": "jade",
+   "note": "ảnh 2× (240×264), hiển thị 120×132"
   },
   {
    "file": "pot_skin_cloud.png",
    "w": 120,
-   "h": 104,
+   "h": 132,
    "use": "Kiểu chậu \"Mây trắng\" ở tầng mây; đặt cây sao cho đáy ảnh cây (y=106 của ảnh crop) nằm ở y=plantY của chậu",
    "anchor": "bottom-center",
    "tile": false,
    "source": [
-    "DCity (vẽ bằng PIL / numpy)"
+    "DCity (dựng 3D bằng three.js, tools/render_pots, CC0)"
    ],
-   "plantY": 14,
-   "skin": "cloud"
+   "plantY": 32,
+   "skin": "cloud",
+   "note": "ảnh 2× (240×264), hiển thị 120×132"
   },
   {
    "file": "pot_skin_crystal.png",
    "w": 120,
-   "h": 104,
+   "h": 132,
    "use": "Kiểu chậu \"Pha lê\" ở tầng mây; đặt cây sao cho đáy ảnh cây (y=106 của ảnh crop) nằm ở y=plantY của chậu",
    "anchor": "bottom-center",
    "tile": false,
    "source": [
-    "DCity (vẽ bằng PIL / numpy)"
+    "DCity (dựng 3D bằng three.js, tools/render_pots, CC0)"
    ],
-   "plantY": 14,
-   "skin": "crystal"
+   "plantY": 32,
+   "skin": "crystal",
+   "note": "ảnh 2× (240×264), hiển thị 120×132"
   },
   {
    "file": "pot_skin_gold.png",
    "w": 120,
-   "h": 104,
+   "h": 132,
    "use": "Kiểu chậu \"Vàng khảm đá\" ở tầng mây; đặt cây sao cho đáy ảnh cây (y=106 của ảnh crop) nằm ở y=plantY của chậu",
    "anchor": "bottom-center",
    "tile": false,
    "source": [
-    "DCity (vẽ bằng PIL / numpy)"
+    "DCity (dựng 3D bằng three.js, tools/render_pots, CC0)"
    ],
-   "plantY": 14,
-   "skin": "gold"
+   "plantY": 32,
+   "skin": "gold",
+   "note": "ảnh 2× (240×264), hiển thị 120×132"
   },
   {
    "file": "crop_cloud_berry_1.png",

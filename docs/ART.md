@@ -58,6 +58,9 @@ Bản đồ (`public/city.js`) đọc mọi ảnh qua bảng ánh xạ tên → 
 `"anchor": [x, y]` / `"foot"` và `"scale"` nếu cần; bật bằng `?art=city3d` hoặc `localStorage['city.art']`.
 Cây phố (phượng, bằng lăng, bàng, sao), khu Công trường / Hồ câu cá, hiệu ứng động (`fx_*`) và biểu cảm (`emote_*`) ở
 `public/img/toon/city/` đều vẽ bằng PIL (CC0); hoạt ảnh chỉ dùng CSS transform / opacity trên ảnh PNG.
+Chậu tầng mây (`public/img/toon/farm/pot_*.png`, ảnh 2× 240×264 hiển thị 120×132, tâm mặt đất `plantY` = 32) dựng 3D bằng
+three.js rồi xuất PNG (CC0): `tools/render_pots/` — chạy static server ở gốc repo (`python3 -m http.server 8305`), `node
+tools/render_pots/render.mjs` (cần playwright-core + Chrome) rồi `python3 tools/render_pots/finish.py` (viền + bóng); xem README.txt ở đó.
 
 Nguồn hiện tại đều CC0 (Kenney, OpenGameArt; phần tự ghép bằng PIL phát hành CC0).
 Hạn chế: xe chỉ có ảnh nghiêng (chỉ chạy đường ngang); nhân vật hướng lên/xuống nhún thay vì bước; nằm = xoay 90°.

@@ -75,10 +75,11 @@ body.in-cloud .toast { z-index: 9000; }
 .cloud-slot:active:not(:disabled) .slot-label { transform: translateY(1px); }
 .cloud-slot:disabled { opacity: 1; }
 
-/* Đáy cây (y=106 của ảnh 96×120) trùng y=14 của ảnh chậu 120×104; cây nằm sau miệng chậu. */
-.cloud-art { position: relative; display: block; width: calc(120px * var(--s)); height: calc(196px * var(--s)); flex: none; }
-.cloud-pot { position: absolute; left: 0; bottom: 0; width: calc(120px * var(--s)); height: calc(104px * var(--s)); z-index: 2; }
-.cloud-crop { position: absolute; left: calc(12px * var(--s)); top: 0; width: calc(96px * var(--s)); height: calc(120px * var(--s)); z-index: 1; }
+/* Ảnh cây 96×120 phóng 1,25 lần (120×150): đáy cây (y=106 → 132,5) trùng tâm mặt đất y=32 của khung chậu 120×132
+   (ảnh 2× 240×264), nên khung cao 132,5 + 132 − 32 ≈ 233. Cây vẽ đè lên mặt đất (đất trong chậu mới rộng, đặt sau thì bị che). */
+.cloud-art { position: relative; display: block; width: calc(120px * var(--s)); height: calc(233px * var(--s)); flex: none; }
+.cloud-pot { position: absolute; left: 0; bottom: 0; width: calc(120px * var(--s)); height: calc(132px * var(--s)); z-index: 2; }
+.cloud-crop { position: absolute; left: 0; top: 0; width: calc(120px * var(--s)); height: calc(150px * var(--s)); z-index: 3; pointer-events: none; }
 
 .slot-label {
   position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 1px; max-width: 100%;
