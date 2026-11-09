@@ -29,6 +29,9 @@ type Game struct {
 	Rooms http.Handler `json:"-"`
 	// API (tuỳ chọn) là API HTTP riêng của game, gắn ở /api/<ID> và /api/<ID>/...
 	API http.Handler `json:"-"`
+	// Closed (tuỳ chọn) khác rỗng là khu tạm đóng cửa: trang chuyển về bản đồ, API / WebSocket / danh sách bàn trả 503
+	// kèm thông báo này; dữ liệu người chơi giữ nguyên.
+	Closed string `json:"closed,omitempty"`
 }
 
 type Server struct {
@@ -90,6 +93,10 @@ func New(w *wallet.Wallet, static fs.FS, games []Game) *Server {
 	s.mux.HandleFunc("POST /api/daily", s.authed(s.daily))
 	s.mux.HandleFunc("GET /api/history", s.authed(s.history))
 	for _, g := range games {
+		if g.Closed != "" {
+			s.mountClosed(g)
+			continue
+		}
 		if g.WS != nil {
 			s.mux.Handle("/ws/"+g.ID, g.WS)
 		}
@@ -103,6 +110,23 @@ func New(w *wallet.Wallet, static fs.FS, games []Game) *Server {
 		}
 	}
 	return s
+}
+
+// mountClosed chặn mọi đường của một khu đang đóng cửa.
+func (s *Server) mountClosed(g Game) {
+	closed := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeError(w, http.StatusServiceUnavailable, g.Closed)
+	})
+	if g.WS != nil {
+		s.mux.Handle("/ws/"+g.ID, closed)
+	}
+	if g.API != nil || g.Rooms != nil {
+		s.mux.Handle("/api/"+g.ID, closed)
+		s.mux.Handle("/api/"+g.ID+"/", closed)
+	}
+	if g.Path != "" && g.Path != "/" {
+		s.mux.Handle(g.Path, http.RedirectHandler("/", http.StatusFound))
+	}
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) { s.mux.ServeHTTP(w, r) }

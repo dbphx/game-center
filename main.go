@@ -189,6 +189,8 @@ func games(w *wallet.Wallet) []server.Game {
 			WS:          arenaHub.Handler(arenaAuth),
 			Rooms:       arenaHub.RoomsHandler(),
 			API:         armory.Handler(),
+			// Tạm khoá theo yêu cầu (2026-11-09); bỏ dòng này để mở lại, đồ và cấp của người chơi vẫn giữ.
+			Closed: "Đấu trường đang tạm đóng cửa, mời bạn quay lại sau.",
 		},
 		{
 			ID:          race.GameID,

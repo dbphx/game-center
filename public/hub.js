@@ -448,6 +448,10 @@
 
   // Nút vào game của một khu; thiếu HP thì khoá kèm lý do.
   function enterButton(zone, href, label) {
+    const g = games.find((x) => x.id === zone);
+    if (g && g.closed) {
+      return `<button class="primary" disabled title="${A.escapeHtml(g.closed)}">${I.svg('lock')}Tạm đóng cửa</button>`;
+    }
     const need = minHP(zone);
     if (hpNow() < need || inHospital()) {
       return `<button class="primary" disabled title="Cần ít nhất ${need} HP">${I.svg('heart')}Cần ≥ ${need} HP để vào</button>`;
