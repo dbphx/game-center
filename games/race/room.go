@@ -91,6 +91,7 @@ type Options struct {
 	Grace        time.Duration // mất kết nối quá chừng này giữa cuộc đua thì tính bét
 	Tick         time.Duration // nhịp phát vị trí và chạy máy đua; 0 = không tự chạy (test gọi step)
 	MinHP        int           // máu tối thiểu để vào phòng (0 = không kiểm tra)
+	Bots         bool          // cho thêm máy đua vào phòng; mặc định tắt — người dùng không cho đua với máy (test bật)
 	Now          func() time.Time
 	// OnEvent (tuỳ chọn) nhận sự kiện cho nhiệm vụ: "race_finish" (người thật đua xong, không bỏ cuộc), "race_win" (về nhất).
 	// tx = nil: bên nhận tự mở giao dịch. Gọi trong goroutine riêng để không giữ khoá phòng.
@@ -505,6 +506,9 @@ func (r *Room) Handle(p *Player, m Message) error {
 	}
 	switch m.T {
 	case "addBot":
+		if !r.opts.Bots {
+			return errors.New("Trường đua không cho đua với máy, hãy mời bạn bè")
+		}
 		if len(r.players) >= MaxPlayers {
 			return errors.New("phòng đã đủ 6 xe")
 		}
@@ -582,9 +586,9 @@ func (r *Room) start() error {
 	if r.track == nil {
 		return errors.New("chưa có đường đua")
 	}
-	if len(r.players) < MinPlayers {
+	if len(r.players) < MinPlayers || (!r.opts.Bots && len(r.humans()) < MinPlayers) {
 		r.broadcast()
-		return errors.New("cần ít nhất 2 xe, hãy mời bạn hoặc thêm máy")
+		return errors.New("cần ít nhất 2 người chơi, hãy mời bạn bè")
 	}
 	for _, p := range r.humans() {
 		if err := r.refresh(p); err != nil {

@@ -503,13 +503,12 @@ function renderRoom() {
   }
   $('seats').innerHTML = cards.join('');
   $('room-host').innerHTML = host
-    ? `<button data-h="addBot"><i data-icon="plus"></i>Thêm máy</button>
-       <select id="sel-track">${(r.tracks && r.tracks.length ? r.tracks : TRACKS).map((t) => `<option value="${esc(t.id)}" ${t.id === r.track ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select>
+    ? `<select id="sel-track">${(r.tracks && r.tracks.length ? r.tracks : TRACKS).map((t) => `<option value="${esc(t.id)}" ${t.id === r.track ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select>
        <select id="sel-mode">${MODES.map((m) => `<option value="${m.id}" ${m.id === (r.mode || 'speed') ? 'selected' : ''}>${m.name}</option>`).join('')}</select>
        <select id="sel-bet">${(r.betOptions && r.betOptions.length ? r.betOptions : BETS).map((b) => `<option value="${b}" ${b === r.bet ? 'selected' : ''}>${b ? `${xu(b)} xu` : 'Chơi vui'}</option>`).join('')}</select>
        <button class="primary" data-h="start">Bắt đầu</button>`
     : '';
-  $('room-note').textContent = mySeat < 0 ? 'Bạn đang xem phòng này.' : host ? (r.phase === 'over' ? 'Bấm Bắt đầu để đua ván mới.' : 'Cần ít nhất 2 xe. Ai không đủ xu cược thì không bắt đầu được.') : 'Chờ chủ phòng bắt đầu…';
+  $('room-note').textContent = mySeat < 0 ? 'Bạn đang xem phòng này.' : host ? (r.phase === 'over' ? 'Bấm Bắt đầu để đua ván mới.' : 'Cần ít nhất 2 người chơi (không đua với máy). Ai không đủ xu cược thì không bắt đầu được.') : 'Chờ chủ phòng bắt đầu…';
   I.render($('room-host'));
 }
 
@@ -955,8 +954,8 @@ async function startPractice(trackId, mode = 'items') {
     try { await loadGarage(); car = curCar(); } catch (e) { car = null; }
   }
   const mine = car ? specOf(car, 7) : { car: 'starter', levels: {}, cosmetics: { paint: 'paint_red' }, number: 7 };
-  // ?bots=a,b,c (tối đa 5) đổi xe máy đua khi lái thử — tiện xem các mẫu xe trên đường.
-  const botIds = (new URLSearchParams(location.search).get('bots') || 'viper,moto_storm,raptor').split(',').slice(0, 5);
+  // Lái thử chạy một mình (không đua với máy); ?bots=a,b,c (tối đa 5) chỉ để thử mẫu xe trên đường khi phát triển.
+  const botIds = (new URLSearchParams(location.search).get('bots') || '').split(',').filter(Boolean).slice(0, 5);
   const bots = botIds.map((id, i) => ({
     seat: i + 1, name: `Máy ${i + 1}`, bot: true, skill: 0.82 + (i % 3) * 0.05,
     spec: { car: id, levels: { engine: i % 3, turbo: i % 3, tires: (i % 3) * 2 }, cosmetics: { paint: ['paint_blue', 'paint_yellow', 'paint_green', 'paint_purple', 'paint_white'][i], neon: ['neon_pink', 'neon_blue', 'neon_green', '', ''][i], spoiler: i === 1 ? 'spoiler_gt' : '' }, number: i + 2 },

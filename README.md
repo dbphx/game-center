@@ -488,9 +488,9 @@ Mưa lửa là một tin `shot` có `skill:"rain"`, `skillName:"Mưa lửa"`, m�
 
 ## Trường đua
 
-Đua kart 3D 2–6 xe (người hoặc máy), 3 vòng, cược xu. Cần ít nhất 30 HP để vào.
+Đua kart 3D 2–6 người chơi thật (không đua với máy), 3 vòng, cược xu. Cần ít nhất 30 HP để vào.
 
-- **Phòng:** chủ phòng chọn chế độ (**Tốc độ** hoặc **Đạo cụ**), đường (mọi file trong `public/race/tracks/`) và mức cược 100 / 500 / 1.000 / 5.000 / 10.000 xu mỗi người, thêm máy,
+- **Phòng:** chủ phòng chọn chế độ (**Tốc độ** hoặc **Đạo cụ**), đường (mọi file trong `public/race/tracks/`) và mức cược 100 / 500 / 1.000 / 5.000 / 10.000 xu mỗi người (không thêm máy được — `addBot` báo lỗi; cần ít nhất 2 người thật),
   rồi bắt đầu; ai thiếu xu thì không bắt đầu được. Đếm ngược 3 giây rồi xuất phát.
 - **Về đích:** server tự tính vòng theo các điểm kiểm tra của đường. Người nhất về thì những người khác có thêm 90 giây;
   hết giờ, ai chưa về xếp theo số vòng và điểm kiểm tra đã qua. Rời phòng hoặc mất kết nối quá 15 giây giữa cuộc đua thì tính bét.
@@ -498,7 +498,7 @@ Mưa lửa là một tin `shot` có `skill:"rain"`, `skillName:"Mưa lửa"`, m�
 - **Chống gian lận:** mỗi máy tự mô phỏng xe và gửi vị trí ≈15 lần/giây; server bỏ gói vượt tốc (trần xe × nitro 1,3 × 1,1),
   gói dịch chuyển xa hơn trần cho phép, vòng nhanh hơn thời gian tối thiểu của đường, và không tính vòng nếu bỏ điểm kiểm tra.
   Sai 15 lần trong một cuộc đua thì bị loại (tính bét).
-- **Máy đua** chạy ở server theo đường mẫu, tốc độ 85–97% trần xe của nó; ở chế độ Đạo cụ máy cũng nhặt hộp và dùng món.
+- **Máy đua** (đang tắt: `Options.Bots` = false, chỉ test bật) chạy ở server theo đường mẫu, tốc độ 85–97% trần xe của nó; ở chế độ Đạo cụ máy cũng nhặt hộp và dùng món.
 - **Nitro:** drift nạp nitro, tốc độ nạp ×2 (`nitroCharge`); dùng thì ×1,3 tốc độ tối đa trong 2 giây.
 - **Chế độ Đạo cụ:** hộp "?" trên đường (`itemBoxes` trong file đường), chạy qua (cách hộp ≤ 6 m) nhận ngẫu nhiên 1 món, giữ tối đa
   2 món; hộp tắt 3 giây sau khi bị nhặt. Món theo hạng: dẫn đầu chủ yếu dầu / khiên, xếp cuối dễ ra tên lửa đuổi / tăng tốc.

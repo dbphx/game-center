@@ -135,7 +135,7 @@ func newEnv(t *testing.T) *env {
 	}
 	clk := &clock{t: time.Unix(1_800_000_000, 0)}
 	opts := Options{Countdown: 3 * time.Second, FinishWindow: 90 * time.Second, MaxRace: 10 * time.Minute,
-		Grace: time.Hour, Now: clk.now}
+		Grace: time.Hour, Now: clk.now, Bots: true}
 	bank := newBank()
 	return &env{t: t, bank: bank, hub: NewHub(bank, fakeLoadouts{}, ts, opts), clk: clk}
 }
@@ -687,5 +687,21 @@ func TestCarsMessageCarriesControls(t *testing.T) {
 	}
 	if b, _ := json.Marshal(last[1]); strings.Contains(string(b), "steer") {
 		t.Fatalf("không có điều khiển thì không gửi trường steer: %s", b)
+	}
+}
+
+// Người dùng không cho đua với máy: tắt Bots thì không thêm máy được và phải có đủ 2 người thật mới bắt đầu.
+func TestNoBotsByDefault(t *testing.T) {
+	if DefaultOptions.Bots {
+		t.Fatal("mặc định không được bật máy đua")
+	}
+	e := newEnv(t)
+	e.hub.opts.Bots = false
+	a, _ := e.create(an, 100)
+	if err := a.Room.Handle(a.Player, Message{T: "addBot"}); err == nil {
+		t.Fatal("tắt Bots thì không thêm máy được")
+	}
+	if err := a.Room.Handle(a.Player, Message{T: "start"}); err == nil || e.phase(a.Room) != PhaseLobby {
+		t.Fatal("một người thì không bắt đầu được")
 	}
 }
