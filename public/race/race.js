@@ -455,6 +455,7 @@ function onMessage(m) {
     case 'fx': if (race && race.net && race.ifx) race.ifx.onFx(m); return null;
     case 'hit': if (race && race.net) onHit(m); return null;
     case 'chat': return null;
+    case 'pong': if (race && race.tel && typeof m.ms === 'number') race.tel.rtts.push(performance.now() - m.ms); return null;
     default: return null;
   }
 }
@@ -584,6 +585,7 @@ async function newRace({ trackId, entries, net, code, startAt, mode = 'speed', n
   race = {
     net, code, track, scene, camera, cars, me, sparks, lines, mode, ifx, items: [], pending: new Map(), fxSeq: 0, localFx: [], stats: { got: 0, used: 0, given: 0, taken: 0, blocked: 0 },
     startAt: startAt || Date.now() + 3500,
+    tel: net ? newTel() : null, // số đo trận thật (chỉ đua online), gửi một bản tóm tắt cuối trận
     lastSend: 0, finishMs: 0, ended: false, room: null,
     cam: { x: 0, y: 6, z: 0 },
   };
@@ -601,6 +603,7 @@ async function newRace({ trackId, entries, net, code, startAt, mode = 'speed', n
     // thì Date.now() đã trôi xa hơn vị trí xe, đóng mốc theo nó làm xe người khác chậm rồi vụt.
     race.frameDate = performance.timeOrigin + now;
     tick(dt);
+    if (race.tel) telFrame(race, now);
     v.render();
     race.raf = requestAnimationFrame(loop);
   };
@@ -773,6 +776,11 @@ function onCars(m) {
     else race.clockOff += 0.02;
   }
   const arrive = Date.now();
+  if (race.tel) {
+    race.tel.rx++;
+    if (race.tel.lastMs && m.ms - race.tel.lastMs > SEND_MS * 2.5) race.tel.gap++;
+    if (m.ms) race.tel.lastMs = m.ms;
+  }
   for (const s of m.list || []) {
     const c = race.cars.find((x) => x.seat === s.seat);
     if (!c || c.me) continue;
@@ -780,6 +788,7 @@ function onCars(m) {
     const last = c.snaps[c.snaps.length - 1];
     if (last && at <= last.at) {
       Object.assign(last, { lap: s.lap, cp: s.cp, shield: s.shield, boost: s.boost, spin: s.spin, nitro: s.nitro });
+      if (race.tel) race.tel.dup++;
       continue; // vị trí cũ phát lại
     }
     c.snaps.push({ ...s, at });
@@ -864,6 +873,8 @@ function lerpRemote(c, now, dt) {
   }
   // Làm mượt sai số: giữ độ lệch giữa chỗ đã vẽ và đích mới (khi đích nhảy vì gói mới / đoán sai) rồi cho nó tắt dần;
   // đích chạy liền thì xe bám đúng đích, không trễ. Lệch xa (bị trúng, hồi vị trí) thì nhảy luôn.
+  // Số đo: lần hiệu chỉnh lớn — đích mới cách chỗ đang vẽ xa hơn quãng xe đi được trong khung này + 2 m.
+  if (race.tel && c.lerpInit && Math.hypot(pose.x - c.st.x, pose.z - c.st.z) > Math.abs(c.st.speed || 0) * dt + 2) race.tel.big++;
   const tg = c.target;
   let ex = 0, ez = 0, er = 0;
   if (tg && c.lerpInit && Math.hypot(pose.x - c.st.x, pose.z - c.st.z) <= 8) {
@@ -878,6 +889,80 @@ function lerpRemote(c, now, dt) {
   c.target = pose;
   c.lerpInit = true;
   Object.assign(c.st, { x: pose.x + ex, z: pose.z + ez, rot: pose.rot + er, speed: b.speed || 0, lap: b.lap || 0, cp: b.cp || 0, drift: !!b.drift, boost: !!b.nitro || !!b.boost, spin: !!b.spin, shield: !!b.shield });
+}
+
+// ---------- Số đo trận thật ----------
+// Trong lúc đua online: thời gian khung, vận tốc vẽ của từng xe (khựng / giật chuẩn hoá theo dt), độ trễ hiển thị, RTT
+// (ping / pong mỗi 2 giây), gói nhận / trùng / hụt. Cuối trận (hoặc lúc rời) gửi MỘT bản tóm tắt nhỏ {t:"telemetry"};
+// không có tên / IP / user agent. Lỗi gì cũng bỏ qua im lặng.
+const TEL_CAP = 40000;
+function newTel() {
+  return { dts: [], me: [], rem: {}, lags: [], rtts: [], last: null, pos: {}, f50: 0, f100: 0, rx: 0, dup: 0, gap: 0, big: 0, lastMs: 0, lastPing: 0, frames: 0, t0: 0, sent: false };
+}
+function telFrame(r, now) {
+  try {
+    const T = r.tel;
+    if (T.sent || Date.now() < r.startAt || (r.me && r.me.st.finished)) { T.last = null; return; }
+    if (now - T.lastPing > 2000) { T.lastPing = now; send({ t: 'ping', ms: Math.round(now) }); }
+    if (!T.t0) T.t0 = now;
+    T.frames++;
+    if (T.last != null && T.dts.length < TEL_CAP) {
+      const dt = now - T.last;
+      T.dts.push(dt);
+      if (dt > 50) T.f50++;
+      if (dt > 100) T.f100++;
+      // Vận tốc vẽ: bỏ 3 giây đầu (xe đang tăng tốc từ vạch) và khung dài (> 50 ms, đã đếm riêng).
+      if (dt <= 50 && now - T.t0 > 3000) {
+        for (const c of r.cars) {
+          const p = T.pos[c.seat];
+          if (!p) continue;
+          const v = Math.hypot(c.obj.root.position.x - p.x, c.obj.root.position.z - p.z) / dt;
+          if (c.me) T.me.push(v);
+          else (T.rem[c.seat] ||= []).push(v);
+        }
+      }
+      if (T.frames % 10 === 0) for (const c of r.cars) if (!c.me && c.delay != null) T.lags.push(c.delay);
+    }
+    for (const c of r.cars) T.pos[c.seat] = { x: c.obj.root.position.x, z: c.obj.root.position.z };
+    T.last = now;
+  } catch (e) { /* số đo không được làm hỏng trận */ }
+}
+const quant = (a, q) => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(s.length * q))]; };
+// telRates: so từng khung với khung trước (không theo trung vị cả trận — tăng / giảm tốc, vào cua không bị tính):
+// giật = vận tốc vẽ đổi > 50% so với khung trước, khựng = tụt dưới 30% khung trước; xe gần như đứng thì bỏ cặp đó.
+function telRates(vs) {
+  let jerk = 0, stall = 0, n = 0;
+  for (let i = 1; i < vs.length; i++) {
+    const a = vs[i - 1], b = vs[i];
+    if (a < 0.002 && b < 0.002) continue;
+    n++;
+    if (Math.abs(b - a) / ((a + b) / 2) > 0.5) jerk++;
+    if (a >= 0.002 && b < a * 0.3) stall++;
+  }
+  return n >= 30 ? { jerk, stall, n } : null;
+}
+function sendTelemetry() {
+  try {
+    const T = race && race.net && race.tel;
+    if (!T || T.sent || T.dts.length < 30) return;
+    T.sent = true;
+    const r2 = (v) => Math.round(v * 100) / 100;
+    const med = quant(T.dts, 0.5);
+    const me = telRates(T.me);
+    let rj = 0, rs = 0, rn = 0;
+    for (const vs of Object.values(T.rem)) { const x = telRates(vs); if (x) { rj += x.jerk; rs += x.stall; rn += x.n; } }
+    const jit = T.rtts.length > 1 ? T.rtts.slice(1).reduce((a, v, i) => a + Math.abs(v - T.rtts[i]), 0) / (T.rtts.length - 1) : 0;
+    const car = race.me && race.me.spec ? race.me.spec.car : '';
+    send({ t: 'telemetry', tel: {
+      v: 1, dev: touch ? 'm' : 'd', hz: Math.round(1000 / (med || 16.7)), dpr: r2(window.devicePixelRatio || 1), low, car, n: race.cars.length,
+      dur: r2((T.last - T.t0) / 1000), fps50: r2(1000 / (med || 1)), fps5: r2(1000 / (quant(T.dts, 0.95) || 1)), f50: T.f50, f100: T.f100,
+      meJerk: me ? r2(me.jerk / me.n * 100) : 0, meStall: me ? r2(me.stall / me.n * 100) : 0,
+      remJerk: rn ? r2(rj / rn * 100) : 0, remStall: rn ? r2(rs / rn * 100) : 0,
+      lag50: Math.round(quant(T.lags, 0.5)), lag95: Math.round(quant(T.lags, 0.95)),
+      rtt50: Math.round(quant(T.rtts, 0.5)), rtt95: Math.round(quant(T.rtts, 0.95)), jit: r2(jit),
+      rx: T.rx, dup: T.dup, gap: T.gap, big: T.big,
+    } });
+  } catch (e) { /* bỏ qua */ }
 }
 
 function onFinish(m) {
@@ -909,6 +994,7 @@ function localFinish(c) {
 }
 
 function onResult(m) {
+  sendTelemetry();
   const seats = room ? seatsOf(room) : [];
   const list = (m.places || []).map((p) => ({
     name: (seats[p.seat] && seats[p.seat].name) || `Xe ${p.seat + 1}`,
@@ -1258,7 +1344,7 @@ $('btn-garage').onclick = openGarage;
 $('btn-practice').onclick = openPractice;
 $('btn-garage-back').onclick = () => { show('hall'); loadRooms(); };
 $('garage').addEventListener('click', onGarageClick);
-$('btn-leave').onclick = () => { send({ t: 'leave' }); store(ROOM_KEY, null); room = null; show('hall'); loadRooms(); };
+$('btn-leave').onclick = () => { sendTelemetry(); send({ t: 'leave' }); store(ROOM_KEY, null); room = null; show('hall'); loadRooms(); };
 $('btn-invite').onclick = () => {
   const link = `${location.origin}/race/?room=${room && room.code}`;
   (navigator.clipboard ? navigator.clipboard.writeText(link) : Promise.reject()).then(() => A.toast('Đã sao chép link mời'), () => A.toast(link));
@@ -1280,6 +1366,7 @@ $('btn-quit').onclick = async () => {
   if (race && race.net && !(race.me && race.me.st.finished)) {
     const ok = await A.confirm('Thoát giữa cuộc đua sẽ bị tính về bét và vẫn mất cược. Vẫn thoát?', { title: 'Thoát đua', ok: 'Thoát', cancel: 'Đua tiếp', danger: true });
     if (!ok) return;
+    sendTelemetry();
     send({ t: 'leave' });
     room = null;
     store(ROOM_KEY, null);
@@ -1316,6 +1403,7 @@ A.me().then(
   () => loadRooms(),
 );
 // Cho script thử nghiệm đọc trạng thái.
+window.__raceTel = () => sendTelemetry(); // script thử: gửi bản số đo ngay (bình thường gửi lúc có kết quả / rời trận)
 window.__raceCam = () => race && [race.camera.position.x, race.camera.position.y, race.camera.position.z];
 // __raceCars: vị trí đang vẽ của từng xe (đo độ mượt / đủ xe lúc xuất phát trong test trình duyệt).
 window.__raceCars = () => race && race.cars.map((c) => ({ rt: c.renderT, off: race.clockOff, seat: c.seat, me: !!c.me, bot: !!c.bot, x: c.obj.root.position.x, z: c.obj.root.position.z, vis: c.obj.root.visible !== false && !!c.obj.root.parent, snaps: c.snaps.length, delay: c.delay }));

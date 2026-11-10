@@ -165,6 +165,8 @@ type Message struct {
 	// Steer / Throttle: điều khiển đang dùng (−1..1) để máy khác đoán tiếp bằng vật lý xe khi gói tới trễ.
 	Steer    *float64 `json:"steer,omitempty"`
 	Throttle *float64 `json:"throttle,omitempty"`
+	// Tel: bản tóm tắt số đo cuối trận ({t:"telemetry"}), xem telemetry.go.
+	Tel json.RawMessage `json:"tel,omitempty"`
 }
 
 // Player là người ngồi ghế hoặc người xem.
@@ -189,6 +191,7 @@ type Player struct {
 	steer     float64 // điều khiển cuối (người: theo gói; máy: suy từ tốc độ quay)
 	throttle  float64
 	hasInput  bool
+	telRace   int64 // cuộc đua (startAt ms) đã nhận số đo của người này — mỗi trận một bản
 	conn      Conn
 	left      bool // đã rời giữa cuộc đua: giữ ghế tới khi chốt kết quả
 	graceTime *time.Timer
@@ -499,6 +502,15 @@ func (r *Room) Handle(p *Player, m Message) error {
 		return r.pickup(p, m.Box)
 	case "use":
 		return r.use(p)
+	case "telemetry":
+		r.telemetry(p, m.Tel)
+		return nil
+	case "ping":
+		// Đo RTT trong trận: trả ngay mốc của máy gửi.
+		if p.conn != nil {
+			p.conn.Send(map[string]any{"t": "pong", "ms": m.Ms})
+		}
+		return nil
 	}
 	if p.ID != r.hostID {
 		return errors.New("chỉ chủ phòng được làm việc này")
