@@ -792,15 +792,15 @@ function onCars(m) {
     }
   }
 }
-// lerpDelay: độ trễ vẽ của xe c — mức trễ 95% của các mẫu ~2,5 giây gần nhất + 30 ms, kẹp 90–300 ms (phần thiếu do
-// mạng dồn cụm lâu hơn thì ngoại suy bằng vật lý xe bù). Đổi mượt: tăng ≤ 100 ms/giây, giảm ≤ 50 ms/giây — thời gian
+// lerpDelay: độ trễ vẽ của xe c — mức trễ 80% của các mẫu ~2,5 giây gần nhất + 10 ms, kẹp 90–300 ms; phần mẫu tới muộn
+// hơn thì ngoại suy bằng vật lý xe bù (đo A/B: trễ hiển thị giảm ~45% so với 95% + 30 ms mà độ mượt như cũ). Đổi mượt: tăng ≤ 100 ms/giây, giảm ≤ 50 ms/giây — thời gian
 // vẽ của xe đó chỉ chậm / nhanh ≤ 10% / 5%, không nhảy.
 function lerpDelay(c, dt) {
   if (c.delay == null) c.delay = LERP_MS;
   const lates = c.lates;
   if (lates && lates.length >= 8) {
     const sorted = lates.map((l) => l[1]).sort((a, b) => a - b);
-    const want = Math.max(90, Math.min(300, sorted[Math.floor(sorted.length * 0.95)] + 30));
+    const want = Math.max(90, Math.min(300, sorted[Math.floor(sorted.length * 0.8)] + 10));
     c.delay += Math.max(-dt * 50, Math.min(dt * 100, want - c.delay));
   }
   return c.delay;
