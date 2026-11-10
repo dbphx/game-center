@@ -2,8 +2,8 @@ package race
 
 // Phòng đua online: 2–6 ghế (người hoặc máy), cược xu, đếm ngược rồi đua 3 vòng.
 //
-// Mỗi máy người chơi tự mô phỏng xe và gửi vị trí ≈15 lần/giây; server kiểm gói, tự tính vòng / về đích,
-// chạy máy đua theo đường mẫu và phát vị trí mọi xe ≈15 lần/giây.
+// Mỗi máy người chơi tự mô phỏng xe và gửi vị trí 20 lần/giây; server kiểm gói, tự tính vòng / về đích,
+// chạy máy đua theo đường mẫu và phát vị trí mọi xe 20 lần/giây.
 // Mọi thao tác trên một Room chạy dưới Room.mu; thứ tự khoá Room.mu → Hub.mu.
 
 import (
@@ -101,7 +101,7 @@ type Options struct {
 }
 
 var DefaultOptions = Options{Countdown: 3 * time.Second, FinishWindow: 90 * time.Second, MaxRace: 10 * time.Minute,
-	Grace: 15 * time.Second, Tick: 66 * time.Millisecond}
+	Grace: 15 * time.Second, Tick: 50 * time.Millisecond}
 
 func (o Options) now() time.Time {
 	if o.Now != nil {

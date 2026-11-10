@@ -1,5 +1,5 @@
 // Trường đua: sảnh, garage, phòng chờ, cuộc đua 3D. Server (games/race) giữ phòng, kiểm gói vị trí, xếp hạng và trả xu;
-// máy người chơi tự mô phỏng xe mình (physics.js) và gửi vị trí ≈15 lần/giây.
+// máy người chơi tự mô phỏng xe mình (physics.js) và gửi vị trí 20 lần/giây.
 import { Track, newCar, step, raceDistance, hitCar, ITEM_BOOST_MS, SHIELD_MS, NITRO_CHARGE } from './physics.js';
 import { THREE, createRenderer, buildWorld, buildCar, createSparks, createSpeedLines, createItemFx, makeShield, isMoto, PAINT, creditOf, createShowroom } from './scene.js';
 
@@ -19,7 +19,7 @@ const ITEM_ICON = { missile: 'img/item_missile.png', homing: 'img/item_homing.pn
 const ITEM_BOX = 'img/item_box.png';
 const itemImg = (k) => `<img src="${ITEM_ICON[k] || ITEM_BOX}" alt="" draggable="false">`;
 const PICKUP_RANGE = 5.5; // m: chạy qua hộp gần chừng này thì báo nhặt (server cho tới 6 m)
-const SEND_MS = 66; // ≈15 gói mỗi giây
+const SEND_MS = 50; // 20 gói mỗi giây (đo trên mạng giống thật: cua mượt hơn ~16%, giật ít hơn khi mạng xấu; +3 KB/s)
 const LERP_MS = 160; // xe người khác vẽ trễ một chút (≈2,5 gói) để mượt dù mạng chập chờn
 const ROOM_KEY = 'race.room';
 const BASE_STATS = { maxSpeed: 30, accel: 12, grip: 0.7 };

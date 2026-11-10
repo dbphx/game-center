@@ -495,7 +495,7 @@ Mưa lửa là một tin `shot` có `skill:"rain"`, `skillName:"Mưa lửa"`, m�
 - **Về đích:** server tự tính vòng theo các điểm kiểm tra của đường. Người nhất về thì những người khác có thêm 90 giây;
   hết giờ, ai chưa về xếp theo số vòng và điểm kiểm tra đã qua. Rời phòng hoặc mất kết nối quá 15 giây giữa cuộc đua thì tính bét.
 - **Tiền:** người nhất nhận cược của mọi người, trừ thuế 5% tiền thắng; XP nhất +30, bét +10, giữa chia đều.
-- **Chống gian lận:** mỗi máy tự mô phỏng xe và gửi vị trí ≈15 lần/giây; server bỏ gói vượt tốc (trần xe × nitro 1,3 × 1,1),
+- **Chống gian lận:** mỗi máy tự mô phỏng xe và gửi vị trí ≈20 lần/giây; server bỏ gói vượt tốc (trần xe × nitro 1,3 × 1,1),
   gói dịch chuyển xa hơn trần cho phép, vòng nhanh hơn thời gian tối thiểu của đường, và không tính vòng nếu bỏ điểm kiểm tra.
   Sai 15 lần trong một cuộc đua thì bị loại (tính bét).
 - **Máy đua** (đang tắt: `Options.Bots` = false, chỉ test bật) chạy ở server theo đường mẫu, tốc độ 85–97% trần xe của nó; ở chế độ Đạo cụ máy cũng nhặt hộp và dùng món.
@@ -548,7 +548,7 @@ Các POST trả `{garage, user}`; thiếu xu 402, chưa có xe / đã có / cấ
 WebSocket `/ws/race`: client gửi `create {token, bet, track, mode}`, `join {token, code}`, `addBot`, `kick {seat}`, `setBet {bet}`,
 `setTrack {track}`, `setMode {mode}`, `start`, `leave`, `chat {text}`, `state {x, z, rot, speed, nitro, drift}` khi đua,
 `pickup {box}` và `use` (chế độ Đạo cụ); server gửi `room` (phòng, ghế kèm xe và đồ đang lắp, `phase` lobby / countdown /
-racing / over, `mode`, `boxes [{id,x,z,active}]`, `nitroCharge`, `startAt`, `now` theo ms), `cars {ms, list}` ≈15 lần/giây
+racing / over, `mode`, `boxes [{id,x,z,active}]`, `nitroCharge`, `startAt`, `now` theo ms), `cars {ms, list}` ≈20 lần/giây
 (mỗi xe thêm `shield`, `boost`, `spin`), `finish {seat, place, timeMs}`, `result {places, money, tax, xp}` (mảng theo ghế),
 `items {list}` (riêng người giữ), `box {id, active}`, `fx {id, kind, x, z, rot, owner, dead}`, `hit {seat, by, kind, blocked?}`, `error`. Đường đua đọc từ
 `public/race/tracks/<id>.json` (cùng file giao diện dùng).
