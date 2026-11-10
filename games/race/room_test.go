@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"math"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -98,7 +99,8 @@ var (
 	chi  = User{ID: 3, Name: "Chi", HP: 100}
 )
 
-func ptr(v int) *int { return &v }
+func ptr(v int) *int       { return &v }
+func ptr64(v int64) *int64 { return &v }
 
 // clock là đồng hồ giả của phòng.
 type clock struct {
@@ -472,6 +474,41 @@ func TestLeaveMidRaceIsLastAndPays(t *testing.T) {
 	}
 }
 
+// Người thật rời giữa cuộc đua, máy đi tiếp và về đích trong nhịp step: chốt kết quả bỏ ghế người đã rời ngay
+// giữa vòng lặp máy — từng làm r.players có phần tử nil (slices.DeleteFunc xoá đè tại chỗ) và server sập.
+func TestBotFinishAfterHumansLeftDoesNotPanic(t *testing.T) {
+	// Tốc độ máy ngẫu nhiên: lặp nhiều ván để có ván máy ở ghế đầu về trước (trường hợp từng sập).
+	for round := 0; round < 40; round++ {
+		botFinishAfterHumansLeft(t)
+	}
+}
+
+func botFinishAfterHumansLeft(t *testing.T) {
+	e := newEnv(t)
+	a, _ := e.create(an, 0)
+	b, _ := e.join(a.Room.Code, binh)
+	for i := 0; i < 3; i++ {
+		e.do(a, Message{T: "addBot"})
+	}
+	e.do(a, Message{T: "start"})
+	e.clk.add(3 * time.Second)
+	e.step(a.Room)
+	e.do(a, Message{T: "leave"})
+	e.do(b, Message{T: "leave"})
+	for i := 0; i < 20000 && e.phase(a.Room) != PhaseOver; i++ {
+		e.clk.add(66 * time.Millisecond)
+		e.step(a.Room)
+	}
+	if e.phase(a.Room) != PhaseOver {
+		t.Fatalf("máy về đích phải chốt cuộc đua, đang %s", e.phase(a.Room))
+	}
+	for _, p := range a.Room.players {
+		if p == nil || !p.Bot {
+			t.Fatalf("sau khi chốt chỉ còn máy: %+v", a.Room.players)
+		}
+	}
+}
+
 func TestDisconnectGraceCountsAsDNF(t *testing.T) {
 	e := newEnv(t)
 	e.hub.opts.Grace = 20 * time.Millisecond
@@ -537,5 +574,118 @@ func TestFlexBoolAcceptsNumbers(t *testing.T) {
 	}
 	if err := json.Unmarshal([]byte(`{"t":"state","nitro":0,"drift":"x"}`), &m); err != nil || m.Nitro || m.Drift {
 		t.Fatalf("giá trị lạ phải là false: %+v %v", m, err)
+	}
+}
+
+// Mốc thời gian vị trí gửi cho máy khác lấy theo lúc máy người chơi lấy mẫu (Ms) cộng độ lệch nhỏ nhất đã thấy,
+// không theo lúc từng gói tới server: gói tới chập chờn thì mốc vẫn đều; Ms vô lý thì dùng lúc nhận; luôn tăng dần.
+func TestSampleAtUsesClientTimeline(t *testing.T) {
+	start := int64(1_000_000)
+	p := &Player{}
+	// Đồng hồ máy chậm hơn server 40 ms; gói lấy mẫu mỗi 66 ms, tới server trễ 30 / 150 / 10 / 90 ms (cộng 40).
+	delays := []int64{30, 150, 10, 90}
+	var got []int64
+	for i, d := range delays {
+		ms := int64(66 * (i + 1))
+		got = append(got, p.sampleAt(start, ptr64(ms), start+ms+40+d))
+	}
+	// Gói 3 tới nhanh hơn gói 1 (lệch 50 < 70): độ lệch chỉ hạ dần 2 ms mỗi gói (68) để mốc không nhảy; mốc vẫn cách
+	// đều 66 ms như nhịp lấy mẫu dù gói tới chập chờn.
+	if got[1] != start+132+70 || got[2] != start+198+68 || got[3]-got[2] != 66 {
+		t.Fatalf("mốc theo lúc lấy mẫu: %v", got)
+	}
+	for i := 1; i < len(got); i++ {
+		if got[i] <= got[i-1] {
+			t.Fatalf("mốc phải tăng dần: %v", got)
+		}
+	}
+	q := &Player{}
+	if at := q.sampleAt(start, nil, start+5_200); at != start+5_200 {
+		t.Fatalf("không có Ms thì dùng lúc nhận: %d", at)
+	}
+	if at := q.sampleAt(start, ptr64(9_000), start+5_300); at != start+5_300 {
+		t.Fatalf("Ms sớm quá xa thì dùng lúc nhận: %d", at)
+	}
+	if at := q.sampleAt(start, ptr64(1_000), start+5_400); at != start+5_400 {
+		t.Fatalf("Ms trễ quá xa thì dùng lúc nhận: %d", at)
+	}
+}
+
+func TestCarsMessageCarriesClientSampleTime(t *testing.T) {
+	e := newEnv(t)
+	a, _, b, cb := e.startRace(0)
+	startMs := a.Room.startAt.UnixMilli()
+	tr := a.Room.track
+	// Hai gói lấy mẫu lúc +66 / +132 ms, tới server lúc +100 / +300 ms: gói đầu tới nhanh (lệch 34 ms) nên gói sau
+	// mang mốc 132 + 34, không phải lúc nhận 300.
+	send := func(recv time.Duration, ms int64, d float64) {
+		e.clk.add(recv)
+		p, rot := tr.at(d)
+		a.Room.Handle(a.Player, Message{T: "state", X: p.X, Z: p.Z, Rot: rot, Speed: 20, Ms: ptr64(ms)})
+	}
+	send(100*time.Millisecond, 66, 1)
+	send(200*time.Millisecond, 132, 2)
+	e.step(a.Room)
+	_ = b
+	at := int64(-1)
+	cb.mu.Lock()
+	for _, m := range cb.msgs {
+		if mm, ok := m.(map[string]any); ok && mm["t"] == "cars" {
+			for _, c := range mm["list"].([]CarState) {
+				if c.Seat == 0 {
+					at = c.At
+				}
+			}
+		}
+	}
+	cb.mu.Unlock()
+	if at != startMs+166 {
+		t.Fatalf("mốc xe An phải là lúc lấy mẫu + lệch nhỏ nhất %d, được %d", startMs+166, at)
+	}
+}
+
+// Điều khiển cuối (steer / throttle) đi theo vị trí trong tin "cars" để máy khác ngoại suy bằng vật lý xe: người chơi
+// theo gói gửi (kẹp −1..1), máy có ga 1 và lái suy từ tốc độ quay; gói không có điều khiển (máy khách cũ) thì bỏ trống.
+func TestCarsMessageCarriesControls(t *testing.T) {
+	e := newEnv(t)
+	a, _ := e.create(an, 0)
+	b, cb := e.join(a.Room.Code, binh)
+	e.do(a, Message{T: "addBot"})
+	e.do(a, Message{T: "start"})
+	e.clk.add(3 * time.Second)
+	e.step(a.Room)
+	tr := a.Room.track
+	f := func(v float64) *float64 { return &v }
+	e.clk.add(66 * time.Millisecond)
+	p, rot := tr.at(1)
+	a.Room.Handle(a.Player, Message{T: "state", X: p.X, Z: p.Z, Rot: rot, Speed: 15, Ms: ptr64(66), Steer: f(2), Throttle: f(0.5)})
+	p, rot = tr.at(1)
+	b.Room.Handle(b.Player, Message{T: "state", X: p.X, Z: p.Z, Rot: rot, Speed: 15, Ms: ptr64(66)})
+	for range 30 {
+		e.clk.add(66 * time.Millisecond)
+		e.step(a.Room)
+	}
+	var last []CarState
+	cb.mu.Lock()
+	for _, m := range cb.msgs {
+		if mm, ok := m.(map[string]any); ok && mm["t"] == "cars" {
+			last = mm["list"].([]CarState)
+		}
+	}
+	cb.mu.Unlock()
+	if len(last) != 3 {
+		t.Fatalf("tin cars: %+v", last)
+	}
+	if s, th := last[0].Steer, last[0].Throttle; s == nil || th == nil || *s != 1 || *th != 0.5 {
+		t.Fatalf("điều khiển của An (kẹp lái 2 → 1): %v %v", s, th)
+	}
+	if last[1].Steer != nil || last[1].Throttle != nil {
+		t.Fatal("gói không có điều khiển thì để trống")
+	}
+	if bot := last[2]; bot.Throttle == nil || *bot.Throttle != 1 || bot.Steer == nil || math.Abs(*bot.Steer) > 1 {
+		t.Fatalf("máy: ga 1, lái trong −1..1: %v %v", bot.Throttle, bot.Steer)
+	}
+	if b, _ := json.Marshal(last[1]); strings.Contains(string(b), "steer") {
+		t.Fatalf("không có điều khiển thì không gửi trường steer: %s", b)
 	}
 }

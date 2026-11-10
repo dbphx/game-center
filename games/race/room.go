@@ -40,11 +40,14 @@ const (
 	bonusXP = 20
 
 	// Kiểm gói vị trí.
-	speedTolerance = 1.1 // tốc độ báo lên được vượt trần (kể cả nitro) 10%
-	moveTolerance  = 1.2 // quãng đường giữa hai gói được vượt trần 20%
-	moveSlack      = 3.0 // cộng thêm vài mét cho sai số làm tròn / mạng
-	minPacketGapMs = 150 // gói tới dồn: tính quãng đường cho phép như cách nhau ít nhất 150 ms
-	maxViolations  = 15  // vi phạm tới mức này thì bị loại (tính bét)
+	speedTolerance = 1.1  // tốc độ báo lên được vượt trần (kể cả nitro) 10%
+	moveTolerance  = 1.2  // quãng đường giữa hai gói được vượt trần 20%
+	moveSlack      = 3.0  // cộng thêm vài mét cho sai số làm tròn / mạng
+	minPacketGapMs = 150  // gói tới dồn: tính quãng đường cho phép như cách nhau ít nhất 150 ms
+	sampleAhead    = 250  // mốc lấy mẫu (Ms) được sớm hơn lúc nhận tối đa ngần này (lệch đồng hồ) …
+	sampleBehind   = 1500 // … và trễ hơn tối đa ngần này; ngoài khoảng thì dùng lúc server nhận
+	sampleSlew     = 2    // ms: mỗi gói chỉ chỉnh độ lệch mốc chừng này (≈ 30 ms/giây)
+	maxViolations  = 15   // vi phạm tới mức này thì bị loại (tính bét)
 )
 
 // BetOptions là các mức cược mỗi người chủ phòng được chọn.
@@ -153,6 +156,12 @@ type Message struct {
 	Speed float64  `json:"speed"`
 	Nitro flexBool `json:"nitro"`
 	Drift flexBool `json:"drift"`
+	// Ms: lúc máy người chơi lấy mẫu vị trí, tính từ lúc xuất phát theo đồng hồ của máy đó (ms). Dùng làm mốc thời gian
+	// của vị trí cho các máy khác nội suy — không dính độ trễ chập chờn của mạng như lúc server nhận gói.
+	Ms *int64 `json:"ms,omitempty"`
+	// Steer / Throttle: điều khiển đang dùng (−1..1) để máy khác đoán tiếp bằng vật lý xe khi gói tới trễ.
+	Steer    *float64 `json:"steer,omitempty"`
+	Throttle *float64 `json:"throttle,omitempty"`
 }
 
 // Player là người ngồi ghế hoặc người xem.
@@ -171,6 +180,12 @@ type Player struct {
 	Coins  int64
 	Car    CarView
 
+	sampleMs  int64 // mốc thời gian (đồng hồ server) của vị trí cuối, theo Ms máy người chơi gửi; 0 = chưa có
+	sampleOff int64 // độ lệch nhỏ nhất lúc nhận − (xuất phát + Ms) trong cuộc đua này
+	offOK     bool
+	steer     float64 // điều khiển cuối (người: theo gói; máy: suy từ tốc độ quay)
+	throttle  float64
+	hasInput  bool
 	conn      Conn
 	left      bool // đã rời giữa cuộc đua: giữ ghế tới khi chốt kết quả
 	graceTime *time.Timer
@@ -214,6 +229,9 @@ type CarState struct {
 	Shield bool `json:"shield,omitempty"`
 	Boost  bool `json:"boost,omitempty"`
 	Spin   bool `json:"spin,omitempty"`
+	// Điều khiển cuối (−1..1) để giao diện ngoại suy bằng vật lý xe; không có (máy khách cũ) thì giao diện đoán tuyến tính.
+	Steer    *float64 `json:"steer,omitempty"`
+	Throttle *float64 `json:"throttle,omitempty"`
 }
 
 // Place là một người trong bảng kết quả.
@@ -397,7 +415,7 @@ func (r *Room) remove(p *Player, notify bool) {
 	if i := slices.Index(r.spectators, p); i >= 0 {
 		r.spectators = slices.Delete(r.spectators, i, i+1)
 	} else if i := r.seatOf(p); i >= 0 {
-		r.players = slices.Delete(r.players, i, i+1)
+		r.players = slices.Delete(slices.Clone(r.players), i, i+1)
 		if r.phase == PhaseOver {
 			r.phase = PhaseLobby
 			r.result = nil
@@ -558,7 +576,7 @@ func (r *Room) newBot() *Player {
 func (r *Room) start() error {
 	for _, p := range slices.Clone(r.players) {
 		if p.left {
-			r.players = slices.DeleteFunc(r.players, func(q *Player) bool { return q == p })
+			r.players = slices.DeleteFunc(slices.Clone(r.players), func(q *Player) bool { return q == p }) // slice mới: không ghi nil vào mảng người gọi còn đang duyệt
 		}
 	}
 	if r.track == nil {
@@ -588,7 +606,8 @@ func (r *Room) start() error {
 		sp := r.track.spawnOf(i)
 		p.prog = progress{pos: Point{sp.X, sp.Z}, atMs: startMs, lapStartMs: startMs}
 		p.rot, p.speed, p.nitro, p.drift = sp.Rot, 0, false, false
-		p.dnf, p.violations, p.place = false, 0, 0
+		p.dnf, p.violations, p.place, p.sampleMs, p.sampleOff, p.offOK = false, 0, 0, 0, 0, false
+		p.steer, p.throttle, p.hasInput = 0, 0, false
 		if p.Bot {
 			// Máy chạy theo đường mẫu từ điểm gần vị trí xuất phát nhất, tốc độ 85–97% trần xe.
 			p.botS = r.track.nearestS(p.prog.pos)
@@ -627,12 +646,53 @@ func (r *Room) carState(p *Player, m Message) {
 		return
 	}
 	p.rot, p.speed, p.nitro, p.drift = m.Rot, m.Speed, bool(m.Nitro), bool(m.Drift)
+	p.sampleAt(r.startAt.UnixMilli(), m.Ms, now)
+	if m.Steer != nil && m.Throttle != nil {
+		p.steer, p.throttle, p.hasInput = unit(*m.Steer), unit(*m.Throttle), true
+	}
 	switch p.prog.move(r.track, Point{m.X, m.Z}, now, r.startAt.UnixMilli()) {
 	case advFastLap:
 		r.violation(p)
 	case advFinished:
 		r.finished(p)
 	}
+}
+
+// sampleAt trả mốc thời gian (đồng hồ server) của vị trí vừa nhận, theo Ms (lúc máy người chơi lấy mẫu, tính từ xuất phát
+// theo đồng hồ máy đó). Đồng hồ hai bên lệch một hằng số trong cả cuộc đua (máy đó nhận tin "room" muộn bao nhiêu), nên
+// chuỗi Ms đều như nhịp gửi thật; cộng thêm độ lệch nhỏ nhất đã thấy (gói tới nhanh nhất) là ra lúc lấy mẫu theo đồng
+// hồ server, không dính độ trễ chập chờn của từng gói. Không có / vô lý (lệch quá sampleAhead / sampleBehind) thì dùng
+// lúc nhận; luôn tăng dần.
+func (p *Player) sampleAt(startMs int64, ms *int64, recvMs int64) int64 {
+	at := recvMs
+	if ms != nil {
+		est := startMs + *ms
+		if d := recvMs - est; d >= -sampleAhead && d <= sampleBehind {
+			switch {
+			case !p.offOK:
+				p.sampleOff, p.offOK = d, true
+			case d < p.sampleOff:
+				// Gói tới nhanh hơn: hạ độ lệch dần (≤ sampleSlew mỗi gói) để mốc không nhảy làm xe vụt lên ở máy khác.
+				p.sampleOff -= min(p.sampleOff-d, sampleSlew)
+			}
+			// Không kẹp theo lúc nhận: gói tới nhanh hơn độ lệch đang dùng vẫn giữ đúng nhịp lấy mẫu (kẹp thì mốc của riêng
+			// gói đó bị sớm hơn các gói khác → xe chậm nửa nhịp rồi vụt lên ở máy khác).
+			at = est + p.sampleOff
+		}
+	}
+	if at <= p.sampleMs {
+		at = p.sampleMs + 1
+	}
+	p.sampleMs = at
+	return at
+}
+
+// unit kẹp v vào −1..1 (NaN → 0).
+func unit(v float64) float64 {
+	if math.IsNaN(v) {
+		return 0
+	}
+	return math.Max(-1, math.Min(1, v))
 }
 
 func (r *Room) violation(p *Player) {
@@ -772,7 +832,7 @@ func (r *Room) end() {
 	// Người đã rời giữa cuộc đua thì bỏ ghế sau khi chốt.
 	for _, p := range slices.Clone(r.players) {
 		if p.left {
-			r.players = slices.DeleteFunc(r.players, func(q *Player) bool { return q == p })
+			r.players = slices.DeleteFunc(slices.Clone(r.players), func(q *Player) bool { return q == p }) // slice mới: không ghi nil vào mảng người gọi còn đang duyệt
 			if r.hostID == p.ID {
 				r.pickHost()
 			}
@@ -883,7 +943,12 @@ func (r *Room) step() {
 		r.broadcast()
 	}
 	if r.phase == PhaseRacing {
-		for _, p := range r.players {
+		// Duyệt bản sao: máy về đích có thể chốt cuộc đua ngay trong vòng này (end bỏ ghế người đã rời);
+		// chốt rồi thì thôi chạy các máy còn lại.
+		for _, p := range slices.Clone(r.players) {
+			if !r.racing() {
+				break
+			}
 			if p.Bot && !p.prog.finished {
 				r.botStep(p, nowMs)
 				if r.racing() {
@@ -900,7 +965,16 @@ func (r *Room) step() {
 	}
 	list := make([]CarState, 0, len(r.players))
 	for i, p := range r.players {
-		list = append(list, CarState{Seat: i, At: p.prog.atMs, X: p.prog.pos.X, Z: p.prog.pos.Z, Rot: p.rot, Speed: p.speed,
+		at := p.prog.atMs
+		if !p.Bot && p.sampleMs > 0 {
+			at = p.sampleMs
+		}
+		var steer, throttle *float64
+		if p.hasInput {
+			sv, tv := p.steer, p.throttle
+			steer, throttle = &sv, &tv
+		}
+		list = append(list, CarState{Seat: i, At: at, Steer: steer, Throttle: throttle, X: p.prog.pos.X, Z: p.prog.pos.Z, Rot: p.rot, Speed: p.speed,
 			Lap: p.prog.lap, CP: p.prog.cp, Nitro: p.nitro, Drift: p.drift,
 			Shield: nowMs < p.shieldUntil, Boost: nowMs < p.boostUntil, Spin: nowMs < p.spinUntil})
 	}
@@ -916,6 +990,17 @@ func (r *Room) botStep(p *Player, nowMs int64) {
 	if dt <= 0 {
 		return
 	}
+	rot0, total := p.rot, dt
+	// Điều khiển tương đương cho giao diện ngoại suy: ga hết cỡ, lái theo tốc độ quay vừa rồi (cùng công thức physics.js).
+	defer func() {
+		sp := math.Abs(p.speed)
+		f := 2.3 * math.Min(1, sp/7) * (1 - 0.35*math.Min(1, sp/p.Car.Stats.MaxSpeed))
+		dr := math.Remainder(p.rot-rot0, 2*math.Pi)
+		p.throttle, p.steer, p.hasInput = 1, 0, true
+		if f > 0 && total > 0 {
+			p.steer = unit(dr / total / f)
+		}
+	}()
 	// Chia nhỏ bước để máy không nhảy qua điểm kiểm tra khi nhịp bị trễ.
 	for dt > 0 {
 		h := math.Min(dt, 0.1)

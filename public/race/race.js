@@ -598,6 +598,9 @@ async function newRace({ trackId, entries, net, code, startAt, mode = 'speed', n
     if (!race || race.scene !== scene) return;
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
+    // Giờ của khung theo đồng hồ Date nhưng lấy từ mốc rAF (cùng đồng hồ với vật lý): callback chạy trễ (máy bận)
+    // thì Date.now() đã trôi xa hơn vị trí xe, đóng mốc theo nó làm xe người khác chậm rồi vụt.
+    race.frameDate = performance.timeOrigin + now;
     tick(dt);
     v.render();
     race.raf = requestAnimationFrame(loop);
@@ -624,6 +627,7 @@ function tick(dt) {
       // window.__autopilot: script thử nghiệm cho xe mình tự lái như máy.
       const inp = go && !c.st.finished ? (window.__autopilot ? autoSteer(r.track, c.st, 1) : input()) : { throttle: c.st.finished ? 0.3 : 0, steer: 0 };
       if (c.st.finished) Object.assign(inp, autoSteer(r.track, c.st));
+      c.inp = inp;
       const ev = fixedSteps(c, inp, r.track, dt);
       for (const e of ev) {
         if (e === 'wall') r.sparks.emit(c.st.x, 0.6, c.st.z, 14, 7);
@@ -635,7 +639,7 @@ function tick(dt) {
       if (r.ifx && go && !c.st.finished) itemTick(c, now);
       if (r.net && go && now - r.lastSend >= SEND_MS) sendState(c, now);
     } else if (r.net) {
-      lerpRemote(c, now);
+      lerpRemote(c, now, dt);
     } else if (go) {
       const inp = autoSteer(r.track, c.st, c.skill);
       const ev = fixedSteps(c, inp, r.track, dt);
@@ -648,12 +652,13 @@ function tick(dt) {
     c.spinVis = spinning ? c.spinVis + dt * 13 : c.spinVis % (Math.PI * 2) > 0.05 ? c.spinVis + Math.min(dt * 13, Math.PI * 2 - (c.spinVis % (Math.PI * 2))) : 0;
     c.shield.visible = c.me || !r.net ? c.st.shieldMs > 0 : !!c.st.shield;
     if (c.shield.visible) c.shield.rotation.y += dt * 1.5;
-    c.obj.root.position.set(c.st.x, 0, c.st.z);
-    c.obj.root.rotation.y = c.st.rot + c.spinVis;
+    c.pose = posed(c);
+    c.obj.root.position.set(c.pose.x, 0, c.pose.z);
+    c.obj.root.rotation.y = c.pose.rot + c.spinVis;
     c.obj.update(c.st.speed, c.me ? c.st.steerVis : 0, c.st.drift, boost, dt);
     if (c.st.drift && Math.abs(c.st.speed) > 12 && Math.random() < 0.5) {
-      const bx = c.st.x - Math.sin(c.st.rot) * c.obj.length * 0.45;
-      const bz = c.st.z - Math.cos(c.st.rot) * c.obj.length * 0.45;
+      const bx = c.pose.x - Math.sin(c.pose.rot) * c.obj.length * 0.45; // tia lửa drift theo vị trí đang vẽ
+      const bz = c.pose.z - Math.cos(c.pose.rot) * c.obj.length * 0.45;
       r.sparks.emit(bx, 0.15, bz, 2, 3, 0xffb547);
     }
     c.dist = c.done ? Infinity : raceDistance(r.track, c.st.lap, c.st.cp, c.st.x, c.st.z, c.st.seg);
@@ -686,19 +691,40 @@ function tick(dt) {
 
 function sendState(c, now) {
   race.lastSend = now;
-  send({ t: 'state', ms: now - race.startAt, x: round(c.st.x), z: round(c.st.z), rot: round(c.st.rot, 3), speed: round(c.st.speed), lap: c.st.lap, cp: c.st.cp, nitro: c.st.boostMs > 0, drift: c.st.drift });
+  // ms: lúc vị trí này đúng, tính từ xuất phát, đếm theo số bước vật lý đã chạy (simMs) chứ không theo giờ hệ thống:
+  // khung bị trễ / dồn (máy bận, dt bị kẹp) thì giờ hệ thống chạy trước vị trí xe → xe người khác chậm rồi vụt.
+  // Lệch giờ thật quá 250 ms (tab bị treo lâu) thì đồng bộ lại.
+  const wall = (race.frameDate || now) - (c.acc || 0) * 1000 - race.startAt;
+  if (c.simMs == null || Math.abs(wall - c.simMs) > 250) c.simMs = wall;
+  send({ t: 'state', ms: Math.round(c.simMs), x: round(c.st.x), z: round(c.st.z), rot: round(c.st.rot, 3), speed: round(c.st.speed), lap: c.st.lap, cp: c.st.cp, nitro: c.st.boostMs > 0, drift: c.st.drift,
+    steer: round((c.inp && c.inp.steer) || 0, 2), throttle: round((c.inp && c.inp.throttle) || 0, 2) });
 }
 
 // fixedSteps chạy vật lý theo bước cố định 1/60 s (tối đa 0,25 s mỗi khung) để tốc độ xe không phụ thuộc FPS.
 const STEP = 1 / 60;
+// Màn hình 90 / 120 Hz (hoặc 60 Hz lệch nhịp) có khung không chạy bước nào, khung chạy 2 bước → xe đứng rồi nhảy;
+// nên vẽ xe ở vị trí nội suy giữa hai bước vật lý gần nhất theo phần thời gian còn dư (c.pose, xem posed).
 function fixedSteps(c, inp, track, dt) {
   c.acc = Math.min(0.25, (c.acc || 0) + dt);
   const ev = [];
   while (c.acc >= STEP) {
     c.acc -= STEP;
+    c.prev = { x: c.st.x, z: c.st.z, rot: c.st.rot };
     ev.push(...step(c.st, inp, track, STEP));
+    if (c.simMs != null) c.simMs += STEP * 1000;
   }
+  c.alpha = c.acc / STEP;
   return ev;
+}
+// posed: vị trí để vẽ / camera bám. Xe tự mô phỏng: nội suy prev → st theo alpha; xe người khác: đã nội suy ở lerpRemote.
+function posed(c) {
+  const p = c.prev;
+  if (!p || c.alpha == null) return { x: c.st.x, z: c.st.z, rot: c.st.rot };
+  const a = c.alpha;
+  let dr = c.st.rot - p.rot;
+  while (dr > Math.PI) dr -= Math.PI * 2;
+  while (dr < -Math.PI) dr += Math.PI * 2;
+  return { x: p.x + (c.st.x - p.x) * a, z: p.z + (c.st.z - p.z) * a, rot: p.rot + dr * a };
 }
 
 // Máy đua (chỉ khi lái thử): nhắm điểm phía trước trên đường tâm, thỉnh thoảng drift ở cua.
@@ -715,18 +741,19 @@ function autoSteer(track, st, skill = 0.9) {
 
 function followCam(c, dt) {
   const r = race;
-  const fx = Math.sin(c.st.rot);
-  const fz = Math.cos(c.st.rot);
+  const ps = c.pose || c.st; // bám vị trí đang vẽ để camera và xe không lệch nhịp nhau
+  const fx = Math.sin(ps.rot);
+  const fz = Math.cos(ps.rot);
   const back = 5.6 + (c.obj.height || 1.5) * 0.9 + Math.max(0, c.st.speed) * 0.03;
-  const tx = c.st.x - fx * back;
-  const tz = c.st.z - fz * back;
+  const tx = ps.x - fx * back;
+  const tz = ps.z - fz * back;
   const k = 1 - Math.exp(-dt * 8);
   r.cam.x += (tx - r.cam.x) * k;
   r.cam.z += (tz - r.cam.z) * k;
   const h = c.obj.height || 1.5;
   r.cam.y += (h + 1.7 - r.cam.y) * k;
   r.camera.position.set(r.cam.x, r.cam.y, r.cam.z);
-  r.camera.lookAt(c.st.x + fx * 6, h * 0.55 + 0.6, c.st.z + fz * 6);
+  r.camera.lookAt(ps.x + fx * 6, h * 0.55 + 0.6, ps.z + fz * 6);
   const fov = 66 + Math.max(0, c.st.speed) * 0.25 + (c.st.boostMs > 0 ? 8 : 0);
   r.camera.fov += (fov - r.camera.fov) * Math.min(1, dt * 4);
   r.camera.updateProjectionMatrix();
@@ -734,57 +761,123 @@ function followCam(c, dt) {
 
 // Xe người khác: nội suy theo mốc thời gian server (`at` của từng xe), vẽ trễ LERP_MS.
 // Mốc lấy từ server chứ không phải lúc gói tới, nên mạng dồn / trễ gói không làm xe giật; gói trùng (server phát lại
-// vị trí cũ khi chưa có gói mới) bị bỏ; hết dữ liệu thì đoán tiếp theo vận tốc tối đa EXTRAP_MS rồi mới đứng.
-const EXTRAP_MS = 150;
+// vị trí cũ khi chưa có gói mới) bị bỏ; hết dữ liệu (mạng dồn gói theo cụm) thì đoán tiếp theo vận tốc tối đa EXTRAP_MS rồi mới đứng.
+const EXTRAP_MS = 300;
 function onCars(m) {
-  // Độ lệch đồng hồ máy − server: lấy mức nhỏ nhất (gói tới nhanh nhất), nới dần để theo kịp khi đồng hồ trôi.
+  // Độ lệch đồng hồ máy − server: tiến dần về mức nhỏ nhất (gói tới nhanh nhất) — mỗi tin chỉnh ≤ 2 ms để thời gian vẽ
+  // không nhảy làm xe vụt lên; nới rất chậm để theo kịp khi đồng hồ trôi.
   if (m.ms) {
     const off = Date.now() - m.ms;
-    race.clockOff = race.clockOff == null || off < race.clockOff ? off : race.clockOff + 0.02;
+    if (race.clockOff == null) race.clockOff = off;
+    else if (off < race.clockOff) race.clockOff -= Math.min(2, race.clockOff - off);
+    else race.clockOff += 0.02;
   }
+  const arrive = Date.now();
   for (const s of m.list || []) {
     const c = race.cars.find((x) => x.seat === s.seat);
     if (!c || c.me) continue;
-    const at = s.at || m.ms || Date.now() - (race.clockOff || 0);
+    const at = s.at || m.ms || arrive - (race.clockOff || 0);
     const last = c.snaps[c.snaps.length - 1];
     if (last && at <= last.at) {
       Object.assign(last, { lap: s.lap, cp: s.cp, shield: s.shield, boost: s.boost, spin: s.spin, nitro: s.nitro });
       continue; // vị trí cũ phát lại
     }
     c.snaps.push({ ...s, at });
-    if (c.snaps.length > 12) c.snaps.shift();
+    if (c.snaps.length > 24) c.snaps.shift();
+    // Độ trễ của mẫu khi tới máy mình (ms, theo đồng hồ server), riêng từng xe, giữ ~2,5 giây gần nhất: chọn độ trễ vẽ.
+    if (race.clockOff != null) {
+      const lates = (c.lates ||= []);
+      lates.push([arrive, arrive - race.clockOff - at]);
+      while (lates.length && arrive - lates[0][0] > 2500) lates.shift();
+    }
   }
 }
-function lerpRemote(c, now) {
+// lerpDelay: độ trễ vẽ của xe c — mức trễ 95% của các mẫu ~2,5 giây gần nhất + 30 ms, kẹp 90–300 ms (phần thiếu do
+// mạng dồn cụm lâu hơn thì ngoại suy bằng vật lý xe bù). Đổi mượt: tăng ≤ 100 ms/giây, giảm ≤ 50 ms/giây — thời gian
+// vẽ của xe đó chỉ chậm / nhanh ≤ 10% / 5%, không nhảy.
+function lerpDelay(c, dt) {
+  if (c.delay == null) c.delay = LERP_MS;
+  const lates = c.lates;
+  if (lates && lates.length >= 8) {
+    const sorted = lates.map((l) => l[1]).sort((a, b) => a - b);
+    const want = Math.max(90, Math.min(300, sorted[Math.floor(sorted.length * 0.95)] + 30));
+    c.delay += Math.max(-dt * 50, Math.min(dt * 100, want - c.delay));
+  }
+  return c.delay;
+}
+// extrapolate: hết dữ liệu (t vượt gói cuối b) thì chạy tiếp chính vật lý xe (physics.js, cùng chỉ số, bước cố định)
+// từ trạng thái gói cuối với điều khiển cuối, tối đa EXTRAP_MS — bám cua / tường như xe thật thay cho đường thẳng.
+// Gói cũ (máy khách / server chưa gửi điều khiển) thì trả null để đoán tuyến tính.
+function extrapolate(c, b, ms) {
+  if (b.throttle == null || b.steer == null) return null;
+  let e = c.ext;
+  if (!e || e.at !== b.at) {
+    const sp = b.speed || 0;
+    const st = newCar({ x: b.x, z: b.z, rot: b.rot }, c.stats || BASE_STATS, NITRO_CHARGE);
+    Object.assign(st, { speed: sp, vx: Math.sin(b.rot) * sp, vz: Math.cos(b.rot) * sp, drift: !!b.drift, finished: true,
+      boostMs: b.nitro || b.boost ? 400 : 0, spinMs: b.spin ? 400 : 0 });
+    e = c.ext = { at: b.at, st, sim: 0, prev: { x: b.x, z: b.z, rot: b.rot } };
+  }
+  const want = Math.min(ms, EXTRAP_MS);
+  const inp = { throttle: b.throttle, steer: b.steer, drift: !!b.drift, nitro: false };
+  // Chạy tới bước đầu tiên ở sau `want` rồi nội suy lùi giữa hai bước kề nhau (không thì xe chỉ nhích theo từng
+  // bước 16,7 ms → khựng / nhảy như lỗi bước cố định).
+  while (e.sim < want) {
+    e.prev = { x: e.st.x, z: e.st.z, rot: e.st.rot };
+    step(e.st, inp, race.track, STEP);
+    e.sim += STEP * 1000;
+  }
+  if (e.sim === 0) return { x: b.x, z: b.z, rot: b.rot };
+  const a = Math.max(0, Math.min(1, (want - (e.sim - STEP * 1000)) / (STEP * 1000)));
+  const p = e.prev;
+  let dr = e.st.rot - p.rot;
+  while (dr > Math.PI) dr -= Math.PI * 2;
+  while (dr < -Math.PI) dr += Math.PI * 2;
+  return { x: p.x + (e.st.x - p.x) * a, z: p.z + (e.st.z - p.z) * a, rot: p.rot + dr * a };
+}
+const SMOOTH_S = 0.1; // sai số đoán (gói mới khác chỗ đã vẽ) tắt dần theo e^(−dt/τ), không phụ thuộc FPS
+function lerpRemote(c, now, dt) {
   const sn = c.snaps;
   if (!sn.length) return;
-  const t = now - (race.clockOff || 0) - LERP_MS; // thời điểm cần vẽ, theo đồng hồ server
+  const t = now - (race.clockOff || 0) - lerpDelay(c, dt); // thời điểm cần vẽ xe này, theo đồng hồ server
+  c.renderT = t;
   let a = sn[0];
   let b = sn[0];
   let k = 0;
-  if (t >= sn[sn.length - 1].at) {
-    // Hết dữ liệu: đoán tiếp theo hai gói cuối (giới hạn EXTRAP_MS).
-    b = sn[sn.length - 1];
+  let pose = null;
+  const lastSn = sn[sn.length - 1];
+  if (t >= lastSn.at) {
+    // Hết dữ liệu: đoán tiếp bằng vật lý xe; không có điều khiển thì theo hai gói cuối (tuyến tính).
+    b = lastSn;
     a = sn.length > 1 ? sn[sn.length - 2] : b;
+    pose = extrapolate(c, b, t - b.at);
     k = b.at === a.at ? 1 : 1 + Math.min(t - b.at, EXTRAP_MS) / (b.at - a.at);
   } else if (t > sn[0].at) {
     for (let i = 0; i < sn.length - 1; i++) if (sn[i + 1].at >= t) { a = sn[i]; b = sn[i + 1]; break; }
     k = (t - a.at) / (b.at - a.at);
   }
-  let dr = b.rot - a.rot;
-  while (dr > Math.PI) dr -= Math.PI * 2;
-  while (dr < -Math.PI) dr += Math.PI * 2;
-  const x = a.x + (b.x - a.x) * k;
-  const z = a.z + (b.z - a.z) * k;
-  const rot = a.rot + dr * k;
-  // Gói lệch xa (bị trúng, quay đầu, hồi vị trí) thì nhảy luôn; còn lại kéo mềm để không giật khi đoán sai.
-  const far = c.lerpInit !== true || Math.hypot(x - c.st.x, z - c.st.z) > 8;
-  const f = far ? 1 : 0.6;
-  let dRot = rot - c.st.rot;
-  while (dRot > Math.PI) dRot -= Math.PI * 2;
-  while (dRot < -Math.PI) dRot += Math.PI * 2;
+  if (!pose) {
+    let dr = b.rot - a.rot;
+    while (dr > Math.PI) dr -= Math.PI * 2;
+    while (dr < -Math.PI) dr += Math.PI * 2;
+    pose = { x: a.x + (b.x - a.x) * k, z: a.z + (b.z - a.z) * k, rot: a.rot + dr * k };
+  }
+  // Làm mượt sai số: giữ độ lệch giữa chỗ đã vẽ và đích mới (khi đích nhảy vì gói mới / đoán sai) rồi cho nó tắt dần;
+  // đích chạy liền thì xe bám đúng đích, không trễ. Lệch xa (bị trúng, hồi vị trí) thì nhảy luôn.
+  const tg = c.target;
+  let ex = 0, ez = 0, er = 0;
+  if (tg && c.lerpInit && Math.hypot(pose.x - c.st.x, pose.z - c.st.z) <= 8) {
+    const fade = Math.exp(-dt / SMOOTH_S);
+    ex = (c.st.x - tg.x) * fade;
+    ez = (c.st.z - tg.z) * fade;
+    er = c.st.rot - tg.rot;
+    while (er > Math.PI) er -= Math.PI * 2;
+    while (er < -Math.PI) er += Math.PI * 2;
+    er *= fade;
+  }
+  c.target = pose;
   c.lerpInit = true;
-  Object.assign(c.st, { x: c.st.x + (x - c.st.x) * f, z: c.st.z + (z - c.st.z) * f, rot: c.st.rot + dRot * f, speed: b.speed || 0, lap: b.lap || 0, cp: b.cp || 0, drift: !!b.drift, boost: !!b.nitro || !!b.boost, spin: !!b.spin, shield: !!b.shield });
+  Object.assign(c.st, { x: pose.x + ex, z: pose.z + ez, rot: pose.rot + er, speed: b.speed || 0, lap: b.lap || 0, cp: b.cp || 0, drift: !!b.drift, boost: !!b.nitro || !!b.boost, spin: !!b.spin, shield: !!b.shield });
 }
 
 function onFinish(m) {
@@ -1223,5 +1316,8 @@ A.me().then(
   () => loadRooms(),
 );
 // Cho script thử nghiệm đọc trạng thái.
+window.__raceCam = () => race && [race.camera.position.x, race.camera.position.y, race.camera.position.z];
+// __raceCars: vị trí đang vẽ của từng xe (đo độ mượt / đủ xe lúc xuất phát trong test trình duyệt).
+window.__raceCars = () => race && race.cars.map((c) => ({ rt: c.renderT, off: race.clockOff, seat: c.seat, me: !!c.me, bot: !!c.bot, x: c.obj.root.position.x, z: c.obj.root.position.z, vis: c.obj.root.visible !== false && !!c.obj.root.parent, snaps: c.snaps.length, delay: c.delay }));
 window.__race = () => race && { me: race.me && { ...race.me.st, place: race.me.place }, cars: race.cars.length, startAt: race.startAt, mode: race.mode,
   items: race.net ? race.items : race.me ? race.me.items : [], stats: race.stats, fx: race.ifx ? race.ifx.fx.size : 0, boxes: race.ifx ? [...race.ifx.boxes.values()].filter((b) => b.active).length : 0 };
