@@ -586,12 +586,12 @@ func TestSampleAtUsesClientTimeline(t *testing.T) {
 	delays := []int64{30, 150, 10, 90}
 	var got []int64
 	for i, d := range delays {
-		ms := int64(66 * (i + 1))
+		ms := int64(5_000 + 66*(i+1)) // sau mấy giây đầu (mấy giây đầu độ lệch lấy ngay mức nhỏ nhất)
 		got = append(got, p.sampleAt(start, ptr64(ms), start+ms+40+d))
 	}
 	// Gói 3 tới nhanh hơn gói 1 (lệch 50 < 70): độ lệch chỉ hạ dần 2 ms mỗi gói (68) để mốc không nhảy; mốc vẫn cách
 	// đều 66 ms như nhịp lấy mẫu dù gói tới chập chờn.
-	if got[1] != start+132+70 || got[2] != start+198+68 || got[3]-got[2] != 66 {
+	if got[1] != start+5_132+70 || got[2] != start+5_198+68 || got[3]-got[2] != 66 {
 		t.Fatalf("mốc theo lúc lấy mẫu: %v", got)
 	}
 	for i := 1; i < len(got); i++ {
@@ -703,5 +703,22 @@ func TestNoBotsByDefault(t *testing.T) {
 	}
 	if err := a.Room.Handle(a.Player, Message{T: "start"}); err == nil || e.phase(a.Room) != PhaseLobby {
 		t.Fatal("một người thì không bắt đầu được")
+	}
+}
+
+// Gói đầu tới trễ bất thường (máy người chơi khựng lúc xuất phát): độ lệch mốc không được kẹt ở mức trễ đó — xe này từng
+// hiện chậm ~1,2 giây trên máy người khác suốt cuộc đua vì độ lệch chỉ hạ 2 ms mỗi gói.
+func TestSampleAtRecoversFromLateFirstPacket(t *testing.T) {
+	start := int64(1_000_000)
+	p := &Player{}
+	p.sampleAt(start, ptr64(66), start+66+1_200) // gói đầu tới trễ 1,2 giây
+	var at, recv int64
+	for i := int64(2); i <= 60; i++ { // 4 giây sau, mỗi gói tới trễ 40 ms như bình thường
+		ms := 66 * i
+		recv = start + ms + 40
+		at = p.sampleAt(start, ptr64(ms), recv)
+	}
+	if lag := at - (recv - 40); lag > 100 {
+		t.Fatalf("sau 4 giây mốc vẫn chậm %d ms so với lúc lấy mẫu", lag)
 	}
 }

@@ -763,12 +763,13 @@ function followCam(c, dt) {
 // vị trí cũ khi chưa có gói mới) bị bỏ; hết dữ liệu (mạng dồn gói theo cụm) thì đoán tiếp theo vận tốc tối đa EXTRAP_MS rồi mới đứng.
 const EXTRAP_MS = 300;
 function onCars(m) {
-  // Độ lệch đồng hồ máy − server: tiến dần về mức nhỏ nhất (gói tới nhanh nhất) — mỗi tin chỉnh ≤ 2 ms để thời gian vẽ
-  // không nhảy làm xe vụt lên; nới rất chậm để theo kịp khi đồng hồ trôi.
+  // Độ lệch đồng hồ máy − server: tiến về mức nhỏ nhất (tin tới nhanh nhất). Vài giây đầu cuộc đua lấy ngay (tin đầu
+  // thường bị xử lý trễ lúc đang dựng cảnh — giữ nó thì mọi xe người khác hiện chậm cả cuộc đua); sau đó hạ 2 ms mỗi tin
+  // để thời gian vẽ không nhảy (lệch > 150 ms bất thường thì hạ 10% mỗi tin); nới rất chậm để theo kịp khi đồng hồ trôi.
   if (m.ms) {
     const off = Date.now() - m.ms;
-    if (race.clockOff == null) race.clockOff = off;
-    else if (off < race.clockOff) race.clockOff -= Math.min(2, race.clockOff - off);
+    if (race.clockOff == null || (off < race.clockOff && m.ms - race.startAt + race.clockOff < 3000)) race.clockOff = off;
+    else if (off < race.clockOff) race.clockOff -= race.clockOff - off > 150 ? (race.clockOff - off) / 10 : Math.min(2, race.clockOff - off);
     else race.clockOff += 0.02;
   }
   const arrive = Date.now();

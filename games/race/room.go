@@ -46,7 +46,9 @@ const (
 	minPacketGapMs = 150  // gói tới dồn: tính quãng đường cho phép như cách nhau ít nhất 150 ms
 	sampleAhead    = 250  // mốc lấy mẫu (Ms) được sớm hơn lúc nhận tối đa ngần này (lệch đồng hồ) …
 	sampleBehind   = 1500 // … và trễ hơn tối đa ngần này; ngoài khoảng thì dùng lúc server nhận
-	sampleSlew     = 2    // ms: mỗi gói chỉ chỉnh độ lệch mốc chừng này (≈ 30 ms/giây)
+	sampleSlew     = 2    // ms: mỗi gói chỉnh độ lệch mốc chừng này …
+	sampleBigMs    = 150  // … lệch quá ngần này thì chỉnh 10% phần lệch mỗi gói
+	sampleSettleMs = 3000 // ms đầu cuộc đua (theo Ms): độ lệch mốc lấy ngay mức nhỏ nhất
 	maxViolations  = 15   // vi phạm tới mức này thì bị loại (tính bét)
 )
 
@@ -675,9 +677,19 @@ func (p *Player) sampleAt(startMs int64, ms *int64, recvMs int64) int64 {
 			switch {
 			case !p.offOK:
 				p.sampleOff, p.offOK = d, true
+			case d < p.sampleOff && *ms < sampleSettleMs:
+				// Vài giây đầu (xe còn chậm, nhảy mốc không thấy): lấy ngay mức nhỏ nhất — gói đầu tới trễ bất thường
+				// (máy khựng lúc xuất phát) không được làm xe này hiện chậm cả cuộc đua.
+				p.sampleOff = d
 			case d < p.sampleOff:
-				// Gói tới nhanh hơn: hạ độ lệch dần (≤ sampleSlew mỗi gói) để mốc không nhảy làm xe vụt lên ở máy khác.
-				p.sampleOff -= min(p.sampleOff-d, sampleSlew)
+				// Gói tới nhanh hơn: hạ độ lệch dần (sampleSlew mỗi gói) để mốc không nhảy làm xe vụt lên ở máy khác; lệch
+				// lớn bất thường (máy khựng giữa cuộc đua) thì hạ 10% phần lệch mỗi gói để hết sau vài giây.
+				diff := p.sampleOff - d
+				if diff > sampleBigMs {
+					p.sampleOff -= diff / 10
+				} else {
+					p.sampleOff -= min(diff, sampleSlew)
+				}
 			}
 			// Không kẹp theo lúc nhận: gói tới nhanh hơn độ lệch đang dùng vẫn giữ đúng nhịp lấy mẫu (kẹp thì mốc của riêng
 			// gói đó bị sớm hơn các gói khác → xe chậm nửa nhịp rồi vụt lên ở máy khác).
